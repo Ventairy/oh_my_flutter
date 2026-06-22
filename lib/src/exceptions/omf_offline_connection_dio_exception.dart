@@ -12,7 +12,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// try {
 ///   await dio.get('/jobs');
 /// } on DioException catch (e) {
-///   if (e.error is OfflineConnectionException) {
+///   if (e.error is OmfOfflineConnectionDioException) {
 ///     showOfflineBanner();
 ///   }
 /// }
