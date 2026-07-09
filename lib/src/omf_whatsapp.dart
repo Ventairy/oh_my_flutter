@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Opens WhatsApp chats programmatically via deeplink.
+/// Provides WhatsApp interactions via deeplink.
 ///
 /// ```dart
 /// final whatsapp = OmfWhatsapp();

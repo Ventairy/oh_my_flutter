@@ -10,4 +10,5 @@ export 'src/extensions/omf_date_time_extension/omf_date_time_extension.dart'
     show OmfDateTimeExtension, OmfTimeAgoFallback;
 export 'src/extensions/omf_velocity_extension.dart' show OmfVelocityExtension;
 export 'src/extensions/string_extension.dart' show StringExtension;
-export 'src/whatsapp/omf_whatsapp.dart' show OmfWhatsapp;
+export 'src/omf_telephony.dart' show OmfTelephony;
+export 'src/omf_whatsapp.dart' show OmfWhatsapp;
