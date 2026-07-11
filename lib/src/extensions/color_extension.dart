@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../omf_oklch.dart';
+
 /// Shared helpers for Flutter [Color] values.
 extension ColorExtension on Color {
   /// Returns this color lightened toward white by [amount].
@@ -24,4 +26,7 @@ extension ColorExtension on Color {
         '${(g * 255).round().toRadixString(16).padLeft(2, '0')}'
         '${(b * 255).round().toRadixString(16).padLeft(2, '0')}';
   }
+
+  /// Converts this sRGB [Color] to an [OmfOklch] representation.
+  OmfOklch toOklch() => OmfOklch.fromColor(this);
 }
