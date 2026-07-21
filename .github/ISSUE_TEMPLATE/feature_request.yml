@@ -23,9 +23,3 @@ body:
       description: Explain why Flutter or Dart SDK APIs are insufficient.
     validations:
       required: true
-  - type: textarea
-    id: performance
-    attributes:
-      label: Runtime and low-resource impact
-    validations:
-      required: true
