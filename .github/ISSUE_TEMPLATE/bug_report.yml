@@ -8,25 +8,46 @@ body:
     attributes:
       label: What happened?
       description: Include the public API call, input, and complete error or result.
+      placeholder: Calling Omf... with ... returns ...
     validations:
       required: true
   - type: textarea
     id: expected
     attributes:
       label: What did you expect?
+      placeholder: The API should ...
     validations:
       required: true
   - type: textarea
     id: reproduction
     attributes:
       label: Minimal reproduction
+      placeholder: |
+        void main() {
+          final result = ...;
+        }
       render: dart
     validations:
       required: true
   - type: input
-    id: versions
+    id: package_version
     attributes:
-      label: Package, Flutter, and Dart versions
+      label: oh_my_flutter package version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: flutter_version
+    attributes:
+      label: Flutter version
+      placeholder: "3.44.0"
+    validations:
+      required: true
+  - type: input
+    id: dart_version
+    attributes:
+      label: Dart version
+      placeholder: "3.12.0"
     validations:
       required: true
   - type: checkboxes
