@@ -335,16 +335,19 @@ void main() {
         });
       });
 
-      test('when onMiss returns double and fallback is none with a missing matched bucket, it should return the onMiss double', () {
-        withClock(Clock.fixed(fixedNow), () {
-          final past = fixedNow.subtract(const Duration(hours: 5));
-          final result = past.timeAgo<double>(
-            onMiss: () => 3.14,
-          );
+      test(
+        'when onMiss returns double and fallback is none with a missing matched bucket, it should return the onMiss double',
+        () {
+          withClock(Clock.fixed(fixedNow), () {
+            final past = fixedNow.subtract(const Duration(hours: 5));
+            final result = past.timeAgo<double>(
+              onMiss: () => 3.14,
+            );
 
-          expect(result, 3.14);
-        });
-      });
+            expect(result, 3.14);
+          });
+        },
+      );
     });
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -380,18 +383,21 @@ void main() {
         });
       });
 
-      test('when the matched bucket is onYearsAgo and only onNow is supplied with fallback none, it should invoke onMiss (not onNow)', () {
-        withClock(Clock.fixed(fixedNow), () {
-          final past = DateTime.utc(2020, 7, 6, 12, 0, 0);
-          final result = past.timeAgo(
-            onNow: () => 'now',
-            onMiss: () => 'miss',
-            // no onYearsAgo
-          );
+      test(
+        'when the matched bucket is onYearsAgo and only onNow is supplied with fallback none, it should invoke onMiss (not onNow)',
+        () {
+          withClock(Clock.fixed(fixedNow), () {
+            final past = DateTime.utc(2020, 7, 6, 12, 0, 0);
+            final result = past.timeAgo(
+              onNow: () => 'now',
+              onMiss: () => 'miss',
+              // no onYearsAgo
+            );
 
-          expect(result, 'miss');
-        });
-      });
+            expect(result, 'miss');
+          });
+        },
+      );
     });
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -462,21 +468,24 @@ void main() {
         });
       });
 
-      test('when no finer callback (including onNow) is supplied and onMiss is null, it should throw ArgumentError', () {
-        withClock(Clock.fixed(fixedNow), () {
-          final past = fixedNow.subtract(const Duration(seconds: 30));
-          expect(
-            () => past.timeAgo<String>(
-              onSecondsAgo: null, // matched, missing
-              onMillisecondsAgo: null,
-              onNow: null,
-              // no onMiss
-              fallback: TimeAgoFallback.finer,
-            ),
-            throwsArgumentError,
-          );
-        });
-      });
+      test(
+        'when no finer callback (including onNow) is supplied and onMiss is null, it should throw ArgumentError',
+        () {
+          withClock(Clock.fixed(fixedNow), () {
+            final past = fixedNow.subtract(const Duration(seconds: 30));
+            expect(
+              () => past.timeAgo<String>(
+                onSecondsAgo: null, // matched, missing
+                onMillisecondsAgo: null,
+                onNow: null,
+                // no onMiss
+                fallback: TimeAgoFallback.finer,
+              ),
+              throwsArgumentError,
+            );
+          });
+        },
+      );
     });
 
     // ─────────────────────────────────────────────────────────────────────────

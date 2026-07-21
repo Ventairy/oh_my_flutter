@@ -9,7 +9,7 @@ void main() {
 
     setUp(() {
       capturedUri = Uri.parse('about:blank');
-      fakeLauncher = (Uri uri) async {
+      fakeLauncher = (uri) async {
         capturedUri = uri;
         return true;
       };

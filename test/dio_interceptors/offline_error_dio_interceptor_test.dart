@@ -196,6 +196,16 @@ void main() {
           throwsA(isA<DioException>().having((e) => e.type, 'type', DioExceptionType.cancel)),
         );
       });
+
+      test('when the dio error is transformTimeout, '
+          'it should preserve the original DioException unchanged', () async {
+        buildDio(type: DioExceptionType.transformTimeout, message: 'Transformation timed out');
+
+        await expectLater(
+          dioWithInterceptor.get<void>('/jobs'),
+          throwsA(isA<DioException>().having((e) => e.type, 'type', DioExceptionType.transformTimeout)),
+        );
+      });
     });
 
     test('when the request fails offline, '

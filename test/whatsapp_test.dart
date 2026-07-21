@@ -11,7 +11,7 @@ void main() {
 
       setUp(() {
         capturedUris = [];
-        fakeLauncher = (Uri uri) async {
+        fakeLauncher = (uri) async {
           capturedUris.add(uri);
           return true;
         };
@@ -153,7 +153,7 @@ void main() {
         setUp(() {
           capturedUris = [];
           whatsapp = Whatsapp.test(
-            launcher: (Uri uri) async {
+            launcher: (uri) async {
               capturedUris.add(uri);
               return true;
             },
@@ -224,7 +224,7 @@ void main() {
         setUp(() {
           capturedUris = [];
           whatsapp = Whatsapp.test(
-            launcher: (Uri uri) async {
+            launcher: (uri) async {
               capturedUris.add(uri);
               return capturedUris.length == 2;
             },
@@ -250,7 +250,7 @@ void main() {
         test('when the native scheme throws a PlatformException, '
             'it should fall back to https://wa.me', () async {
           final whatsapp = Whatsapp.test(
-            launcher: (Uri uri) async {
+            launcher: (uri) async {
               capturedUris.add(uri);
               if (capturedUris.length == 1) {
                 throw PlatformException(code: 'ACTIVITY_NOT_FOUND', message: 'No Activity found');

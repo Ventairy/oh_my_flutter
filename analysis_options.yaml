@@ -1,1 +1,20 @@
-include: ../../analysis_options.yaml
+include: package:very_good_analysis/analysis_options.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+formatter:
+  page_width: 120
+
+linter:
+  rules:
+    always_use_package_imports: false
+    avoid_catches_without_on_clauses: false
+    avoid_redundant_argument_values: false
+    lines_longer_than_80_chars: false
+    no_leading_underscores_for_local_identifiers: false
+    one_member_abstracts: false
+    public_member_api_docs: true

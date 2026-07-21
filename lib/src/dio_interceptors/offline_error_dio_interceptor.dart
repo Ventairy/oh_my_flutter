@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:meta/meta.dart';
@@ -46,18 +48,19 @@ class OfflineErrorDioInterceptor extends Interceptor {
       return;
     }
 
-    _internetConnection.hasInternetAccess
-        .timeout(_checkTimeout)
-        .then((online) {
-          if (online) {
-            handler.next(err);
-          } else {
-            handler.next(_wrapWithOfflineException(err));
-          }
-        })
-        .catchError((_) {
-          handler.next(_wrapWithOfflineException(err));
-        });
+    unawaited(_resolveConnectivityError(error: err, handler: handler));
+  }
+
+  Future<void> _resolveConnectivityError({
+    required DioException error,
+    required ErrorInterceptorHandler handler,
+  }) async {
+    try {
+      final isOnline = await _internetConnection.hasInternetAccess.timeout(_checkTimeout);
+      handler.next(isOnline ? error : _wrapWithOfflineException(error));
+    } on Object {
+      handler.next(_wrapWithOfflineException(error));
+    }
   }
 
   /// Returns `true` when the error type could indicate a connection issue.
@@ -74,6 +77,7 @@ class OfflineErrorDioInterceptor extends Interceptor {
       DioExceptionType.connectionTimeout => true,
       DioExceptionType.receiveTimeout => true,
       DioExceptionType.sendTimeout => true,
+      DioExceptionType.transformTimeout => false,
       DioExceptionType.unknown => true,
     };
   }

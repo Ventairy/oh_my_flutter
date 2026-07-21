@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: Quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: dart pub global activate fvm
+      - run: make setup
+      - run: make check
+      - run: make pana
+
+  cross-platform:
+    name: Test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: dart pub global activate fvm
+      - run: fvm flutter pub get --enforce-lockfile
+      - run: fvm flutter test
+
+  minimum-dependencies:
+    name: Minimum dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: dart pub global activate fvm
+      - run: fvm flutter pub downgrade
+      - run: fvm flutter analyze --fatal-infos
+      - run: fvm flutter test
+
+  required:
+    name: Required
+    if: always()
+    needs: [quality, cross-platform, minimum-dependencies]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every CI job
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          CROSS_PLATFORM_RESULT: ${{ needs.cross-platform.result }}
+          MINIMUM_DEPENDENCIES_RESULT: ${{ needs.minimum-dependencies.result }}
+        run: |
+          test "$QUALITY_RESULT" = "success"
+          test "$CROSS_PLATFORM_RESULT" = "success"
+          test "$MINIMUM_DEPENDENCIES_RESULT" = "success"

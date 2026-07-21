@@ -1,0 +1,15 @@
+.agents/
+.dart_tool/
+.fvm/
+.github/
+.gitignore
+.fvmrc
+.vscode/
+AGENTS.md
+Makefile
+build/
+coverage/
+doc/api/
+pubspec.lock
+pubspec_overrides.yaml
+skills-lock.json

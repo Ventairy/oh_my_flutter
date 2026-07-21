@@ -1,0 +1,22 @@
+name: oh_my_flutter_example
+description: Demonstrates the public oh_my_flutter APIs.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.12.0 <4.0.0"
+
+dependencies:
+  clock: ^1.1.2
+  flutter:
+    sdk: flutter
+  oh_my_flutter:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  very_good_analysis: ">=7.0.0 <11.0.0"
+
+flutter:
+  uses-material-design: true

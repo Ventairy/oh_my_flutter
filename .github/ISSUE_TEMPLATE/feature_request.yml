@@ -1,0 +1,31 @@
+name: Feature request
+description: Propose a focused, portable Flutter utility.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What portable Flutter problem cannot be solved cleanly today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API and behavior
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: SDK alternatives considered
+      description: Explain why Flutter or Dart SDK APIs are insufficient.
+    validations:
+      required: true
+  - type: textarea
+    id: performance
+    attributes:
+      label: Runtime and low-resource impact
+    validations:
+      required: true

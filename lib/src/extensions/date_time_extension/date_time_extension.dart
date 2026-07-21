@@ -95,18 +95,14 @@ extension DateTimeExtension on DateTime {
     final candidates = switch (fallback) {
       TimeAgoFallback.none => <_TimeAgoBucket>[],
       TimeAgoFallback.finer => [
-        for (var i = matchedBucket.index + 1; i <= _TimeAgoBucket.now.index; i++)
-          _TimeAgoBucket.values[i],
+        for (var i = matchedBucket.index + 1; i <= _TimeAgoBucket.now.index; i++) _TimeAgoBucket.values[i],
       ],
       TimeAgoFallback.coarser => [
-        for (var i = matchedBucket.index - 1; i >= 0; i--)
-          _TimeAgoBucket.values[i],
+        for (var i = matchedBucket.index - 1; i >= 0; i--) _TimeAgoBucket.values[i],
       ],
       TimeAgoFallback.bidirectional => [
-        for (var i = matchedBucket.index + 1; i <= _TimeAgoBucket.milliseconds.index; i++)
-          _TimeAgoBucket.values[i],
-        for (var i = matchedBucket.index - 1; i >= 0; i--)
-          _TimeAgoBucket.values[i],
+        for (var i = matchedBucket.index + 1; i <= _TimeAgoBucket.milliseconds.index; i++) _TimeAgoBucket.values[i],
+        for (var i = matchedBucket.index - 1; i >= 0; i--) _TimeAgoBucket.values[i],
         _TimeAgoBucket.now,
       ],
     };

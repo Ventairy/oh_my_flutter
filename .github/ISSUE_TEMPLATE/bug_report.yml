@@ -1,0 +1,38 @@
+name: Bug report
+description: Report reproducible incorrect utility behavior.
+title: "fix: "
+labels: [bug]
+body:
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Include the public API call, input, and complete error or result.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      render: dart
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: Package, Flutter, and Dart versions
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched existing issues and discussions.
+          required: true

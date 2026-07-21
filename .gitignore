@@ -1,0 +1,21 @@
+# Dart and Flutter
+.dart_tool/
+.packages
+.flutter-plugins-dependencies
+build/
+doc/api/
+
+# FVM
+.fvm/
+
+# Coverage
+coverage/
+
+# Local dependency resolution
+pubspec_overrides.yaml
+
+# Editors and operating systems
+.DS_Store
+.idea/
+*.iml
+.vscode/settings.json

@@ -26,10 +26,10 @@ final class Oklch {
   /// Alpha is intentionally outside this value type's scope.
   const Oklch(this.l, this.c, this.h);
 
-  /// Lightness in [0, 1].
+  /// Lightness in the inclusive range `0–1`.
   final double l;
 
-  /// Chroma (saturation intensity) in [0, ~0.37] for sRGB.
+  /// Chroma (saturation intensity), typically `0–0.37` for sRGB.
   final double c;
 
   /// Hue in degrees [0, 360).
