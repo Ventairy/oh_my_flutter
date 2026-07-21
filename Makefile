@@ -23,6 +23,7 @@ coverage:
 	fvm flutter test --coverage
 
 docs:
+	rm -rf doc/api
 	fvm dart doc --validate-links
 
 example:
