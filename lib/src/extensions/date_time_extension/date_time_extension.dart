@@ -75,9 +75,7 @@ extension DateTimeExtension on DateTime {
       matchedBucket = _TimeAgoBucket.days;
     } else {
       final months = _elapsedMonths(now, this);
-      matchedBucket = months < 12
-          ? _TimeAgoBucket.months
-          : _TimeAgoBucket.years;
+      matchedBucket = months < 12 ? _TimeAgoBucket.months : _TimeAgoBucket.years;
     }
 
     T? invoke(_TimeAgoBucket bucket) => switch (bucket) {
@@ -99,26 +97,14 @@ extension DateTimeExtension on DateTime {
     final candidates = switch (fallback) {
       TimeAgoFallback.none => <_TimeAgoBucket>[],
       TimeAgoFallback.finer => [
-        for (
-          var i = matchedBucket.index + 1;
-          i <= _TimeAgoBucket.now.index;
-          i++
-        )
-          _TimeAgoBucket.values[i],
+        for (var i = matchedBucket.index + 1; i <= _TimeAgoBucket.now.index; i++) _TimeAgoBucket.values[i],
       ],
       TimeAgoFallback.coarser => [
-        for (var i = matchedBucket.index - 1; i >= 0; i--)
-          _TimeAgoBucket.values[i],
+        for (var i = matchedBucket.index - 1; i >= 0; i--) _TimeAgoBucket.values[i],
       ],
       TimeAgoFallback.bidirectional => [
-        for (
-          var i = matchedBucket.index + 1;
-          i <= _TimeAgoBucket.milliseconds.index;
-          i++
-        )
-          _TimeAgoBucket.values[i],
-        for (var i = matchedBucket.index - 1; i >= 0; i--)
-          _TimeAgoBucket.values[i],
+        for (var i = matchedBucket.index + 1; i <= _TimeAgoBucket.milliseconds.index; i++) _TimeAgoBucket.values[i],
+        for (var i = matchedBucket.index - 1; i >= 0; i--) _TimeAgoBucket.values[i],
         _TimeAgoBucket.now,
       ],
     };

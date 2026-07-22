@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.2.0
+  oh_my_flutter: ^0.3.0
 ```
 
 Import the public library wherever you need it:
@@ -100,6 +100,59 @@ void handleDragEnd(DragEndDetails details) {
 
 The methods classify velocity only. The consuming interaction remains
 responsible for distance, progress, and whether the action is allowed.
+
+### Control widget visibility
+
+Use `ControlledVisibility` when parent code should show or hide a child while
+the application retains control of its visual transition. Without a transition,
+visibility changes immediately.
+
+```dart
+final visibilityController = ControlledVisibilityController();
+
+ControlledVisibility(
+  controller: visibilityController,
+  showDuration: const Duration(milliseconds: 240),
+  hideDuration: const Duration(milliseconds: 120),
+  showTransition: (child, animation) => FadeTransition(
+    opacity: CurveTween(curve: Curves.easeOutCubic).animate(animation),
+    child: child,
+  ),
+  hideTransition: (child, animation) => FadeTransition(
+    opacity: animation,
+    child: child,
+  ),
+  child: const Text('More details'),
+);
+
+visibilityController.show();
+visibilityController.hide();
+```
+
+Set `unmount: true` when hidden content should be disposed instead of retaining
+its state and layout. Timing, lifecycle, callback, and reduced-motion behavior
+are documented in the [API reference][api].
+
+### Wait for route motion to settle
+
+Use `RouteSettled` for controls or route chrome that should appear only after
+the current route finishes moving and while no navigator gesture is active.
+It has no built-in visual treatment: provide either direction's transition only
+when the application needs one.
+
+```dart
+RouteSettled(
+  showTransition: (child, animation) => FadeTransition(
+    opacity: animation,
+    child: child,
+  ),
+  child: const CloseButton(),
+)
+```
+
+Showing takes 300 ms by default when a show transition exists. Hiding is
+immediate by default. Without an enclosing route, the child is treated as
+settled and shown.
 
 ### Represent offline Dio failures
 

@@ -29,6 +29,16 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 
 ## Architecture and code
 
+- Keep one class per file, except for a `StatefulWidget` and its `State` class.
+  Keep those two classes together in the widget's file for easier reading; do
+  not split the state class into a `part of` file. Other additional classes in
+  the same library must live in separate `part of` files.
+- Place libraries that use `part` or `part of`, and other closely related
+  source files, in a dedicated folder. Keep the owning library and its related
+  files together in that folder.
+- Do not declare typedefs or callback aliases used in only one place. Write the
+  function type inline at the callback definition. When an alias is reused,
+  declare it in a `*_types.dart` file that is part of the owning library.
 - Extensions belong under `lib/src/extensions`; keep one canonical extension per target type.
 - Network behavior belongs under `lib/src/dio_interceptors` and domain-specific
   failures under `lib/src/exceptions`.

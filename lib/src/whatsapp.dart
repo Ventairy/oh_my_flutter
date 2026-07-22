@@ -110,9 +110,7 @@ class Whatsapp {
       scheme: 'https',
       host: 'wa.me',
       path: '/$digits',
-      queryParameters: (message != null && message.isNotEmpty)
-          ? <String, String>{'text': message}
-          : null,
+      queryParameters: (message != null && message.isNotEmpty) ? <String, String>{'text': message} : null,
     );
   }
 }

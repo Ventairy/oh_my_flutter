@@ -1,6 +1,6 @@
 name: oh_my_flutter
-description: Focused Flutter utilities for colors, time, gestures, connectivity, telephony, and WhatsApp links.
-version: 0.2.0
+description: Empower Flutter with utilities that make development 10x faster.
+version: 0.3.0
 homepage: https://github.com/Ventairy/oh_my_flutter
 repository: https://github.com/Ventairy/oh_my_flutter
 issue_tracker: https://github.com/Ventairy/oh_my_flutter/issues
@@ -9,6 +9,7 @@ topics:
   - flutter
   - utilities
   - extensions
+  - widgets
 
 environment:
   sdk: ">=3.12.0 <4.0.0"

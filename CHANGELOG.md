@@ -1,3 +1,12 @@
+## 0.3.0
+
+- Add controller-driven `ControlledVisibility` with independent caller-owned
+  show and hide transitions, configurable timing, reduced-motion handling, and
+  mounted or unmounted hidden-state behavior.
+- Add `RouteSettled` for showing route content only after navigation motion and
+  user gestures finish, with optional direction-specific transitions.
+- Improve pubspec description.
+
 ## 0.2.0
 
 - **Breaking:** Remove `StringExtension.hexToColor()`. Use Flutter `Color`

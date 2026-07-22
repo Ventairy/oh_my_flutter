@@ -96,9 +96,7 @@ extension VelocityExtension on Velocity {
     final verticalVelocity = pixelsPerSecond.dy.abs();
     if (verticalVelocity < minVelocity) return false;
 
-    final hasRequiredAxisDominance =
-        !requireVerticalDominance ||
-        verticalVelocity > pixelsPerSecond.dx.abs();
+    final hasRequiredAxisDominance = !requireVerticalDominance || verticalVelocity > pixelsPerSecond.dx.abs();
     return hasRequiredAxisDominance;
   }
 
@@ -112,9 +110,7 @@ extension VelocityExtension on Velocity {
     final horizontalVelocity = pixelsPerSecond.dx.abs();
     if (horizontalVelocity < minVelocity) return false;
 
-    final hasRequiredAxisDominance =
-        !requireHorizontalDominance ||
-        horizontalVelocity > pixelsPerSecond.dy.abs();
+    final hasRequiredAxisDominance = !requireHorizontalDominance || horizontalVelocity > pixelsPerSecond.dy.abs();
     return hasRequiredAxisDominance;
   }
 }

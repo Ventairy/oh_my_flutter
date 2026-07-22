@@ -80,9 +80,7 @@ final class _OklchConverter {
   }
 
   static double _fromLinear(double channel, {required bool clamp}) {
-    final encoded = channel <= 0.0031308
-        ? 12.92 * channel
-        : 1.055 * math.pow(channel, 1 / 2.4) - 0.055;
+    final encoded = channel <= 0.0031308 ? 12.92 * channel : 1.055 * math.pow(channel, 1 / 2.4) - 0.055;
     if (!clamp) return encoded;
     return encoded.clamp(0.0, 1.0);
   }
@@ -103,16 +101,9 @@ final class _OklchConverter {
       case ColorSpace.extendedSRGB:
         return _linearSrgbToOklab(red, green, blue);
       case ColorSpace.displayP3:
-        final x =
-            0.4865709486482162 * red +
-            0.26566769316909306 * green +
-            0.1982172852343625 * blue;
-        final y =
-            0.2289745640697488 * red +
-            0.6917385218365064 * green +
-            0.079286914093745 * blue;
-        final z =
-            0.0 * red + 0.04511338185890264 * green + 1.043944368900976 * blue;
+        final x = 0.4865709486482162 * red + 0.26566769316909306 * green + 0.1982172852343625 * blue;
+        final y = 0.2289745640697488 * red + 0.6917385218365064 * green + 0.079286914093745 * blue;
+        final z = 0.0 * red + 0.04511338185890264 * green + 1.043944368900976 * blue;
         return _xyzToOklab(x, y, z);
     }
   }
@@ -196,27 +187,16 @@ final class _OklchConverter {
             0.11919477979462598 * linearSrgb.$2 +
             0.9505321522496607 * linearSrgb.$3;
         return (
-          2.493496911941425 * x -
-              0.9313836179191239 * y -
-              0.40271078445071684 * z,
-          -0.8294889695615747 * x +
-              1.7626640603183463 * y +
-              0.023624685841943577 * z,
-          0.03584583024378447 * x -
-              0.07617238926804182 * y +
-              0.9568845240076872 * z,
+          2.493496911941425 * x - 0.9313836179191239 * y - 0.40271078445071684 * z,
+          -0.8294889695615747 * x + 1.7626640603183463 * y + 0.023624685841943577 * z,
+          0.03584583024378447 * x - 0.07617238926804182 * y + 0.9568845240076872 * z,
         );
     }
   }
 
   static bool _isInGamut((double, double, double) linearRgb) {
     final (red, green, blue) = linearRgb;
-    return red >= 0 &&
-        red <= 1 &&
-        green >= 0 &&
-        green <= 1 &&
-        blue >= 0 &&
-        blue <= 1;
+    return red >= 0 && red <= 1 && green >= 0 && green <= 1 && blue >= 0 && blue <= 1;
   }
 
   static (double, double, double) _mapToGamut(
@@ -275,9 +255,7 @@ final class _OklchConverter {
     final aDifference = a - clippedOklab.$2;
     final bDifference = b - clippedOklab.$3;
     return math.sqrt(
-      lightnessDifference * lightnessDifference +
-          aDifference * aDifference +
-          bDifference * bDifference,
+      lightnessDifference * lightnessDifference + aDifference * aDifference + bDifference * bDifference,
     );
   }
 
