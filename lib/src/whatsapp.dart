@@ -9,12 +9,15 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// await whatsapp.launchChat(
 ///   number: '+55 11 98888-7777',
-///   message: 'Olá, encontrei você no Cataquí!',
+///   message: 'Hello! I would like more information.',
 /// );
 /// ```
 ///
 /// The default constructor wires [launchUrl] from `url_launcher`. Use
 /// [Whatsapp.test] to inject a controllable launcher in tests.
+///
+/// The utility sanitizes URI syntax but does not validate whether a number
+/// exists or infer a missing country code.
 class Whatsapp {
   /// Creates an [Whatsapp] that delegates to the platform's deeplink
   /// launcher ([launchUrl] via `url_launcher`).

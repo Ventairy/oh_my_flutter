@@ -17,11 +17,18 @@ import '../exceptions/offline_connection_dio_exception.dart';
 /// try {
 ///   await dio.get('/jobs');
 /// } on DioException catch (e) {
-///   if (e.error is OfflineConnectionException) {
+///   if (e.error is OfflineConnectionDioException) {
 ///     // device is offline
 ///   }
 /// }
 /// ```
+///
+/// Connection, request timeout, response timeout, response, and unknown errors
+/// trigger a real internet-access probe with a five-second timeout. If the
+/// probe reports online, the original exception continues unchanged. If it
+/// reports offline, throws, or times out, the interceptor places an
+/// [OfflineConnectionDioException] in [DioException.error]. Certificate,
+/// cancellation, and transform-timeout errors skip the probe.
 class OfflineErrorDioInterceptor extends Interceptor {
   /// Creates an [OfflineErrorDioInterceptor] that probes real connectivity
   factory OfflineErrorDioInterceptor() {

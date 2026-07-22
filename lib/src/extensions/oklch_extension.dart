@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../oklch/oklch.dart';
 
-/// Extension on [Oklch] to convert back to a Flutter [Color].
+/// Utilities for [Oklch] values.
 extension OklchExtension on Oklch {
   /// Returns this OKLCH color in [colorSpace], which defaults to sRGB.
   Color toColor({ColorSpace colorSpace = ColorSpace.sRGB}) =>

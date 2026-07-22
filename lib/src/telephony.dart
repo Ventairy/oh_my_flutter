@@ -10,6 +10,9 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// The default constructor wires [launchUrl] from `url_launcher`. Use
 /// [Telephony.test] to inject a controllable launcher in tests.
+///
+/// The utility sanitizes URI syntax but does not validate whether a number
+/// exists or infer a missing country code.
 class Telephony {
   /// Creates an [Telephony] that delegates to the platform's URI
   /// launcher ([launchUrl] via `url_launcher`).

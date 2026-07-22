@@ -8,11 +8,11 @@ part '_oklch_converter.dart';
 /// An OKLCH color representation (lightness, chroma, hue).
 ///
 /// OKLCH is a perceptually uniform color space where equal steps in
-/// lightness _look_ equal. It is the modern standard for building color
-/// systems (used by Tailwind v4, Radix UI, Stripe, and others).
+/// lightness are intended to produce visually consistent changes. This makes
+/// it useful for generating palettes and adjusting colors perceptually.
 ///
 /// ```dart
-/// final oklch = Color(0xFFFF4A4B).toOklch;
+/// final oklch = const Color(0xFFFF4A4B).toOklch();
 /// print(oklch.l); // 0.65 (lightness)
 /// print(oklch.c); // 0.23 (chroma)
 /// print(oklch.h); // 28.0 (hue in degrees)
