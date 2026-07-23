@@ -1,3 +1,7 @@
+## 0.3.2
+
+- Remove the root package lockfile from version control.
+
 ## 0.3.1
 
 - Align the package's explicit formatter settings with `pana` so local and

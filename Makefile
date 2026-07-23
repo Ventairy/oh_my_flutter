@@ -4,7 +4,7 @@ SHELL := /bin/bash
 
 setup:
 	fvm install
-	fvm flutter pub get --enforce-lockfile
+	fvm flutter pub upgrade
 	cd example && fvm flutter pub get --enforce-lockfile
 
 format:

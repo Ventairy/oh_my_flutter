@@ -12,6 +12,7 @@ doc/api/
 coverage/
 
 # Local dependency resolution
+/pubspec.lock
 pubspec_overrides.yaml
 
 # Editors and operating systems

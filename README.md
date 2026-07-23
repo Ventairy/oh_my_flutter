@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.3.1
+  oh_my_flutter: ^0.3.2
 ```
 
 Import the public library wherever you need it:

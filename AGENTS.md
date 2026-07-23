@@ -8,8 +8,12 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 ## Environment and commands
 
 - Use Flutter 3.44.0 through FVM. Never invoke an untracked global Flutter SDK.
-- Use the committed `pubspec.lock` for deterministic development and CI.
+- Do not commit the root `pubspec.lock`; resolve the package's newest compatible
+  dependencies during normal development and CI. Commit `example/pubspec.lock`
+  and enforce it for the runnable example application.
 - Use the root Makefile; this repository does not use Melos.
+- Keep the Makefile as a local developer interface. GitHub Actions workflows
+  must run the underlying FVM commands directly instead of invoking Make targets.
 - Run `make check` before every pull request and `make pana` for publication changes.
 
 ## Public API

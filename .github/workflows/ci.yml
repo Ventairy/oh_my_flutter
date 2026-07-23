@@ -21,9 +21,19 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
       - run: dart pub global activate fvm
-      - run: make setup
-      - run: make check
-      - run: make pana
+      - run: fvm install
+      - run: fvm flutter pub upgrade
+      - run: fvm flutter pub get --enforce-lockfile
+        working-directory: example
+      - run: fvm dart format --output none --set-exit-if-changed lib test example/lib/main.dart
+      - run: fvm flutter analyze --fatal-infos
+      - run: fvm flutter test
+      - run: fvm dart doc --validate-links
+      - run: fvm flutter analyze --fatal-infos
+        working-directory: example
+      - run: fvm flutter pub publish --dry-run
+      - run: fvm dart pub global activate pana
+      - run: fvm dart pub global run pana .
 
   cross-platform:
     name: Test (${{ matrix.os }})
@@ -40,7 +50,7 @@ jobs:
           flutter-version-file: .fvmrc
           cache: true
       - run: dart pub global activate fvm
-      - run: fvm flutter pub get --enforce-lockfile
+      - run: fvm flutter pub upgrade
       - run: fvm flutter test
 
   minimum-dependencies:
