@@ -15,7 +15,14 @@ class UtilityExample extends StatefulWidget {
 
 class _UtilityExampleState extends State<UtilityExample> {
   final _visibilityController = ControlledVisibilityController();
+  final _sequenceController = SequenceController();
   bool _detailsVisible = false;
+
+  @override
+  void dispose() {
+    _sequenceController.dispose();
+    super.dispose();
+  }
 
   void _toggleDetails() {
     setState(() => _detailsVisible = !_detailsVisible);
@@ -75,6 +82,47 @@ class _UtilityExampleState extends State<UtilityExample> {
                   child: child,
                 ),
                 child: const Text('Visibility remains application-controlled.'),
+              ),
+              const SizedBox(height: 24),
+              Sequence(
+                controller: _sequenceController,
+                nextTransition: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: child,
+                ),
+                previousTransition: (child, animation) => ScaleTransition(
+                  scale: animation,
+                  child: child,
+                ),
+                children: const [
+                  Text('Sequence step one'),
+                  Text('Sequence step two'),
+                  Text('Sequence step three'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              AnimatedBuilder(
+                animation: _sequenceController,
+                builder: (context, child) {
+                  final sequence = _sequenceController;
+                  final index = sequence.index;
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        onPressed: index == 0 ? null : sequence.previous,
+                        tooltip: 'Previous step',
+                        icon: const Icon(Icons.arrow_back),
+                      ),
+                      Text('Step ${index + 1} of 3'),
+                      IconButton(
+                        onPressed: index == 2 ? null : sequence.next,
+                        tooltip: 'Next step',
+                        icon: const Icon(Icons.arrow_forward),
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
               RouteSettled(

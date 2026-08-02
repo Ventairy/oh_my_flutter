@@ -133,6 +133,51 @@ Set `unmount: true` when hidden content should be disposed instead of retaining
 its state and layout. Timing, lifecycle, callback, and reduced-motion behavior
 are documented in the [API reference][api].
 
+### Show widgets in sequence
+
+Use `Sequence` for an ordered flow that displays one child at a time. Its
+controller supports sequential movement and indexed navigation, and exposes
+the selected index for controls and progress indicators.
+
+```dart
+final sequenceController = SequenceController();
+
+Sequence(
+  controller: sequenceController,
+  alignment: AlignmentDirectional.topStart,
+  nextTransition: (child, animation) => FadeTransition(
+    opacity: animation,
+    child: child,
+  ),
+  previousTransition: (child, animation) => ScaleTransition(
+    scale: animation,
+    child: child,
+  ),
+  children: const [
+    Text('Account'),
+    Text('Preferences'),
+    Text('Review'),
+  ],
+);
+
+sequenceController.next();
+sequenceController.previous();
+sequenceController.goTo(2);
+```
+
+Navigation is immediate when its directional transition is omitted. Set
+`keepMounted: true` only when inactive steps must preserve local widget state:
+retained steps stay in memory and are still laid out offstage. With the default
+`false`, only the current and transitioning steps are mounted.
+
+During a transition, differently sized steps share the largest participant's
+size and use `alignment`, which defaults to the directional top-start. A parent
+such as `Center` can still move the whole `Sequence` as that outer size changes;
+use stable parent constraints when the sequence needs a fixed external anchor.
+For low-end devices, prefer paint or compositing transitions such as fade,
+slide, and scale instead of builders that trigger layout on every frame.
+Dispose an externally owned controller when its owner is disposed.
+
 ### Wait for route motion to settle
 
 Use `RouteSettled` for controls or route chrome that should appear only after

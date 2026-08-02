@@ -1,3 +1,11 @@
+## Unreleased
+
+- Add controller-driven `Sequence` for displaying ordered widgets one at a
+  time, with indexed navigation, optional directional transitions, and
+  configurable child-state retention. Its lazy entry lifecycle limits mounted
+  and animated work to participating children by default, while configurable
+  alignment anchors differently sized transition participants.
+
 ## 0.3.2
 
 - Remove the root package lockfile from version control.
