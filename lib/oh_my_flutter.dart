@@ -19,4 +19,15 @@ export 'src/telephony.dart' show Telephony;
 export 'src/whatsapp.dart' show Whatsapp;
 export 'src/widgets/controlled_visibility/controlled_visibility.dart'
     show ControlledVisibility, ControlledVisibilityController;
+export 'src/widgets/motion/motion.dart'
+    show
+        FadeInMotionEffect,
+        FloatingMotionEffect,
+        Motion,
+        MotionEffect,
+        MotionPlayback,
+        MoveMotionEffect,
+        ScaleInMotionEffect;
+export 'src/widgets/pause_animations/pause_animations.dart' show PauseAnimations;
 export 'src/widgets/route_settled/route_settled.dart' show RouteSettled;
+export 'src/widgets/sequence/sequence.dart' show Sequence, SequenceController, SequenceTransitionBuilder;

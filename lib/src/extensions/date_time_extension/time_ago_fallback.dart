@@ -66,14 +66,3 @@ enum TimeAgoFallback {
   /// throw).
   bidirectional,
 }
-
-enum _TimeAgoBucket {
-  years,
-  months,
-  days,
-  hours,
-  minutes,
-  seconds,
-  milliseconds,
-  now,
-}
