@@ -62,6 +62,50 @@ class _UtilityExampleState extends State<UtilityExample> {
                 ),
               ),
               const SizedBox(height: 24),
+              const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  PauseAnimations.temporarily(
+                    duration: Duration(milliseconds: 300),
+                    child: Motion.list(
+                      effects: [
+                        FadeInMotionEffect(),
+                        ScaleInMotionEffect(
+                          scale: 0.7,
+                          delay: Duration(milliseconds: 80),
+                        ),
+                      ],
+                      child: Icon(Icons.visibility_outlined, size: 32),
+                    ),
+                  ),
+                  SizedBox(width: 24),
+                  Motion(
+                    effect: ScaleInMotionEffect(
+                      scale: 0.4,
+                      delay: Duration(milliseconds: 100),
+                    ),
+                    child: Icon(Icons.check_circle_outline, size: 32),
+                  ),
+                  SizedBox(width: 24),
+                  Motion(
+                    effect: MoveMotionEffect(
+                      begin: Offset(-24, 0),
+                      end: Offset.zero,
+                      duration: Duration(milliseconds: 500),
+                      delay: Duration(milliseconds: 150),
+                    ),
+                    child: Icon(Icons.arrow_forward, size: 32),
+                  ),
+                  SizedBox(width: 24),
+                  Motion(
+                    effect: FloatingMotionEffect(
+                      delay: Duration(milliseconds: 300),
+                    ),
+                    child: Icon(Icons.cloud_outlined, size: 40),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
               FilledButton(
                 onPressed: _toggleDetails,
                 child: Text(_detailsVisible ? 'Hide details' : 'Show details'),

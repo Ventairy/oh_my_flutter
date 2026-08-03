@@ -1,5 +1,13 @@
-## Unreleased
+## 0.4.0
 
+- Add extensible single- and multi-effect `Motion` composition with one-shot
+  and looping playback, including independent per-effect startup delays, the
+  built-in `FadeInMotionEffect`,
+  `ScaleInMotionEffect`, paint-only `MoveMotionEffect` and
+  `FloatingMotionEffect`, reduced-motion handling, a shared frame scheduler,
+  optional interaction blocking during playback and render-layer transforms.
+- Add `PauseAnimations` for muting subtree ticker callbacks either explicitly
+  or for a fixed duration.
 - Add controller-driven `Sequence` for displaying ordered widgets one at a
   time, with indexed navigation, optional directional transitions, and
   configurable child-state retention. Its lazy entry lifecycle limits mounted

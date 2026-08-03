@@ -40,6 +40,9 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 - Place libraries that use `part` or `part of`, and other closely related
   source files, in a dedicated folder. Keep the owning library and its related
   files together in that folder.
+- Keep each enum in its own file with no other declarations. Name the file
+  after the enum in snake case, such as `MotionPlayback` in
+  `motion_playback.dart`.
 - Do not declare typedefs or callback aliases used in only one place. Write the
   function type inline at the callback definition. When an alias is reused,
   declare it in a `*_types.dart` file that is part of the owning library.

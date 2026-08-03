@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.3.2
+  oh_my_flutter: ^0.4.0
 ```
 
 Import the public library wherever you need it:
@@ -132,6 +132,126 @@ visibilityController.hide();
 Set `unmount: true` when hidden content should be disposed instead of retaining
 its state and layout. Timing, lifecycle, callback, and reduced-motion behavior
 are documented in the [API reference][api].
+
+### Add lightweight motion
+
+Wrap any widget with `Motion` and an effect to add a reusable visual motion
+treatment. `FloatingMotionEffect` creates a subtle, continuous vertical float
+without changing the child's layout:
+
+```dart
+const Motion(
+  effect: FloatingMotionEffect(
+    delay: Duration(milliseconds: 300),
+  ),
+  child: Icon(Icons.cloud_outlined),
+)
+```
+
+Use an effect's `delay` to wait before its playback. Customize the floating
+distance, cycle duration, or timing curve on the effect. Effects own
+configuration only; `Motion` owns the animation lifecycle and respects the
+platform's reduced-motion preference.
+
+Fade or scale a widget in, or move it between logical-pixel offsets with the
+other built-in effects:
+
+```dart
+const Motion(
+  effect: FadeInMotionEffect(),
+  child: Text('Ready'),
+)
+
+const Motion(
+  effect: ScaleInMotionEffect(scale: 0.6),
+  child: Icon(Icons.check),
+)
+
+const Motion(
+  effect: MoveMotionEffect(
+    begin: Offset(-24, 0),
+    end: Offset.zero,
+  ),
+  child: Icon(Icons.arrow_forward),
+)
+```
+
+Run effects concurrently or stagger them with independent delays while sharing
+one motion lifecycle and scheduler entry:
+
+```dart
+const Motion.list(
+  effects: [
+    FadeInMotionEffect(),
+    ScaleInMotionEffect(
+      scale: 0.6,
+      delay: Duration(milliseconds: 80),
+    ),
+  ],
+  child: Text('Ready'),
+)
+```
+
+The first effect is closest to the child, and each following effect wraps the
+result. Keep the effects list immutable after passing it to `Motion.list`.
+By default, pointer interaction is ignored while any effect is playing. Set
+`interactive: true` to let the child receive taps during playback. Delays and
+completed one-shot effects remain interactive.
+
+Create a one-shot or looping effect by extending `MotionEffect` and composing a
+Flutter transition around the supplied animation and child:
+
+```dart
+class RotateInMotionEffect extends MotionEffect {
+  const RotateInMotionEffect()
+    : super(duration: const Duration(milliseconds: 240));
+
+  @override
+  Widget buildTransition(
+    BuildContext context,
+    Animation<double> animation,
+    Widget child,
+  ) {
+    return RotationTransition(turns: animation, child: child);
+  }
+}
+```
+
+One-shot effects run once per mounted `Motion`; assign a new key when an effect
+should replay. Looping effects should render equivalent states at progress `0`
+and `1` so their cycles remain seamless.
+
+`Motion` uses one shared frame callback for every active instance and one
+scheduler entry per widget, even when it applies multiple effects. The built-in
+move, scale, and floating effects listen at the render layer, so frames do not
+rebuild or lay out their transition or child widgets. Delayed, completed,
+reduced-motion, and `TickerMode`-disabled effects schedule no frame work.
+
+### Pause child animations
+
+Use `PauseAnimations` when a subtree's ticker callbacks should be muted. Its
+default constructor accepts `paused`, which defaults to `true`:
+
+```dart
+PauseAnimations(
+  paused: isLoading,
+  child: const ProgressWidget(),
+)
+```
+
+Use `PauseAnimations.temporarily` to enable callbacks automatically after a
+fixed duration:
+
+```dart
+const PauseAnimations.temporarily(
+  duration: Duration(milliseconds: 300),
+  child: ProgressWidget(),
+)
+```
+
+Flutter still advances elapsed ticker time while callbacks are muted, so child
+animations catch up when they resume. A disabled ancestor `TickerMode` remains
+in effect after `PauseAnimations` resumes its subtree.
 
 ### Show widgets in sequence
 

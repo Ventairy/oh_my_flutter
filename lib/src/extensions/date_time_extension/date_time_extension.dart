@@ -1,6 +1,7 @@
 import 'package:clock/clock.dart';
 
-part 'date_time_extension_enums.dart';
+part '_time_ago_bucket.dart';
+part 'time_ago_fallback.dart';
 
 /// Shared helpers for [DateTime] values.
 extension DateTimeExtension on DateTime {
