@@ -107,7 +107,7 @@ class _RouteSettledState extends State<RouteSettled> {
     final routeAnimation = _routeAnimation;
     if (routeAnimation == null) return;
 
-    final settled = routeAnimation.status == AnimationStatus.completed;
+    final settled = routeAnimation.status.isCompleted;
     final gestureActive = _gestureNotifier?.value ?? false;
     final shouldShow = settled && !gestureActive;
     if (shouldShow == _visible) return;

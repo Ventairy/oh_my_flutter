@@ -9,5 +9,8 @@ enum MotionPlayback {
   ///
   /// Looping effects should render equivalent states at `0` and `1` so the
   /// cycle has no visible discontinuity.
-  loop,
+  loop;
+
+  /// Whether this playback runs once and holds its completed state.
+  bool get isOnce => this == once;
 }

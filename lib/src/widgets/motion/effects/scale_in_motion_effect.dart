@@ -13,6 +13,8 @@ class ScaleInMotionEffect extends MotionEffect {
     super.duration = const Duration(milliseconds: 300),
     super.curve = Curves.linear,
     super.playback = MotionPlayback.once,
+    super.onStart,
+    super.onEnd,
   });
 
   /// Scale applied at animation progress `0`.

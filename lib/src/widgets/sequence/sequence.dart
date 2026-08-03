@@ -286,13 +286,13 @@ class _SequenceState extends State<Sequence> with TickerProviderStateMixin {
   ) {
     if (!mounted || entry.animationController == null) return;
 
-    if (status == AnimationStatus.completed && _isCurrent(entry)) {
+    if (status.isCompleted && _isCurrent(entry)) {
       if (entry.transition == null) return;
       setState(() => entry.transition = null);
       return;
     }
 
-    if (status != AnimationStatus.dismissed || _isCurrent(entry)) return;
+    if (!status.isDismissed || _isCurrent(entry)) return;
     setState(() => _hideImmediately(entry));
   }
 
