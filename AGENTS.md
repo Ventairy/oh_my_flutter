@@ -51,6 +51,9 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   failures under `lib/src/exceptions`.
 - Prefer explicit, readable code, immutable values, named parameters for
   multi-argument APIs, early returns, and exhaustive enum switches.
+- Prefer semantic enum methods and getters over raw equality comparisons when
+  an enum exposes or can provide them. For example, use `status.isCompleted`
+  and `playback.isOnce` instead of comparing directly with enum values.
 - Do not add top-level helpers. Public top-level builder factories are not
   needed in this package.
 - Optimize utilities used during scrolling or gestures for low-end devices:

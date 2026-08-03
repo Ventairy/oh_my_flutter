@@ -267,10 +267,10 @@ class _ControlledVisibilityState extends State<ControlledVisibility> with Single
   }
 
   void _handleAnimationStatus(AnimationStatus status) {
-    if (status == AnimationStatus.completed) {
+    if (status.isCompleted) {
       _setEndpointState(visible: true, transition: widget.showTransition);
       _completeShow();
-    } else if (status == AnimationStatus.dismissed) {
+    } else if (status.isDismissed) {
       _setEndpointState(visible: false, transition: widget.hideTransition);
       _completeHide();
     }

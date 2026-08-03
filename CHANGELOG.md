@@ -1,3 +1,11 @@
+## 0.4.1
+
+- Add effect-level `onStart` and `onEnd` lifecycle callbacks to `MotionEffect`,
+  with `onStart` on every built-in effect and `onEnd` on one-shot effects.
+- Keep `Motion` interaction disabled during effect delays when `interactive`
+  is false.
+- Add `MotionPlayback.isOnce` for semantic playback branching.
+
 ## 0.4.0
 
 - Add extensible single- and multi-effect `Motion` composition with one-shot

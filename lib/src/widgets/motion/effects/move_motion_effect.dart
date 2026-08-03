@@ -14,6 +14,8 @@ class MoveMotionEffect extends MotionEffect {
     super.duration = const Duration(milliseconds: 300),
     super.curve = Curves.linear,
     super.playback = MotionPlayback.once,
+    super.onStart,
+    super.onEnd,
   });
 
   /// Starting logical-pixel offset from the child's layout position.

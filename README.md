@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.4.0
+  oh_my_flutter: ^0.4.1
 ```
 
 Import the public library wherever you need it:
@@ -176,6 +176,24 @@ const Motion(
 )
 ```
 
+Use `onStart` and `onEnd` to react to each effect independently:
+
+```dart
+Motion(
+  effect: FadeInMotionEffect(
+    onStart: handleMotionStarted,
+    onEnd: handleMotionCompleted,
+  ),
+  child: const Text('Ready'),
+)
+```
+
+`onStart` runs after the effect's delay. `onEnd` runs when a one-shot effect
+completes. Looping effects do not call `onEnd` while mounted, and canceled or
+disposed effects are not reported as completed. Reduced-motion one-shot effects
+call `onStart` followed by `onEnd` without scheduling animation frames.
+`FloatingMotionEffect` exposes only `onStart` because it never completes.
+
 Run effects concurrently or stagger them with independent delays while sharing
 one motion lifecycle and scheduler entry:
 
@@ -194,9 +212,11 @@ const Motion.list(
 
 The first effect is closest to the child, and each following effect wraps the
 result. Keep the effects list immutable after passing it to `Motion.list`.
-By default, pointer interaction is ignored while any effect is playing. Set
-`interactive: true` to let the child receive taps during playback. Delays and
-completed one-shot effects remain interactive.
+By default, pointer interaction is ignored while any effect is waiting or
+playing. Set `interactive: true` to let the child receive taps during delays and
+playback. Otherwise, interaction becomes available only after every one-shot
+effect completes. A looping effect keeps interaction disabled while it remains
+mounted.
 
 Create a one-shot or looping effect by extending `MotionEffect` and composing a
 Flutter transition around the supplied animation and child:

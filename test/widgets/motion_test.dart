@@ -73,6 +73,16 @@ Offset _moveTranslation(WidgetTester tester) {
 }
 
 void main() {
+  group('MotionPlayback', () {
+    test('when playback is once, it should report isOnce', () {
+      expect(MotionPlayback.once.isOnce, isTrue);
+    });
+
+    test('when playback loops, it should not report isOnce', () {
+      expect(MotionPlayback.loop.isOnce, isFalse);
+    });
+  });
+
   group('MotionEffect construction', () {
     testWidgets('when effects are empty, it should reject mounting', (
       tester,
@@ -863,7 +873,7 @@ void main() {
             ),
           ),
         );
-        await tester.tap(find.byType(GestureDetector));
+        await tester.tap(find.byType(GestureDetector), warnIfMissed: false);
 
         expect(taps, 1);
       },
@@ -895,7 +905,7 @@ void main() {
     );
 
     testWidgets(
-      'when an effect is delayed, it should accept taps before playback',
+      'when an effect is delayed, it should ignore taps before playback',
       (tester) async {
         var taps = 0;
         await tester.pumpWidget(
@@ -912,9 +922,65 @@ void main() {
             ),
           ),
         );
+        await tester.tap(find.byType(GestureDetector), warnIfMissed: false);
+
+        expect(taps, 0);
+      },
+    );
+
+    testWidgets(
+      'when interaction is enabled during a delay, it should accept taps',
+      (tester) async {
+        var taps = 0;
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              effect: const FadeInMotionEffect(
+                delay: Duration(milliseconds: 100),
+              ),
+              interactive: true,
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => taps += 1,
+                child: const SizedBox(width: 40, height: 40),
+              ),
+            ),
+          ),
+        );
         await tester.tap(find.byType(GestureDetector));
 
         expect(taps, 1);
+      },
+    );
+
+    testWidgets(
+      'when a remaining effect is delayed, it should keep ignoring taps',
+      (tester) async {
+        var taps = 0;
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion.list(
+              effects: const <MotionEffect>[
+                FadeInMotionEffect(
+                  duration: Duration(milliseconds: 100),
+                ),
+                ScaleInMotionEffect(
+                  delay: Duration(milliseconds: 200),
+                  duration: Duration(milliseconds: 100),
+                ),
+              ],
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => taps += 1,
+                child: const SizedBox(width: 40, height: 40),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 150));
+        await tester.tap(find.byType(GestureDetector), warnIfMissed: false);
+
+        expect(taps, 0);
       },
     );
 
@@ -1404,6 +1470,260 @@ void main() {
         await tester.pump(const Duration(seconds: 1));
 
         expect(tester.hasRunningAnimations, isFalse);
+      },
+    );
+  });
+
+  group('MotionEffect lifecycle callbacks', () {
+    testWidgets(
+      'when an effect is waiting for its delay, it should not fire callbacks',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              effect: FadeInMotionEffect(
+                delay: const Duration(milliseconds: 100),
+                duration: const Duration(milliseconds: 100),
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 99));
+
+        expect(events, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'when an effect starts after its delay, it should fire onStart',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              effect: FadeInMotionEffect(
+                delay: const Duration(milliseconds: 100),
+                duration: const Duration(milliseconds: 100),
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(events, <String>['start']);
+      },
+    );
+
+    testWidgets(
+      'when a one-shot effect completes, it should fire onEnd',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              effect: FadeInMotionEffect(
+                duration: const Duration(milliseconds: 100),
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+
+        expect(events, <String>['start', 'end']);
+      },
+    );
+
+    testWidgets(
+      'when effects complete independently, it should fire each lifecycle independently',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion.list(
+              effects: <MotionEffect>[
+                FadeInMotionEffect(
+                  duration: const Duration(milliseconds: 100),
+                  onStart: () => events.add('first start'),
+                  onEnd: () => events.add('first end'),
+                ),
+                ScaleInMotionEffect(
+                  delay: const Duration(milliseconds: 50),
+                  duration: const Duration(milliseconds: 100),
+                  onStart: () => events.add('second start'),
+                  onEnd: () => events.add('second end'),
+                ),
+              ],
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.pump(const Duration(milliseconds: 50));
+        await tester.pump(const Duration(milliseconds: 50));
+
+        expect(
+          events,
+          <String>['first start', 'second start', 'first end', 'second end'],
+        );
+      },
+    );
+
+    testWidgets(
+      'when a looping effect completes cycles, it should fire onStart only once',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              effect: FloatingMotionEffect(
+                duration: const Duration(milliseconds: 100),
+                onStart: () => events.add('start'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 300));
+
+        expect(events, <String>['start']);
+      },
+    );
+
+    testWidgets(
+      'when ticker mode pauses an effect, it should wait to fire onStart',
+      (tester) async {
+        late StateSetter rebuild;
+        var tickersEnabled = false;
+        final events = <String>[];
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return _testApp(
+                tickersEnabled: tickersEnabled,
+                child: Motion(
+                  effect: FadeInMotionEffect(
+                    duration: const Duration(milliseconds: 100),
+                    onStart: () => events.add('start'),
+                    onEnd: () => events.add('end'),
+                  ),
+                  child: const SizedBox(width: 40, height: 20),
+                ),
+              );
+            },
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 200));
+        rebuild(() => tickersEnabled = true);
+        await tester.pump();
+
+        expect(events, <String>['start']);
+      },
+    );
+
+    testWidgets(
+      'when a playing effect rebuilds, it should not replay onStart',
+      (tester) async {
+        late StateSetter rebuild;
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Motion(
+                  effect: FadeInMotionEffect(
+                    duration: const Duration(seconds: 1),
+                    onStart: () => events.add('start'),
+                  ),
+                  child: const SizedBox(width: 40, height: 20),
+                );
+              },
+            ),
+          ),
+        );
+        rebuild(() {});
+        await tester.pump();
+
+        expect(events, <String>['start']);
+      },
+    );
+
+    testWidgets(
+      'when a playing effect is disposed, it should not fire onEnd',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              effect: FadeInMotionEffect(
+                duration: const Duration(seconds: 1),
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pumpWidget(_testApp(child: const SizedBox.shrink()));
+        await tester.pump(const Duration(seconds: 1));
+
+        expect(events, <String>['start']);
+      },
+    );
+
+    testWidgets(
+      'when a pending effect is disposed, it should not fire callbacks',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              effect: FadeInMotionEffect(
+                delay: const Duration(seconds: 1),
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pumpWidget(_testApp(child: const SizedBox.shrink()));
+        await tester.pump(const Duration(seconds: 1));
+
+        expect(events, isEmpty);
+      },
+    );
+
+    testWidgets(
+      'when a one-shot effect is skipped for reduced motion, it should complete its lifecycle',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            disableAnimations: true,
+            child: Motion(
+              effect: FadeInMotionEffect(
+                delay: const Duration(seconds: 1),
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+
+        expect(events, <String>['start', 'end']);
       },
     );
   });

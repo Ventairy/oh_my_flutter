@@ -14,6 +14,7 @@ class FloatingMotionEffect extends MotionEffect {
     super.delay = Duration.zero,
     super.duration = const Duration(milliseconds: 2400),
     super.curve = Curves.linear,
+    super.onStart,
   }) : super(playback: MotionPlayback.loop);
 
   /// Maximum logical-pixel displacement above and below the layout position.

@@ -17,6 +17,7 @@ class _UtilityExampleState extends State<UtilityExample> {
   final _visibilityController = ControlledVisibilityController();
   final _sequenceController = SequenceController();
   bool _detailsVisible = false;
+  String _motionStatus = 'Motion is waiting';
 
   @override
   void dispose() {
@@ -31,6 +32,14 @@ class _UtilityExampleState extends State<UtilityExample> {
     } else {
       _visibilityController.hide();
     }
+  }
+
+  void _handleMotionStarted() {
+    setState(() => _motionStatus = 'Motion started');
+  }
+
+  void _handleMotionCompleted() {
+    setState(() => _motionStatus = 'Motion completed');
   }
 
   @override
@@ -62,10 +71,10 @@ class _UtilityExampleState extends State<UtilityExample> {
                 ),
               ),
               const SizedBox(height: 24),
-              const Row(
+              Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  PauseAnimations.temporarily(
+                  const PauseAnimations.temporarily(
                     duration: Duration(milliseconds: 300),
                     child: Motion.list(
                       effects: [
@@ -78,16 +87,18 @@ class _UtilityExampleState extends State<UtilityExample> {
                       child: Icon(Icons.visibility_outlined, size: 32),
                     ),
                   ),
-                  SizedBox(width: 24),
+                  const SizedBox(width: 24),
                   Motion(
                     effect: ScaleInMotionEffect(
                       scale: 0.4,
-                      delay: Duration(milliseconds: 100),
+                      delay: const Duration(milliseconds: 100),
+                      onStart: _handleMotionStarted,
+                      onEnd: _handleMotionCompleted,
                     ),
-                    child: Icon(Icons.check_circle_outline, size: 32),
+                    child: const Icon(Icons.check_circle_outline, size: 32),
                   ),
-                  SizedBox(width: 24),
-                  Motion(
+                  const SizedBox(width: 24),
+                  const Motion(
                     effect: MoveMotionEffect(
                       begin: Offset(-24, 0),
                       end: Offset.zero,
@@ -96,8 +107,8 @@ class _UtilityExampleState extends State<UtilityExample> {
                     ),
                     child: Icon(Icons.arrow_forward, size: 32),
                   ),
-                  SizedBox(width: 24),
-                  Motion(
+                  const SizedBox(width: 24),
+                  const Motion(
                     effect: FloatingMotionEffect(
                       delay: Duration(milliseconds: 300),
                     ),
@@ -105,6 +116,8 @@ class _UtilityExampleState extends State<UtilityExample> {
                   ),
                 ],
               ),
+              const SizedBox(height: 12),
+              Text(_motionStatus),
               const SizedBox(height: 24),
               FilledButton(
                 onPressed: _toggleDetails,

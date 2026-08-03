@@ -66,13 +66,13 @@ class Motion extends StatefulWidget {
   /// This is null when the widget was created with the default constructor.
   final List<MotionEffect>? effects;
 
-  /// Whether [child] accepts pointer interaction while an effect is playing.
+  /// Whether [child] accepts pointer interaction during the effect lifecycle.
   ///
   /// This defaults to false, so all pointer interaction is ignored while at
-  /// least one effect is actively playing. Set this to true to keep the child
-  /// interactive during playback. Interaction remains enabled during effect
-  /// delays and after one-shot effects complete. Looping effects keep
-  /// interaction disabled for as long as they play when this is false.
+  /// least one effect is waiting or playing. Set this to true to keep the child
+  /// interactive throughout the motion lifecycle. Interaction becomes enabled
+  /// after every one-shot effect completes. Looping effects keep interaction
+  /// disabled for as long as they remain mounted when this is false.
   final bool interactive;
 
   /// Widget receiving the motion treatment.
@@ -86,14 +86,16 @@ class _MotionState extends State<Motion> {
   late final _MotionAnimationGroup _animationGroup;
   late List<MotionEffect> _effects;
   final List<_MotionAnimation> _animations = <_MotionAnimation>[];
+  final List<AnimationStatusListener> _statusListeners = <AnimationStatusListener>[];
   final List<Timer?> _delayTimers = <Timer?>[];
   final List<bool> _oneShotConsumed = <bool>[];
   final List<bool> _playbackStarted = <bool>[];
+  final List<bool> _startCallbacksSent = <bool>[];
+  final List<bool> _effectCompleted = <bool>[];
   bool _animationsDisabled = false;
   bool _tickersEnabled = true;
   bool _forceFrames = false;
   bool _dependenciesReady = false;
-  bool _isAnimating = false;
 
   @override
   void initState() {
@@ -126,6 +128,9 @@ class _MotionState extends State<Motion> {
     _forceFrames = forceFrames;
     _animationGroup.muted = !_tickersEnabled;
     _animationGroup.forceFrames = _forceFrames;
+    if (tickerModeChanged && _tickersEnabled) {
+      _sendPendingStartCallbacks();
+    }
     if (!accessibilityChanged) {
       return;
     }
@@ -151,7 +156,6 @@ class _MotionState extends State<Motion> {
       _addAnimation(nextEffects[_animations.length]);
     }
     _effects = nextEffects;
-    _updatePlaybackState();
 
     for (var index = 0; index < nextEffects.length; index += 1) {
       if (index >= previousEffects.length) {
@@ -176,6 +180,8 @@ class _MotionState extends State<Motion> {
         animation.playback = effect.playback;
         _oneShotConsumed[index] = false;
         _playbackStarted[index] = false;
+        _startCallbacksSent[index] = false;
+        _effectCompleted[index] = false;
         if (_animationsDisabled) {
           _applyReducedMotionEndpoint(index);
         } else {
@@ -194,7 +200,7 @@ class _MotionState extends State<Motion> {
     for (var index = 0; index < _delayTimers.length; index += 1) {
       _delayTimers[index]?.cancel();
       _animations[index].removeStatusListener(
-        _handleAnimationStatusChanged,
+        _statusListeners[index],
       );
       _animations[index].dispose();
     }
@@ -211,34 +217,46 @@ class _MotionState extends State<Motion> {
   }
 
   void _addAnimation(MotionEffect effect) {
+    final index = _animations.length;
     final animation = _MotionAnimation(
       _animationGroup,
       effect.duration,
       effect.curve,
       effect.playback,
     );
+    void handleStatusChanged(AnimationStatus status) {
+      _handleAnimationStatusChanged(index, status);
+    }
+
     _animationGroup.add(animation);
-    animation.addStatusListener(_handleAnimationStatusChanged);
+    animation.addStatusListener(handleStatusChanged);
     _animations.add(animation);
+    _statusListeners.add(handleStatusChanged);
     _delayTimers.add(null);
     _oneShotConsumed.add(false);
     _playbackStarted.add(false);
+    _startCallbacksSent.add(false);
+    _effectCompleted.add(false);
   }
 
   void _removeLastAnimation() {
     _delayTimers.removeLast()?.cancel();
     _oneShotConsumed.removeLast();
     _playbackStarted.removeLast();
+    _startCallbacksSent.removeLast();
+    _effectCompleted.removeLast();
+    final statusListener = _statusListeners.removeLast();
     final animation = _animations.removeLast()
-      ..removeStatusListener(_handleAnimationStatusChanged)
+      ..removeStatusListener(statusListener)
       ..dispose();
     _animationGroup.remove(animation);
-    _updatePlaybackState();
   }
 
   void _schedulePlayback(int index) {
     _delayTimers[index]?.cancel();
     _delayTimers[index] = null;
+    _startCallbacksSent[index] = false;
+    _effectCompleted[index] = false;
     _animations[index].stopAt(0);
     final delay = _effects[index].delay;
 
@@ -261,8 +279,9 @@ class _MotionState extends State<Motion> {
     _delayTimers[index] = null;
     _playbackStarted[index] = true;
     _animations[index].start();
+    _sendStartCallback(index);
 
-    if (_effects[index].playback == MotionPlayback.once) {
+    if (_effects[index].playback.isOnce) {
       _oneShotConsumed[index] = true;
     }
   }
@@ -274,7 +293,12 @@ class _MotionState extends State<Motion> {
       _delayTimers[index]?.cancel();
       _delayTimers[index] = null;
       final playback = _effects[index].playback;
-      if (playback == MotionPlayback.once) {
+      if (playback.isOnce) {
+        if (!_oneShotConsumed[index]) {
+          _playbackStarted[index] = true;
+          _startCallbacksSent[index] = true;
+          _dispatchEffectCallback(index, _effects[index].onStart);
+        }
         _oneShotConsumed[index] = true;
       }
       _animations[index].stopAt(
@@ -288,7 +312,7 @@ class _MotionState extends State<Motion> {
 
   void _resumeAfterReducedMotion() {
     for (var index = 0; index < _effects.length; index += 1) {
-      if (_effects[index].playback == MotionPlayback.once && _oneShotConsumed[index]) {
+      if (_effects[index].playback.isOnce && _oneShotConsumed[index]) {
         continue;
       }
       if (_playbackStarted[index]) {
@@ -350,24 +374,50 @@ class _MotionState extends State<Motion> {
     }
   }
 
-  void _handleAnimationStatusChanged(AnimationStatus _) {
-    _updatePlaybackState();
+  void _handleAnimationStatusChanged(int index, AnimationStatus status) {
+    if (status.isCompleted && _effects[index].playback.isOnce && !_effectCompleted[index]) {
+      _effectCompleted[index] = true;
+      _dispatchEffectCallback(index, _effects[index].onEnd);
+      setState(() {});
+    }
   }
 
-  void _updatePlaybackState() {
-    var isAnimating = false;
+  void _sendPendingStartCallbacks() {
     for (var index = 0; index < _animations.length; index += 1) {
-      final status = _animations[index].status;
-      if (status == AnimationStatus.forward || status == AnimationStatus.reverse) {
-        isAnimating = true;
-        break;
+      if (_animations[index]._isRunning) {
+        _sendStartCallback(index);
       }
     }
+  }
 
-    if (_isAnimating == isAnimating) {
+  void _sendStartCallback(int index) {
+    if (_startCallbacksSent[index] || !_tickersEnabled) {
       return;
     }
-    setState(() => _isAnimating = isAnimating);
+    _startCallbacksSent[index] = true;
+    _dispatchEffectCallback(index, _effects[index].onStart);
+  }
+
+  void _dispatchEffectCallback(int index, VoidCallback? callback) {
+    if (callback == null) {
+      return;
+    }
+    final animation = _animations[index];
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || index >= _animations.length || !identical(_animations[index], animation)) {
+        return;
+      }
+      callback();
+    });
+  }
+
+  bool get _hasIncompleteEffect {
+    for (var index = 0; index < _effectCompleted.length; index += 1) {
+      if (!_effectCompleted[index]) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @override
@@ -382,7 +432,7 @@ class _MotionState extends State<Motion> {
     }
     if (!widget.interactive) {
       return IgnorePointer(
-        ignoring: _isAnimating,
+        ignoring: _hasIncompleteEffect,
         child: transition,
       );
     }
