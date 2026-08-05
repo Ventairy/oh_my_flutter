@@ -1,9 +1,6 @@
 part of '../motion.dart';
 
 /// Fades a child from transparent to fully opaque.
-///
-/// The effect uses [FadeTransition], so animation frames update opacity without
-/// rebuilding the child subtree.
 class FadeInMotionEffect extends MotionEffect {
   /// Creates a fade-in effect.
   const FadeInMotionEffect({
@@ -16,14 +13,7 @@ class FadeInMotionEffect extends MotionEffect {
   });
 
   @override
-  Widget buildTransition(
-    BuildContext context,
-    Animation<double> animation,
-    Widget child,
-  ) {
-    return FadeTransition(
-      opacity: animation,
-      child: child,
-    );
+  void apply(double progress, MotionEffectTransform transform) {
+    transform.fade(progress);
   }
 }
