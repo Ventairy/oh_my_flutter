@@ -2,9 +2,7 @@ part of '../motion.dart';
 
 /// Scales a child from [scale] to its normal size.
 ///
-/// Scaling happens during painting and does not affect surrounding layout.
-/// Animation frames update the render transform directly without rebuilding
-/// either the transition widget or the child subtree.
+/// Scaling does not affect surrounding layout.
 class ScaleInMotionEffect extends MotionEffect {
   /// Creates an effect that scales from [scale] to `1.0`.
   const ScaleInMotionEffect({
@@ -23,15 +21,7 @@ class ScaleInMotionEffect extends MotionEffect {
   final double scale;
 
   @override
-  Widget buildTransition(
-    BuildContext context,
-    Animation<double> animation,
-    Widget child,
-  ) {
-    return _AnimatedMotionScale(
-      animation: animation,
-      beginScale: scale,
-      child: child,
-    );
+  void apply(double progress, MotionEffectTransform transform) {
+    transform.scale(scale + (1 - scale) * progress);
   }
 }

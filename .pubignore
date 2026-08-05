@@ -10,6 +10,12 @@ Makefile
 build/
 coverage/
 doc/api/
+**/*.iml
+**/android/local.properties
+**/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+**/ios/Flutter/
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/*/.swiftpm/
 pubspec.lock
 pubspec_overrides.yaml
 skills-lock.json

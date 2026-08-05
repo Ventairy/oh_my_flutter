@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.4.1
+  oh_my_flutter: ^0.5.0
 ```
 
 Import the public library wherever you need it:
@@ -191,11 +191,10 @@ Motion(
 `onStart` runs after the effect's delay. `onEnd` runs when a one-shot effect
 completes. Looping effects do not call `onEnd` while mounted, and canceled or
 disposed effects are not reported as completed. Reduced-motion one-shot effects
-call `onStart` followed by `onEnd` without scheduling animation frames.
+call `onStart` followed immediately by `onEnd`.
 `FloatingMotionEffect` exposes only `onStart` because it never completes.
 
-Run effects concurrently or stagger them with independent delays while sharing
-one motion lifecycle and scheduler entry:
+Run effects concurrently or stagger them with independent delays:
 
 ```dart
 const Motion.list(
@@ -210,29 +209,24 @@ const Motion.list(
 )
 ```
 
-The first effect is closest to the child, and each following effect wraps the
-result. Keep the effects list immutable after passing it to `Motion.list`.
+The first effect is applied first, and each following effect composes around
+the result. Keep the effects list immutable after passing it to `Motion.list`.
 By default, pointer interaction is ignored while any effect is waiting or
 playing. Set `interactive: true` to let the child receive taps during delays and
 playback. Otherwise, interaction becomes available only after every one-shot
 effect completes. A looping effect keeps interaction disabled while it remains
 mounted.
 
-Create a one-shot or looping effect by extending `MotionEffect` and composing a
-Flutter transition around the supplied animation and child:
+Create a one-shot or looping effect by extending `MotionEffect`. The same effect works with `Motion` and `TextMotion`:
 
 ```dart
-class RotateInMotionEffect extends MotionEffect {
-  const RotateInMotionEffect()
+class SlideInMotionEffect extends MotionEffect {
+  const SlideInMotionEffect()
     : super(duration: const Duration(milliseconds: 240));
 
   @override
-  Widget buildTransition(
-    BuildContext context,
-    Animation<double> animation,
-    Widget child,
-  ) {
-    return RotationTransition(turns: animation, child: child);
+  void apply(double progress, MotionEffectTransform transform) {
+    transform.translate(x: 24 * (1 - progress), y: 0);
   }
 }
 ```
@@ -241,11 +235,80 @@ One-shot effects run once per mounted `Motion`; assign a new key when an effect
 should replay. Looping effects should render equivalent states at progress `0`
 and `1` so their cycles remain seamless.
 
-`Motion` uses one shared frame callback for every active instance and one
-scheduler entry per widget, even when it applies multiple effects. The built-in
-move, scale, and floating effects listen at the render layer, so frames do not
-rebuild or lay out their transition or child widgets. Delayed, completed,
-reduced-motion, and `TickerMode`-disabled effects schedule no frame work.
+### Add motion to each text character
+
+Use `TextMotion` with the same effects as `Motion` to animate every visible
+Unicode grapheme in a plain Flutter `Text`. Whitespace and invisible formatting
+controls remain static paragraph spans:
+
+```dart
+const TextMotion(
+  effect: MoveMotionEffect(
+    begin: Offset(0, 8),
+    end: Offset.zero,
+  ),
+  stagger: Duration(milliseconds: 30),
+  child: Text('Welcome'),
+)
+```
+
+Combine effects with `TextMotion.list`:
+
+```dart
+const TextMotion.list(
+  effects: [
+    FadeInMotionEffect(),
+    ScaleInMotionEffect(scale: 0.8),
+  ],
+  stagger: Duration(milliseconds: 30),
+  child: Text('Ready'),
+)
+```
+
+The default stagger is 30 milliseconds. One-shot effects finish after the
+last character completes; looping effects retain their configured cycle
+duration and use the stagger as a phase offset. Each effect keeps one shared
+lifecycle, so `onStart` and `onEnd` fire once for the complete text rather than
+once per character. Reduced motion, `TickerMode`, interaction, delays, and
+playback otherwise match `Motion`.
+
+Built-in and custom effects support the same opacity, translation, and scale
+operations in both `Motion` and `TextMotion`.
+
+`TextMotion` is intended for short display text. Rendering graphemes
+independently necessarily changes cross-character typography such as kerning,
+ligatures, contextual shaping, line wrapping, bidirectional layout, and
+selection. It accepts `Text('...')`; `Text.rich` is not supported.
+
+### Move widgets through a marquee
+
+Use `Marquee` to move an ordered strip continuously through a clipped
+viewport. The duration covers one complete pass of the source strip:
+
+```dart
+const Marquee(
+  direction: MarqueeDirection.left,
+  duration: Duration(seconds: 4),
+  spacing: 24,
+  infinity: true,
+  children: [
+    Text('Portable'),
+    Text('Strongly typed'),
+    Text('Low allocation'),
+  ],
+)
+```
+
+Horizontal marquees fill a bounded parent width by default and use their
+tallest child for height. Vertical marquees fill a bounded parent height and
+use their widest child. Supply `width` or `height` to request a fixed viewport
+dimension. By default, `infinity: true` mounts only the minimum cyclic child
+prefix needed to keep the viewport filled without a gap between loops. Set
+`infinity: false` to mount each child once and use an offscreen-to-offscreen
+pass instead. Child subtrees containing `GlobalKey`s are not supported while
+infinity is enabled. Pointer interaction is disabled by default; set
+`interactive: true` when moving children should accept taps. Reduced-motion
+preferences leave the strip visible in a static arrangement.
 
 ### Pause child animations
 
@@ -314,8 +377,8 @@ During a transition, differently sized steps share the largest participant's
 size and use `alignment`, which defaults to the directional top-start. A parent
 such as `Center` can still move the whole `Sequence` as that outer size changes;
 use stable parent constraints when the sequence needs a fixed external anchor.
-For low-end devices, prefer paint or compositing transitions such as fade,
-slide, and scale instead of builders that trigger layout on every frame.
+For low-end devices, prefer lightweight transitions such as fade, slide, and
+scale.
 Dispose an externally owned controller when its owner is disposed.
 
 ### Wait for route motion to settle

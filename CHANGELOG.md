@@ -1,3 +1,17 @@
+## 0.5.0
+
+- **Breaking:** Replace `MotionEffect.buildTransition` with
+  `MotionEffect.apply`. Custom effects now use `MotionEffectTransform` to
+  compose opacity, translation, and uniform scale. The same custom effect can
+  be used by both `Motion` and `TextMotion`.
+- Add `TextMotion` and `TextMotion.list` for applying existing motion effects
+  to the visible Unicode graphemes in plain Flutter text, with configurable
+  staggering and effect lifecycle callbacks for the complete text.
+- Add `Marquee` for continuously moving an ordered widget strip in any
+  physical direction, with bounded or explicit viewport sizing, configurable
+  loop duration and spacing, continuous repetition through `infinity`,
+  reduced-motion handling, and opt-in interaction.
+
 ## 0.4.1
 
 - Add effect-level `onStart` and `onEnd` lifecycle callbacks to `MotionEffect`,

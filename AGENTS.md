@@ -25,6 +25,12 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   capabilities are added. Do not define a container solely by the first or
   only feature it currently exposes; document feature-specific behavior on the
   member that provides it.
+- Keep public Dartdoc and README content focused on consumer-facing behavior,
+  usage, and outcomes. Do not explain internal implementation or optimization
+  machinery such as render objects, scheduler entries, shared frame callbacks,
+  transform accumulators, allocation strategies, paint-bound sampling, caches,
+  or batching. Consumers should only need to know that an API is optimized,
+  not how that optimization is implemented.
 - Avoid `dynamic`; narrow unknown values at their boundary.
 - Preserve backwards compatibility within a minor release. Document breaking
   changes and release them with the appropriate semantic version.

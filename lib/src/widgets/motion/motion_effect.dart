@@ -1,30 +1,22 @@
 part of 'motion.dart';
 
-/// Describes a visual motion treatment applied by [Motion].
+/// Describes a visual motion treatment shared by [Motion] and [TextMotion].
 ///
-/// Extend this class to create reusable effects without owning an animation
-/// controller. [buildTransition] receives a read-only animation and the
-/// existing child. Prefer render-object-backed Flutter transitions, such as
-/// [FadeTransition], when one fits. Otherwise use an [AnimatedBuilder] with its
-/// `child` parameter so animation frames rebuild only a shallow wrapper. Do
-/// not create another controller or ticker inside an effect.
+/// Extend this class by implementing [apply]. The same effect can drive the
+/// complete child in [Motion] and every staggered grapheme in [TextMotion].
 ///
 /// A one-shot effect receives progress from `0` to `1` and remains at `1`
 /// after completion. A looping effect repeatedly receives `0` through `1`, so
 /// its visual states at both endpoints should be equivalent.
 ///
 /// ```dart
-/// class RotateInMotionEffect extends MotionEffect {
-///   const RotateInMotionEffect()
+/// class SlideInMotionEffect extends MotionEffect {
+///   const SlideInMotionEffect()
 ///       : super(duration: Duration(milliseconds: 240));
 ///
 ///   @override
-///   Widget buildTransition(
-///     BuildContext context,
-///     Animation<double> animation,
-///     Widget child,
-///   ) {
-///     return RotationTransition(turns: animation, child: child);
+///   void apply(double progress, MotionEffectTransform transform) {
+///     transform.translate(x: 24 * (1 - progress), y: 0);
 ///   }
 /// }
 /// ```
@@ -73,17 +65,12 @@ abstract class MotionEffect {
   /// is not called when playback is canceled by removal or disposal. Looping
   /// effects do not complete while mounted, so they do not call this callback.
   /// A one-shot effect skipped by a reduced-motion preference calls [onStart]
-  /// and then this callback without scheduling animation frames.
+  /// and then this callback immediately.
   final VoidCallback? onEnd;
 
-  /// Builds the visual transition around [child].
+  /// Applies this effect at curved [progress].
   ///
-  /// This method is called when [Motion] builds, not on every animation frame.
-  /// Use [animation] with an animated or transition widget and pass [child] to
-  /// that widget without rebuilding it inside a per-frame callback.
-  Widget buildTransition(
-    BuildContext context,
-    Animation<double> animation,
-    Widget child,
-  );
+  /// Implementations must be deterministic, side-effect free, synchronous,
+  /// and must not retain [transform].
+  void apply(double progress, MotionEffectTransform transform);
 }
