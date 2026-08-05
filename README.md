@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.4.1
+  oh_my_flutter: ^0.5.0
 ```
 
 Import the public library wherever you need it:
@@ -246,6 +246,83 @@ scheduler entry per widget, even when it applies multiple effects. The built-in
 move, scale, and floating effects listen at the render layer, so frames do not
 rebuild or lay out their transition or child widgets. Delayed, completed,
 reduced-motion, and `TickerMode`-disabled effects schedule no frame work.
+
+### Add motion to each text character
+
+Use `TextMotion` with the same effects as `Motion` to animate every visible
+Unicode grapheme in a plain Flutter `Text`. Whitespace and invisible formatting
+controls remain static paragraph spans:
+
+```dart
+const TextMotion(
+  effect: MoveMotionEffect(
+    begin: Offset(0, 8),
+    end: Offset.zero,
+  ),
+  stagger: Duration(milliseconds: 30),
+  child: Text('Welcome'),
+)
+```
+
+Combine effects with `TextMotion.list`:
+
+```dart
+const TextMotion.list(
+  effects: [
+    FadeInMotionEffect(),
+    ScaleInMotionEffect(scale: 0.8),
+  ],
+  stagger: Duration(milliseconds: 30),
+  child: Text('Ready'),
+)
+```
+
+The default stagger is 30 milliseconds. One-shot effects finish after the
+last character completes; looping effects retain their configured cycle
+duration and use the stagger as a phase offset. Each effect keeps one shared
+lifecycle, so `onStart` and `onEnd` fire once for the complete text rather than
+once per character. Reduced motion, `TickerMode`, interaction, delays, and
+playback otherwise match `Motion`.
+
+`TextMotion` is intended for short display text. Applying arbitrary widget
+effects per character necessarily changes cross-character typography such as
+kerning, ligatures, contextual shaping, line wrapping, bidirectional layout,
+and selection. It accepts `Text('...')`; `Text.rich` is not supported.
+
+### Move widgets through a marquee
+
+Use `Marquee` to move an ordered strip continuously through a clipped
+viewport. The duration covers one complete pass of the source strip:
+
+```dart
+const Marquee(
+  direction: MarqueeDirection.left,
+  duration: Duration(seconds: 4),
+  spacing: 24,
+  infinity: true,
+  children: [
+    Text('Portable'),
+    Text('Strongly typed'),
+    Text('Low allocation'),
+  ],
+)
+```
+
+Horizontal marquees fill a bounded parent width by default and use their
+tallest child for height. Vertical marquees fill a bounded parent height and
+use their widest child. Supply `width` or `height` to request a fixed viewport
+dimension. By default, `infinity: true` mounts only the minimum cyclic child
+prefix needed to keep the viewport filled without a gap between loops. Set
+`infinity: false` to mount each child once and use an offscreen-to-offscreen
+pass instead. Child subtrees containing `GlobalKey`s are not supported while
+infinity is enabled. Pointer interaction is disabled by default; set
+`interactive: true` when moving children should accept taps. Reduced-motion
+preferences leave the strip visible in a static arrangement.
+
+Normal animation frames update a retained compositor transform. Static child
+content is not rebuilt, laid out, or repainted as the marquee moves. The
+repeated widget list and paint bounds are cached between geometry changes, and
+interactive hit testing uses a binary search over child positions.
 
 ### Pause child animations
 

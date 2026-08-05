@@ -5,6 +5,13 @@
 build/
 doc/api/
 
+# Generated platform plugin integration
+**/android/local.properties
+**/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
+**/ios/Flutter/
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/ios/*/.swiftpm/
+
 # FVM
 .fvm/
 

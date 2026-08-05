@@ -119,6 +119,34 @@ class _UtilityExampleState extends State<UtilityExample> {
               const SizedBox(height: 12),
               Text(_motionStatus),
               const SizedBox(height: 24),
+              const TextMotion.list(
+                effects: [
+                  FadeInMotionEffect(),
+                  MoveMotionEffect(
+                    begin: Offset(0, 8),
+                    end: Offset.zero,
+                  ),
+                ],
+                child: Text(
+                  'Motion for every letter',
+                  style: TextStyle(fontSize: 20),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const SizedBox(
+                width: 320,
+                child: Marquee(
+                  direction: MarqueeDirection.left,
+                  duration: Duration(seconds: 4),
+                  spacing: 24,
+                  children: [
+                    Text('Portable'),
+                    Text('Strongly typed'),
+                    Text('Low allocation'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
               FilledButton(
                 onPressed: _toggleDetails,
                 child: Text(_detailsVisible ? 'Hide details' : 'Show details'),
