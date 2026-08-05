@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
@@ -33,6 +34,19 @@ RenderBox _motionChildRenderBox(WidgetTester tester) {
   );
 }
 
+RenderBox _motionTransitionRenderBox(WidgetTester tester) {
+  return tester.renderObject<RenderBox>(
+    find
+        .descendant(
+          of: find.byType(Motion),
+          matching: find.byWidgetPredicate(
+            (widget) => widget.runtimeType.toString() == '_MotionTransition',
+          ),
+        )
+        .first,
+  );
+}
+
 Offset _visualTranslation(WidgetTester tester) {
   final motion = _motionRenderBox(tester);
   final child = _motionChildRenderBox(tester);
@@ -50,26 +64,48 @@ double _scaleValue(WidgetTester tester) {
   return (right - left) / child.size.width;
 }
 
-ScaleTransition _scaleTransition(WidgetTester tester) {
-  return tester.widget<ScaleTransition>(
-    find.descendant(
-      of: find.byType(Motion),
-      matching: find.byType(ScaleTransition),
-    ),
-  );
-}
-
-FadeTransition _fadeTransition(WidgetTester tester) {
-  return tester.widget<FadeTransition>(
-    find.descendant(
-      of: find.byType(Motion),
-      matching: find.byType(FadeTransition),
-    ),
-  );
-}
-
 Offset _moveTranslation(WidgetTester tester) {
   return _visualTranslation(tester);
+}
+
+T _motionProperty<T>(WidgetTester tester, String name) {
+  final renderObject = tester.renderObject<RenderObject>(
+    find
+        .descendant(
+          of: find.byType(Motion),
+          matching: find.byWidgetPredicate(
+            (widget) => widget.runtimeType.toString() == '_MotionTransition',
+          ),
+        )
+        .first,
+  );
+  final property = renderObject.toDiagnosticsNode().getProperties().singleWhere((property) => property.name == name);
+  final value = (property as DiagnosticsProperty<T>).value;
+  if (value == null) {
+    throw StateError('Motion diagnostic $name is null.');
+  }
+  return value;
+}
+
+double _motionOpacity(WidgetTester tester) {
+  return _motionProperty<double>(tester, 'opacity');
+}
+
+T _textMotionDebugProperty<T>(WidgetTester tester, String name) {
+  final renderObject = tester.renderObject<RenderObject>(
+    find.descendant(
+      of: find.byType(TextMotion),
+      matching: find.byWidgetPredicate(
+        (widget) => widget.runtimeType.toString() == '_OptimizedTextMotion',
+      ),
+    ),
+  );
+  final property = renderObject.toDiagnosticsNode().getProperties().singleWhere((property) => property.name == name);
+  final value = (property as DiagnosticsProperty<T>).value;
+  if (value == null) {
+    throw StateError('TextMotion diagnostic $name is null.');
+  }
+  return value;
 }
 
 void main() {
@@ -84,6 +120,106 @@ void main() {
   });
 
   group('MotionEffect construction', () {
+    testWidgets(
+      'when a custom effect is shared, it should drive Motion and TextMotion',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            child: const Motion(
+              effect: _SharedMoveMotionEffect(),
+              child: SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 150));
+        final motionTranslation = _moveTranslation(tester);
+        final motionOpacity = _motionOpacity(tester);
+
+        await tester.pumpWidget(
+          _testApp(
+            child: const TextMotion(
+              effect: _SharedMoveMotionEffect(),
+              child: Text('AB'),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 150));
+        final textTranslations = List<Offset>.of(
+          _textMotionDebugProperty<Iterable<Offset>>(
+            tester,
+            'characterTranslations',
+          ),
+        );
+        final textOpacities = List<double>.of(
+          _textMotionDebugProperty<Iterable<double>>(
+            tester,
+            'characterOpacities',
+          ),
+        );
+
+        expect(
+          (
+            motionTranslation.dx,
+            motionOpacity,
+            textTranslations.first.dx,
+            textTranslations.last.dx,
+            textOpacities.first,
+            textOpacities.last,
+            _textMotionDebugProperty<bool>(tester, 'usesAtlas'),
+          ),
+          (10, 0.5, 10, 12, 0.5, 0.4, true),
+        );
+      },
+    );
+
+    testWidgets(
+      'when an effect changes, it should update the rendered operation',
+      (tester) async {
+        late StateSetter rebuild;
+        var begin = 20.0;
+        await tester.pumpWidget(
+          _testApp(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Motion(
+                  effect: MoveMotionEffect(
+                    begin: Offset(begin, 0),
+                    end: Offset.zero,
+                  ),
+                  child: const SizedBox(width: 40, height: 20),
+                );
+              },
+            ),
+          ),
+        );
+        rebuild(() => begin = 40);
+        await tester.pump();
+
+        expect(_moveTranslation(tester).dx, 40);
+      },
+    );
+
+    testWidgets(
+      'when a custom effect moves, it should derive expanded paint bounds',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            child: const Motion(
+              effect: _SharedMoveMotionEffect(),
+              child: SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        final renderObject = _motionTransitionRenderBox(tester);
+
+        expect(
+          renderObject.paintBounds,
+          const Rect.fromLTRB(-20, 0, 60, 20),
+        );
+      },
+    );
+
     testWidgets('when effects are empty, it should reject mounting', (
       tester,
     ) async {
@@ -246,11 +382,11 @@ void main() {
             ),
           ),
         );
-        final start = _fadeTransition(tester).opacity.value;
+        final start = _motionOpacity(tester);
         await tester.pump(const Duration(milliseconds: 150));
-        final middle = _fadeTransition(tester).opacity.value;
+        final middle = _motionOpacity(tester);
         await tester.pump(const Duration(milliseconds: 150));
-        final end = _fadeTransition(tester).opacity.value;
+        final end = _motionOpacity(tester);
 
         expect((start, middle, end), (0, 0.5, 1));
       },
@@ -720,7 +856,7 @@ void main() {
         );
         await tester.pump(const Duration(milliseconds: 100));
         final afterFirstDelay = (
-          _fadeTransition(tester).opacity.value,
+          _motionOpacity(tester),
           _scaleValue(tester),
         );
         await tester.pump(const Duration(milliseconds: 50));
@@ -777,27 +913,35 @@ void main() {
     );
 
     testWidgets(
-      'when effects are listed, it should wrap them in declaration order',
+      'when effects are listed, it should compose them in declaration order',
       (tester) async {
         await tester.pumpWidget(
           _testApp(
             child: const Motion.list(
               effects: [
-                _KeyedMotionEffect(Key('first_effect')),
-                _KeyedMotionEffect(Key('second_effect')),
+                MoveMotionEffect(begin: Offset(10, 0), end: Offset.zero),
+                ScaleInMotionEffect(scale: 0.5),
               ],
               child: SizedBox(key: _childKey, width: 40, height: 20),
             ),
           ),
         );
 
-        expect(
-          find.ancestor(
-            of: find.byKey(const Key('first_effect')),
-            matching: find.byKey(const Key('second_effect')),
+        final moveThenScale = _moveTranslation(tester).dx;
+        await tester.pumpWidget(
+          _testApp(
+            child: const Motion.list(
+              effects: [
+                ScaleInMotionEffect(scale: 0.5),
+                MoveMotionEffect(begin: Offset(10, 0), end: Offset.zero),
+              ],
+              child: SizedBox(key: _childKey, width: 40, height: 20),
+            ),
           ),
-          findsOneWidget,
         );
+        final scaleThenMove = _moveTranslation(tester).dx;
+
+        expect((moveThenScale, scaleThenMove), (5, 10));
       },
     );
 
@@ -819,7 +963,7 @@ void main() {
 
         expect(
           (
-            _fadeTransition(tester).opacity.value,
+            _motionOpacity(tester),
             _translationY(tester).abs() < 0.01,
             tester.hasRunningAnimations,
           ),
@@ -1135,11 +1279,25 @@ void main() {
           ),
         );
         await tester.pump(const Duration(milliseconds: 100));
-        final transitions = tester.widgetList<FadeTransition>(find.byType(FadeTransition));
+        final transitions = find.byWidgetPredicate(
+          (widget) => widget.runtimeType.toString() == '_MotionTransition',
+        );
+        final opacities = List<double>.generate(
+          transitions.evaluate().length,
+          (index) {
+            final renderObject = tester.renderObject<RenderObject>(
+              transitions.at(index),
+            );
+            final property = renderObject.toDiagnosticsNode().getProperties().singleWhere(
+              (property) => property.name == 'opacity',
+            );
+            return (property as DiagnosticsProperty<double>).value!;
+          },
+          growable: false,
+        );
 
         expect(
-          transitions.every((transition) => transition.opacity.value == 1) &&
-              tester.binding.transientCallbackCount == 0,
+          opacities.every((opacity) => opacity == 1) && tester.binding.transientCallbackCount == 0,
           isTrue,
         );
       },
@@ -1163,7 +1321,7 @@ void main() {
 
         expect(
           (
-            _scaleTransition(tester).scale.value,
+            _scaleValue(tester),
             tester.hasRunningAnimations,
           ),
           (0, false),
@@ -1189,7 +1347,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
 
         expect(
-          _scaleTransition(tester).scale.value,
+          _scaleValue(tester),
           closeTo(0.5, 0.01),
         );
       },
@@ -1222,7 +1380,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
 
         expect(
-          _scaleTransition(tester).scale.value,
+          _scaleValue(tester),
           closeTo(0.5, 0.01),
         );
       },
@@ -1256,7 +1414,7 @@ void main() {
 
         expect(
           (
-            _scaleTransition(tester).scale.value,
+            _scaleValue(tester),
             tester.hasRunningAnimations,
           ),
           (0, false),
@@ -1292,7 +1450,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 25));
 
         expect(
-          _scaleTransition(tester).scale.value,
+          _scaleValue(tester),
           closeTo(0.5, 0.01),
         );
       },
@@ -1315,7 +1473,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
 
         expect(
-          _scaleTransition(tester).scale.value,
+          _scaleValue(tester),
           closeTo(Curves.easeIn.transform(0.5), 0.01),
         );
       },
@@ -1338,7 +1496,7 @@ void main() {
 
         expect(
           (
-            _scaleTransition(tester).scale.value,
+            _scaleValue(tester),
             tester.hasRunningAnimations,
           ),
           (1, false),
@@ -1365,12 +1523,12 @@ void main() {
           ),
         );
         await tester.pump(const Duration(milliseconds: 50));
-        final progressBeforeUpdate = _scaleTransition(tester).scale.value;
+        final progressBeforeUpdate = _scaleValue(tester);
         rebuild(() => duration = const Duration(milliseconds: 200));
         await tester.pump();
 
         expect(
-          _scaleTransition(tester).scale.value,
+          _scaleValue(tester),
           closeTo(progressBeforeUpdate, 0.01),
         );
       },
@@ -1401,7 +1559,7 @@ void main() {
         rebuild(() => motionKey = const ValueKey(2));
         await tester.pump();
 
-        expect(_scaleTransition(tester).scale.value, 0);
+        expect(_scaleValue(tester), 0);
       },
     );
 
@@ -1744,7 +1902,7 @@ void main() {
 
         expect(
           (
-            _scaleTransition(tester).scale.value,
+            _scaleValue(tester),
             tester.hasRunningAnimations,
           ),
           (1, false),
@@ -1776,7 +1934,7 @@ void main() {
 
         expect(
           (
-            _scaleTransition(tester).scale.value,
+            _scaleValue(tester),
             tester.hasRunningAnimations,
           ),
           (1, false),
@@ -1806,35 +1964,22 @@ void main() {
   });
 }
 
-class _ScaleMotionEffect extends MotionEffect {
+class _ScaleMotionEffect extends ScaleInMotionEffect {
   const _ScaleMotionEffect({
-    super.delay = Duration.zero,
-    super.duration = const Duration(milliseconds: 300),
-    super.curve = Curves.linear,
-  });
-
-  @override
-  Widget buildTransition(
-    BuildContext context,
-    Animation<double> animation,
-    Widget child,
-  ) {
-    return ScaleTransition(scale: animation, child: child);
-  }
+    super.delay,
+    super.duration,
+    super.curve,
+  }) : super(scale: 0);
 }
 
-class _KeyedMotionEffect extends MotionEffect {
-  const _KeyedMotionEffect(this.transitionKey);
-
-  final Key transitionKey;
+class _SharedMoveMotionEffect extends MotionEffect {
+  const _SharedMoveMotionEffect();
 
   @override
-  Widget buildTransition(
-    BuildContext context,
-    Animation<double> animation,
-    Widget child,
-  ) {
-    return KeyedSubtree(key: transitionKey, child: child);
+  void apply(double progress, MotionEffectTransform transform) {
+    transform
+      ..fade(progress)
+      ..translate(x: 20 * (1 - progress), y: 0);
   }
 }
 

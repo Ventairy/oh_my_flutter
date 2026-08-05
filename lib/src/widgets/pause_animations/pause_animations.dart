@@ -4,12 +4,10 @@ import 'package:flutter/widgets.dart';
 
 /// Mutes ticker-driven animations in [child].
 ///
-/// This widget controls frame callbacks through [TickerMode]. While callbacks
-/// are muted, elapsed ticker time still advances, so animations catch up when
-/// they resume.
+/// Elapsed time still advances while animations are paused, so they catch up
+/// when they resume.
 class PauseAnimations extends StatefulWidget {
-  /// Creates a widget that pauses child animation callbacks while [paused] is
-  /// true.
+  /// Creates a widget that pauses child animations while [paused] is true.
   const PauseAnimations({
     required this.child,
     this.paused = true,
@@ -17,9 +15,9 @@ class PauseAnimations extends StatefulWidget {
   }) : duration = Duration.zero,
        _temporary = false;
 
-  /// Creates a widget that pauses child animation callbacks for [duration].
+  /// Creates a widget that pauses child animations for [duration].
   ///
-  /// The duration must not be negative. [Duration.zero] leaves callbacks
+  /// The duration must not be negative. [Duration.zero] leaves animations
   /// enabled. Changing the duration restarts the temporary pause.
   const PauseAnimations.temporarily({
     required this.duration,

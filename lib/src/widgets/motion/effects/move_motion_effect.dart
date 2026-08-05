@@ -25,16 +25,10 @@ class MoveMotionEffect extends MotionEffect {
   final Offset end;
 
   @override
-  Widget buildTransition(
-    BuildContext context,
-    Animation<double> animation,
-    Widget child,
-  ) {
-    return _AnimatedMotionTranslation.move(
-      animation: animation,
-      begin: begin,
-      end: end,
-      child: child,
+  void apply(double progress, MotionEffectTransform transform) {
+    transform.translate(
+      x: begin.dx + (end.dx - begin.dx) * progress,
+      y: begin.dy + (end.dy - begin.dy) * progress,
     );
   }
 }

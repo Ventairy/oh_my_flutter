@@ -21,15 +21,16 @@ class FloatingMotionEffect extends MotionEffect {
   final double distance;
 
   @override
-  Widget buildTransition(
-    BuildContext context,
-    Animation<double> animation,
-    Widget child,
-  ) {
-    return _AnimatedMotionTranslation.floating(
-      animation: animation,
-      distance: distance,
-      child: child,
-    );
+  void apply(double progress, MotionEffectTransform transform) {
+    transform.translate(x: 0, y: _translationFor(progress));
+  }
+
+  double _translationFor(double progress) {
+    final amplitude = 16 * distance;
+    return switch (progress) {
+      0 || 0.5 || 1 => 0,
+      < 0.5 => -amplitude * progress * (0.5 - progress),
+      _ => amplitude * (progress - 0.5) * (1 - progress),
+    };
   }
 }
