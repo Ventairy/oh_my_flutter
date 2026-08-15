@@ -9,6 +9,8 @@
 - Reorganize package documentation into focused consumer guides for widgets,
   extensions, networking, and utilities, with a compact README catalog that
   links to each documentation section.
+- Add `MotionController` for restarting one or more attached `Motion` widgets
+  while preserving each effect's configured delay and lifecycle behavior.
 
 ## 0.5.0
 

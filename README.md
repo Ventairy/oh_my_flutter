@@ -79,7 +79,7 @@ other widgets.
 
 ### Motion
 
-`Motion` applies reusable one-shot or looping visual effects to any widget.
+`Motion` applies reusable one-shot or looping visual effects to any widget
 
 ### TextMotion
 

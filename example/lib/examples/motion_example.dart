@@ -11,6 +11,7 @@ class MotionExample extends StatefulWidget {
 }
 
 class _MotionExampleState extends State<MotionExample> {
+  final _controller = MotionController();
   String _status = 'Motion is waiting';
 
   void _handleStarted() {
@@ -43,6 +44,7 @@ class _MotionExampleState extends State<MotionExample> {
             ),
             const SizedBox(width: 24),
             Motion(
+              controller: _controller,
               effect: ScaleInMotionEffect(
                 scale: 0.4,
                 delay: const Duration(milliseconds: 100),
@@ -72,6 +74,12 @@ class _MotionExampleState extends State<MotionExample> {
         ),
         const SizedBox(height: 12),
         Text(_status),
+        const SizedBox(height: 12),
+        FilledButton.tonalIcon(
+          onPressed: _controller.play,
+          icon: const Icon(Icons.replay),
+          label: const Text('Play motion again'),
+        ),
       ],
     );
   }

@@ -25,6 +25,7 @@ part 'internals/render_motion_transition.dart';
 part 'internals/render_optimized_text_motion.dart';
 part 'internals/text_motion_effect.dart';
 part 'internals/text_motion_transition.dart';
+part 'motion_controller.dart';
 part 'motion_effect.dart';
 part 'motion_effect_transform.dart';
 part 'motion_playback.dart';
@@ -34,8 +35,8 @@ part 'text_motion.dart';
 ///
 /// [Motion] owns the animation lifecycle and applies each effect's shared
 /// visual operations to the supplied child. Use [Motion.list] to run multiple
-/// effects together. Motion also respects reduced-motion preferences and
-/// [TickerMode].
+/// effects together, and use a [MotionController] to replay them. Motion also
+/// respects reduced-motion preferences and [TickerMode].
 ///
 /// ```dart
 /// Motion(
@@ -50,6 +51,7 @@ class Motion extends StatelessWidget {
   const Motion({
     required this.effect,
     required this.child,
+    this.controller,
     this.interactive = false,
     super.key,
   }) : effects = null;
@@ -63,6 +65,7 @@ class Motion extends StatelessWidget {
   const Motion.list({
     required this.effects,
     required this.child,
+    this.controller,
     this.interactive = false,
     super.key,
   }) : effect = null;
@@ -76,6 +79,12 @@ class Motion extends StatelessWidget {
   ///
   /// This is null when the widget was created with the default constructor.
   final List<MotionEffect>? effects;
+
+  /// Controller used to replay this motion.
+  ///
+  /// The motion still plays automatically when mounted. When omitted, it
+  /// cannot be replayed imperatively.
+  final MotionController? controller;
 
   /// Whether [child] accepts pointer interaction during the effect lifecycle.
   ///
@@ -93,6 +102,7 @@ class Motion extends StatelessWidget {
   Widget build(BuildContext context) {
     final resolvedEffects = effect == null ? List<MotionEffect>.of(effects!) : <MotionEffect>[effect!];
     return _MotionAnimationHost(
+      controller: controller,
       effects: resolvedEffects,
       interactive: interactive,
       transitionBuilder: (applications) => _MotionTransition(

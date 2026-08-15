@@ -3,10 +3,13 @@ part of '../motion.dart';
 /// Owns the shared effect lifecycle without choosing a rendering strategy.
 class _MotionAnimationHost extends StatefulWidget {
   const _MotionAnimationHost({
+    required this.controller,
     required this.effects,
     required this.interactive,
     required this.transitionBuilder,
   });
+
+  final MotionController? controller;
 
   final List<MotionEffect> effects;
 
@@ -42,6 +45,7 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
     for (var index = 0; index < _effects.length; index += 1) {
       _addAnimation(_effects[index]);
     }
+    widget.controller?._attach(_play);
   }
 
   @override
@@ -81,6 +85,10 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   @override
   void didUpdateWidget(covariant _MotionAnimationHost oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller?._detach(_play);
+      widget.controller?._attach(_play);
+    }
     final previousEffects = _effects;
     final nextEffects = List<MotionEffect>.of(widget.effects);
     _MotionEffectValidator.validateAll(nextEffects);
@@ -133,6 +141,7 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
 
   @override
   void dispose() {
+    widget.controller?._detach(_play);
     for (var index = 0; index < _delayTimers.length; index += 1) {
       _delayTimers[index]?.cancel();
       _animations[index].removeStatusListener(
@@ -142,6 +151,30 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
     }
     _animationGroup.dispose();
     super.dispose();
+  }
+
+  void _play() {
+    for (var index = 0; index < _effects.length; index += 1) {
+      _delayTimers[index]?.cancel();
+      _delayTimers[index] = null;
+      _oneShotConsumed[index] = false;
+      _playbackStarted[index] = false;
+      _startCallbacksSent[index] = false;
+      _effectCompleted[index] = false;
+    }
+
+    if (_animationsDisabled) {
+      for (final animation in _animations) {
+        animation.stopAt(0);
+      }
+      _applyReducedMotionEndpoint();
+      return;
+    }
+
+    for (var index = 0; index < _effects.length; index += 1) {
+      _schedulePlayback(index);
+    }
+    setState(() {});
   }
 
   void _addAnimation(MotionEffect effect) {

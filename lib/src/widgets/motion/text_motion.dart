@@ -121,6 +121,7 @@ class _TextMotionState extends State<TextMotion> {
       return widget.child;
     }
     return _MotionAnimationHost(
+      controller: null,
       effects: _adaptedEffects,
       interactive: widget.interactive,
       transitionBuilder: _buildTransition,

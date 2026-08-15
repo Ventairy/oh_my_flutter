@@ -1182,6 +1182,186 @@ void main() {
     );
   });
 
+  group('MotionController', () {
+    testWidgets(
+      'when a one-shot motion finished, it should replay from the start',
+      (tester) async {
+        final controller = MotionController();
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              controller: controller,
+              effect: const _ScaleMotionEffect(
+                duration: Duration(milliseconds: 100),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+
+        controller.play();
+        await tester.pump();
+
+        expect(_scaleValue(tester), 0);
+      },
+    );
+
+    testWidgets(
+      'when play interrupts an effect, it should restart its configured delay',
+      (tester) async {
+        final controller = MotionController();
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              controller: controller,
+              effect: const _ScaleMotionEffect(
+                duration: Duration(milliseconds: 100),
+                delay: Duration(milliseconds: 100),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 150));
+
+        controller.play();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 99));
+
+        expect(
+          (_scaleValue(tester), tester.hasRunningAnimations),
+          (0, false),
+        );
+      },
+    );
+
+    testWidgets(
+      'when play restarts a motion list, it should preserve independent delays',
+      (tester) async {
+        final controller = MotionController();
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion.list(
+              controller: controller,
+              effects: [
+                FadeInMotionEffect(
+                  duration: const Duration(milliseconds: 100),
+                  onStart: () => events.add('first'),
+                ),
+                ScaleInMotionEffect(
+                  duration: const Duration(milliseconds: 100),
+                  delay: const Duration(milliseconds: 50),
+                  onStart: () => events.add('second'),
+                ),
+              ],
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 150));
+        events.clear();
+
+        controller.play();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 49));
+        await tester.pump(const Duration(milliseconds: 1));
+
+        expect(events, ['first', 'second']);
+      },
+    );
+
+    testWidgets(
+      'when animations are disabled, it should replay the lifecycle at the endpoint',
+      (tester) async {
+        final controller = MotionController();
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            disableAnimations: true,
+            child: Motion(
+              controller: controller,
+              effect: FadeInMotionEffect(
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        events.clear();
+
+        controller.play();
+        await tester.pump();
+
+        expect(
+          (events.join(','), _motionOpacity(tester)),
+          ('start,end', 1.0),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a looping motion is playing, it should restart the cycle',
+      (tester) async {
+        final controller = MotionController();
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              controller: controller,
+              effect: const FloatingMotionEffect(
+                distance: 8,
+                duration: Duration(milliseconds: 100),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 25));
+
+        controller.play();
+        await tester.pump();
+
+        expect(_translationY(tester), 0);
+      },
+    );
+
+    testWidgets(
+      'when replay starts, it should disable interaction again',
+      (tester) async {
+        final controller = MotionController();
+        var taps = 0;
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              controller: controller,
+              effect: const FadeInMotionEffect(
+                duration: Duration(milliseconds: 100),
+              ),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => taps += 1,
+                child: const SizedBox(width: 40, height: 40),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.tap(find.byType(GestureDetector));
+
+        controller.play();
+        await tester.pump();
+        await tester.tap(
+          find.byType(GestureDetector),
+          warnIfMissed: false,
+        );
+
+        expect(taps, 1);
+      },
+    );
+  });
+
   group('Motion playback', () {
     testWidgets(
       'when built-in transforms animate, it should not use frame-rebuilding transition widgets',

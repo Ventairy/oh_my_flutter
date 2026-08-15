@@ -28,6 +28,7 @@ export 'src/widgets/motion/motion.dart'
         FadeInMotionEffect,
         FloatingMotionEffect,
         Motion,
+        MotionController,
         MotionEffect,
         MotionEffectTransform,
         MotionPlayback,

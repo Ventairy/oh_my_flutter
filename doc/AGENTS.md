@@ -25,6 +25,10 @@ root README as a compact catalog that links here.
   observable behavior, configuration, constraints, and focused examples.
 - Use only exports from `package:oh_my_flutter/oh_my_flutter.dart` in examples.
 - Keep implementation and optimization machinery out of guides.
+- Do not summarize a general-purpose class, such as a controller, by its first
+  or only method. Describe the class by its stable role so the documentation
+  remains accurate as capabilities are added, then document each current
+  operation separately.
 - Put detailed usage here, not in the root README. Do not duplicate long
   examples or reference material between both locations.
 - Link to the generated API reference for exhaustive member contracts rather
