@@ -9,6 +9,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
+import '../motion/motion.dart' show Motion;
 import 'morph_flight_kind.dart';
 import 'morph_test_configuration.dart';
 

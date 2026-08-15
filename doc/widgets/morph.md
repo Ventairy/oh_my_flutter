@@ -95,14 +95,14 @@ a custom flight delegate defines its own interpolation instead.
 
 ## Configure timing and ownership
 
-| Setting | Default and ownership |
-| --- | --- |
-| `duration` | 300 ms for a root same-screen flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ. Route flights use the route animation instead. |
-| `curve` | `Curves.linear` for a root flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ. |
-| `switchThreshold` | `0.5`. The departing endpoint supplies it for automatic content changes. |
-| `nonMorphDescendantsTransition` | Omitted by default. The departing endpoint supplies it. |
-| `watch` | `false`. Set it on an endpoint whose position or size can change while a flight is targeting it. |
-| `flightDelegate` | Omitted by default. Both endpoints must use compatible delegates; the departing endpoint's delegate controls the flight. |
+| Setting                         | Default and ownership                                                                                                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `duration`                      | 300 ms for a root same-screen flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ. Route flights use the route animation instead. |
+| `curve`                         | `Curves.linear` for a root flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ.                                                   |
+| `switchThreshold`               | `0.5`. The departing endpoint supplies it for automatic content changes.                                                                                                                      |
+| `nonMorphDescendantsTransition` | Omitted by default. The departing endpoint supplies it.                                                                                                                                       |
+| `watch`                         | `false`. Set it on an endpoint whose position or size can change while a flight is targeting it.                                                                                              |
+| `flightDelegate`                | Omitted by default. Both endpoints must use compatible delegates; the departing endpoint's delegate controls the flight.                                                                      |
 
 If a flight must behave the same in both directions, configure the
 direction-dependent values on both endpoints. A route push uses the source as

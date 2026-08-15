@@ -68,6 +68,10 @@ final class MorphChildFlightDelegate {
         content = content.child!;
         continue;
       }
+      if (content is Motion) {
+        content = content.child;
+        continue;
+      }
       break;
     }
 

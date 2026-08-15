@@ -299,6 +299,85 @@ void main() {
     );
 
     testWidgets(
+      'when Motion wraps a keyed Text, it should Morph the Text to its matched Column position',
+      (tester) async {
+        const descriptionKey = ValueKey<String>('job_description');
+        var destination = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Align(
+                    alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
+                    child: Morph(
+                      tag: 'motion-wrapped-column-text',
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.linear,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (destination)
+                            const Motion(
+                              effect: FadeInMotionEffect(),
+                              child: Text(
+                                'Full job description',
+                                key: descriptionKey,
+                              ),
+                            )
+                          else
+                            const Padding(
+                              key: descriptionKey,
+                              padding: EdgeInsets.only(top: 4),
+                              child: Text('Job description summary'),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final sourceRect = tester.getRect(
+          find.text('Job description summary'),
+        );
+
+        update(() => destination = true);
+        await tester.pump();
+        await tester.pump();
+        final destinationRect = tester.getRect(
+          find.text('Full job description'),
+        );
+        await tester.pump(const Duration(milliseconds: 200));
+        final retainedLayouts = _retainedTextLayouts(tester);
+        final flightRect = retainedLayouts.single['rect']! as Rect;
+
+        expect(
+          (
+            retainedLayouts.length,
+            flightRect.topLeft,
+            find
+                .descendant(
+                  of: _columnMorphOverlay(),
+                  matching: find.byWidgetPredicate(
+                    (widget) => widget.runtimeType.toString() == '_MorphColumnFlight',
+                  ),
+                )
+                .evaluate()
+                .length,
+          ),
+          (1, Rect.lerp(sourceRect, destinationRect, 0.5)!.topLeft, 0),
+          reason: 'source=$sourceRect destination=$destinationRect flight=$flightRect',
+        );
+      },
+    );
+
+    testWidgets(
       'when an unsupported child uses a SizedBox wrapper, it should preserve the measured size during flight',
       (tester) async {
         var destination = false;

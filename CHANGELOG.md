@@ -1,3 +1,8 @@
+## 0.6.2
+
+- Fix eligible children wrapped directly by `Motion` so they retain their
+  specialized Morph transition.
+
 ## 0.6.1
 
 - Add `Morph` shared-element transitions for any widget across routes or within
