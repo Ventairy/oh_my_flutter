@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: setup format format-check analyze test coverage docs example publish-dry-run pana check clean
+.PHONY: setup format format-check analyze test update-goldens coverage docs example publish-dry-run pana check clean
 
 setup:
 	fvm install
@@ -18,6 +18,9 @@ analyze:
 
 test:
 	fvm flutter test
+
+update-goldens:
+	fvm flutter test --update-goldens
 
 coverage:
 	fvm flutter test --coverage

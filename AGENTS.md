@@ -87,6 +87,14 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 - Pin time with `package:clock` whenever behavior depends on the current time.
 - Diagnose and reproduce uncertain failures before changing production code.
 - Fix analyzer findings in source; do not add blanket ignores or change `.agents` copies to satisfy Dart analysis.
+- Use `goldenTest` from `alchemist`, not raw `matchesGoldenFile` assertions.
+- Keep golden tests beside their widget tests and commit their CI references
+  under `test/**/goldens/ci/`.
+- Keep platform references under `test/**/goldens/macos/`,
+  `test/**/goldens/linux/`, or `test/**/goldens/windows/`; these references stay
+  local and are ignored by Git and package publishing.
+- Regenerate approved references from the repository root with
+  `make update-goldens`, then inspect every changed image before accepting it.
 
 ## Documentation and releases
 
