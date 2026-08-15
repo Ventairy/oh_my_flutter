@@ -15,7 +15,11 @@ class FloatingMotionEffect extends MotionEffect {
     super.duration = const Duration(milliseconds: 2400),
     super.curve = Curves.linear,
     super.onStart,
-  }) : super(playback: MotionPlayback.loop);
+  }) : assert(
+         distance > 0 && distance < double.infinity,
+         'distance must be positive and finite.',
+       ),
+       super(playback: MotionPlayback.loop);
 
   /// Maximum logical-pixel displacement above and below the layout position.
   final double distance;

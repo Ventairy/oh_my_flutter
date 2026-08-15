@@ -79,12 +79,13 @@ other widgets.
 
 ### Motion
 
-`Motion` applies reusable one-shot or looping visual effects to any widget
+`Motion` applies reusable one-shot or looping effects, including shakes, to any
+widget with configurable startup and controller-driven playback.
 
 ### TextMotion
 
 `TextMotion` applies the same motion effects to each visible grapheme in short
-display text.
+display text with configurable startup and controller-driven playback.
 
 ### Marquee
 

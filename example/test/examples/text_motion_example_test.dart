@@ -17,4 +17,19 @@ void main() {
       expect(completeTextCount, 1);
     },
   );
+
+  testWidgets(
+    'when the play action is tapped, it should start the text motion again',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(home: Scaffold(body: TextMotionExample())),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Play text motion again'));
+      await tester.pump();
+
+      expect(tester.binding.transientCallbackCount, greaterThan(0));
+    },
+  );
 }

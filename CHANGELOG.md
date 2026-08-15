@@ -9,8 +9,13 @@
 - Reorganize package documentation into focused consumer guides for widgets,
   extensions, networking, and utilities, with a compact README catalog that
   links to each documentation section.
-- Add `MotionController` for restarting one or more attached `Motion` widgets
-  while preserving each effect's configured delay and lifecycle behavior.
+- Add configurable `MotionStartup` behavior and `MotionController` playback for
+  `Motion` and `TextMotion`, including automatic playback, a held starting
+  state, or a skipped ending state with controller-driven playback on demand.
+- Add `ShakeMotionEffect` for damped horizontal, vertical, or diagonal shakes
+  with configurable strength, excursion count, timing, and playback.
+- Add `MotionEffectBounds` for declaring translation and scale ranges for
+  custom effects with oscillating, abrupt, or short-lived visual extremes.
 
 ## 0.5.0
 

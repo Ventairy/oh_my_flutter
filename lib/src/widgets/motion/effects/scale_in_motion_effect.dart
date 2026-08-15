@@ -13,7 +13,10 @@ class ScaleInMotionEffect extends MotionEffect {
     super.playback = MotionPlayback.once,
     super.onStart,
     super.onEnd,
-  });
+  }) : assert(
+         scale > double.negativeInfinity && scale < double.infinity,
+         'scale must be finite.',
+       );
 
   /// Scale applied at animation progress `0`.
   ///

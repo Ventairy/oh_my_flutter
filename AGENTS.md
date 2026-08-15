@@ -78,6 +78,15 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   needed in this package.
 - Optimize utilities used during scrolling or gestures for low-end devices:
   avoid repeated allocation, avoid blocking work, and keep hot paths synchronous.
+- Treat invalid developer-supplied configuration as a contract violation, in
+  line with Flutter APIs: diagnose it with `assert` rather than deliberately
+  throwing `ArgumentError` or another runtime exception in release builds.
+  Validate runtime/user input normally when failure is an expected use case.
+- Put const-evaluable contract assertions directly in const constructors. When
+  Dart does not allow a required expression in a const constructor assertion,
+  place that check in a debug validator that returns `true` and invoke the
+  validator only from an `assert`; never call a debug validator unconditionally.
+  Invalid configurations remain unsupported when assertions are disabled.
 
 ## Tests and debugging
 

@@ -8,6 +8,7 @@ part of 'motion.dart';
 /// controls remain static paragraph spans rather than receiving effects.
 ///
 /// Use [TextMotion.list] to apply multiple effects to every character.
+/// Use a [MotionController] for imperative control.
 /// Text motion also respects reduced-motion preferences and [TickerMode].
 /// Every effect exposes the same visual operations used by [Motion].
 ///
@@ -31,6 +32,8 @@ class TextMotion extends StatefulWidget {
   const TextMotion({
     required this.effect,
     required this.child,
+    this.controller,
+    this.startup = MotionStartup.play,
     this.stagger = const Duration(milliseconds: 30),
     this.interactive = false,
     super.key,
@@ -45,6 +48,8 @@ class TextMotion extends StatefulWidget {
   const TextMotion.list({
     required this.effects,
     required this.child,
+    this.controller,
+    this.startup = MotionStartup.play,
     this.stagger = const Duration(milliseconds: 30),
     this.interactive = false,
     super.key,
@@ -59,6 +64,19 @@ class TextMotion extends StatefulWidget {
   ///
   /// This is null when the widget was created with the default constructor.
   final List<MotionEffect>? effects;
+
+  /// Controller used to control this text motion.
+  ///
+  /// A controller can be shared with [Motion] and other [TextMotion] widgets.
+  final MotionController? controller;
+
+  /// Behavior applied when this widget first mounts.
+  ///
+  /// This has the same behavior as [Motion.startup]. A later
+  /// [MotionController.play] call starts the complete text motion normally.
+  /// Changing this value after mounting has no effect; use a new [key] to
+  /// apply different startup behavior.
+  final MotionStartup startup;
 
   /// Delay between the start of neighboring visible characters.
   ///
@@ -90,7 +108,10 @@ class _TextMotionState extends State<TextMotion> {
   @override
   void initState() {
     super.initState();
-    _validateInput();
+    assert(
+      _MotionDebugValidator.validateTextInput(widget),
+      'Invalid TextMotion configuration.',
+    );
     _transition = _TextMotionTransition.initial(widget.child);
     _adaptedEffects = _createAdaptedEffects();
   }
@@ -98,7 +119,10 @@ class _TextMotionState extends State<TextMotion> {
   @override
   void didUpdateWidget(covariant TextMotion oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _validateInput();
+    assert(
+      _MotionDebugValidator.validateTextInput(widget),
+      'Invalid TextMotion configuration.',
+    );
     final oldCharacterCount = _transition.animatedCharacterCount;
     if (oldWidget.child.data != widget.child.data) {
       _transition = _TextMotionTransition.initial(widget.child);
@@ -121,35 +145,11 @@ class _TextMotionState extends State<TextMotion> {
       return widget.child;
     }
     return _MotionAnimationHost(
-      controller: null,
+      controller: widget.controller,
       effects: _adaptedEffects,
+      startup: widget.startup,
       interactive: widget.interactive,
       transitionBuilder: _buildTransition,
-    );
-  }
-
-  void _validateInput() {
-    if (widget.stagger.isNegative) {
-      throw ArgumentError.value(
-        widget.stagger,
-        'stagger',
-        'must not be negative',
-      );
-    }
-    if (widget.child.data == null) {
-      throw ArgumentError.value(
-        widget.child,
-        'child',
-        'must be created with Text.new; Text.rich is not supported',
-      );
-    }
-    if (widget.effect == null && widget.effects == null) {
-      throw ArgumentError(
-        'TextMotion requires an effect or a list of effects.',
-      );
-    }
-    _MotionEffectValidator.validateAll(
-      widget.effect == null ? widget.effects! : <MotionEffect>[widget.effect!],
     );
   }
 

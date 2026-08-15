@@ -55,6 +55,7 @@ class _MotionExampleState extends State<MotionExample> {
             ),
             const SizedBox(width: 24),
             const Motion(
+              startup: MotionStartup.skip,
               effect: MoveMotionEffect(
                 begin: Offset(-24, 0),
                 end: Offset.zero,
@@ -62,6 +63,16 @@ class _MotionExampleState extends State<MotionExample> {
                 delay: Duration(milliseconds: 150),
               ),
               child: Icon(Icons.arrow_forward, size: 32),
+            ),
+            const SizedBox(width: 24),
+            Motion(
+              controller: _controller,
+              effect: const ShakeMotionEffect(
+                offset: Offset(6, 0),
+                duration: Duration(milliseconds: 1300),
+                curve: Curves.easeOutBack,
+              ),
+              child: const Icon(Icons.notifications_outlined, size: 32),
             ),
             const SizedBox(width: 24),
             const Motion(

@@ -42,7 +42,7 @@ abstract class MotionEffect {
   /// Time taken to move from animation progress `0` to `1`.
   ///
   /// For [MotionPlayback.loop], this is the duration of one complete cycle.
-  /// [Motion] rejects zero and negative durations when mounted.
+  /// This must be positive.
   final Duration duration;
 
   /// Curve applied to the animation progress before the effect receives it.
@@ -67,6 +67,15 @@ abstract class MotionEffect {
   /// A one-shot effect skipped by a reduced-motion preference calls [onStart]
   /// and then this callback immediately.
   final VoidCallback? onEnd;
+
+  /// Visual bounds that Motion must always keep available for this effect.
+  ///
+  /// Straightforward monotonic effects can leave this null. Custom effects
+  /// must provide bounds when oscillating, abrupt, or short-lived
+  /// transformations can reach extremes that would otherwise be clipped.
+  /// Declaring bounds does not restrict movement; Motion may preserve more
+  /// visual space for the effect and its configured curve.
+  MotionEffectBounds? get bounds => null;
 
   /// Applies this effect at curved [progress].
   ///

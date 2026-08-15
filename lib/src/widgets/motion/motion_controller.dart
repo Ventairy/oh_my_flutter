@@ -1,10 +1,10 @@
 part of 'motion.dart';
 
-/// Provides imperative control over attached [Motion] widgets.
+/// Provides imperative control over attached motion widgets.
 ///
-/// A controller can be shared by multiple motions. Commands apply to every
-/// attached motion, and calling a command while none are attached does
-/// nothing.
+/// A controller can be shared by multiple [Motion] and [TextMotion] widgets.
+/// Commands apply to every attached motion widget, and calling a command while
+/// none are attached does nothing.
 class MotionController {
   /// Creates a motion controller.
   MotionController();

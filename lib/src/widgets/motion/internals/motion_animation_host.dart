@@ -5,6 +5,7 @@ class _MotionAnimationHost extends StatefulWidget {
   const _MotionAnimationHost({
     required this.controller,
     required this.effects,
+    required this.startup,
     required this.interactive,
     required this.transitionBuilder,
   });
@@ -12,6 +13,8 @@ class _MotionAnimationHost extends StatefulWidget {
   final MotionController? controller;
 
   final List<MotionEffect> effects;
+
+  final MotionStartup startup;
 
   final bool interactive;
 
@@ -23,6 +26,7 @@ class _MotionAnimationHost extends StatefulWidget {
 
 class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   late final _MotionAnimationGroup _animationGroup;
+  late final MotionStartup _startup;
   late List<MotionEffect> _effects;
   final List<_MotionAnimation> _animations = <_MotionAnimation>[];
   final List<AnimationStatusListener> _statusListeners = <AnimationStatusListener>[];
@@ -35,12 +39,18 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   bool _tickersEnabled = true;
   bool _forceFrames = false;
   bool _dependenciesReady = false;
+  bool _startupApplied = false;
+  bool _playbackRequested = false;
 
   @override
   void initState() {
     super.initState();
+    _startup = widget.startup;
     _effects = List<MotionEffect>.of(widget.effects);
-    _MotionEffectValidator.validateAll(_effects);
+    assert(
+      _MotionDebugValidator.validateEffects(_effects),
+      'Invalid MotionEffect configuration.',
+    );
     _animationGroup = _MotionAnimationGroup();
     for (var index = 0; index < _effects.length; index += 1) {
       _addAnimation(_effects[index]);
@@ -74,6 +84,15 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
     if (!accessibilityChanged) {
       return;
     }
+    if (!_startupApplied) {
+      _applyStartup();
+      return;
+    }
+
+    if (!_playbackRequested) {
+      return;
+    }
+
     if (_animationsDisabled) {
       _applyReducedMotionEndpoint();
       return;
@@ -91,7 +110,10 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
     }
     final previousEffects = _effects;
     final nextEffects = List<MotionEffect>.of(widget.effects);
-    _MotionEffectValidator.validateAll(nextEffects);
+    assert(
+      _MotionDebugValidator.validateEffects(nextEffects),
+      'Invalid MotionEffect configuration.',
+    );
 
     while (_animations.length > nextEffects.length) {
       _removeLastAnimation();
@@ -103,7 +125,9 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
 
     for (var index = 0; index < nextEffects.length; index += 1) {
       if (index >= previousEffects.length) {
-        if (_animationsDisabled) {
+        if (!_playbackRequested) {
+          _applyStaticStartupEndpoint(index);
+        } else if (_animationsDisabled) {
           _applyReducedMotionEndpoint(index);
         } else {
           _schedulePlayback(index);
@@ -126,7 +150,9 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
         _playbackStarted[index] = false;
         _startCallbacksSent[index] = false;
         _effectCompleted[index] = false;
-        if (_animationsDisabled) {
+        if (!_playbackRequested) {
+          _applyStaticStartupEndpoint(index);
+        } else if (_animationsDisabled) {
           _applyReducedMotionEndpoint(index);
         } else {
           _schedulePlayback(index);
@@ -154,6 +180,8 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   }
 
   void _play() {
+    _startupApplied = true;
+    _playbackRequested = true;
     for (var index = 0; index < _effects.length; index += 1) {
       _delayTimers[index]?.cancel();
       _delayTimers[index] = null;
@@ -175,6 +203,39 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
       _schedulePlayback(index);
     }
     setState(() {});
+  }
+
+  void _applyStartup() {
+    _startupApplied = true;
+    switch (_startup) {
+      case MotionStartup.play:
+        _playbackRequested = true;
+        if (_animationsDisabled) {
+          _applyReducedMotionEndpoint();
+          return;
+        }
+        _resumeAfterReducedMotion();
+        return;
+      case MotionStartup.hold:
+      case MotionStartup.skip:
+        _playbackRequested = false;
+        _applyStaticStartupEndpoint();
+        return;
+    }
+  }
+
+  void _applyStaticStartupEndpoint([int? effectIndex]) {
+    final endpoint = switch (_startup) {
+      MotionStartup.play || MotionStartup.hold => 0.0,
+      MotionStartup.skip => 1.0,
+    };
+    final firstIndex = effectIndex ?? 0;
+    final endIndex = effectIndex == null ? _effects.length : effectIndex + 1;
+    for (var index = firstIndex; index < endIndex; index += 1) {
+      _delayTimers[index]?.cancel();
+      _delayTimers[index] = null;
+      _animations[index].stopAt(endpoint);
+    }
   }
 
   void _addAnimation(MotionEffect effect) {
@@ -285,7 +346,7 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   }
 
   void _handleAnimationStatusChanged(int index, AnimationStatus status) {
-    if (status.isCompleted && _effects[index].playback.isOnce && !_effectCompleted[index]) {
+    if (_playbackRequested && status.isCompleted && _effects[index].playback.isOnce && !_effectCompleted[index]) {
       _effectCompleted[index] = true;
       _dispatchEffectCallback(index, _effects[index].onEnd);
       setState(() {});
@@ -322,6 +383,9 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   }
 
   bool get _hasIncompleteEffect {
+    if (!_playbackRequested) {
+      return false;
+    }
     for (var index = 0; index < _effectCompleted.length; index += 1) {
       if (!_effectCompleted[index]) {
         return true;

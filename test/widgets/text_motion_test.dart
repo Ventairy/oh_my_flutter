@@ -55,6 +55,195 @@ List<double> _probeValues(WidgetTester tester) {
 }
 
 void main() {
+  group('TextMotion startup', () {
+    test('when omitted, it should default every constructor to play', () {
+      expect(
+        (
+          const TextMotion(
+            effect: FadeInMotionEffect(),
+            child: Text('A'),
+          ).startup,
+          const TextMotion.list(
+            effects: <MotionEffect>[FadeInMotionEffect()],
+            child: Text('A'),
+          ).startup,
+        ),
+        (MotionStartup.play, MotionStartup.play),
+      );
+    });
+
+    testWidgets(
+      'when startup holds, it should show every grapheme at the start',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: TextMotion(
+              startup: MotionStartup.hold,
+              effect: FadeInMotionEffect(
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const Text('AB'),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(seconds: 1));
+
+        expect(
+          (
+            _fadeValues(tester).join(','),
+            events.join(','),
+            tester.binding.transientCallbackCount,
+          ),
+          ('0.0,0.0', '', 0),
+        );
+      },
+    );
+
+    testWidgets(
+      'when startup skips, it should show every grapheme at the end',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: TextMotion(
+              startup: MotionStartup.skip,
+              effect: FadeInMotionEffect(
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const Text('AB'),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(seconds: 1));
+
+        expect(
+          (
+            _fadeValues(tester).join(','),
+            events.join(','),
+            tester.binding.transientCallbackCount,
+          ),
+          ('1.0,1.0', '', 0),
+        );
+      },
+    );
+
+    testWidgets(
+      'when listed startup skips, it should end every grapheme effect',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            child: const TextMotion.list(
+              startup: MotionStartup.skip,
+              effects: <MotionEffect>[
+                FadeInMotionEffect(),
+                ScaleInMotionEffect(scale: 0.4),
+              ],
+              child: Text('AB'),
+            ),
+          ),
+        );
+
+        expect(
+          (
+            _fadeValues(tester).join(','),
+            _debugProperty<Iterable<double>>(
+              tester,
+              'characterScales',
+            ).join(','),
+          ),
+          ('1.0,1.0', '1.0,1.0'),
+        );
+      },
+    );
+
+    testWidgets(
+      'when listed startup holds, it should start every grapheme effect',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            child: const TextMotion.list(
+              startup: MotionStartup.hold,
+              effects: <MotionEffect>[
+                FadeInMotionEffect(),
+                ScaleInMotionEffect(scale: 0.4),
+              ],
+              child: Text('AB'),
+            ),
+          ),
+        );
+
+        expect(
+          (
+            _fadeValues(tester).join(','),
+            _debugProperty<Iterable<double>>(
+              tester,
+              'characterScales',
+            ).join(','),
+          ),
+          ('0.0,0.0', '0.4,0.4'),
+        );
+      },
+    );
+
+    testWidgets(
+      'when skipped text is played, it should restart with its stagger',
+      (tester) async {
+        final controller = MotionController();
+        await tester.pumpWidget(
+          _testApp(
+            child: TextMotion(
+              controller: controller,
+              startup: MotionStartup.skip,
+              effect: const FadeInMotionEffect(
+                duration: Duration(milliseconds: 100),
+              ),
+              stagger: const Duration(milliseconds: 50),
+              child: const Text('AB'),
+            ),
+          ),
+        );
+        final skipped = _fadeValues(tester).join(',');
+        controller.play();
+        await tester.pump();
+        final restarted = _fadeValues(tester).join(',');
+        await tester.pump(const Duration(milliseconds: 50));
+
+        expect(
+          (skipped, restarted, _fadeValues(tester).join(',')),
+          ('1.0,1.0', '0.0,0.0', '0.5,0.0'),
+        );
+      },
+    );
+
+    testWidgets(
+      'when reduced motion is enabled, it should preserve skipped startup',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            disableAnimations: true,
+            child: TextMotion(
+              startup: MotionStartup.skip,
+              effect: FadeInMotionEffect(
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const Text('AB'),
+            ),
+          ),
+        );
+
+        expect(
+          (_fadeValues(tester).join(','), events.join(',')),
+          ('1.0,1.0', ''),
+        );
+      },
+    );
+  });
+
   group('TextMotion', () {
     testWidgets(
       'when built, it should own rendering without delegating through Motion',
@@ -189,14 +378,18 @@ void main() {
       'when text has no visible graphemes, it should schedule no motion work',
       (tester) async {
         const textKey = Key('whitespace_only_text');
+        final controller = MotionController();
         await tester.pumpWidget(
           _testApp(
-            child: const TextMotion(
-              effect: FloatingMotionEffect(),
-              child: Text(' \n\u200B', key: textKey),
+            child: TextMotion(
+              controller: controller,
+              effect: const FloatingMotionEffect(),
+              child: const Text(' \n\u200B', key: textKey),
             ),
           ),
         );
+        controller.play();
+        await tester.pump();
 
         expect(
           tester.binding.transientCallbackCount == 0 &&
@@ -204,6 +397,162 @@ void main() {
               find.byKey(textKey).evaluate().length == 1,
           isTrue,
         );
+      },
+    );
+
+    testWidgets(
+      'when controlled one-shot text finishes, it should replay every grapheme from the start',
+      (tester) async {
+        final controller = MotionController();
+        await tester.pumpWidget(
+          _testApp(
+            child: TextMotion(
+              controller: controller,
+              effect: const FadeInMotionEffect(
+                duration: Duration(milliseconds: 100),
+              ),
+              stagger: const Duration(milliseconds: 50),
+              child: const Text('AB'),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 150));
+
+        controller.play();
+        await tester.pump();
+
+        expect(_fadeValues(tester), <double>[0, 0]);
+      },
+    );
+
+    testWidgets(
+      'when controlled effects are listed, it should preserve their independent delays',
+      (tester) async {
+        final controller = MotionController();
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: TextMotion.list(
+              controller: controller,
+              effects: [
+                FadeInMotionEffect(
+                  duration: const Duration(milliseconds: 100),
+                  onStart: () => events.add('first'),
+                ),
+                ScaleInMotionEffect(
+                  duration: const Duration(milliseconds: 100),
+                  delay: const Duration(milliseconds: 50),
+                  onStart: () => events.add('second'),
+                ),
+              ],
+              stagger: const Duration(milliseconds: 25),
+              child: const Text('AB'),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 175));
+        events.clear();
+
+        controller.play();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 49));
+        await tester.pump(const Duration(milliseconds: 1));
+
+        expect(events, <String>['first', 'second']);
+      },
+    );
+
+    testWidgets(
+      'when shared with Motion, it should replay both attached widgets',
+      (tester) async {
+        final controller = MotionController();
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Row(
+              children: [
+                Motion(
+                  controller: controller,
+                  effect: FadeInMotionEffect(
+                    duration: const Duration(milliseconds: 100),
+                    onStart: () => events.add('motion'),
+                  ),
+                  child: const SizedBox(width: 20, height: 20),
+                ),
+                TextMotion(
+                  controller: controller,
+                  effect: FadeInMotionEffect(
+                    duration: const Duration(milliseconds: 100),
+                    onStart: () => events.add('text'),
+                  ),
+                  child: const Text('AB'),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 130));
+        events.clear();
+
+        controller.play();
+        await tester.pump();
+
+        expect(events, <String>['motion', 'text']);
+      },
+    );
+
+    testWidgets(
+      'when animations are disabled, it should replay its lifecycle at the endpoint',
+      (tester) async {
+        final controller = MotionController();
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            disableAnimations: true,
+            child: TextMotion(
+              controller: controller,
+              effect: FadeInMotionEffect(
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const Text('AB'),
+            ),
+          ),
+        );
+        events.clear();
+
+        controller.play();
+        await tester.pump();
+
+        expect(
+          (events.join(','), _fadeValues(tester).join(',')),
+          ('start,end', '1.0,1.0'),
+        );
+      },
+    );
+
+    testWidgets(
+      'when controlled looping text is playing, it should restart every grapheme phase',
+      (tester) async {
+        final controller = MotionController();
+        await tester.pumpWidget(
+          _testApp(
+            child: TextMotion(
+              controller: controller,
+              effect: const _ProbeMotionEffect(
+                duration: Duration(milliseconds: 100),
+              ),
+              stagger: const Duration(milliseconds: 25),
+              child: const Text('AB'),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 25));
+
+        controller.play();
+        await tester.pump();
+
+        expect(_probeValues(tester), <double>[0, 0.75]);
       },
     );
 
@@ -771,7 +1120,7 @@ void main() {
           ),
         );
 
-        expect(tester.takeException(), isArgumentError);
+        expect(tester.takeException(), isA<AssertionError>());
       },
     );
 
@@ -787,7 +1136,7 @@ void main() {
           ),
         );
 
-        expect(tester.takeException(), isArgumentError);
+        expect(tester.takeException(), isA<AssertionError>());
       },
     );
 
@@ -804,7 +1153,7 @@ void main() {
           ),
         );
 
-        expect(tester.takeException(), isArgumentError);
+        expect(tester.takeException(), isA<AssertionError>());
       },
     );
 
@@ -820,7 +1169,7 @@ void main() {
           ),
         );
 
-        expect(tester.takeException(), isArgumentError);
+        expect(tester.takeException(), isA<AssertionError>());
       },
     );
   });

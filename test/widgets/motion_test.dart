@@ -119,6 +119,315 @@ void main() {
     });
   });
 
+  group('Motion startup', () {
+    test('when omitted, it should default every constructor to play', () {
+      expect(
+        (
+          const Motion(
+            effect: FadeInMotionEffect(),
+            child: SizedBox(),
+          ).startup,
+          const Motion.list(
+            effects: <MotionEffect>[FadeInMotionEffect()],
+            child: SizedBox(),
+          ).startup,
+        ),
+        (MotionStartup.play, MotionStartup.play),
+      );
+    });
+
+    testWidgets(
+      'when startup plays, it should run the effect automatically',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            child: const Motion(
+              startup: MotionStartup.play,
+              effect: FadeInMotionEffect(
+                duration: Duration(milliseconds: 100),
+              ),
+              child: SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 50));
+
+        expect(_motionOpacity(tester), 0.5);
+      },
+    );
+
+    testWidgets(
+      'when startup holds, it should stay interactive at the starting state',
+      (tester) async {
+        final events = <String>[];
+        var taps = 0;
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              startup: MotionStartup.hold,
+              effect: FadeInMotionEffect(
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => taps += 1,
+                child: const SizedBox(width: 40, height: 20),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(seconds: 1));
+        await tester.tap(find.byType(GestureDetector));
+
+        expect(
+          (
+            _motionOpacity(tester),
+            events.join(','),
+            tester.binding.transientCallbackCount,
+            taps,
+          ),
+          (0, '', 0, 1),
+        );
+      },
+    );
+
+    testWidgets(
+      'when startup skips, it should stay interactive at the ending state',
+      (tester) async {
+        final events = <String>[];
+        var taps = 0;
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              startup: MotionStartup.skip,
+              effect: FadeInMotionEffect(
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => taps += 1,
+                child: const SizedBox(width: 40, height: 20),
+              ),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(seconds: 1));
+        await tester.tap(find.byType(GestureDetector));
+
+        expect(
+          (
+            _motionOpacity(tester),
+            events.join(','),
+            tester.binding.transientCallbackCount,
+            taps,
+          ),
+          (1, '', 0, 1),
+        );
+      },
+    );
+
+    testWidgets(
+      'when listed startup skips, it should show every effect at the end',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            child: const Motion.list(
+              startup: MotionStartup.skip,
+              effects: <MotionEffect>[
+                FadeInMotionEffect(),
+                ScaleInMotionEffect(scale: 0.4),
+              ],
+              child: SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+
+        expect(
+          (_motionOpacity(tester), _scaleValue(tester)),
+          (1, 1),
+        );
+      },
+    );
+
+    testWidgets(
+      'when listed startup holds, it should show every effect at the start',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            child: const Motion.list(
+              startup: MotionStartup.hold,
+              effects: <MotionEffect>[
+                FadeInMotionEffect(),
+                ScaleInMotionEffect(scale: 0.4),
+              ],
+              child: SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+
+        expect(
+          (_motionOpacity(tester), _scaleValue(tester)),
+          (0, 0.4),
+        );
+      },
+    );
+
+    testWidgets(
+      'when skipped motion is played, it should restart and honor its delay',
+      (tester) async {
+        final controller = MotionController();
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              controller: controller,
+              startup: MotionStartup.skip,
+              effect: FadeInMotionEffect(
+                delay: const Duration(milliseconds: 50),
+                duration: const Duration(milliseconds: 100),
+                onStart: () => events.add('start'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        final skipped = _motionOpacity(tester);
+        controller.play();
+        await tester.pump();
+        final restarted = _motionOpacity(tester);
+        await tester.pump(const Duration(milliseconds: 49));
+        final beforeDelay = events.join(',');
+        await tester.pump(const Duration(milliseconds: 1));
+
+        expect(
+          (skipped, restarted, beforeDelay, events.join(',')),
+          (1, 0, '', 'start'),
+        );
+      },
+    );
+
+    testWidgets(
+      'when reduced motion is enabled, it should preserve held startup',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            disableAnimations: true,
+            child: Motion(
+              startup: MotionStartup.hold,
+              effect: FadeInMotionEffect(
+                onStart: () => events.add('start'),
+                onEnd: () => events.add('end'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+
+        expect(
+          (_motionOpacity(tester), events.join(',')),
+          (0, ''),
+        );
+      },
+    );
+
+    testWidgets(
+      'when startup changes after mounting, it should wait for a remount',
+      (tester) async {
+        late StateSetter rebuild;
+        var startup = MotionStartup.hold;
+        var generation = 0;
+        await tester.pumpWidget(
+          _testApp(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Motion(
+                  key: ValueKey<int>(generation),
+                  startup: startup,
+                  effect: const FadeInMotionEffect(),
+                  child: const SizedBox(width: 40, height: 20),
+                );
+              },
+            ),
+          ),
+        );
+        rebuild(() => startup = MotionStartup.skip);
+        await tester.pump();
+        final afterRebuild = _motionOpacity(tester);
+        rebuild(() => generation += 1);
+        await tester.pump();
+
+        expect(
+          (afterRebuild, _motionOpacity(tester)),
+          (0, 1),
+        );
+      },
+    );
+
+    testWidgets(
+      'when an effect changes while held, it should preserve held startup',
+      (tester) async {
+        late StateSetter rebuild;
+        var begin = 10.0;
+        await tester.pumpWidget(
+          _testApp(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Motion(
+                  startup: MotionStartup.hold,
+                  effect: MoveMotionEffect(
+                    begin: Offset(begin, 0),
+                    end: Offset.zero,
+                  ),
+                  child: const SizedBox(width: 40, height: 20),
+                );
+              },
+            ),
+          ),
+        );
+        rebuild(() => begin = 20);
+        await tester.pump();
+
+        expect(
+          (_moveTranslation(tester).dx, tester.binding.transientCallbackCount),
+          (20, 0),
+        );
+      },
+    );
+
+    testWidgets(
+      'when looping startup skips, it should stay at the equivalent endpoint',
+      (tester) async {
+        final events = <String>[];
+        await tester.pumpWidget(
+          _testApp(
+            child: Motion(
+              startup: MotionStartup.skip,
+              effect: FloatingMotionEffect(
+                onStart: () => events.add('start'),
+              ),
+              child: const SizedBox(width: 40, height: 20),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(seconds: 3));
+
+        expect(
+          (
+            _translationY(tester),
+            events.join(','),
+            tester.binding.transientCallbackCount,
+          ),
+          (0, '', 0),
+        );
+      },
+    );
+  });
+
   group('MotionEffect construction', () {
     testWidgets(
       'when a custom effect is shared, it should drive Motion and TextMotion',
@@ -232,7 +541,7 @@ void main() {
         ),
       );
 
-      expect(tester.takeException(), isArgumentError);
+      expect(tester.takeException(), isA<AssertionError>());
     });
 
     testWidgets('when duration is zero, it should reject mounting', (
@@ -249,7 +558,7 @@ void main() {
 
       expect(
         tester.takeException(),
-        isArgumentError,
+        isA<AssertionError>(),
       );
     });
 
@@ -269,61 +578,28 @@ void main() {
 
       expect(
         tester.takeException(),
-        isArgumentError,
+        isA<AssertionError>(),
       );
     });
 
-    testWidgets('when floating distance is zero, it should reject mounting', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _testApp(
-          child: const Motion(
-            effect: FloatingMotionEffect(distance: 0),
-            child: SizedBox(width: 40, height: 20),
-          ),
-        ),
-      );
-
+    test('when floating distance is zero, it should reject construction', () {
       expect(
-        tester.takeException(),
-        isArgumentError,
+        () => FloatingMotionEffect(distance: 0),
+        throwsA(isA<AssertionError>()),
       );
     });
 
-    testWidgets('when floating distance is not finite, it should reject mounting', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _testApp(
-          child: const Motion(
-            effect: FloatingMotionEffect(distance: double.infinity),
-            child: SizedBox(width: 40, height: 20),
-          ),
-        ),
-      );
-
+    test('when floating distance is not finite, it should reject construction', () {
       expect(
-        tester.takeException(),
-        isArgumentError,
+        () => FloatingMotionEffect(distance: double.infinity),
+        throwsA(isA<AssertionError>()),
       );
     });
 
-    testWidgets('when scale is not finite, it should reject mounting', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        _testApp(
-          child: const Motion(
-            effect: ScaleInMotionEffect(scale: double.infinity),
-            child: SizedBox(width: 40, height: 20),
-          ),
-        ),
-      );
-
+    test('when scale is not finite, it should reject construction', () {
       expect(
-        tester.takeException(),
-        isArgumentError,
+        () => ScaleInMotionEffect(scale: double.infinity),
+        throwsA(isA<AssertionError>()),
       );
     });
 
@@ -344,7 +620,7 @@ void main() {
 
       expect(
         tester.takeException(),
-        isArgumentError,
+        isA<AssertionError>(),
       );
     });
 
@@ -365,7 +641,7 @@ void main() {
 
       expect(
         tester.takeException(),
-        isArgumentError,
+        isA<AssertionError>(),
       );
     });
   });

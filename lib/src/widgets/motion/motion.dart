@@ -11,11 +11,11 @@ part 'effects/fade_in_motion_effect.dart';
 part 'effects/floating_motion_effect.dart';
 part 'effects/move_motion_effect.dart';
 part 'effects/scale_in_motion_effect.dart';
+part 'effects/shake_motion_effect.dart';
 part 'internals/motion_animation.dart';
 part 'internals/motion_animation_group.dart';
 part 'internals/motion_animation_host.dart';
-part 'internals/motion_effect_bounds.dart';
-part 'internals/motion_effect_validator.dart';
+part 'internals/motion_debug_validator.dart';
 part 'internals/motion_render_effect.dart';
 part 'internals/motion_scheduler.dart';
 part 'internals/motion_transition.dart';
@@ -27,8 +27,10 @@ part 'internals/text_motion_effect.dart';
 part 'internals/text_motion_transition.dart';
 part 'motion_controller.dart';
 part 'motion_effect.dart';
+part 'motion_effect_bounds.dart';
 part 'motion_effect_transform.dart';
 part 'motion_playback.dart';
+part 'motion_startup.dart';
 part 'text_motion.dart';
 
 /// Applies one or more reusable [MotionEffect]s to [child].
@@ -52,6 +54,7 @@ class Motion extends StatelessWidget {
     required this.effect,
     required this.child,
     this.controller,
+    this.startup = MotionStartup.play,
     this.interactive = false,
     super.key,
   }) : effects = null;
@@ -66,6 +69,7 @@ class Motion extends StatelessWidget {
     required this.effects,
     required this.child,
     this.controller,
+    this.startup = MotionStartup.play,
     this.interactive = false,
     super.key,
   }) : effect = null;
@@ -82,9 +86,20 @@ class Motion extends StatelessWidget {
 
   /// Controller used to replay this motion.
   ///
-  /// The motion still plays automatically when mounted. When omitted, it
-  /// cannot be replayed imperatively.
+  /// [MotionStartup.play] plays automatically when mounted. When omitted,
+  /// held or skipped motion cannot be played imperatively.
   final MotionController? controller;
+
+  /// Behavior applied when this widget first mounts.
+  ///
+  /// This defaults to [MotionStartup.play]. Use [MotionStartup.hold] to show
+  /// every effect at progress `0`, or [MotionStartup.skip] to show every
+  /// effect at progress `1`, without playing or calling lifecycle callbacks.
+  /// A later [MotionController.play] call starts normal playback.
+  ///
+  /// Changing this value after the widget has mounted has no effect. Use a new
+  /// [key] to apply different startup behavior.
+  final MotionStartup startup;
 
   /// Whether [child] accepts pointer interaction during the effect lifecycle.
   ///
@@ -92,7 +107,8 @@ class Motion extends StatelessWidget {
   /// least one effect is waiting or playing. Set this to true to keep the child
   /// interactive throughout the motion lifecycle. Interaction becomes enabled
   /// after every one-shot effect completes. Looping effects keep interaction
-  /// disabled for as long as they remain mounted when this is false.
+  /// disabled while playback remains active. Held and skipped motion is idle,
+  /// so it remains interactive when this is false.
   final bool interactive;
 
   /// Widget receiving the motion treatment.
@@ -104,6 +120,7 @@ class Motion extends StatelessWidget {
     return _MotionAnimationHost(
       controller: controller,
       effects: resolvedEffects,
+      startup: startup,
       interactive: interactive,
       transitionBuilder: (applications) => _MotionTransition(
         applications: applications,

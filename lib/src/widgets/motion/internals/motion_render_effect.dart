@@ -73,17 +73,19 @@ class _MotionRenderEffect {
 
   final bool isLinear;
 
-  late final _MotionEffectBounds bounds;
+  late final MotionEffectBounds bounds;
 
   double _nextCharacterProgress = 0;
 
   bool _frameIsDismissed = true;
 
-  static _MotionEffectBounds _sampleBounds(
+  static MotionEffectBounds _sampleBounds(
     MotionEffect effect, {
     required bool isLinear,
   }) {
     final transform = MotionEffectTransform._();
+    var minimumTranslationX = 0.0;
+    var minimumTranslationY = 0.0;
     var maximumTranslationX = 0.0;
     var maximumTranslationY = 0.0;
     var maximumScale = 1.0;
@@ -92,20 +94,46 @@ class _MotionRenderEffect {
       final progress = isLinear ? timelineProgress : effect.curve.transform(timelineProgress);
       transform._reset();
       effect.apply(progress, transform);
-      maximumTranslationX = math.max(
-        maximumTranslationX,
-        transform._translationX.abs(),
-      );
-      maximumTranslationY = math.max(
-        maximumTranslationY,
-        transform._translationY.abs(),
-      );
+      minimumTranslationX = math.min(minimumTranslationX, transform._translationX);
+      minimumTranslationY = math.min(minimumTranslationY, transform._translationY);
+      maximumTranslationX = math.max(maximumTranslationX, transform._translationX);
+      maximumTranslationY = math.max(maximumTranslationY, transform._translationY);
       maximumScale = math.max(maximumScale, transform._scale.abs());
     }
-    return _MotionEffectBounds(
-      maximumAbsoluteTranslationX: maximumTranslationX,
-      maximumAbsoluteTranslationY: maximumTranslationY,
-      maximumAbsoluteScale: maximumScale,
+    final sampledBounds = MotionEffectBounds(
+      minimumOffset: Offset(minimumTranslationX, minimumTranslationY),
+      maximumOffset: Offset(maximumTranslationX, maximumTranslationY),
+      maximumScale: maximumScale,
+    );
+    final declaredBounds = effect.bounds;
+    if (declaredBounds == null) {
+      return sampledBounds;
+    }
+    return MotionEffectBounds(
+      minimumOffset: Offset(
+        math.min(
+          sampledBounds.minimumOffset.dx,
+          declaredBounds.minimumOffset.dx,
+        ),
+        math.min(
+          sampledBounds.minimumOffset.dy,
+          declaredBounds.minimumOffset.dy,
+        ),
+      ),
+      maximumOffset: Offset(
+        math.max(
+          sampledBounds.maximumOffset.dx,
+          declaredBounds.maximumOffset.dx,
+        ),
+        math.max(
+          sampledBounds.maximumOffset.dy,
+          declaredBounds.maximumOffset.dy,
+        ),
+      ),
+      maximumScale: math.max(
+        sampledBounds.maximumScale,
+        declaredBounds.maximumScale,
+      ),
     );
   }
 

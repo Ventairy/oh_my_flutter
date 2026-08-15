@@ -92,9 +92,9 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     var verticalMotion = 0.0;
     for (final effect in _renderEffects) {
       final bounds = effect.bounds;
-      horizontalMotion += bounds.maximumAbsoluteTranslationX;
-      verticalMotion += bounds.maximumAbsoluteTranslationY;
-      maximumScale *= math.max(1, bounds.maximumAbsoluteScale);
+      horizontalMotion += bounds._maximumAbsoluteTranslationX;
+      verticalMotion += bounds._maximumAbsoluteTranslationY;
+      maximumScale *= math.max(1, bounds.maximumScale);
     }
     final horizontalOutset = horizontalMotion * maximumScale + size.width * (maximumScale - 1) / 2;
     final verticalOutset = verticalMotion * maximumScale + size.height * (maximumScale - 1) / 2;

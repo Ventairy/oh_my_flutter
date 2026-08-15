@@ -30,10 +30,13 @@ export 'src/widgets/motion/motion.dart'
         Motion,
         MotionController,
         MotionEffect,
+        MotionEffectBounds,
         MotionEffectTransform,
         MotionPlayback,
+        MotionStartup,
         MoveMotionEffect,
         ScaleInMotionEffect,
+        ShakeMotionEffect,
         TextMotion;
 export 'src/widgets/pause_animations/pause_animations.dart' show PauseAnimations;
 export 'src/widgets/route_settled/route_settled.dart' show RouteSettled;
