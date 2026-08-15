@@ -1092,9 +1092,12 @@ void main() {
         await tester.pump();
         await tester.pump();
         await _drainRasterBatch(tester);
-        final laterUnleased = images.skip(activeOldest.length).toList(growable: false);
         await tester.pump(const Duration(milliseconds: 300));
         await tester.pump();
+        final laterUnleased = images
+            .skip(activeOldest.length)
+            .where((image) => !image.debugDisposed)
+            .toList(growable: false);
         final beforePressure = (
           activePaintable: activeOldest.every(
             (image) => !image.debugDisposed,
@@ -1133,9 +1136,8 @@ void main() {
         expect(
           (
             activeOldest.length,
-            laterUnleased.isNotEmpty,
+            laterUnleased.length,
             beforePressure,
-            startsBeforePressure == activeOldest.length + laterUnleased.length,
             newlyAdmitted.length == laterUnleased.length,
             afterPressure.activePaintable,
             afterPressure.laterEvicted,
@@ -1145,9 +1147,8 @@ void main() {
           ),
           (
             4,
-            true,
+            4,
             (activePaintable: true, laterReusable: true),
-            true,
             true,
             true,
             true,

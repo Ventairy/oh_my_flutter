@@ -1,22 +1,10 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:alchemist/alchemist.dart';
 import 'package:oh_my_flutter/src/widgets/morph/morph_test_configuration.dart';
 
-Future<void> testExecutable(FutureOr<void> Function() testMain) async {
-  final isRunningInCi = Platform.environment['CI'] == 'true';
-  MorphTestConfiguration.rasterizationEnabled = false;
+import 'support/test_configuration.dart' if (dart.library.js_interop) 'support/test_configuration_web.dart';
 
-  await AlchemistConfig.runWithConfig(
-    config: AlchemistConfig(
-      ciGoldensConfig: CiGoldensConfig(
-        diffThreshold: isRunningInCi ? 0.05 : 0,
-      ),
-      platformGoldensConfig: PlatformGoldensConfig(
-        enabled: !isRunningInCi,
-      ),
-    ),
-    run: testMain,
-  );
+Future<void> testExecutable(FutureOr<void> Function() testMain) async {
+  MorphTestConfiguration.rasterizationEnabled = false;
+  await TestConfiguration.run(testMain);
 }
