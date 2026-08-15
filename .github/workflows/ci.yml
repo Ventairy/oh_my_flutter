@@ -25,11 +25,20 @@ jobs:
       - run: fvm flutter pub upgrade
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
-      - run: fvm dart format --output none --set-exit-if-changed lib test example/lib/main.dart
+      - run: fvm dart format --output none --set-exit-if-changed lib test example/lib example/test example/benchmark
       - run: fvm flutter analyze --fatal-infos
       - run: fvm flutter test
+      - name: Test Morph on web
+        run: >-
+          fvm flutter test --platform chrome
+          test/widgets/morph_flight_test.dart
+          test/widgets/morph_text_test.dart
+          test/widgets/morph_container_test.dart
+          test/widgets/morph_column_test.dart
       - run: fvm dart doc --validate-links
       - run: fvm flutter analyze --fatal-infos
+        working-directory: example
+      - run: fvm flutter test
         working-directory: example
       - run: fvm flutter pub publish --dry-run
       - run: fvm dart pub global activate pana

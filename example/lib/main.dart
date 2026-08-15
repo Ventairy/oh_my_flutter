@@ -1,226 +1,78 @@
-import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
-import 'package:oh_my_flutter/oh_my_flutter.dart';
+
+import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
+import 'package:oh_my_flutter_example/examples/marquee_example.dart';
+import 'package:oh_my_flutter_example/examples/morph_example.dart';
+import 'package:oh_my_flutter_example/examples/motion_example.dart';
+import 'package:oh_my_flutter_example/examples/relative_time_example.dart';
+import 'package:oh_my_flutter_example/examples/route_settled_example.dart';
+import 'package:oh_my_flutter_example/examples/sequence_example.dart';
+import 'package:oh_my_flutter_example/examples/text_motion_example.dart';
 
 void main() => runApp(const UtilityExample());
 
 /// A small gallery for the public utility APIs.
-class UtilityExample extends StatefulWidget {
+class UtilityExample extends StatelessWidget {
   /// Creates the utility example.
   const UtilityExample({super.key});
 
   @override
-  State<UtilityExample> createState() => _UtilityExampleState();
-}
-
-class _UtilityExampleState extends State<UtilityExample> {
-  final _visibilityController = ControlledVisibilityController();
-  final _sequenceController = SequenceController();
-  bool _detailsVisible = false;
-  String _motionStatus = 'Motion is waiting';
-
-  @override
-  void dispose() {
-    _sequenceController.dispose();
-    super.dispose();
-  }
-
-  void _toggleDetails() {
-    setState(() => _detailsVisible = !_detailsVisible);
-    if (_detailsVisible) {
-      _visibilityController.show();
-    } else {
-      _visibilityController.hide();
-    }
-  }
-
-  void _handleMotionStarted() {
-    setState(() => _motionStatus = 'Motion started');
-  }
-
-  void _handleMotionCompleted() {
-    setState(() => _motionStatus = 'Motion completed');
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final label = withClock(
-      Clock.fixed(DateTime.utc(2026, 1, 1, 12)),
-      () => DateTime.utc(2026, 1, 1, 11, 55).timeAgo<String>(
-        onMinutesAgo: (minutes) => '$minutes minutes ago',
-      ),
-    );
-
     return MaterialApp(
       home: Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFF4A4B),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    label,
-                    style: const TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const PauseAnimations.temporarily(
-                    duration: Duration(milliseconds: 300),
-                    child: Motion.list(
-                      effects: [
-                        FadeInMotionEffect(),
-                        ScaleInMotionEffect(
-                          scale: 0.7,
-                          delay: Duration(milliseconds: 80),
-                        ),
-                      ],
-                      child: Icon(Icons.visibility_outlined, size: 32),
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  Motion(
-                    effect: ScaleInMotionEffect(
-                      scale: 0.4,
-                      delay: const Duration(milliseconds: 100),
-                      onStart: _handleMotionStarted,
-                      onEnd: _handleMotionCompleted,
-                    ),
-                    child: const Icon(Icons.check_circle_outline, size: 32),
-                  ),
-                  const SizedBox(width: 24),
-                  const Motion(
-                    effect: MoveMotionEffect(
-                      begin: Offset(-24, 0),
-                      end: Offset.zero,
-                      duration: Duration(milliseconds: 500),
-                      delay: Duration(milliseconds: 150),
-                    ),
-                    child: Icon(Icons.arrow_forward, size: 32),
-                  ),
-                  const SizedBox(width: 24),
-                  const Motion(
-                    effect: FloatingMotionEffect(
-                      delay: Duration(milliseconds: 300),
-                    ),
-                    child: Icon(Icons.cloud_outlined, size: 40),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Text(_motionStatus),
-              const SizedBox(height: 24),
-              const TextMotion.list(
-                effects: [
-                  FadeInMotionEffect(),
-                  MoveMotionEffect(
-                    begin: Offset(0, 8),
-                    end: Offset.zero,
-                  ),
-                ],
-                child: Text(
-                  'Motion for every letter',
-                  style: TextStyle(fontSize: 20),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const SizedBox(
-                width: 320,
-                child: Marquee(
-                  direction: MarqueeDirection.left,
-                  duration: Duration(seconds: 4),
-                  spacing: 24,
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Text('Portable'),
-                    Text('Strongly typed'),
-                    Text('Low allocation'),
+                    Text('Relative time', style: _sectionStyle),
+                    SizedBox(height: 12),
+                    RelativeTimeExample(),
+                    SizedBox(height: 32),
+                    Text('Motion', style: _sectionStyle),
+                    SizedBox(height: 12),
+                    MotionExample(),
+                    SizedBox(height: 32),
+                    Text('TextMotion', style: _sectionStyle),
+                    SizedBox(height: 12),
+                    TextMotionExample(),
+                    SizedBox(height: 32),
+                    Text('Marquee', style: _sectionStyle),
+                    SizedBox(height: 12),
+                    MarqueeExample(),
+                    SizedBox(height: 32),
+                    Text('ControlledVisibility', style: _sectionStyle),
+                    SizedBox(height: 12),
+                    ControlledVisibilityExample(),
+                    SizedBox(height: 32),
+                    Text('Morph', style: _sectionStyle),
+                    SizedBox(height: 12),
+                    MorphExample(),
+                    SizedBox(height: 32),
+                    Text('Sequence', style: _sectionStyle),
+                    SizedBox(height: 12),
+                    SequenceExample(),
+                    SizedBox(height: 32),
+                    Text('RouteSettled', style: _sectionStyle),
+                    SizedBox(height: 12),
+                    RouteSettledExample(),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _toggleDetails,
-                child: Text(_detailsVisible ? 'Hide details' : 'Show details'),
-              ),
-              const SizedBox(height: 12),
-              ControlledVisibility(
-                controller: _visibilityController,
-                showDuration: const Duration(milliseconds: 240),
-                hideDuration: const Duration(milliseconds: 120),
-                showTransition: (child, animation) => FadeTransition(
-                  opacity: CurveTween(
-                    curve: Curves.easeOutCubic,
-                  ).animate(animation),
-                  child: child,
-                ),
-                hideTransition: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-                child: const Text('Visibility remains application-controlled.'),
-              ),
-              const SizedBox(height: 24),
-              Sequence(
-                controller: _sequenceController,
-                nextTransition: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-                previousTransition: (child, animation) => ScaleTransition(
-                  scale: animation,
-                  child: child,
-                ),
-                children: const [
-                  Text('Sequence step one'),
-                  Text('Sequence step two'),
-                  Text('Sequence step three'),
-                ],
-              ),
-              const SizedBox(height: 12),
-              AnimatedBuilder(
-                animation: _sequenceController,
-                builder: (context, child) {
-                  final sequence = _sequenceController;
-                  final index = sequence.index;
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: index == 0 ? null : sequence.previous,
-                        tooltip: 'Previous step',
-                        icon: const Icon(Icons.arrow_back),
-                      ),
-                      Text('Step ${index + 1} of 3'),
-                      IconButton(
-                        onPressed: index == 2 ? null : sequence.next,
-                        tooltip: 'Next step',
-                        icon: const Icon(Icons.arrow_forward),
-                      ),
-                    ],
-                  );
-                },
-              ),
-              const SizedBox(height: 24),
-              RouteSettled(
-                showTransition: (child, animation) => FadeTransition(
-                  opacity: animation,
-                  child: child,
-                ),
-                child: const Text('This appears after route motion settles.'),
-              ),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  static const _sectionStyle = TextStyle(
+    fontSize: 18,
+    fontWeight: FontWeight.w700,
+  );
 }

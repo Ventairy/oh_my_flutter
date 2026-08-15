@@ -1,3 +1,12 @@
+## 0.6.0
+
+- Add `Morph` shared-element transitions for any widget across routes or within
+  the same screen. Eligible `Text`, `Container`, `DecoratedBox`, and vertical
+  `Column` pairs receive specialized transitions automatically, while other
+  pairs use the generic content switch. Nested Morphs inherit an omitted
+  duration or curve from their nearest Morph ancestor. Custom typed flight
+  delegates remain available when needed.
+
 ## 0.5.0
 
 - **Breaking:** Replace `MotionEffect.buildTransition` with

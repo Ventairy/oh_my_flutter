@@ -18,6 +18,9 @@ doc/api/
 # Coverage
 coverage/
 
+# Generated golden-test failure artifacts
+**/goldens/failures/
+
 # Local dependency resolution
 /pubspec.lock
 pubspec_overrides.yaml

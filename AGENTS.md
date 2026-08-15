@@ -19,12 +19,26 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 ## Public API
 
 - Export consumer APIs explicitly from `lib/oh_my_flutter.dart`.
+- Design every API and behavior for reuse across unrelated applications. Do not
+  encode one app's business logic, styling, motion preferences, layout choices,
+  content assumptions, or other product-specific decisions in this package.
+  Expose product choices as explicit consumer configuration instead.
+- Add a default only when it represents neutral, broadly applicable behavior;
+  never choose one merely because it suits the current consumer. Configurable
+  animation curves default to `Curves.linear`; consumers must explicitly opt
+  into eased, branded, or otherwise opinionated motion.
 - Every exported declaration and public member requires useful Dartdoc.
 - Keep Dartdoc for extensible containers, such as libraries, classes,
   extensions, and mixins, generic enough to remain accurate when new
   capabilities are added. Do not define a container solely by the first or
   only feature it currently exposes; document feature-specific behavior on the
   member that provides it.
+- Write Dartdoc exclusively from the consumer's perspective: explain how to use
+  the API, what it visibly or observably does, and any constraints the consumer
+  must act on. Do not mention internal structure, coordination, or mechanics
+  merely because they are technically accurate. Include a technical constraint
+  only when it changes consumer usage or an observable result, and describe its
+  consumer-facing consequence rather than how the implementation works.
 - Keep public Dartdoc and README content focused on consumer-facing behavior,
   usage, and outcomes. Do not explain internal implementation or optimization
   machinery such as render objects, scheduler entries, shared frame callbacks,
@@ -76,7 +90,25 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 
 ## Documentation and releases
 
+- Give every independently usable exported feature a dedicated consumer guide
+  in the matching category folder under `doc/`, using a snake_case filename.
+  Keep detailed usage, configuration, examples, and constraints in that guide.
+- Treat the README as the authoritative public feature catalog because pub.dev
+  presents it to consumers. Keep each entry brief and link once from each
+  category heading to its documentation folder; do not maintain per-feature
+  guide links or duplicate the feature inventory in another index.
+- List a feature anywhere else only when that list is necessary for the reader's
+  task, not merely as navigation or a second catalog that must stay synchronized.
+- Keep feature guides limited to public imports and consumer-observable
+  behavior, and update the relevant guide whenever that feature's public
+  behavior changes. Follow the additional local rules in `doc/AGENTS.md`.
 - Update README, API docs, example, and CHANGELOG for user-visible changes.
+- While a feature remains unreleased, maintain one concise, consumer-facing
+  CHANGELOG entry that describes its overall capability. As development
+  iterates and its scope grows, revise that entry instead of adding separate
+  entries for each constituent behavior, implementation detail, optimization,
+  bug fix, or refinement. Use more granular entries only for changes made after
+  the feature has appeared in a public release.
 - Keep the example runnable and limited to public imports.
 - Verify `make check`, `make pana`, and an inspected zero-warning publish dry run.
 - Never run a real `pub publish` command without explicit release authorization.

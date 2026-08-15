@@ -16,6 +16,8 @@ doc/api/
 **/ios/Flutter/
 **/ios/Runner/GeneratedPluginRegistrant.*
 **/ios/*/.swiftpm/
-pubspec.lock
+/pubspec.lock
+!example/pubspec.lock
 pubspec_overrides.yaml
 skills-lock.json
+**/goldens/failures/
