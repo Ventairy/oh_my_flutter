@@ -1,4 +1,4 @@
-## 0.6.0
+## 0.6.1
 
 - Add `Morph` shared-element transitions for any widget across routes or within
   the same screen. Eligible `Text`, `Container`, `DecoratedBox`, and vertical

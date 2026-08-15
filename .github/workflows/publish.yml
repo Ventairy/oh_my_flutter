@@ -7,6 +7,21 @@ on:
 
 jobs:
   publish:
+    runs-on: ubuntu-latest
     permissions:
       id-token: write
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+    steps:
+      - uses: actions/checkout@v6
+      - uses: dart-lang/setup-dart@v1
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: dart pub global activate fvm
+      - run: fvm install
+      - run: fvm flutter pub upgrade
+      - run: fvm flutter pub get --enforce-lockfile
+        working-directory: example
+      - run: fvm flutter pub publish --dry-run
+      - run: fvm flutter pub publish --force
