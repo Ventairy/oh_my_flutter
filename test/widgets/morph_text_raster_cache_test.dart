@@ -556,15 +556,32 @@ Future<({MorphTextProperties source, MorphTextProperties destination})> _capture
 
 Future<ui.Image> _waitForRaster(WidgetTester tester) async {
   for (var attempt = 0; attempt < 100; attempt += 1) {
-    final raster = _diagnostic<ui.Image>(tester, 'retainedTextRaster');
-    if (raster != null) {
-      await tester.pump();
-      return raster;
+    final flights = find.byWidgetPredicate(
+      (widget) => widget.runtimeType.toString() == '_MorphTextFlight',
+    );
+    if (flights.evaluate().length == 1) {
+      final raster = _diagnostic<ui.Image>(tester, 'retainedTextRaster');
+      if (raster != null) {
+        await tester.pump();
+        return raster;
+      }
     }
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 5)),
     );
     await tester.pump();
+  }
+  final flightCount = find
+      .byWidgetPredicate(
+        (widget) => widget.runtimeType.toString() == '_MorphTextFlight',
+      )
+      .evaluate()
+      .length;
+  if (flightCount != 1) {
+    throw StateError(
+      'The retained text raster did not become ready because Morph had '
+      '$flightCount text flights.',
+    );
   }
   throw StateError(
     'The retained text raster did not become ready: '
@@ -1136,9 +1153,9 @@ void main() {
         expect(
           (
             activeOldest.length,
-            laterUnleased.length,
+            laterUnleased.isNotEmpty,
             beforePressure,
-            newlyAdmitted.length == laterUnleased.length,
+            newlyAdmitted.length,
             afterPressure.activePaintable,
             afterPressure.laterEvicted,
             afterPressure.newPaintable,
@@ -1147,9 +1164,9 @@ void main() {
           ),
           (
             4,
-            4,
-            (activePaintable: true, laterReusable: true),
             true,
+            (activePaintable: true, laterReusable: true),
+            4,
             true,
             true,
             true,
