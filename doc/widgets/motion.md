@@ -16,7 +16,9 @@ const Motion(
 
 Effects own their configuration; `Motion` owns playback and respects the
 platform's reduced-motion preference. Built-in effects can fade, scale, move,
-or continuously float a widget:
+or continuously float a widget. Unless a constructor documents another value,
+effects start immediately, last 300 milliseconds, use `Curves.linear`, and run
+once:
 
 ```dart
 const Motion(
@@ -58,6 +60,7 @@ const Motion.list(
 
 The first effect is applied first, and each following effect composes around
 the result. Keep the effects list immutable after passing it to `Motion.list`.
+Each effect keeps its own delay, timing, playback, and lifecycle callbacks.
 
 ## Lifecycle and interaction
 
@@ -80,8 +83,19 @@ playing. Set `interactive: true` to accept input during playback. A looping
 effect otherwise keeps interaction disabled while mounted.
 
 Reduced-motion one-shot effects call `onStart` followed immediately by
-`onEnd`. `FloatingMotionEffect` exposes only `onStart` because it does not
-complete.
+`onEnd` while showing their finished visual state. Looping effects remain at
+their initial visual state and do not start lifecycle callbacks while reduced
+motion is enabled.
+
+A disabled `TickerMode` mutes visual updates. A pending `onStart` waits until
+the subtree is enabled; playback can then catch up to its elapsed position.
+Looping effects do not complete while mounted and therefore never call
+`onEnd`.
+
+Set `playback: MotionPlayback.loop` on an effect that should repeat. Make its
+progress `0` and `1` visuals equivalent so cycles remain seamless. Be careful
+with a looping effect whose initial visual hides or displaces essential
+content, because reduced motion intentionally keeps that initial visual.
 
 ## Create a custom effect
 

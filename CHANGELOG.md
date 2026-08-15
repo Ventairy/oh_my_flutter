@@ -6,6 +6,9 @@
   pairs use the generic content switch. Nested Morphs inherit an omitted
   duration or curve from their nearest Morph ancestor. Custom typed flight
   delegates remain available when needed.
+- Reorganize package documentation into focused consumer guides for widgets,
+  extensions, networking, and utilities, with a compact README catalog that
+  links to each documentation section.
 
 ## 0.5.0
 

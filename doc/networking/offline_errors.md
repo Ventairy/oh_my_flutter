@@ -1,20 +1,26 @@
 # Offline Dio errors
 
-Add `OfflineErrorDioInterceptor` when callers need to distinguish confirmed
-offline failures from other Dio errors without scattering connectivity probes
-through application code.
+Add `OfflineErrorDioInterceptor` when callers need a conservative offline result
+for connection-like Dio failures without scattering connectivity probes through
+application code.
 
 ## Install the interceptor
 
 ```dart
+import 'package:dio/dio.dart';
+import 'package:oh_my_flutter/oh_my_flutter.dart';
+
 final dio = Dio()
   ..interceptors.add(OfflineErrorDioInterceptor());
 ```
 
-Connection-related failures trigger an internet-access check. If the device is
-offline, the resulting `DioException.error` contains an
-`OfflineConnectionDioException`. The original failure remains available as its
-cause.
+Bad-response, connection, connection-timeout, receive-timeout, send-timeout,
+and unknown failures trigger an internet-access check with a five-second
+limit. If that probe reports online, the original `DioException` continues
+unchanged. If the probe reports offline, throws, or times out, the resulting
+`DioException.error` contains an `OfflineConnectionDioException`. Treat this as
+an offline-safe fallback rather than proof that the network is physically
+disconnected.
 
 ## Detect an offline result
 
@@ -23,6 +29,8 @@ try {
   await dio.get('/jobs');
 } on DioException catch (error) {
   if (error.isOfflineConnectionDioException) {
+    final original =
+        (error.error as OfflineConnectionDioException).cause;
     showOfflineState();
     return;
   }
@@ -33,6 +41,6 @@ try {
 
 The detection extension does not perform a network check itself; it recognizes
 the typed result produced by the interceptor. Certificate, cancellation, and
-transform-timeout errors are not treated as offline candidates. See the
-[API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/OfflineErrorDioInterceptor-class.html)
-for the complete error classification.
+transform-timeout errors are not treated as offline candidates. The original
+failure remains available through `OfflineConnectionDioException.cause` when
+logging or retry logic needs it.

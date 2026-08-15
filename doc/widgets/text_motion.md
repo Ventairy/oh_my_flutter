@@ -17,7 +17,9 @@ const TextMotion(
 ```
 
 Whitespace and invisible formatting controls remain static paragraph spans.
-The default stagger is 30 milliseconds.
+The default stagger is 30 milliseconds and cannot be negative. Effect timing,
+curves, playback, replay keys, lifecycle callbacks, interaction, reduced
+motion, and `TickerMode` follow [Motion](motion.md).
 
 ## Combine effects
 

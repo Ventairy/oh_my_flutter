@@ -88,8 +88,8 @@ display text.
 
 ### Marquee
 
-`Marquee` moves an ordered strip continuously or as a single pass through a
-clipped viewport.
+`Marquee` repeatedly moves an ordered strip through a clipped viewport, with
+gapless or single-strip cycle layouts.
 
 ### PauseAnimations
 
@@ -109,8 +109,9 @@ settled and no navigator gesture is active.
 
 ### Offline Dio errors
 
-`OfflineErrorDioInterceptor` turns confirmed offline Dio failures into a typed
-error that callers can detect without repeating connectivity probes.
+`OfflineErrorDioInterceptor` turns conservatively classified offline Dio
+failures into a typed error that callers can detect without repeating
+connectivity probes.
 
 ## [Utilities][utility-guides]
 
@@ -119,7 +120,7 @@ error that callers can detect without repeating connectivity probes.
 `Telephony` sanitizes an international phone number and asks the platform to
 start a call.
 
-### Whatsapp
+### WhatsApp
 
 `Whatsapp` opens a chat with an optional message through the native application
 or web fallback.

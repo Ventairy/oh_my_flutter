@@ -18,11 +18,22 @@ final adjusted = Oklch(
 final restored = adjusted.toColor();
 ```
 
-`Oklch` stores lightness, chroma, and hue as immutable values. Conversion
-ignores alpha. Output defaults to sRGB; pass a supported `ColorSpace` to
-`toColor` when another output space is required.
+`Oklch` stores lightness from `0` to `1`, chroma as a non-negative intensity,
+and hue in degrees from `0` up to but not including `360`. Chroma is commonly
+within roughly `0` to `0.37` for sRGB, but wider-gamut colors can exceed that
+range. Conversion ignores alpha and produces an opaque color.
 
-Colors outside bounded sRGB or Display P3 are gamut-mapped while preserving
-lightness and hue as closely as possible. Non-finite components are rejected.
-See the [API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/Oklch-class.html)
-for normalization and color-space details.
+Output defaults to `ColorSpace.sRGB`. `ColorSpace.extendedSRGB` and
+`ColorSpace.displayP3` are also supported:
+
+```dart
+final p3 = adjusted.toColor(colorSpace: ColorSpace.displayP3);
+```
+
+When converting to a color, lightness is clamped to `0...1`, negative chroma
+becomes zero, and hue wraps into `0...360`. Colors outside bounded sRGB or
+Display P3 are gamut-mapped while preserving lightness and hue as closely as
+possible. Extended sRGB does not apply bounded RGB gamut mapping. Non-finite
+components throw `ArgumentError` when `toColor` is called; the `Oklch`
+constructor itself stores the supplied values. Achromatic colors use zero
+degrees for hue.

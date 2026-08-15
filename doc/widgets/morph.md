@@ -65,10 +65,12 @@ Morph(
 )
 ```
 
-An unkeyed child also starts a flight when its widget instance changes. Give
-successive children the same non-null key only when the rebuild should update
-the resting widget without animating. A matching non-null key suppresses the
-in-place flight even when the child's configuration or widget type changes.
+An unkeyed child also starts a flight when a rebuild supplies a different
+widget instance, which ordinary declarative rebuilds commonly do. Use an
+explicit changing key when that in-place animation is intentional. Give
+successive children the same non-null key when the rebuild should update the
+resting widget without animating; that stable key suppresses the in-place
+flight even when the child's configuration or widget type changes.
 
 ## Choose the automatic behavior
 
@@ -104,8 +106,8 @@ a custom flight delegate defines its own interpolation instead.
 
 If a flight must behave the same in both directions, configure the
 direction-dependent values on both endpoints. A route push uses the source as
-the departing endpoint; a pop uses the route destination as the departing
-endpoint.
+the departing endpoint; a pop uses the endpoint in the closing route as the
+departing endpoint.
 
 Each endpoint first resolves an omitted duration or curve from its own nearest
 Morph ancestor. If the resolved endpoint values differ, the departing
