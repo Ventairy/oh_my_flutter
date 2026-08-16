@@ -188,7 +188,13 @@ class _MorphActiveFlight {
       return Positioned.fill(
         child: _buildFlightBoundary(
           child: IgnorePointer(
-            child: ExcludeSemantics(child: retainedFlight),
+            child: ExcludeSemantics(
+              child: _MorphFlightScope(
+                coordinator: coordinator,
+                descendantResolver: null,
+                child: retainedFlight,
+              ),
+            ),
           ),
         ),
       );
@@ -211,6 +217,7 @@ class _MorphActiveFlight {
               child: IgnorePointer(
                 child: ExcludeSemantics(
                   child: _MorphFlightScope(
+                    coordinator: coordinator,
                     descendantResolver: _descendantFlightResolver,
                     child: renderFlight.delegate._buildErasedFlight(
                       context,

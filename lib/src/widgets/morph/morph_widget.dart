@@ -474,7 +474,9 @@ class _MorphState extends State<Morph> {
 
   @override
   Widget build(BuildContext context) {
-    if (_MorphFlightScope.contains(context)) {
+    final flightScope = _MorphFlightScope.scopeOf(context);
+    if (flightScope != null) {
+      if (!flightScope.hasFlight(widget.tag)) return widget.child;
       return TickerMode(
         enabled: false,
         child: Opacity(opacity: 0, child: widget.child),

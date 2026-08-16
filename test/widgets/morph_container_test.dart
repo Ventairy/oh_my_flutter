@@ -12,6 +12,28 @@ Finder _morphOverlay() {
   );
 }
 
+class _PaintCounter extends ChangeNotifier {
+  int count = 0;
+
+  void paint() => count += 1;
+
+  void reset() => count = 0;
+
+  void requestPaint() => notifyListeners();
+}
+
+class _PaintCounterPainter extends CustomPainter {
+  _PaintCounterPainter(this.counter) : super(repaint: counter);
+
+  final _PaintCounter counter;
+
+  @override
+  void paint(Canvas canvas, Size size) => counter.paint();
+
+  @override
+  bool shouldRepaint(_PaintCounterPainter oldDelegate) => false;
+}
+
 Text _flightText(WidgetTester tester, String text) {
   final finder = find.descendant(
     of: _morphOverlay(),
@@ -2129,6 +2151,200 @@ void main() {
           ),
           (2, 1, 0, null),
         );
+      },
+    );
+
+    testWidgets(
+      'when only the destination Container contains a nested Morph, it should paint it as ordinary flight content',
+      (tester) async {
+        final contentPaints = _PaintCounter();
+        addTearDown(contentPaints.dispose);
+        var destination = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Align(
+                    alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
+                    child: Morph(
+                      tag: 'unmatched-nested-surface',
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.linear,
+                      child: Container(
+                        key: ValueKey('unmatched-nested-surface-$destination'),
+                        width: 240,
+                        height: 180,
+                        color: Colors.blue,
+                        child: destination
+                            ? Align(
+                                alignment: Alignment.center,
+                                child: Morph(
+                                  tag: 'destination-only-nested',
+                                  child: CustomPaint(
+                                    painter: _PaintCounterPainter(contentPaints),
+                                    child: const SizedBox.square(dimension: 48),
+                                  ),
+                                ),
+                              )
+                            : null,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => destination = true);
+        await tester.pump();
+        await tester.pump();
+        contentPaints
+          ..reset()
+          ..requestPaint();
+        await tester.pump(const Duration(milliseconds: 300));
+        final paintCountDuringFlight = contentPaints.count;
+        await tester.pumpAndSettle();
+
+        expect(paintCountDuringFlight, greaterThan(0));
+      },
+    );
+
+    testWidgets(
+      'when a route destination alone contains a nested Morph, it should paint it during the ancestor flight',
+      (tester) async {
+        final contentPaints = _PaintCounter();
+        addTearDown(contentPaints.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (context) {
+                  return Align(
+                    alignment: Alignment.topLeft,
+                    child: GestureDetector(
+                      onTap: () async {
+                        await Navigator.of(context).push<void>(
+                          PageRouteBuilder<void>(
+                            transitionDuration: const Duration(milliseconds: 400),
+                            pageBuilder: (context, animation, secondaryAnimation) {
+                              return Scaffold(
+                                body: Align(
+                                  alignment: Alignment.bottomRight,
+                                  child: Morph(
+                                    tag: 'destination-only-route-surface',
+                                    curve: Curves.linear,
+                                    child: Container(
+                                      width: 240,
+                                      height: 180,
+                                      color: Colors.blue,
+                                      child: Center(
+                                        child: Morph(
+                                          tag: 'destination-only-route-content',
+                                          child: CustomPaint(
+                                            painter: _PaintCounterPainter(contentPaints),
+                                            child: const SizedBox.square(dimension: 48),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                            transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+                          ),
+                        );
+                      },
+                      child: Morph(
+                        tag: 'destination-only-route-surface',
+                        curve: Curves.linear,
+                        child: Container(width: 120, height: 80, color: Colors.blue),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(GestureDetector));
+        await tester.pump();
+        await tester.pump();
+        contentPaints
+          ..reset()
+          ..requestPaint();
+        await tester.pump(const Duration(milliseconds: 300));
+        final paintCountDuringFlight = contentPaints.count;
+        await tester.pumpAndSettle();
+
+        expect(paintCountDuringFlight, greaterThan(0));
+      },
+    );
+
+    testWidgets(
+      'when only the source Container contains a nested Morph, it should paint it as ordinary flight content',
+      (tester) async {
+        final contentPaints = _PaintCounter();
+        addTearDown(contentPaints.dispose);
+        var destination = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Align(
+                    alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
+                    child: Morph(
+                      tag: 'source-only-nested-surface',
+                      duration: const Duration(milliseconds: 400),
+                      curve: Curves.linear,
+                      child: Container(
+                        key: ValueKey('source-only-nested-surface-$destination'),
+                        width: 240,
+                        height: 180,
+                        color: Colors.blue,
+                        child: destination
+                            ? null
+                            : Align(
+                                alignment: Alignment.center,
+                                child: Morph(
+                                  tag: 'source-only-nested',
+                                  child: CustomPaint(
+                                    painter: _PaintCounterPainter(contentPaints),
+                                    child: const SizedBox.square(dimension: 48),
+                                  ),
+                                ),
+                              ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => destination = true);
+        await tester.pump();
+        await tester.pump();
+        contentPaints
+          ..reset()
+          ..requestPaint();
+        await tester.pump(const Duration(milliseconds: 100));
+        final paintCountDuringFlight = contentPaints.count;
+        await tester.pumpAndSettle();
+
+        expect(paintCountDuringFlight, greaterThan(0));
       },
     );
 

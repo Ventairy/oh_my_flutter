@@ -1,3 +1,8 @@
+## 0.7.1
+
+- Fix nested Morphs without a matching endpoint in the current transition so
+  they remain visible as ordinary content inside their ancestor's flight.
+
 ## 0.7.0
 
 - **Breaking:** Extend automatic Morph transitions with `MorphDescendant`
