@@ -21,25 +21,22 @@ class _MorphHybridColumnFlight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _MorphFlightScope(
-      descendantResolver: null,
-      child: _MorphHybridColumnRenderWidget(
-        animation: animation,
-        plan: plan,
-        rasterPool: rasterPool,
-        sourceBounds: sourceBounds,
-        destinationBounds: destinationBounds,
-        geometry: geometry,
-        children: List<Widget>.generate(
-          plan.rawSlotCount,
-          (index) => _MorphHybridRawSlot(
-            animation: animation,
-            plan: plan.rawSlot(index),
-            transitionBuilder: transitionBuilder,
-            repaintChild: !plan.rawSlot(index).rawSizeChangesContinuously,
-          ),
-          growable: false,
+    return _MorphHybridColumnRenderWidget(
+      animation: animation,
+      plan: plan,
+      rasterPool: rasterPool,
+      sourceBounds: sourceBounds,
+      destinationBounds: destinationBounds,
+      geometry: geometry,
+      children: List<Widget>.generate(
+        plan.rawSlotCount,
+        (index) => _MorphHybridRawSlot(
+          animation: animation,
+          plan: plan.rawSlot(index),
+          transitionBuilder: transitionBuilder,
+          repaintChild: !plan.rawSlot(index).rawSizeChangesContinuously,
         ),
+        growable: false,
       ),
     );
   }

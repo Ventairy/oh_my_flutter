@@ -117,9 +117,18 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 - List a feature anywhere else only when that list is necessary for the reader's
   task, not merely as navigation or a second catalog that must stay synchronized.
 - Keep feature guides limited to public imports and consumer-observable
-  behavior, and update the relevant guide whenever that feature's public
-  behavior changes. Follow the additional local rules in `doc/AGENTS.md`.
-- Update README, API docs, example, and CHANGELOG for user-visible changes.
+  behavior. Update a guide when its documented usage, configuration, or
+  actionable constraints change. Follow the additional local rules in
+  `doc/AGENTS.md`.
+- Update only the public artifacts whose audience needs the change. Do not
+  mechanically update README, API docs, guides, or examples for every
+  user-visible code change.
+- Do not document expected behavior merely because a bug exposed or clarified
+  it. A bug fix that restores behavior already implied by the API normally
+  needs a regression test and a consumer-facing CHANGELOG entry, but no README,
+  guide, Dartdoc, or example change. Update those surfaces only when consumers
+  must discover a new capability, change how they use the API, choose between
+  meaningful options, or act on a non-obvious constraint.
 - While a feature remains unreleased, maintain one concise, consumer-facing
   CHANGELOG entry that describes its overall capability. As development
   iterates and its scope grows, revise that entry instead of adding separate

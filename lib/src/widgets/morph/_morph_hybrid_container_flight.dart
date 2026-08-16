@@ -19,22 +19,19 @@ class _MorphHybridContainerFlight extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _MorphFlightScope(
-      descendantResolver: null,
-      child: _MorphHybridContainerRenderWidget(
+    return _MorphHybridContainerRenderWidget(
+      animation: animation,
+      plan: plan,
+      sourceBounds: sourceBounds,
+      destinationBounds: destinationBounds,
+      geometry: geometry,
+      child: _MorphHybridRawSlot(
         animation: animation,
         plan: plan,
-        sourceBounds: sourceBounds,
-        destinationBounds: destinationBounds,
-        geometry: geometry,
-        child: _MorphHybridRawSlot(
-          animation: animation,
-          plan: plan,
-          transitionBuilder: transitionBuilder,
-          clipToSlot: true,
-          alignToTopLeft: false,
-          repaintChild: !plan.requiresFrameLayout,
-        ),
+        transitionBuilder: transitionBuilder,
+        clipToSlot: true,
+        alignToTopLeft: false,
+        repaintChild: !plan.requiresFrameLayout,
       ),
     );
   }
