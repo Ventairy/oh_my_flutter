@@ -20,6 +20,7 @@ class _MorphHybridContainerFlight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _MorphFlightScope(
+      descendantResolver: null,
       child: _MorphHybridContainerRenderWidget(
         animation: animation,
         plan: plan,

@@ -125,6 +125,48 @@ class _MorphTextRasterCache extends ChangeNotifier {
     return math.max(1, math.max(fontScale, lineScale));
   }
 
+  bool paintRetainedImage(
+    Canvas canvas, {
+    required MorphTextProperties properties,
+    required TextStyle rasterPaintStyle,
+    required Color rasterColor,
+    required double layoutWidth,
+    required double devicePixelRatio,
+    required double maximumScale,
+    required int segment,
+  }) {
+    final image = _image;
+    if (image == null ||
+        _imageSegment != segment ||
+        !_matches(
+          properties,
+          rasterPaintStyle,
+          layoutWidth,
+          devicePixelRatio,
+          maximumScale,
+        )) {
+      return false;
+    }
+
+    try {
+      _drawImage(canvas, image, rasterColor);
+      _paintedText = properties.text;
+      _paintedHeight = _rasterHeight;
+      assert(() {
+        _paintedLineMetrics = _rasterLineMetrics;
+        return true;
+      }(), 'Raster text line metrics should only be copied for diagnostics.');
+      _paintedStyle = properties.paintStyle;
+      _paintedColor = rasterColor;
+      return true;
+    } on Object {
+      _discardImage();
+      _imageDisabledForSegment = true;
+      _imageBlocker = 'raster drawing failed';
+      return false;
+    }
+  }
+
   void paint(
     Canvas canvas, {
     required MorphTextProperties properties,

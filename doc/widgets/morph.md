@@ -95,14 +95,14 @@ a custom flight delegate defines its own interpolation instead.
 
 ## Configure timing and ownership
 
-| Setting                         | Default and ownership                                                                                                                                                                         |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `duration`                      | 300 ms for a root same-screen flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ. Route flights use the route animation instead. |
-| `curve`                         | `Curves.linear` for a root flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ.                                                   |
-| `switchThreshold`               | `0.5`. The departing endpoint supplies it for automatic content changes.                                                                                                                      |
-| `nonMorphDescendantsTransition` | Omitted by default. The departing endpoint supplies it.                                                                                                                                       |
-| `watch`                         | `false`. Set it on an endpoint whose position or size can change while a flight is targeting it.                                                                                              |
-| `flightDelegate`                | Omitted by default. Both endpoints must use compatible delegates; the departing endpoint's delegate controls the flight.                                                                      |
+| Setting            | Default and ownership                                                                                                                                                                         |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `duration`         | 300 ms for a root same-screen flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ. Route flights use the route animation instead. |
+| `curve`            | `Curves.linear` for a root flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ.                                                   |
+| `switchThreshold`  | `0.5`. The departing endpoint supplies it for automatic content changes.                                                                                                                      |
+| `switchTransition` | Omitted by default. The departing endpoint supplies it.                                                                                                                                       |
+| `watchDestination` | `false`. Set it on the departing endpoint when the endpoint it travels toward can move or resize.                                                                                             |
+| `flightDelegate`   | Omitted by default. Both endpoints must use compatible delegates; the departing endpoint's delegate controls the flight.                                                                      |
 
 If a flight must behave the same in both directions, configure the
 direction-dependent values on both endpoints. A route push uses the source as
@@ -117,55 +117,121 @@ Curves that overshoot can produce progress outside the 0 to 1 interval. Custom
 delegates should either support that extrapolation or clamp progress when their
 visual values require it.
 
-## Transition ordinary descendant content
+## Configure a descendant relative to its Morph
 
-Use `nonMorphDescendantsTransition` when ordinary content should transition
-around the automatic content switch. Nested `Morph` descendants continue their
-independent flights.
+`MorphDescendant` configures how one descendant subtree participates in its
+nearest ancestor `Morph`. Use it when that subtree needs to relate to the Morph
+differently from the surrounding descendants. Its current `flightBehavior`
+property controls how the subtree is represented during an automatic flight.
+
+Ordinary descendants stay live and lay out against the changing flight size.
+Choose a different flight behavior when needed:
+
+| Behavior   | In-flight result                                            | Choose it when                                                                                               |
+| ---------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| `live`     | A live subtree responds to the current flight constraints.  | Content should reflow or otherwise adapt as the Morph changes size.                                          |
+| `snapshot` | A non-interactive image keeps the selected endpoint's size. | Editable, scrollable, keyed, or other uniquely owned state must remain mounted only at the resting endpoint. |
+| `hide`     | The selected endpoint's space remains empty.                | The subtree should disappear during the flight without changing the surrounding endpoint layout.             |
+
+For example, snapshot an editor so navigation does not attach its controller,
+focus, selection, or scroll position to another live subtree:
 
 ```dart
 Morph(
-  tag: 'status-surface',
-  nonMorphDescendantsTransition: (child, animation) {
-    return FadeTransition(opacity: animation, child: child);
-  },
-  child: DecoratedBox(
-    decoration: BoxDecoration(
-      color: expanded ? Colors.blue : Colors.red,
-      borderRadius: BorderRadius.circular(expanded ? 32 : 12),
-    ),
-    child: const Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.info),
-        SizedBox(width: 8),
-        Text('Status'),
-      ],
+  tag: 'editor-surface',
+  child: Container(
+    decoration: const BoxDecoration(color: Colors.white),
+    child: MorphDescendant(
+      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+      child: SingleChildScrollView(
+        controller: descriptionScrollController,
+        child: TextField(controller: descriptionController),
+      ),
     ),
   ),
 )
 ```
 
+The source snapshot remains visible until `switchThreshold`; the destination
+snapshot is visible afterward. The endpoint behavior is selected at the same
+time, so matching endpoints may deliberately use different behaviors.
+
+A snapshot is visual only: it does not accept input or animate its own internal
+state during the flight. Content that Flutter cannot capture as an image, such
+as a platform view, is empty during the flight. Use `hide` when an empty result
+is required consistently across platforms.
+
+Use `live` explicitly when a shared wrapper selects behavior dynamically:
+
+```dart
+MorphDescendant(
+  flightBehavior: MorphDescendantFlightBehavior.live,
+  child: Text(expanded ? longDescription : shortDescription),
+)
+```
+
+Use `hide` to reserve endpoint space without showing content:
+
+```dart
+MorphDescendant(
+  flightBehavior: MorphDescendantFlightBehavior.hide,
+  child: const Text('Visible before and after the flight'),
+)
+```
+
+`MorphDescendant` works at any depth beneath its nearest Morph and does not
+change resting layout, paint, semantics, or state.
+
+The outermost non-live boundary controls its complete subtree, including any
+non-live boundaries nested inside it. Use separate sibling boundaries for
+independent content. Prefer one boundary around a complete subtree when all of
+its content uses the same behavior. A nested Morph remains an independent
+shared element.
+
+A custom `MorphFlightDelegate` owns the complete in-flight visual. A
+`MorphDescendant` affects that custom flight only if the delegate builds the
+wrapped subtree as part of its result.
+
+## Animate a discrete content switch
+
+Use `switchTransition` when discrete automatic content changes should animate
+around `switchThreshold`. This includes changed `Text` values, generic widget
+pairs, and ordinary content inside specialized Container or Column flights.
+Nested `Morph` widgets continue their independent flights.
+
+```dart
+Morph(
+  tag: 'status-label',
+  switchTransition: (child, animation) {
+    return FadeTransition(opacity: animation, child: child);
+  },
+  child: Text(expanded ? 'Ready to publish' : 'Draft'),
+)
+```
+
 For departing content, the supplied animation moves from 1 to 0. For arriving
-content, it moves from 0 to 1. Configure the builder on both endpoints when the
-same treatment should apply during both forward and reverse flights.
+content, it moves from 0 to 1. Without a builder, content switches immediately
+at `switchThreshold`. Configure the builder on both endpoints when the same
+treatment should apply during both forward and reverse flights.
 
 ## Follow a moving destination
 
-Set `watch: true` on an endpoint that can move or resize while it is the flight
-destination, for example while keyboard insets change:
+Set `watchDestination: true` on the morph that departs from when
+the endpoint it travels toward can move or resize, for example while keyboard
+insets change:
 
 ```dart
 Morph(
   tag: 'continue-action',
-  watch: true,
+  watchDestination: true,
   child: const ContinueButton(),
 )
 ```
 
-Morph follows that endpoint until the flight finishes. If either endpoint can
-move while receiving a forward or reverse flight, enable `watch` on both. Leave
-it disabled for stationary endpoints.
+The flight follows its destination until it finishes. The setting has no effect
+on flights arriving at the configured Morph. If either direction's destination
+can move, enable `watchDestination` on both matching Morphs. Leave it disabled
+when destinations remain stationary.
 
 ## Coordinate nested Morphs
 
@@ -325,10 +391,12 @@ and `MediaQuery` before `switchThreshold`, then the arriving endpoint's values
 after the content switch. Other inherited values introduced locally around an
 endpoint are not transferred.
 
-The generic in-flight subtree must not contain a `GlobalKey` that is also
-mounted at an endpoint. If either constraint matters, use a custom delegate
-that returns an independent visual: resolve the required inherited values in
-`properties`, and do not rebuild the same keyed subtree in `buildFlight`.
+The live generic in-flight subtree must not contain a `GlobalKey` that is also
+mounted at an endpoint. Wrap the affected subtree in a snapshot or hidden
+`MorphDescendant` when it should stay mounted only at the endpoint. If the
+subtree must instead remain live, use a custom delegate that returns an
+independent visual: resolve the required inherited values in `properties`, and
+do not rebuild the same keyed subtree in `buildFlight`.
 
 Without an enclosing `Overlay`, Morph renders its child normally but cannot
 transition. Endpoints in different overlays do not match. Avoid mounting more

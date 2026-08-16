@@ -5,7 +5,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
   /// Creates a transition for containers and decorated boxes.
   const MorphContainerFlightDelegate({
     this.switchThreshold = 0.5,
-    this.nonMorphDescendantsTransition,
+    this.switchTransition,
   }) : assert(
          switchThreshold >= 0 && switchThreshold <= 1,
          'switchThreshold must be between 0 and 1.',
@@ -14,12 +14,12 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
   /// Progress at which non-interpolated values switch to the destination.
   final double switchThreshold;
 
-  /// Transition applied when non-Morph descendant content changes.
+  /// Transition applied when child content changes at [switchThreshold].
   ///
-  /// Nested Morph descendants continue using their own transitions. When the
-  /// source and destination specify different builders, the source builder is
-  /// used.
-  final AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition;
+  /// The supplied animation moves from 1 to 0 for departing content and from
+  /// 0 to 1 for arriving content. Nested Morph widgets continue using their
+  /// own transitions.
+  final AnimatedSwitcherTransitionBuilder? switchTransition;
 
   @override
   MorphContainerProperties properties(MorphEndpointContext endpoint) {
@@ -250,20 +250,20 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
             destination: destinationChild,
             progress: progress,
             switchThreshold: threshold,
-            transitionEnabled: nonMorphDescendantsTransition != null,
+            transitionEnabled: switchTransition != null,
           )
         : switch ((showSource, sourceChild, destinationChild)) {
             (true, final MorphChildProperties source?, _) => MorphChildFlightDelegate._departing(
               properties: source,
               progress: progress,
               threshold: threshold,
-              transitionEnabled: nonMorphDescendantsTransition != null,
+              transitionEnabled: switchTransition != null,
             ),
             (false, _, final MorphChildProperties destination?) => MorphChildFlightDelegate._arriving(
               properties: destination,
               progress: progress,
               threshold: threshold,
-              transitionEnabled: nonMorphDescendantsTransition != null,
+              transitionEnabled: switchTransition != null,
             ),
             _ => null,
           };
@@ -431,7 +431,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
   Widget _buildProperties(
     BuildContext context,
     MorphContainerProperties properties, {
-    AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition,
+    AnimatedSwitcherTransitionBuilder? switchTransition,
   }) {
     final child = properties.child;
     return Container(
@@ -445,7 +445,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
           : MorphChildFlightDelegate.build(
               context,
               child,
-              nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+              switchTransition: switchTransition,
             ),
     );
   }
@@ -456,18 +456,24 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
     MorphFlight<MorphContainerProperties> flight,
   ) {
     final textDirection = Directionality.of(context);
-    final plan = _MorphCompoundFlightPlan.forContainer(
-      source: flight.source.properties,
-      destination: flight.destination.properties,
-      textDirection: textDirection,
-    );
-    if (plan != null) {
-      return _MorphCompoundFlight(
-        animation: flight.animation,
-        plan: plan,
+    if (switchTransition == null ||
+        !MorphChildFlightDelegate._specializedTextChanges(
+          flight.source.properties,
+          flight.destination.properties,
+        )) {
+      final plan = _MorphCompoundFlightPlan.forContainer(
+        source: flight.source.properties,
+        destination: flight.destination.properties,
+        textDirection: textDirection,
       );
+      if (plan != null) {
+        return _MorphCompoundFlight(
+          animation: flight.animation,
+          plan: plan,
+        );
+      }
     }
-    if (nonMorphDescendantsTransition == null && flight._geometry == null) {
+    if (switchTransition == null && flight._geometry == null) {
       final hybridPlan = _MorphHybridContainerFlightPlan.tryCreate(
         source: flight.source.properties,
         destination: flight.destination.properties,
@@ -486,7 +492,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       builder: (context, child) => _buildProperties(
         context,
         flight.properties,
-        nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+        switchTransition: switchTransition,
       ),
     );
   }

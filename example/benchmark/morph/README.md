@@ -53,6 +53,10 @@ The harness measures these Morph scenarios independently:
 | `resting_scroll`            | Forty unmatched resting solid endpoints moving under one paint-only ancestor       |
 | `raw_descendants`           | Ordinary descendants with endpoint-specific `MediaQuery` values                    |
 | `raw_descendants_fade`      | The same ordinary descendants with a fade transition                               |
+| `descendant_live`           | One live descendant in a resizing surface                                           |
+| `descendant_snapshot`       | One captured descendant in a resizing surface                                       |
+| `descendant_hide`           | One hidden descendant in a resizing surface                                         |
+| `descendant_snapshot_dense` | Twenty-four sibling snapshot descendants in one surface                             |
 | `column_unmatched`          | Unmatched ordinary departing and arriving `Column` children                        |
 | `column_matched_raw_resize` | Hybrid `Column` path with one keyed ordinary child resizing from 166×62 to 278×126 |
 | `nested_hold`               | Four shorter nested `Text` flights held until their parent arrives                 |
@@ -94,9 +98,17 @@ assigned to the flight that produced it. Results are JSON lines beginning with
 distributions, over-budget counts, the longest sequence of misses, device
 refresh rate, and the corresponding frame budget.
 
+Each result also reports `trigger_to_on_start_us`. This measures elapsed wall
+time from the benchmark state change until Morph invokes `onStart`, so it
+includes the scheduling frame and any endpoint capture work that happens before
+the timed flight. Compare it only between repeated runs of the same focused
+scenario on the same device.
+
 Raster image creation and disposal fields are process-wide diagnostics sampled
-during a scenario window. They are not reliable Morph attribution and are not
-part of host acceptance.
+during a scenario. Flight creation counts include endpoint capture before
+`onStart`; soak records report the creation and disposal deltas across all soak
+cycles. They are not exclusive Morph attribution and are not part of host
+acceptance.
 
 The harness also observes Flutter application lifecycle and view-focus events.
 If either changes during a measured flight, the complete cold or steady trial
@@ -135,6 +147,10 @@ Run only one scenario while investigating it:
 --dart-define=MORPH_SCENARIO=resting_scroll
 --dart-define=MORPH_SCENARIO=raw_descendants
 --dart-define=MORPH_SCENARIO=raw_descendants_fade
+--dart-define=MORPH_SCENARIO=descendant_live
+--dart-define=MORPH_SCENARIO=descendant_snapshot
+--dart-define=MORPH_SCENARIO=descendant_hide
+--dart-define=MORPH_SCENARIO=descendant_snapshot_dense
 --dart-define=MORPH_SCENARIO=column_unmatched
 --dart-define=MORPH_SCENARIO=column_matched_raw_resize
 --dart-define=MORPH_SCENARIO=nested_hold

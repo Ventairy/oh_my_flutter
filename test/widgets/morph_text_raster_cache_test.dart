@@ -2302,6 +2302,53 @@ void main() {
     );
 
     testWidgets(
+      'when an eligible raster is ready, it should paint without interpolating a new TextStyle',
+      (tester) async {
+        const sourceStyle = TextStyle(
+          color: Color(0xFF273C75),
+          fontSize: 21,
+          fontWeight: FontWeight.w800,
+        );
+        const destinationStyle = TextStyle(
+          color: Color(0xFF192A56),
+          fontSize: 30,
+          fontWeight: FontWeight.w800,
+        );
+        final properties = await _captureProperties(
+          tester,
+          sourceStyle: sourceStyle,
+          destinationStyle: destinationStyle,
+          sourceWidth: 250,
+          destinationWidth: 320,
+        );
+        final animation = AnimationController(
+          vsync: tester,
+          duration: const Duration(milliseconds: 300),
+          value: 0.25,
+        );
+        addTearDown(animation.dispose);
+        await tester.pumpWidget(
+          _TextFlightHarness(
+            source: properties.source,
+            destination: properties.destination,
+            animation: animation,
+            sourceBounds: const Rect.fromLTWH(0, 0, 250, 70),
+            destinationBounds: const Rect.fromLTWH(0, 0, 320, 100),
+          ),
+        );
+        await _waitForRaster(tester);
+
+        animation.value = 0.3;
+        await tester.pump();
+
+        expect(
+          _diagnostic<int>(tester, 'retainedRasterFastPaintCount'),
+          greaterThan(0),
+        );
+      },
+    );
+
+    testWidgets(
       'when an alpha-colored raster becomes ready, it should match the direct fallback and canonical layout',
       (tester) async {
         const sourceStyle = TextStyle(

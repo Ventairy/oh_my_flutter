@@ -22,6 +22,7 @@ class _MorphHybridColumnFlight extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _MorphFlightScope(
+      descendantResolver: null,
       child: _MorphHybridColumnRenderWidget(
         animation: animation,
         plan: plan,

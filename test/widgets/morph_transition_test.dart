@@ -25,7 +25,7 @@ class _MorphTransitionTestAppState extends State<_MorphTransitionTestApp> {
               tag: 'transition-animation',
               duration: const Duration(milliseconds: 100),
               curve: Curves.linear,
-              nonMorphDescendantsTransition: widget.transitionBuilder,
+              switchTransition: widget.transitionBuilder,
               child: Builder(
                 key: ValueKey<bool>(_expanded),
                 builder: (context) {
@@ -45,7 +45,120 @@ class _MorphTransitionTestAppState extends State<_MorphTransitionTestApp> {
   }
 }
 
+class _MorphTextSwitchTransitionTestApp extends StatefulWidget {
+  const _MorphTextSwitchTransitionTestApp();
+
+  @override
+  State<_MorphTextSwitchTransitionTestApp> createState() => _MorphTextSwitchTransitionTestAppState();
+}
+
+class _MorphTextSwitchTransitionTestAppState extends State<_MorphTextSwitchTransitionTestApp> {
+  bool _showsDestination = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Stack(
+        children: [
+          Morph(
+            tag: 'text-switch-transition',
+            duration: const Duration(milliseconds: 100),
+            curve: Curves.linear,
+            switchTransition: (child, animation) {
+              return FadeTransition(
+                key: const ValueKey('text-switch-fade'),
+                opacity: animation,
+                child: child,
+              );
+            },
+            child: Text(_showsDestination ? 'Destination' : 'Source'),
+          ),
+          FilledButton(
+            key: const ValueKey('switch-text'),
+            onPressed: () {
+              setState(() => _showsDestination = !_showsDestination);
+            },
+            child: const Text('Switch'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 void main() {
+  testWidgets(
+    'when automatic Text changes with a switch transition, it should drive the transition around the switch threshold',
+    (tester) async {
+      await tester.pumpWidget(const _MorphTextSwitchTransitionTestApp());
+      await tester.pump();
+
+      await tester.tap(find.byKey(const ValueKey('switch-text')));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 25));
+      final departingOpacity = tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('text-switch-fade')),
+          )
+          .opacity
+          .value;
+      await tester.pump(const Duration(milliseconds: 50));
+      final arrivingOpacity = tester
+          .widget<FadeTransition>(
+            find.byKey(const ValueKey('text-switch-fade')),
+          )
+          .opacity
+          .value;
+      await tester.pumpAndSettle();
+
+      expect(
+        [departingOpacity, arrivingOpacity],
+        everyElement(closeTo(0.5, 1e-9)),
+      );
+    },
+  );
+
+  testWidgets(
+    'when automatic Text keeps the same value, it should not apply the switch transition',
+    (tester) async {
+      var emphasized = false;
+      var transitionBuilds = 0;
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              update = setState;
+              return Morph(
+                tag: 'same-text-switch-transition',
+                duration: const Duration(milliseconds: 100),
+                switchTransition: (child, animation) {
+                  transitionBuilds += 1;
+                  return FadeTransition(opacity: animation, child: child);
+                },
+                child: Text(
+                  'Unchanged',
+                  style: TextStyle(
+                    fontWeight: emphasized ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pump();
+
+      update(() => emphasized = true);
+      await tester.pump();
+      await tester.pump();
+      await tester.pumpAndSettle();
+
+      expect(transitionBuilds, 0);
+    },
+  );
+
   testWidgets(
     'when transition progress reaches an endpoint, it should expose the matching status to value listeners',
     (tester) async {

@@ -27,7 +27,7 @@ class _MorphCoordinator extends ChangeNotifier {
     _MorphEndpointGeometry geometry,
   ) {
     final flight = _flights[endpoint.tag];
-    if (flight == null || !endpoint.watch) return;
+    if (flight == null || !flight.watchDestination) return;
     if (identical(flight.destinationHandle, endpoint)) {
       if (flight.completesAtSource) {
         flight.updateSourceGeometry(geometry);
@@ -144,6 +144,7 @@ class _MorphCoordinator extends ChangeNotifier {
     required MorphFlightDelegate<Object?> sourceDelegate,
     required Duration duration,
     required Curve curve,
+    required bool watchDestination,
     required VoidCallback? onStart,
     required VoidCallback? onEnd,
   }) {
@@ -189,6 +190,7 @@ class _MorphCoordinator extends ChangeNotifier {
           configuration: (
             duration: duration,
             curve: curve,
+            watchDestination: watchDestination,
             onStart: onStart,
             onEnd: onEnd,
             destinationIdentity: destinationIdentity,
@@ -209,6 +211,7 @@ class _MorphCoordinator extends ChangeNotifier {
         kind: MorphFlightKind.sameScreen,
         flightAnimation: controllerLease.controller,
         curve: curve,
+        watchDestination: watchDestination,
         onStart: onStart,
         onEnd: onEnd,
         cohort: _obtainSameFrameCohort(),
@@ -230,9 +233,14 @@ class _MorphCoordinator extends ChangeNotifier {
     required MorphFlightDelegate<Object?> sourceDelegate,
     required Duration duration,
     required Curve curve,
+    required bool watchDestination,
     required VoidCallback? onStart,
     required VoidCallback? onEnd,
   }) {
+    if (destination.animationsDisabled) {
+      _transferOwnershipImmediately(destination);
+      return;
+    }
     MorphEndpoint<Object?>? source;
     try {
       source = sourceCapture();
@@ -257,6 +265,7 @@ class _MorphCoordinator extends ChangeNotifier {
       sourceDelegate: sourceDelegate,
       duration: duration,
       curve: curve,
+      watchDestination: watchDestination,
       onStart: onStart,
       onEnd: onEnd,
     );
@@ -561,6 +570,7 @@ class _MorphCoordinator extends ChangeNotifier {
       VoidCallback? onStart,
       VoidCallback? onEnd,
       Object destinationIdentity,
+      bool watchDestination,
     })?
     configuration,
   }) {
@@ -601,6 +611,7 @@ class _MorphCoordinator extends ChangeNotifier {
         destination,
         duration: configuration?.duration ?? current.destinationHandle.duration,
         curve: configuration?.curve ?? current.curve,
+        watchDestination: configuration?.watchDestination ?? current.destinationHandle.watchDestination,
         onStart: configuration?.onStart ?? current.destinationHandle.onStart,
         onEnd: configuration?.onEnd ?? current.destinationHandle.onEnd,
       );
@@ -646,6 +657,7 @@ class _MorphCoordinator extends ChangeNotifier {
       kind: kind,
       flightAnimation: flightAnimation,
       curve: configuration?.curve ?? current.destinationHandle.curve,
+      watchDestination: configuration?.watchDestination ?? current.destinationHandle.watchDestination,
       onStart: configuration?.onStart ?? current.destinationHandle.onStart,
       onEnd: configuration?.onEnd ?? current.destinationHandle.onEnd,
       cohort: _obtainSameFrameCohort(),
@@ -664,6 +676,7 @@ class _MorphCoordinator extends ChangeNotifier {
     _MorphEndpointHandle destination, {
     required Duration duration,
     required Curve curve,
+    required bool watchDestination,
     required VoidCallback? onStart,
     required VoidCallback? onEnd,
   }) {
@@ -680,6 +693,7 @@ class _MorphCoordinator extends ChangeNotifier {
         destination,
         duration: duration,
         curve: curve,
+        watchDestination: watchDestination,
         onStart: onStart,
         onEnd: onEnd,
         capturedDestination: currentOrigin,
@@ -707,6 +721,7 @@ class _MorphCoordinator extends ChangeNotifier {
       kind: MorphFlightKind.sameScreen,
       flightAnimation: controllerLease.controller,
       curve: current.curve,
+      watchDestination: watchDestination,
       onStart: onStart,
       onEnd: onEnd,
       cohort: _obtainSameFrameCohort(),
@@ -725,6 +740,7 @@ class _MorphCoordinator extends ChangeNotifier {
     _MorphEndpointHandle destination, {
     required Duration duration,
     required Curve curve,
+    required bool watchDestination,
     required VoidCallback? onStart,
     required VoidCallback? onEnd,
     required MorphEndpoint<Object?>? capturedDestination,
@@ -750,6 +766,7 @@ class _MorphCoordinator extends ChangeNotifier {
       kind: MorphFlightKind.sameScreen,
       flightAnimation: controllerLease.controller,
       curve: curve,
+      watchDestination: watchDestination,
       onStart: onStart,
       onEnd: onEnd,
       cohort: _obtainSameFrameCohort(),
@@ -867,6 +884,7 @@ class _MorphCoordinator extends ChangeNotifier {
       kind: MorphFlightKind.routePop,
       flightAnimation: flightAnimation,
       curve: current.destinationHandle.curve,
+      watchDestination: current.destinationHandle.watchDestination,
       onStart: current.destinationHandle.onStart,
       onEnd: current.destinationHandle.onEnd,
       cohort: _obtainSameFrameCohort(),
@@ -927,6 +945,7 @@ class _MorphCoordinator extends ChangeNotifier {
       kind: kind,
       flightAnimation: flightAnimation,
       curve: sourceHandle.curve,
+      watchDestination: sourceHandle.watchDestination,
       onStart: sourceHandle.onStart,
       onEnd: sourceHandle.onEnd,
       cohort: _obtainSameFrameCohort(),
@@ -1105,6 +1124,31 @@ class _MorphCoordinator extends ChangeNotifier {
   bool _flightUses(_MorphEndpointHandle endpoint) {
     final flight = _flights[endpoint.tag];
     return identical(flight?.sourceHandle, endpoint) || identical(flight?.destinationHandle, endpoint);
+  }
+
+  _MorphActiveFlight? _sharedAncestorFlight(_MorphActiveFlight descendant) {
+    final sourceHandle = descendant.sourceHandle;
+    if (sourceHandle == null) return null;
+
+    final sourceAncestors = <_MorphActiveFlight>{};
+    var ancestor = sourceHandle.parentEndpoint;
+    while (ancestor != null) {
+      final flight = _flights[ancestor.tag];
+      if (flight != null && !identical(flight, descendant) && _flightUses(ancestor)) {
+        sourceAncestors.add(flight);
+      }
+      ancestor = ancestor.parentEndpoint;
+    }
+
+    ancestor = descendant.destinationHandle.parentEndpoint;
+    while (ancestor != null) {
+      final flight = _flights[ancestor.tag];
+      if (flight != null && sourceAncestors.contains(flight) && _flightUses(ancestor)) {
+        return flight;
+      }
+      ancestor = ancestor.parentEndpoint;
+    }
+    return null;
   }
 
   void _removeExpiredEndpoints(Object tag) {

@@ -21,21 +21,31 @@ class _RenderMorphTextFlight extends RenderBox {
   _MorphFlightGeometry? _geometry;
   late TextStyle _rasterPaintStyle;
   late double _maximumScale;
+  double _maximumPaintOverflowLeft = 0;
+  double _maximumPaintOverflowTop = 0;
+  double _maximumPaintOverflowRight = 0;
+  double _maximumPaintOverflowBottom = 0;
   String? _endpointStyleBlocker;
   String? _rasterRetentionBlocker;
   double? _paintPropertiesProgress;
   MorphTextProperties? _paintProperties;
   int _debugLayoutCount = 0;
   int _debugPropertiesInterpolationCount = 0;
+  int _debugRetainedRasterFastPaintCount = 0;
 
   @override
   bool get isRepaintBoundary => true;
 
   @override
-  Rect get paintBounds => _expandedPaintBounds(
-    _currentBounds,
-    _propertiesAt(_flight.animation.value),
-  );
+  Rect get paintBounds {
+    final bounds = _currentBounds;
+    return Rect.fromLTRB(
+      bounds.left - _maximumPaintOverflowLeft,
+      bounds.top - _maximumPaintOverflowTop,
+      bounds.right + _maximumPaintOverflowRight,
+      bounds.bottom + _maximumPaintOverflowBottom,
+    ).intersect(Offset.zero & size);
+  }
 
   MorphTextFlightDelegate get delegate => _delegate;
 
@@ -136,6 +146,14 @@ class _RenderMorphTextFlight extends RenderBox {
     final progress = _flight.animation.value;
     final bounds = _currentBounds;
     if (bounds.isEmpty) return;
+    if (_paintRetainedRaster(
+      context.canvas,
+      offset: offset,
+      bounds: bounds,
+      progress: progress,
+    )) {
+      return;
+    }
     final properties = _propertiesAt(progress);
     final layoutWidth = _delegate._paintLayoutWidth(
       properties: properties,
@@ -179,27 +197,164 @@ class _RenderMorphTextFlight extends RenderBox {
     context.canvas.restore();
   }
 
+  bool _paintRetainedRaster(
+    Canvas canvas, {
+    required Offset offset,
+    required Rect bounds,
+    required double progress,
+  }) {
+    if (_endpointStyleBlocker != null || progress <= 0 || progress >= 1) {
+      return false;
+    }
+
+    final source = _flight._sourceProperties;
+    final destination = _flight._destinationProperties;
+    if (source.strutStyle != null || destination.strutStyle != null) {
+      return false;
+    }
+    final sourceFontSize = source.style.fontSize;
+    final destinationFontSize = destination.style.fontSize;
+    final sourceColor = source.style.color;
+    final destinationColor = destination.style.color;
+    if (sourceFontSize == null ||
+        sourceFontSize <= 0 ||
+        destinationFontSize == null ||
+        destinationFontSize <= 0 ||
+        destination.lineHeight <= 0 ||
+        sourceColor == null ||
+        destinationColor == null) {
+      return false;
+    }
+
+    final showSource = progress < source.switchThreshold;
+    final selected = showSource ? source : destination;
+    final layoutWidth = _delegate._reservedLayoutWidth(
+      source: source,
+      destination: destination,
+      showSource: showSource,
+    );
+    if (layoutWidth == null) return false;
+
+    final endpointScaleX = _delegate._lerpDouble(
+      source.endpointScaleX,
+      destination.endpointScaleX,
+      progress,
+    );
+    final endpointScaleY = _delegate._lerpDouble(
+      source.endpointScaleY,
+      destination.endpointScaleY,
+      progress,
+    );
+    if (endpointScaleY <= 0) return false;
+    final interpolatedFontSize = _delegate._lerpDouble(
+      sourceFontSize,
+      destinationFontSize,
+      progress,
+    );
+    final paintScaleX = endpointScaleX / endpointScaleY * interpolatedFontSize / destinationFontSize;
+    final lineHeight = _delegate._lerpDouble(
+      source.lineHeight,
+      destination.lineHeight,
+      progress,
+    );
+    final paintScaleY = lineHeight / destination.lineHeight;
+    if (paintScaleX <= 0 || paintScaleY <= 0 || (paintScaleX == 1 && paintScaleY == 1)) {
+      return false;
+    }
+    final baseline = _delegate._lerpDouble(
+      source.baseline,
+      destination.baseline,
+      progress,
+    );
+    final baselineOffset = baseline - destination.baseline * paintScaleY;
+    final rasterColor = Color.lerp(
+      sourceColor,
+      destinationColor,
+      progress,
+    )!;
+    final segment = showSource ? 0 : 1;
+
+    canvas.save();
+    if (_clipsParagraph(selected)) {
+      canvas.clipRect(bounds.shift(offset));
+    }
+    final isLeftToRight = selected.textDirection == TextDirection.ltr;
+    canvas
+      ..translate(
+        offset.dx + (isLeftToRight ? bounds.left : bounds.right),
+        offset.dy + bounds.top + baselineOffset,
+      )
+      ..scale(paintScaleX, paintScaleY);
+    if (!isLeftToRight) {
+      canvas.translate(-layoutWidth, 0);
+    }
+    final painted = _rasterCache.paintRetainedImage(
+      canvas,
+      properties: selected,
+      rasterPaintStyle: _rasterPaintStyle,
+      rasterColor: rasterColor,
+      layoutWidth: layoutWidth,
+      devicePixelRatio: _devicePixelRatio,
+      maximumScale: _maximumScale,
+      segment: segment,
+    );
+    canvas.restore();
+    if (!painted) return false;
+
+    _rasterRetentionBlocker = null;
+    assert(() {
+      _debugRetainedRasterFastPaintCount += 1;
+      return true;
+    }(), 'Retained raster fast paints should be observable in debug mode.');
+    return true;
+  }
+
   bool _clipsParagraph(MorphTextProperties properties) {
     return properties.overflow == TextOverflow.ellipsis ||
         (properties.overflow == TextOverflow.clip && properties.softWrap == false) ||
         properties.maxLines != null;
   }
 
-  Rect _expandedPaintBounds(
-    Rect bounds,
-    MorphTextProperties properties,
-  ) {
-    var result = bounds;
-    final foreground = properties.paintStyle.foreground;
+  void _includePaintOverflow(TextStyle style) {
+    final foreground = style.foreground;
     if (foreground != null && foreground.style == PaintingStyle.stroke) {
-      result = result.inflate(foreground.strokeWidth * 2);
-    }
-    for (final shadow in properties.paintStyle.shadows ?? const <Shadow>[]) {
-      result = result.expandToInclude(
-        bounds.shift(shadow.offset).inflate(shadow.blurRadius * 2),
+      final overflow = foreground.strokeWidth * 2;
+      _maximumPaintOverflowLeft = math.max(
+        _maximumPaintOverflowLeft,
+        overflow,
+      );
+      _maximumPaintOverflowTop = math.max(
+        _maximumPaintOverflowTop,
+        overflow,
+      );
+      _maximumPaintOverflowRight = math.max(
+        _maximumPaintOverflowRight,
+        overflow,
+      );
+      _maximumPaintOverflowBottom = math.max(
+        _maximumPaintOverflowBottom,
+        overflow,
       );
     }
-    return result.intersect(Offset.zero & size);
+    for (final shadow in style.shadows ?? const <Shadow>[]) {
+      final blurOverflow = shadow.blurRadius * 2;
+      _maximumPaintOverflowLeft = math.max(
+        _maximumPaintOverflowLeft,
+        math.max(0, blurOverflow - shadow.offset.dx),
+      );
+      _maximumPaintOverflowTop = math.max(
+        _maximumPaintOverflowTop,
+        math.max(0, blurOverflow - shadow.offset.dy),
+      );
+      _maximumPaintOverflowRight = math.max(
+        _maximumPaintOverflowRight,
+        math.max(0, blurOverflow + shadow.offset.dx),
+      );
+      _maximumPaintOverflowBottom = math.max(
+        _maximumPaintOverflowBottom,
+        math.max(0, blurOverflow + shadow.offset.dy),
+      );
+    }
   }
 
   @override
@@ -362,6 +517,12 @@ class _RenderMorphTextFlight extends RenderBox {
         ),
       )
       ..add(
+        IntProperty(
+          'retainedRasterFastPaintCount',
+          _debugRetainedRasterFastPaintCount,
+        ),
+      )
+      ..add(
         DoubleProperty(
           'interpolatedTextLayoutWidth',
           _propertiesAt(_flight.animation.value).layoutWidth,
@@ -422,6 +583,12 @@ class _RenderMorphTextFlight extends RenderBox {
   void _updateFlightConstants() {
     final source = _flight._sourceProperties;
     final destination = _flight._destinationProperties;
+    _maximumPaintOverflowLeft = 0;
+    _maximumPaintOverflowTop = 0;
+    _maximumPaintOverflowRight = 0;
+    _maximumPaintOverflowBottom = 0;
+    _includePaintOverflow(source.paintStyle);
+    _includePaintOverflow(destination.paintStyle);
     _rasterPaintStyle = _MorphTextRasterCache.rasterStyle(
       destination.style,
     );

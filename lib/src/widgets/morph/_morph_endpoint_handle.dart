@@ -21,7 +21,7 @@ class _MorphEndpointHandle {
   late MorphFlightDelegate<Object?> delegate;
   late Duration duration;
   late Curve curve;
-  late bool watch;
+  late bool watchDestination;
   VoidCallback? onStart;
   VoidCallback? onEnd;
   VoidCallback? onReceived;
@@ -32,6 +32,77 @@ class _MorphEndpointHandle {
   bool disposed = false;
   bool animationsDisabled = false;
   MorphEndpoint<Object?>? _sameFrameEndpoint;
+  final List<_MorphDescendantHandle> _descendants = [];
+  int _descendantRegistrationOrder = 0;
+
+  void _registerDescendant(_MorphDescendantHandle descendant) {
+    if (_descendants.contains(descendant)) return;
+    descendant.registrationOrder = ++_descendantRegistrationOrder;
+    _descendants.add(descendant);
+  }
+
+  void _unregisterDescendant(_MorphDescendantHandle descendant) {
+    _descendants.remove(descendant);
+  }
+
+  List<_MorphDescendantFlightRecord> _captureDescendants() {
+    if (_descendants.isEmpty) return const [];
+    final ordered = List<_MorphDescendantHandle>.of(_descendants)
+      ..sort((first, second) => first.registrationOrder.compareTo(second.registrationOrder));
+    final candidates =
+        <
+          ({
+            _MorphDescendantHandle handle,
+            _RenderMorphDescendant renderObject,
+          })
+        >[];
+    final boundaries = <_RenderMorphDescendant>{};
+    for (final descendant in ordered) {
+      final renderObject = descendant.capturableRenderObject;
+      if (renderObject == null) continue;
+      candidates.add((handle: descendant, renderObject: renderObject));
+      boundaries.add(renderObject);
+    }
+    final records = <_MorphDescendantFlightRecord>[];
+    final snapshotRecords = <_MorphDescendantFlightRecord>[];
+    final snapshotRenderObjects = <_RenderMorphDescendant>[];
+    double? pixelRatio;
+    for (final candidate in candidates) {
+      final renderObject = candidate.renderObject;
+      if (_hasDescendantBoundaryAncestor(renderObject, boundaries)) continue;
+      final descendant = candidate.handle;
+      final record = descendant.capture(renderObject);
+      records.add(record);
+      if (!record.behavior.usesSnapshot || record.size.isEmpty) continue;
+      pixelRatio ??= View.of(descendant.owner.context).devicePixelRatio;
+      snapshotRecords.add(record);
+      snapshotRenderObjects.add(renderObject);
+    }
+    if (snapshotRecords.isNotEmpty) {
+      final snapshots = _MorphContentSnapshot.captureAll(
+        pixelRatio: pixelRatio!,
+        renderObjects: snapshotRenderObjects,
+      );
+      for (var index = 0; index < snapshotRecords.length; index += 1) {
+        snapshotRecords[index].snapshot = snapshots[index];
+      }
+    }
+    return records;
+  }
+
+  bool _hasDescendantBoundaryAncestor(
+    _RenderMorphDescendant renderObject,
+    Set<_RenderMorphDescendant> boundaries,
+  ) {
+    var ancestor = renderObject.parent;
+    while (ancestor != null) {
+      if (ancestor case final _RenderMorphDescendant boundary when boundaries.contains(boundary)) {
+        return true;
+      }
+      ancestor = ancestor.parent;
+    }
+    return false;
+  }
 
   void configurationChanged() {
     final widget = owner.widget;
@@ -39,7 +110,7 @@ class _MorphEndpointHandle {
     delegate = owner._resolvedFlightDelegate;
     duration = widget.duration ?? parentEndpoint?.duration ?? Morph._defaultDuration;
     curve = widget.curve ?? parentEndpoint?.curve ?? Morph._defaultCurve;
-    watch = widget.watch;
+    watchDestination = widget.watchDestination;
     onStart = widget.onStart;
     onEnd = widget.onEnd;
     onReceived = widget.onReceived;

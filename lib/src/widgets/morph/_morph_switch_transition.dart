@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
-class _MorphNonMorphDescendantsTransition extends StatefulWidget {
-  const _MorphNonMorphDescendantsTransition({
+class _MorphSwitchTransition extends StatefulWidget {
+  const _MorphSwitchTransition({
     required this.progress,
     required this.transitionBuilder,
     required this.child,
@@ -16,16 +16,16 @@ class _MorphNonMorphDescendantsTransition extends StatefulWidget {
   final MediaQueryData? mediaQueryData;
 
   @override
-  State<_MorphNonMorphDescendantsTransition> createState() => _MorphNonMorphDescendantsTransitionState();
+  State<_MorphSwitchTransition> createState() => _MorphSwitchTransitionState();
 }
 
-class _MorphNonMorphDescendantsTransitionState extends State<_MorphNonMorphDescendantsTransition> {
+class _MorphSwitchTransitionState extends State<_MorphSwitchTransition> {
   late final _MorphTransitionAnimation _animation = _MorphTransitionAnimation(widget.progress);
   late Widget _transition = _buildTransition();
 
   @override
   void didUpdateWidget(
-    covariant _MorphNonMorphDescendantsTransition oldWidget,
+    covariant _MorphSwitchTransition oldWidget,
   ) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.child, widget.child) ||

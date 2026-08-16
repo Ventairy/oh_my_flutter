@@ -8,25 +8,29 @@ void main() {
     'across a route',
     (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(home: Scaffold(body: MorphExample())),
+        const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(child: MorphExample()),
+          ),
+        ),
       );
 
-      await tester.tap(find.text('Transfer Morph ownership'));
+      await tester.ensureVisible(find.text('Expand Morphs'));
+      await tester.tap(find.text('Expand Morphs'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
-      final sameScreenDestinationVisible = find
-          .text('Morph works across routes and within one screen.')
-          .evaluate()
-          .isNotEmpty;
+      final destination = find.text('Arriving Text fades in');
+      final destinationVisible = destination.evaluate().isNotEmpty;
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.text('Open route Morph'));
       await tester.tap(find.text('Open route Morph'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 220));
 
       expect(
         (
-          sameScreenDestinationVisible,
+          destinationVisible,
           find.text('Route destination').evaluate().isNotEmpty,
         ),
         (true, true),

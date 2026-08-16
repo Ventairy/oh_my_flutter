@@ -1,7 +1,13 @@
-## 0.6.2
+## 0.7.0
 
-- Fix eligible children wrapped directly by `Motion` so they retain their
-  specialized Morph transition.
+- **Breaking:** Extend automatic Morph transitions with `MorphDescendant`
+  configuration for how selected subtrees participate in their nearest Morph,
+  including live, snapshotted, or hidden flight behavior; optional transitions
+  for discrete content switches; destination tracking configured by the
+  departing Morph; and specialized transitions through eligible `Motion`
+  wrappers.
+  Rename `Morph.watch` to `watchDestination` and
+  `nonMorphDescendantsTransition` to `switchTransition`.
 
 ## 0.6.1
 

@@ -3,11 +3,11 @@ part of 'morph.dart';
 final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAutomaticProperties> {
   const _MorphAutomaticFlightDelegate({
     required this.switchThreshold,
-    required this.nonMorphDescendantsTransition,
+    required this.switchTransition,
   });
 
   final double switchThreshold;
-  final AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition;
+  final AnimatedSwitcherTransitionBuilder? switchTransition;
 
   @override
   _MorphAutomaticProperties properties(MorphEndpointContext endpoint) {
@@ -67,7 +67,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
         destination: destination.child,
         progress: progress,
         switchThreshold: switchThreshold,
-        transitionEnabled: nonMorphDescendantsTransition != null,
+        transitionEnabled: switchTransition != null,
       ),
     );
   }
@@ -87,7 +87,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
     return _MorphAutomaticFlight(
       flight: flight,
       switchThreshold: switchThreshold,
-      transitionBuilder: nonMorphDescendantsTransition,
+      transitionBuilder: switchTransition,
     );
   }
 
@@ -107,6 +107,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
     if (sourceText != null && destinationText != null) {
       final delegate = MorphTextFlightDelegate(
         switchThreshold: switchThreshold,
+        switchTransition: switchTransition,
       );
       return (
         delegate: delegate,
@@ -124,7 +125,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
     if (sourceContainer != null && destinationContainer != null) {
       final delegate = MorphContainerFlightDelegate(
         switchThreshold: switchThreshold,
-        nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+        switchTransition: switchTransition,
       );
       return (
         delegate: delegate,
@@ -142,7 +143,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
     if (sourceColumn != null && destinationColumn != null) {
       final delegate = MorphColumnFlightDelegate(
         switchThreshold: switchThreshold,
-        nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+        switchTransition: switchTransition,
       );
       return (
         delegate: delegate,

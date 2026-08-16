@@ -35,6 +35,18 @@ enum MorphBenchmarkScenario {
   /// Raw ordinary descendants using a fade transition builder.
   rawDescendantsFade('raw_descendants_fade'),
 
+  /// One live descendant inside a resizing surface.
+  descendantLive('descendant_live'),
+
+  /// One captured descendant inside a resizing surface.
+  descendantSnapshot('descendant_snapshot'),
+
+  /// One hidden descendant inside a resizing surface.
+  descendantHide('descendant_hide'),
+
+  /// Twenty-four sibling snapshot descendants inside one surface.
+  descendantSnapshotDense('descendant_snapshot_dense'),
+
   /// Column flight with unmatched ordinary departing and arriving children.
   columnUnmatched('column_unmatched'),
 

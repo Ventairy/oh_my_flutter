@@ -21,7 +21,9 @@ export 'src/widgets/controlled_visibility/controlled_visibility.dart'
     show ControlledVisibility, ControlledVisibilityController;
 export 'src/widgets/marquee/marquee.dart' show Marquee;
 export 'src/widgets/marquee/marquee_direction.dart' show MarqueeDirection;
-export 'src/widgets/morph/morph.dart' show Morph, MorphEndpoint, MorphEndpointContext, MorphFlight, MorphFlightDelegate;
+export 'src/widgets/morph/morph.dart'
+    show Morph, MorphDescendant, MorphEndpoint, MorphEndpointContext, MorphFlight, MorphFlightDelegate;
+export 'src/widgets/morph/morph_descendant_flight_behavior.dart' show MorphDescendantFlightBehavior;
 export 'src/widgets/morph/morph_flight_kind.dart' show MorphFlightKind;
 export 'src/widgets/motion/motion.dart'
     show

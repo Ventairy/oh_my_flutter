@@ -522,10 +522,13 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
             endpointStyleBlocker: _textEndpointStyleBlocker,
           );
     final clipBounds = bounds;
+    final exceedsAnimatedHeight =
+        properties.baselineOffset + properties.estimatedHeight * properties.paintScaleY > bounds.height;
     canvas.save();
     if (properties.overflow == TextOverflow.ellipsis ||
         (properties.overflow == TextOverflow.clip && properties.softWrap == false) ||
-        properties.maxLines != null) {
+        properties.maxLines != null ||
+        (properties.overflow != TextOverflow.visible && exceedsAnimatedHeight)) {
       canvas.clipRect(clipBounds);
     }
     canvas
@@ -1211,14 +1214,9 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
     return (source.text != null && destination.text != null) ||
         (source.container != null && destination.container != null) ||
         (source.column != null && destination.column != null) ||
-        (_isEmptyLayoutWidget(source.widget) && _isEmptyLayoutWidget(destination.widget));
-  }
-
-  static bool _isEmptyLayoutWidget(Widget widget) {
-    return switch (widget) {
-      SizedBox(child: null) => true,
-      Align(child: null) => true,
-      _ => false,
-    };
+        (MorphChildFlightDelegate._isEmptyLayoutWidget(source.widget) &&
+            MorphChildFlightDelegate._isEmptyLayoutWidget(
+              destination.widget,
+            ));
   }
 }

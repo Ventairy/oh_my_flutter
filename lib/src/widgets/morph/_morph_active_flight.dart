@@ -12,6 +12,7 @@ class _MorphActiveFlight {
     required this.kind,
     required this.flightAnimation,
     required this.curve,
+    required this.watchDestination,
     required this.onStart,
     required this.onEnd,
     required this.cohort,
@@ -30,7 +31,13 @@ class _MorphActiveFlight {
       flightDelegate: delegate,
     ).._geometry = geometry;
     flightAnimation.addStatusListener(_handleStatusChanged);
-    _watchesDestinationGeometry = destinationHandle.watch;
+    for (final record in _sourceDescendants) {
+      record.retain();
+    }
+    for (final record in _destinationDescendants) {
+      record.retain();
+    }
+    _watchesDestinationGeometry = watchDestination;
     if (_watchesDestinationGeometry) {
       flightAnimation.addListener(_scheduleGeometryWatch);
     }
@@ -46,6 +53,7 @@ class _MorphActiveFlight {
   final MorphFlightKind kind;
   final Animation<double> flightAnimation;
   final Curve curve;
+  final bool watchDestination;
   final VoidCallback? onStart;
   final VoidCallback? onEnd;
   final Object cohort;
@@ -55,8 +63,22 @@ class _MorphActiveFlight {
   final CurvedAnimation morphAnimation;
   late final MorphFlight<Object?> flight;
   final _MorphFlightPaintHandle _paintHandle = _MorphFlightPaintHandle();
+  late final List<_MorphDescendantFlightRecord> _sourceDescendants = _MorphDescendantSnapshots.of(source);
+  late final List<_MorphDescendantFlightRecord> _destinationDescendants = _MorphDescendantSnapshots.of(destination);
+  late final _MorphDescendantFlightResolver? _descendantFlightResolver =
+      _sourceDescendants.isEmpty && _destinationDescendants.isEmpty
+      ? null
+      : _MorphDescendantFlightResolver(
+          animation: morphAnimation,
+          switchThreshold: switch (delegate) {
+            _MorphAutomaticFlightDelegate(:final switchThreshold) => switchThreshold,
+            _ => 0.5,
+          },
+          source: _sourceDescendants,
+          destination: _destinationDescendants,
+        );
   late final bool _watchesDestinationGeometry;
-  late final _MorphFlightGeometry? geometry = destinationHandle.watch
+  late final _MorphFlightGeometry? geometry = watchDestination
       ? _MorphFlightGeometry(
           source: source,
           destination: destination,
@@ -164,8 +186,7 @@ class _MorphActiveFlight {
     );
     if (retainedFlight != null) {
       return Positioned.fill(
-        child: _MorphFlightBoundary(
-          paintHandle: _paintHandle,
+        child: _buildFlightBoundary(
           child: IgnorePointer(
             child: ExcludeSemantics(child: retainedFlight),
           ),
@@ -178,20 +199,23 @@ class _MorphActiveFlight {
     }
 
     return _fallbackFlight = Positioned.fill(
-      child: _MorphPositionedFlight(
-        animation: morphAnimation,
-        geometry: geometry,
-        sourceBounds: source.bounds,
-        destinationBounds: destination.bounds,
-        child: RepaintBoundary(
-          child: _MorphFlightBoundary(
-            paintHandle: _paintHandle,
-            child: IgnorePointer(
-              child: ExcludeSemantics(
-                child: _MorphFlightScope(
-                  child: renderFlight.delegate._buildErasedFlight(
-                    context,
-                    renderFlight.flight,
+      child: _buildAncestorFlightBoundary(
+        child: _MorphPositionedFlight(
+          animation: morphAnimation,
+          geometry: geometry,
+          sourceBounds: source.bounds,
+          destinationBounds: destination.bounds,
+          child: RepaintBoundary(
+            child: _MorphFlightBoundary(
+              paintHandle: _paintHandle,
+              child: IgnorePointer(
+                child: ExcludeSemantics(
+                  child: _MorphFlightScope(
+                    descendantResolver: _descendantFlightResolver,
+                    child: renderFlight.delegate._buildErasedFlight(
+                      context,
+                      renderFlight.flight,
+                    ),
                   ),
                 ),
               ),
@@ -199,6 +223,31 @@ class _MorphActiveFlight {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAncestorFlightBoundary({required Widget child}) {
+    final ancestor = coordinator._sharedAncestorFlight(this);
+    if (ancestor == null) return child;
+    return _MorphFlightBoundary(
+      paintHandle: _paintHandle,
+      ancestorAnimation: ancestor.morphAnimation,
+      ancestorGeometry: ancestor.geometry,
+      ancestorSourceBounds: ancestor.source.bounds,
+      ancestorDestinationBounds: ancestor.destination.bounds,
+      child: child,
+    );
+  }
+
+  Widget _buildFlightBoundary({required Widget child}) {
+    final ancestor = coordinator._sharedAncestorFlight(this);
+    return _MorphFlightBoundary(
+      paintHandle: _paintHandle,
+      ancestorAnimation: ancestor?.morphAnimation,
+      ancestorGeometry: ancestor?.geometry,
+      ancestorSourceBounds: ancestor?.source.bounds,
+      ancestorDestinationBounds: ancestor?.destination.bounds,
+      child: child,
     );
   }
 
@@ -218,6 +267,7 @@ class _MorphActiveFlight {
     required MorphFlightDelegate<Object?> typedDelegate,
     required MorphFlight<Object?> typedFlight,
   }) {
+    if (_descendantFlightResolver != null) return null;
     if (typedDelegate is MorphTextFlightDelegate) {
       if (_retainedFlightResolved) return _retainedFlight;
       _retainedFlightResolved = true;
@@ -227,6 +277,12 @@ class _MorphActiveFlight {
         return null;
       }
       if (!typedDelegate._supportsRetainedFlight(
+        sourceProperties,
+        destinationProperties,
+      )) {
+        return null;
+      }
+      if (typedDelegate._usesSwitchTransition(
         sourceProperties,
         destinationProperties,
       )) {
@@ -249,6 +305,14 @@ class _MorphActiveFlight {
       if (sourceProperties is! MorphContainerProperties || destinationProperties is! MorphContainerProperties) {
         return null;
       }
+      if (typedDelegate.switchTransition != null &&
+          MorphChildFlightDelegate._specializedTextChanges(
+            sourceProperties,
+            destinationProperties,
+          )) {
+        _retainedFlightResolved = true;
+        return _retainedFlight = null;
+      }
       final plan = _MorphCompoundFlightPlan.forContainer(
         source: sourceProperties,
         destination: destinationProperties,
@@ -266,7 +330,7 @@ class _MorphActiveFlight {
           geometry: geometry,
         );
       }
-      if (typedDelegate.nonMorphDescendantsTransition != null || _watchesDestinationGeometry) {
+      if (typedDelegate.switchTransition != null || _watchesDestinationGeometry) {
         return _retainedFlight = null;
       }
       final hybridPlan = _MorphHybridContainerFlightPlan.tryCreate(
@@ -278,7 +342,7 @@ class _MorphActiveFlight {
       return _retainedFlight = _MorphHybridContainerFlight(
         animation: morphAnimation,
         plan: hybridPlan,
-        transitionBuilder: typedDelegate.nonMorphDescendantsTransition,
+        transitionBuilder: typedDelegate.switchTransition,
         sourceBounds: source.bounds,
         destinationBounds: destination.bounds,
         geometry: geometry,
@@ -294,6 +358,14 @@ class _MorphActiveFlight {
       final destinationProperties = typedFlight._destinationProperties;
       if (sourceProperties is! MorphColumnProperties || destinationProperties is! MorphColumnProperties) {
         return null;
+      }
+      if (typedDelegate.switchTransition != null &&
+          MorphChildFlightDelegate._specializedTextChanges(
+            sourceProperties,
+            destinationProperties,
+          )) {
+        _retainedFlightResolved = true;
+        return _retainedFlight = null;
       }
       final plan = _MorphCompoundFlightPlan.forColumn(
         source: sourceProperties,
@@ -321,7 +393,7 @@ class _MorphActiveFlight {
       return _retainedFlight = _MorphHybridColumnFlight(
         animation: morphAnimation,
         plan: hybridPlan,
-        transitionBuilder: typedDelegate.nonMorphDescendantsTransition,
+        transitionBuilder: typedDelegate.switchTransition,
         rasterPool: coordinator.textRasterPool,
         sourceBounds: source.bounds,
         destinationBounds: destination.bounds,
@@ -362,6 +434,13 @@ class _MorphActiveFlight {
       flightAnimation.removeListener(_scheduleGeometryWatch);
     }
     flightAnimation.removeStatusListener(_handleStatusChanged);
+    for (final record in _sourceDescendants) {
+      record.release();
+    }
+    for (final record in _destinationDescendants) {
+      record.release();
+    }
+    _descendantFlightResolver?.dispose();
     morphAnimation.dispose();
     controllerLease?.release();
     geometry?.dispose();
@@ -450,7 +529,7 @@ class _MorphActiveFlight {
 
   void _updateWatchedGeometry(Duration _) {
     _geometryWatchScheduled = false;
-    if (_finished || destinationHandle.disposed || !destinationHandle.active || !destinationHandle.watch) {
+    if (_finished || destinationHandle.disposed || !destinationHandle.active || !watchDestination) {
       return;
     }
     final watchedGeometry = destinationHandle.owner._readLiveGeometry();
