@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../benchmark/morph/morph_benchmark_log_validator.dart';
+import '../../benchmark/morph/morph_benchmark_record_buffer.dart';
 
 void main() {
   String buildLog({
@@ -105,6 +106,41 @@ void main() {
         );
 
         expect(validation.passed, isFalse);
+      },
+    );
+
+    test(
+      'when a complete record is emitted in bounded chunks, '
+      'it should reconstruct and validate it',
+      () {
+        final ordinaryLog = buildLog();
+        final acceptanceLine = ordinaryLog.split('\n').last;
+        final acceptance = Map<String, Object>.from(
+          jsonDecode(
+                acceptanceLine.substring(
+                  acceptanceLine.indexOf('{'),
+                ),
+              )
+              as Map<String, Object?>,
+        );
+        acceptance['diagnostic_padding'] = List<String>.filled(
+          5000,
+          'x',
+        ).join();
+        final emitted = <String>[];
+        MorphBenchmarkRecordBuffer(emitted.add)
+          ..add(acceptance)
+          ..flush();
+        final lines = ordinaryLog.split('\n');
+        final withoutAcceptance = lines.take(lines.length - 1).join('\n');
+        final chunkedLog = <String>[
+          withoutAcceptance,
+          ...emitted.map((line) => 'flutter: $line'),
+        ].join('\n');
+
+        final validation = validator().validate(chunkedLog);
+
+        expect(validation.passed, isTrue);
       },
     );
 

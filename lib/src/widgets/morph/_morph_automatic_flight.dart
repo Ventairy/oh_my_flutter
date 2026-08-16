@@ -64,7 +64,7 @@ class _MorphAutomaticFlightState extends State<_MorphAutomaticFlight> {
     return MorphChildFlightDelegate.build(
       context,
       properties,
-      nonMorphDescendantsTransition: transitionBuilder,
+      switchTransition: transitionBuilder,
     );
   }
 

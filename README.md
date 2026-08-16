@@ -75,7 +75,11 @@ optional directional transitions and optional unmounting.
 
 `Morph` animates matching widgets between layouts and routes, selecting a
 specialized transition for supported content and a generic transition for
-other widgets.
+other widgets. `MorphDescendant` configures how a selected descendant subtree
+participates in its nearest ancestor Morph, currently including live,
+snapshotted, or hidden transition behavior. Discrete content switches and
+moving destinations remain configurable without replacing the automatic
+transition.
 
 ### Motion
 

@@ -857,7 +857,7 @@ void main() {
         await tester.pumpWidget(
           _ColumnMorphTestApp(
             switchThreshold: 0.5,
-            nonMorphDescendantsTransition: (child, animation) {
+            switchTransition: (child, animation) {
               return FadeTransition(
                 key: const ValueKey('column-ordinary-transition'),
                 opacity: animation,
@@ -928,7 +928,7 @@ void main() {
         await tester.pumpWidget(
           _ColumnMorphTestApp(
             switchThreshold: 0.5,
-            nonMorphDescendantsTransition: (child, animation) {
+            switchTransition: (child, animation) {
               transitionBuilds += 1;
               return FadeTransition(
                 opacity: animation,
@@ -1475,7 +1475,7 @@ void main() {
       (tester) async {
         await tester.pumpWidget(
           _ColumnMorphTestApp(
-            nonMorphDescendantsTransition: (child, animation) {
+            switchTransition: (child, animation) {
               return FadeTransition(
                 key: const ValueKey('reversing-raw-transition'),
                 opacity: animation,
@@ -1695,7 +1695,7 @@ void main() {
         var transitionBuilds = 0;
         await tester.pumpWidget(
           _ColumnMorphTestApp(
-            nonMorphDescendantsTransition: (child, animation) {
+            switchTransition: (child, animation) {
               transitionBuilds += 1;
               return FadeTransition(opacity: animation, child: child);
             },
@@ -2036,6 +2036,255 @@ void main() {
           ),
           (1, 1, entry.rect.left, entry.rect.right),
         );
+      },
+    );
+
+    testWidgets(
+      'when a matched paragraph outlives its shrinking Column bounds, it should not paint below the ancestor',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 500);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const boundaryKey = ValueKey<String>('shrinking-column-boundary');
+        const paragraph =
+            'This complete description remains selected until late in the '
+            'flight, but it must stop painting where its shrinking ancestor '
+            'ends instead of continuing over the content behind it.';
+        var compact = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: MaterialApp(
+              home: Scaffold(
+                body: StatefulBuilder(
+                  builder: (context, setState) {
+                    update = setState;
+                    return Stack(
+                      children: [
+                        Positioned(
+                          left: 20,
+                          top: 20,
+                          width: 220,
+                          child: Morph(
+                            tag: 'shrinking-column',
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.linear,
+                            switchThreshold: 0.97,
+                            child: Column(
+                              key: ValueKey(compact),
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('Title', key: ValueKey('shrinking-title')),
+                                if (compact)
+                                  const Padding(
+                                    key: ValueKey('shrinking-description'),
+                                    padding: EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      'Compact summary',
+                                      style: TextStyle(color: Colors.red, fontSize: 18),
+                                    ),
+                                  )
+                                else
+                                  const Motion(
+                                    effect: FadeInMotionEffect(),
+                                    child: Text(
+                                      paragraph,
+                                      key: ValueKey('shrinking-description'),
+                                      style: TextStyle(color: Colors.red, fontSize: 18),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final expandedHeight = tester.getSize(find.byType(Column).last).height;
+        update(() => compact = true);
+        await tester.pumpAndSettle();
+        final compactHeight = tester.getSize(find.byType(Column).last).height;
+        update(() => compact = false);
+        await tester.pumpAndSettle();
+        update(() => compact = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        final frame = await _capturePixels(tester, boundaryKey);
+        final animatedBottom = 20 + (expandedHeight + compactHeight) / 2;
+
+        expect(
+          _redPixelCount(
+            frame,
+            Rect.fromLTRB(15, animatedBottom + 1, 260, 480),
+          ),
+          0,
+        );
+      },
+    );
+
+    testWidgets(
+      'when a Column Morph moves with a clipped ancestor Morph, it should not paint below the ancestor flight',
+      (tester) async {
+        tester.view.physicalSize = const Size(320, 500);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const boundaryKey = ValueKey<String>('nested-column-boundary');
+        const paragraph =
+            'This complete description is intentionally much taller than its '
+            'surface. While both shared elements move together, every line '
+            'must remain clipped by the exact animated surface bounds. The '
+            'descendant cannot continue painting over the content behind the '
+            'surface merely because it owns an independent Morph flight.';
+        var compact = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: MaterialApp(
+              home: Scaffold(
+                body: StatefulBuilder(
+                  builder: (context, setState) {
+                    update = setState;
+                    return Stack(
+                      children: [
+                        Positioned(
+                          left: 20,
+                          top: 20,
+                          child: Morph(
+                            tag: 'clipping-ancestor',
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.linear,
+                            child: Container(
+                              key: ValueKey(('clipping-ancestor', compact)),
+                              width: 240,
+                              height: compact ? 110 : 220,
+                              padding: const EdgeInsets.all(16),
+                              clipBehavior: Clip.hardEdge,
+                              decoration: const BoxDecoration(color: Colors.white),
+                              child: OverflowBox(
+                                alignment: Alignment.topLeft,
+                                minWidth: 208,
+                                maxWidth: 208,
+                                minHeight: 0,
+                                maxHeight: double.infinity,
+                                child: Morph(
+                                  tag: 'nested-column',
+                                  switchThreshold: 0.97,
+                                  child: Column(
+                                    key: ValueKey(('nested-column', compact)),
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text('Title'),
+                                      Text(
+                                        compact ? 'Compact summary' : paragraph,
+                                        key: const ValueKey('nested-description'),
+                                        style: const TextStyle(color: Colors.red, fontSize: 18),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        update(() => compact = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        final frame = await _capturePixels(tester, boundaryKey);
+        const animatedAncestorBottom = 20 + (220 + 110) / 2;
+
+        expect(
+          _redPixelCount(
+            frame,
+            const Rect.fromLTRB(15, animatedAncestorBottom + 1, 270, 480),
+          ),
+          0,
+        );
+      },
+    );
+
+    testWidgets(
+      'when a nested Morph follows an ancestor clip, it should retain the clip layer between frames',
+      (tester) async {
+        var compact = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Stack(
+                    children: [
+                      Positioned(
+                        left: 20,
+                        top: 20,
+                        child: Morph(
+                          tag: 'retained-clip-ancestor',
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.linear,
+                          child: Container(
+                            key: ValueKey(('retained-clip-ancestor', compact)),
+                            width: 240,
+                            height: compact ? 110 : 220,
+                            color: Colors.white,
+                            child: Morph(
+                              tag: 'retained-clip-descendant',
+                              child: Text(
+                                compact ? 'Compact' : 'Expanded description',
+                                key: ValueKey(('retained-clip-text', compact)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        update(() => compact = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 120));
+
+        ClipRectLayer ancestorClipLayer() {
+          final rootLayer = RendererBinding.instance.renderViews.single.debugLayer!;
+          return rootLayer.depthFirstIterateChildren().whereType<ClipRectLayer>().singleWhere(
+            (layer) => layer.clipRect?.width == 240,
+          );
+        }
+
+        final firstLayer = ancestorClipLayer();
+        await tester.pump(const Duration(milliseconds: 16));
+        final secondLayer = ancestorClipLayer();
+
+        expect(secondLayer, same(firstLayer));
       },
     );
 
@@ -2817,7 +3066,7 @@ class _ColumnMorphTestApp extends StatefulWidget {
     this.sourceWidth = 300,
     this.destinationWidth = 300,
     this.switchThreshold = 0.5,
-    this.nonMorphDescendantsTransition,
+    this.switchTransition,
     this.curve = Curves.linear,
   });
 
@@ -2832,7 +3081,7 @@ class _ColumnMorphTestApp extends StatefulWidget {
   final double sourceWidth;
   final double destinationWidth;
   final double switchThreshold;
-  final AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition;
+  final AnimatedSwitcherTransitionBuilder? switchTransition;
   final Curve curve;
 
   @override
@@ -2857,7 +3106,7 @@ class _ColumnMorphTestAppState extends State<_ColumnMorphTestApp> {
                   duration: const Duration(milliseconds: 400),
                   curve: widget.curve,
                   switchThreshold: widget.switchThreshold,
-                  nonMorphDescendantsTransition: widget.nonMorphDescendantsTransition,
+                  switchTransition: widget.switchTransition,
                   child: widget.builder(destination: _destination),
                 ),
               ),

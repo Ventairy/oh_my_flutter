@@ -6,6 +6,51 @@ import '../../benchmark/morph/morph_benchmark_workloads.dart';
 
 void main() {
   group('MorphBenchmarkWorkloads', () {
+    for (final behavior in MorphDescendantFlightBehavior.values) {
+      testWidgets(
+        'when the ${behavior.name} descendant workload is built, '
+        'it should configure the requested flight behavior',
+        (tester) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: MorphBenchmarkWorkloads.descendant(
+                  expanded: false,
+                  behavior: behavior,
+                ),
+              ),
+            ),
+          );
+
+          final descendant = tester.widget<MorphDescendant>(
+            find.byType(MorphDescendant),
+          );
+          expect(
+            descendant.flightBehavior,
+            behavior,
+          );
+        },
+      );
+    }
+
+    testWidgets(
+      'when the dense snapshot workload is built, '
+      'it should contain twenty-four sibling snapshot descendants',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                expanded: false,
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(MorphDescendant), findsNWidgets(24));
+      },
+    );
+
     testWidgets(
       'when the matched raw Column workload flies, '
       'it should use the resizing hybrid slot',
@@ -132,7 +177,7 @@ void main() {
 
         expect(
           (
-            child.watch,
+            child.watchDestination,
             child.duration,
             parent.duration,
             targetMotion.duration,

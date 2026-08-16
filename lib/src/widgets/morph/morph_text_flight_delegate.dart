@@ -3,15 +3,24 @@ part of 'morph.dart';
 /// Defines a text-specific Morph transition.
 final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextProperties> {
   /// Creates a transition for plain text.
-  const MorphTextFlightDelegate({this.switchThreshold = 0.5})
-    : assert(
-        switchThreshold >= 0 && switchThreshold <= 1,
-        'switchThreshold must be between 0 and 1.',
-      );
+  const MorphTextFlightDelegate({
+    this.switchThreshold = 0.5,
+    this.switchTransition,
+  }) : assert(
+         switchThreshold >= 0 && switchThreshold <= 1,
+         'switchThreshold must be between 0 and 1.',
+       );
 
   /// Progress at which the visible text and non-interpolated paragraph values
   /// switch to the destination.
   final double switchThreshold;
+
+  /// Transition applied when the visible text changes at [switchThreshold].
+  ///
+  /// The supplied animation moves from 1 to 0 for the departing text and from
+  /// 0 to 1 for the arriving text. It is unused when both endpoints contain
+  /// the same text.
+  final AnimatedSwitcherTransitionBuilder? switchTransition;
 
   /// Returns the visual values used to transition [text].
   static MorphTextProperties captureText({
@@ -496,15 +505,52 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
     BuildContext context,
     MorphFlight<MorphTextProperties> flight,
   ) {
+    Widget result;
     if (!_supportsRetainedFlight(
       flight.source.properties,
       flight.destination.properties,
     )) {
-      return AnimatedBuilder(
+      result = AnimatedBuilder(
         animation: flight.animation,
         builder: (context, child) => _buildProperties(context, flight.properties),
       );
+    } else {
+      result = _MorphTextFlight(delegate: this, flight: flight);
     }
-    return _MorphTextFlight(delegate: this, flight: flight);
+
+    if (!_usesSwitchTransition(
+      flight.source.properties,
+      flight.destination.properties,
+    )) {
+      return result;
+    }
+
+    return AnimatedBuilder(
+      animation: flight.animation,
+      child: result,
+      builder: (context, child) {
+        final progress = flight.animation.value;
+        final threshold = flight.source.properties.switchThreshold;
+
+        return _MorphSwitchTransition(
+          progress: MorphChildFlightDelegate._transitionProgress(
+            progress: progress,
+            threshold: threshold,
+            departing: progress < threshold,
+          ),
+          transitionBuilder: switchTransition,
+          capturedThemes: null,
+          mediaQueryData: null,
+          child: child!,
+        );
+      },
+    );
+  }
+
+  bool _usesSwitchTransition(
+    MorphTextProperties source,
+    MorphTextProperties destination,
+  ) {
+    return switchTransition != null && source.text != destination.text;
   }
 }

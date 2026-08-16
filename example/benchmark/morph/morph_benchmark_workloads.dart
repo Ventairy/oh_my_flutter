@@ -14,6 +14,157 @@ abstract final class MorphBenchmarkWorkloads {
   /// workload.
   static const nestedWatchChildDuration = Duration(milliseconds: 160);
 
+  /// Builds one configured descendant inside a resizing surface.
+  static Widget descendant({
+    required bool expanded,
+    required MorphDescendantFlightBehavior behavior,
+    Duration duration = const Duration(milliseconds: 320),
+    VoidCallback? onStart,
+    VoidCallback? onEnd,
+  }) {
+    const liveScenario = MorphBenchmarkScenario.descendantLive;
+    const snapshotScenario = MorphBenchmarkScenario.descendantSnapshot;
+    const hideScenario = MorphBenchmarkScenario.descendantHide;
+    final scenario = switch (behavior) {
+      MorphDescendantFlightBehavior.live => liveScenario,
+      MorphDescendantFlightBehavior.snapshot => snapshotScenario,
+      MorphDescendantFlightBehavior.hide => hideScenario,
+    };
+    var alignment = const Alignment(-0.24, -0.62);
+    var surfaceColor = const Color(0xFFFFF0E6);
+    if (expanded) {
+      alignment = const Alignment(0.24, 0.24);
+      surfaceColor = const Color(0xFFE8F1FF);
+    }
+    const destinationText =
+        'Captured destination content remains visually fixed while '
+        'the surrounding surface changes its size and position.\n\n'
+        'The repeated paragraph makes both layout and painting '
+        'representative of an editor or scrolling description.';
+    const sourceText =
+        'Compact source content.\n\n'
+        'The descendant occupies a smaller endpoint.';
+    return Align(
+      alignment: alignment,
+      child: Morph(
+        tag: 'benchmark-${scenario.id}',
+        duration: duration,
+        onStart: onStart,
+        onEnd: onEnd,
+        child: Container(
+          key: _endpointKey(
+            scenario: scenario,
+            child: 'surface',
+            expanded: expanded,
+          ),
+          width: expanded ? 342 : 236,
+          height: expanded ? 286 : 164,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(expanded ? 34 : 18),
+          ),
+          child: MorphDescendant(
+            key: const ValueKey<String>('benchmark-descendant'),
+            flightBehavior: behavior,
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Text(
+                expanded ? destinationText : sourceText,
+                style: TextStyle(
+                  color: const Color(0xFF182033),
+                  fontSize: expanded ? 18 : 15,
+                  height: 1.35,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Builds twenty-four sibling snapshot descendants in one surface.
+  static Widget descendantSnapshotDense({
+    required bool expanded,
+    Duration duration = const Duration(milliseconds: 320),
+    VoidCallback? onStart,
+    VoidCallback? onEnd,
+  }) {
+    const scenario = MorphBenchmarkScenario.descendantSnapshotDense;
+    var alignment = const Alignment(-0.18, -0.5);
+    var surfaceColor = const Color(0xFFFFF0E6);
+    if (expanded) {
+      alignment = const Alignment(0.18, 0.18);
+      surfaceColor = const Color(0xFFE8F1FF);
+    }
+    return Align(
+      alignment: alignment,
+      child: Morph(
+        tag: 'benchmark-${scenario.id}',
+        duration: duration,
+        onStart: onStart,
+        onEnd: onEnd,
+        child: Container(
+          key: _endpointKey(
+            scenario: scenario,
+            child: 'surface',
+            expanded: expanded,
+          ),
+          width: expanded ? 350 : 286,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(expanded ? 32 : 18),
+          ),
+          child: Wrap(
+            spacing: 4,
+            runSpacing: 4,
+            children: List<Widget>.generate(
+              24,
+              (index) => _denseSnapshotDescendant(
+                index: index,
+                expanded: expanded,
+              ),
+              growable: false,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  static Widget _denseSnapshotDescendant({
+    required int index,
+    required bool expanded,
+  }) {
+    var color = const Color(0xFFFF4A4B);
+    if (index.isEven) color = const Color(0xFF3057D5);
+    return MorphDescendant(
+      key: ValueKey<int>(index),
+      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: SizedBox(
+          width: expanded ? 48 : 38,
+          height: expanded ? 36 : 30,
+          child: Center(
+            child: Text(
+              '$index',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// Builds a Column whose matched ordinary child changes size in flight.
   static Widget columnMatchedRawResize({
     required bool expanded,
@@ -87,7 +238,7 @@ abstract final class MorphBenchmarkWorkloads {
     final nestedEndpoint = Morph(
       tag: 'benchmark-nested-watched-text',
       duration: nestedWatchChildDuration,
-      watch: true,
+      watchDestination: true,
       child: Text(
         key: _endpointKey(
           scenario: scenario,

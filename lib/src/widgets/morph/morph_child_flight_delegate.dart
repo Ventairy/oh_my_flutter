@@ -308,11 +308,18 @@ final class MorphChildFlightDelegate {
     };
   }
 
+  static bool _isEmptyLayoutWidget(Widget widget) {
+    return switch (widget) {
+      SizedBox(child: null) || Align(child: null) => true,
+      _ => false,
+    };
+  }
+
   /// Builds a child with the supplied transition [properties].
   static Widget build(
     BuildContext context,
     MorphChildProperties properties, {
-    AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition,
+    AnimatedSwitcherTransitionBuilder? switchTransition,
   }) {
     Widget child;
     final text = properties.text;
@@ -325,21 +332,31 @@ final class MorphChildFlightDelegate {
       child = const MorphContainerFlightDelegate()._buildProperties(
         context,
         container,
-        nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+        switchTransition: switchTransition,
       );
     } else if (column != null) {
       child = const MorphColumnFlightDelegate()._buildProperties(
         context,
         column,
-        nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+        switchTransition: switchTransition,
       );
     } else {
-      child = _MorphNonMorphDescendantsTransition(
+      child = _MorphSwitchTransition(
         progress: properties._transitionProgress,
-        transitionBuilder: nonMorphDescendantsTransition,
+        transitionBuilder: switchTransition,
         capturedThemes: properties._capturedThemes,
         mediaQueryData: properties._mediaQueryData,
         child: properties.widget,
+      );
+    }
+
+    if (!isRaw && switchTransition != null) {
+      child = _MorphSwitchTransition(
+        progress: properties._transitionProgress,
+        transitionBuilder: switchTransition,
+        capturedThemes: null,
+        mediaQueryData: null,
+        child: child,
       );
     }
 
@@ -370,6 +387,32 @@ final class MorphChildFlightDelegate {
       result ??= _findRenderBox<T>(child);
     });
     return result;
+  }
+
+  static bool _specializedTextChanges(Object? source, Object? destination) {
+    final sourceTexts = <String>[];
+    final destinationTexts = <String>[];
+    _collectSpecializedTexts(source, sourceTexts);
+    _collectSpecializedTexts(destination, destinationTexts);
+    return !listEquals(sourceTexts, destinationTexts);
+  }
+
+  static void _collectSpecializedTexts(
+    Object? properties,
+    List<String> result,
+  ) {
+    switch (properties) {
+      case MorphChildProperties(:final text, :final container, :final column):
+        if (text != null) result.add(text.text);
+        _collectSpecializedTexts(container, result);
+        _collectSpecializedTexts(column, result);
+      case MorphContainerProperties(:final child):
+        _collectSpecializedTexts(child, result);
+      case MorphColumnProperties(:final children):
+        for (final child in children) {
+          _collectSpecializedTexts(child, result);
+        }
+    }
   }
 
   static double? _textLayoutWidth(RenderObject? root) {

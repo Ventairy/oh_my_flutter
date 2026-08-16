@@ -39,5 +39,33 @@ void main() {
         expect(buffer.pendingCount, 0);
       },
     );
+
+    test(
+      'when a record exceeds Android log limits, it should emit bounded chunks',
+      () {
+        final emitted = <String>[];
+        MorphBenchmarkRecordBuffer(emitted.add)
+          ..add(<String, Object>{
+            'path': 'acceptance',
+            'failed_steady_paths': List<String>.generate(
+              100,
+              (index) => 'scenario.steady.forward.trial_$index',
+            ),
+          })
+          ..flush();
+
+        expect(emitted.length, greaterThan(1));
+        expect(
+          emitted.every((line) => line.length <= 3000),
+          isTrue,
+        );
+        expect(
+          emitted.every(
+            (line) => line.startsWith('MORPH_BENCHMARK_CHUNK '),
+          ),
+          isTrue,
+        );
+      },
+    );
   });
 }

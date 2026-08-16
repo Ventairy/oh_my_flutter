@@ -4,12 +4,12 @@ class _MorphColumnFlight extends StatefulWidget {
   const _MorphColumnFlight({
     required this.delegate,
     required this.flight,
-    required this.nonMorphDescendantsTransition,
+    required this.switchTransition,
   });
 
   final MorphColumnFlightDelegate delegate;
   final MorphFlight<MorphColumnProperties> flight;
-  final AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition;
+  final AnimatedSwitcherTransitionBuilder? switchTransition;
 
   @override
   State<_MorphColumnFlight> createState() => _MorphColumnFlightState();
@@ -48,7 +48,7 @@ class _MorphColumnFlightState extends State<_MorphColumnFlight> {
         return widget.delegate._buildProperties(
           context,
           _plan.lerp(widget.flight.animation.value),
-          nonMorphDescendantsTransition: widget.nonMorphDescendantsTransition,
+          switchTransition: widget.switchTransition,
         );
       },
     );
@@ -58,7 +58,7 @@ class _MorphColumnFlightState extends State<_MorphColumnFlight> {
     return _MorphColumnFlightPlan(
       source: widget.flight.source.properties,
       destination: widget.flight.destination.properties,
-      transitionEnabled: widget.nonMorphDescendantsTransition != null,
+      transitionEnabled: widget.switchTransition != null,
     );
   }
 }

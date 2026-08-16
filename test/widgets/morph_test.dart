@@ -4890,7 +4890,7 @@ void main() {
     );
 
     testWidgets(
-      'when watch is enabled and the destination moves during a flight, it should follow the live geometry',
+      'when watchDestination is enabled on the source and the destination moves, it should follow the live geometry',
       (tester) async {
         final destinationTop = ValueNotifier<double>(500);
         final captures = <_TestProperties>[];
@@ -4905,7 +4905,7 @@ void main() {
                     alignment: Alignment.topLeft,
                     child: Morph(
                       tag: 'watched-destination',
-                      watch: true,
+                      watchDestination: true,
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.linear,
                       flightDelegate: _TestFlightDelegate(
@@ -4929,7 +4929,6 @@ void main() {
                     child: RepaintBoundary(
                       child: Morph(
                         tag: 'watched-destination',
-                        watch: true,
                         duration: const Duration(milliseconds: 400),
                         curve: Curves.linear,
                         flightDelegate: _TestFlightDelegate(
@@ -5048,7 +5047,7 @@ void main() {
                                   top: destination ? geometry.top : 20,
                                   child: Morph(
                                     tag: 'held-watch-child',
-                                    watch: true,
+                                    watchDestination: true,
                                     duration: const Duration(
                                       milliseconds: 200,
                                     ),
@@ -5111,7 +5110,9 @@ void main() {
       },
     );
 
-    testWidgets('when watch is disabled, it should keep the geometry captured at flight start', (tester) async {
+    testWidgets('when watchDestination is disabled, it should keep the geometry captured at flight start', (
+      tester,
+    ) async {
       final destinationTop = ValueNotifier<double>(500);
       final captures = <_TestProperties>[];
       final flights = <MorphFlight<_TestProperties>>[];
@@ -5178,7 +5179,7 @@ void main() {
     });
 
     testWidgets(
-      'when watch is disabled, it should not allocate live flight geometry',
+      'when watchDestination is disabled, it should not allocate live flight geometry',
       (tester) async {
         await tester.pumpWidget(
           const _MorphTestApp(

@@ -81,6 +81,8 @@ class _MorphState extends State<MorphBenchmark>
   Completer<void>? _flightEnded;
   Completer<void>? _windowReported;
   Completer<void>? _interactionChanged;
+  Stopwatch? _flightStartStopwatch;
+  int? _flightStartLatencyMicros;
   int? _windowStartMicros;
   int? _windowEndMicros;
   int _latestReportedBuildStartMicros = 0;
@@ -93,6 +95,7 @@ class _MorphState extends State<MorphBenchmark>
   int _flightImagePixels = 0;
   int _largestFlightImagePixels = 0;
   bool _collectWindow = false;
+  bool _collectTransitionImages = false;
   bool _scenarioIsRunning = false;
   bool _scenarioReady = false;
   bool _expanded = false;
@@ -311,6 +314,7 @@ class _MorphState extends State<MorphBenchmark>
       trial: 0,
       transitions: 1,
       frames: cold.forward,
+      startLatenciesMicros: <int>[cold.forwardStartLatencyMicros],
       gate: false,
       attempt: cold.attempt,
       transitionFrameCounts: <int>[cold.forward.length],
@@ -323,6 +327,7 @@ class _MorphState extends State<MorphBenchmark>
       trial: 0,
       transitions: 1,
       frames: cold.reverse,
+      startLatenciesMicros: <int>[cold.reverseStartLatencyMicros],
       gate: false,
       attempt: cold.attempt,
       transitionFrameCounts: <int>[cold.reverse.length],
@@ -338,6 +343,8 @@ class _MorphState extends State<MorphBenchmark>
     final combinedReverse = <FrameTiming>[];
     final combinedForwardBatchFrames = <int>[];
     final combinedReverseBatchFrames = <int>[];
+    final combinedForwardStartLatencies = <int>[];
+    final combinedReverseStartLatencies = <int>[];
     for (var trial = 1; trial <= _steadyTrialCount; trial += 1) {
       final steady = await _collectSteadyTrial(
         scenario: scenarioId,
@@ -347,6 +354,8 @@ class _MorphState extends State<MorphBenchmark>
       combinedReverse.addAll(steady.reverse);
       combinedForwardBatchFrames.addAll(steady.forwardBatchFrames);
       combinedReverseBatchFrames.addAll(steady.reverseBatchFrames);
+      combinedForwardStartLatencies.addAll(steady.forwardStartLatenciesMicros);
+      combinedReverseStartLatencies.addAll(steady.reverseStartLatenciesMicros);
       _printResult(
         scenario: scenarioId,
         phase: 'steady',
@@ -354,6 +363,7 @@ class _MorphState extends State<MorphBenchmark>
         trial: trial,
         transitions: steady.forwardTransitions,
         frames: steady.forward,
+        startLatenciesMicros: steady.forwardStartLatenciesMicros,
         gate: true,
         attempt: steady.attempt,
         transitionFrameCounts: steady.forwardBatchFrames,
@@ -365,6 +375,7 @@ class _MorphState extends State<MorphBenchmark>
         trial: trial,
         transitions: steady.reverseTransitions,
         frames: steady.reverse,
+        startLatenciesMicros: steady.reverseStartLatenciesMicros,
         gate: true,
         attempt: steady.attempt,
         transitionFrameCounts: steady.reverseBatchFrames,
@@ -379,6 +390,7 @@ class _MorphState extends State<MorphBenchmark>
       trial: 0,
       transitions: 0,
       frames: combinedForward,
+      startLatenciesMicros: combinedForwardStartLatencies,
       gate: false,
       transitionFrameCounts: combinedForwardBatchFrames,
     );
@@ -389,6 +401,7 @@ class _MorphState extends State<MorphBenchmark>
       trial: 0,
       transitions: 0,
       frames: combinedReverse,
+      startLatenciesMicros: combinedReverseStartLatencies,
       gate: false,
       transitionFrameCounts: combinedReverseBatchFrames,
     );
@@ -409,7 +422,7 @@ class _MorphState extends State<MorphBenchmark>
     _previousImageCreatedCallback?.call(image);
     if (!_scenarioIsRunning) return;
     _scenarioImageCreations += 1;
-    if (_windowStartMicros == null || _windowEndMicros != null) return;
+    if (!_collectTransitionImages) return;
     final pixels = image.width * image.height;
     _flightImageCreations += 1;
     _flightImagePixels += pixels;
@@ -425,6 +438,8 @@ class _MorphState extends State<MorphBenchmark>
     ({
       List<FrameTiming> forward,
       List<FrameTiming> reverse,
+      int forwardStartLatencyMicros,
+      int reverseStartLatencyMicros,
       int attempt,
     })
   >
@@ -471,6 +486,8 @@ class _MorphState extends State<MorphBenchmark>
       return (
         forward: forward.frames,
         reverse: reverse.frames,
+        forwardStartLatencyMicros: forward.startLatencyMicros,
+        reverseStartLatencyMicros: reverse.startLatencyMicros,
         attempt: attempt,
       );
     }
@@ -488,6 +505,8 @@ class _MorphState extends State<MorphBenchmark>
       int reverseTransitions,
       List<int> forwardBatchFrames,
       List<int> reverseBatchFrames,
+      List<int> forwardStartLatenciesMicros,
+      List<int> reverseStartLatenciesMicros,
       int attempt,
     })
   >
@@ -501,6 +520,8 @@ class _MorphState extends State<MorphBenchmark>
       final reverse = <FrameTiming>[];
       final forwardBatchFrames = <int>[];
       final reverseBatchFrames = <int>[];
+      final forwardStartLatenciesMicros = <int>[];
+      final reverseStartLatenciesMicros = <int>[];
       var forwardTransitions = 0;
       var reverseTransitions = 0;
       var invalid = false;
@@ -553,8 +574,10 @@ class _MorphState extends State<MorphBenchmark>
         target.addAll(measuredFrames);
         if (direction == 'forward') {
           forwardBatchFrames.add(measuredFrames.length);
+          forwardStartLatenciesMicros.add(measurement.startLatencyMicros);
         } else {
           reverseBatchFrames.add(measuredFrames.length);
+          reverseStartLatenciesMicros.add(measurement.startLatencyMicros);
         }
       }
       if (invalid) {
@@ -568,6 +591,8 @@ class _MorphState extends State<MorphBenchmark>
         reverseTransitions: reverseTransitions,
         forwardBatchFrames: forwardBatchFrames,
         reverseBatchFrames: reverseBatchFrames,
+        forwardStartLatenciesMicros: forwardStartLatenciesMicros,
+        reverseStartLatenciesMicros: reverseStartLatenciesMicros,
         attempt: attempt,
       );
     }
@@ -629,18 +654,29 @@ class _MorphState extends State<MorphBenchmark>
       scenario: scenarioId,
       phase: 'baseline_ready',
     );
+    final creationsBefore = _scenarioImageCreations;
+    final disposalsBefore = _scenarioImageDisposals;
+    _scenarioIsRunning = true;
     final stopwatch = Stopwatch()..start();
-    for (var cycle = 0; cycle < _soakCycles; cycle += 1) {
-      await _runTransition(direction: 'forward', collect: false);
-      await _runTransition(direction: 'reverse', collect: false);
+    try {
+      for (var cycle = 0; cycle < _soakCycles; cycle += 1) {
+        await _runTransition(direction: 'forward', collect: false);
+        await _runTransition(direction: 'reverse', collect: false);
+      }
+    } finally {
+      _scenarioIsRunning = false;
     }
     stopwatch.stop();
+    final soakImageCreations = _scenarioImageCreations - creationsBefore;
+    final soakImageDisposals = _scenarioImageDisposals - disposalsBefore;
     _print(<String, Object>{
       'path': '$scenarioId.soak',
       'scenario': scenarioId,
       'cycles': _soakCycles,
       'transitions': _soakCycles * 2,
       'elapsed_ms': stopwatch.elapsedMilliseconds,
+      'created_during_soak': soakImageCreations,
+      'disposed_during_soak': soakImageDisposals,
     });
     await _pauseForHeapSnapshot(
       scenario: scenarioId,
@@ -668,6 +704,7 @@ class _MorphState extends State<MorphBenchmark>
     ({
       List<FrameTiming> frames,
       List<String> invalidReasons,
+      int startLatencyMicros,
     })
   >
   _runTransition({
@@ -692,12 +729,16 @@ class _MorphState extends State<MorphBenchmark>
     _windowReported = Completer<void>();
     _windowStartMicros = null;
     _windowEndMicros = null;
+    _flightStartLatencyMicros = null;
     _windowFrames.clear();
     _collectWindow = collect;
+    _collectTransitionImages = true;
     try {
       if (_scenario == MorphBenchmarkScenario.restingScroll) {
+        _flightStartStopwatch = Stopwatch()..start();
         _startRestingScrollTransition();
       } else {
+        _flightStartStopwatch = Stopwatch()..start();
         setState(() => _expanded = !_expanded);
       }
 
@@ -721,7 +762,15 @@ class _MorphState extends State<MorphBenchmark>
           'Morph $direction produced no attributable frame timings.',
         );
       }
-      return (frames: frames, invalidReasons: invalidReasons);
+      final startLatencyMicros = _flightStartLatencyMicros;
+      if (startLatencyMicros == null) {
+        throw StateError('Morph $direction did not report its start latency.');
+      }
+      return (
+        frames: frames,
+        invalidReasons: invalidReasons,
+        startLatencyMicros: startLatencyMicros,
+      );
     } finally {
       _interruptionTracker.endWindow();
       _flightStarted = null;
@@ -729,14 +778,22 @@ class _MorphState extends State<MorphBenchmark>
       _windowReported = null;
       _windowStartMicros = null;
       _windowEndMicros = null;
+      _flightStartStopwatch = null;
+      _flightStartLatencyMicros = null;
       _windowFrames.clear();
       _collectWindow = false;
+      _collectTransitionImages = false;
     }
   }
 
   void _handleFlightStarted() {
     final completer = _flightStarted;
     if (completer == null || completer.isCompleted) return;
+    final stopwatch = _flightStartStopwatch;
+    if (stopwatch != null) {
+      stopwatch.stop();
+      _flightStartLatencyMicros = stopwatch.elapsedMicroseconds;
+    }
     final scheduler = SchedulerBinding.instance;
     _windowStartMicros = scheduler.currentSystemFrameTimeStamp.inMicroseconds;
     _interruptionTracker.startWindow(collectFrames: _collectWindow);
@@ -915,6 +972,7 @@ class _MorphState extends State<MorphBenchmark>
     required int transitions,
     required List<FrameTiming> frames,
     required bool gate,
+    List<int> startLatenciesMicros = const <int>[],
     int attempt = 1,
     List<int> transitionFrameCounts = const <int>[],
     String? sampleSemantics,
@@ -1001,6 +1059,10 @@ class _MorphState extends State<MorphBenchmark>
       'sample_semantics': ?sampleSemantics,
       if (transitions != 0) 'transitions': transitions,
       'frames': frames.length,
+      if (startLatenciesMicros.isNotEmpty)
+        'trigger_to_on_start_us': _statistics(
+          List<int>.of(startLatenciesMicros)..sort(),
+        ),
       'build_us': buildStats,
       'raster_us': rasterStats,
       'total_span_us': totalSpanStats,
@@ -1082,6 +1144,16 @@ class _MorphState extends State<MorphBenchmark>
       MorphBenchmarkScenario.rawDescendantsFade => _buildRawDescendantsScenario(
         fade: true,
       ),
+      MorphBenchmarkScenario.descendantLive => _buildDescendantScenario(
+        MorphDescendantFlightBehavior.live,
+      ),
+      MorphBenchmarkScenario.descendantSnapshot => _buildDescendantScenario(
+        MorphDescendantFlightBehavior.snapshot,
+      ),
+      MorphBenchmarkScenario.descendantHide => _buildDescendantScenario(
+        MorphDescendantFlightBehavior.hide,
+      ),
+      MorphBenchmarkScenario.descendantSnapshotDense => _buildDense(),
       MorphBenchmarkScenario.columnUnmatched => _buildUnmatchedColumnScenario(),
       MorphBenchmarkScenario.columnMatchedRawResize => _buildMatchedRawResize(),
       MorphBenchmarkScenario.nestedHold => _buildNestedHoldScenario(),
@@ -1111,7 +1183,7 @@ class _MorphState extends State<MorphBenchmark>
     final endpoint = Morph(
       tag: 'benchmark-watch-text',
       duration: _transitionDuration,
-      watch: true,
+      watchDestination: true,
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
       child: Text(
@@ -1144,7 +1216,7 @@ class _MorphState extends State<MorphBenchmark>
     final endpoint = Morph(
       tag: 'benchmark-watch-compound',
       duration: _transitionDuration,
-      watch: true,
+      watchDestination: true,
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
       child: Container(
@@ -1200,7 +1272,7 @@ class _MorphState extends State<MorphBenchmark>
     final endpoint = Morph(
       tag: 'benchmark-watch-custom',
       duration: _transitionDuration,
-      watch: true,
+      watchDestination: true,
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
       flightDelegate: const BenchmarkCustomFlightDelegate(),
@@ -1217,11 +1289,12 @@ class _MorphState extends State<MorphBenchmark>
   }
 
   Widget _buildStationaryWatch() {
-    final watch = _scenario == MorphBenchmarkScenario.watchStationary;
+    final scenario = _scenario;
+    final watchDestination = scenario == MorphBenchmarkScenario.watchStationary;
     var tag = 'benchmark-watch-stationary-control';
     var textColor = const Color(0xFF273C75);
     var alignment = const Alignment(-0.35, -0.65);
-    if (watch) tag = 'benchmark-watch-stationary';
+    if (watchDestination) tag = 'benchmark-watch-stationary';
     if (_expanded) {
       textColor = const Color(0xFF192A56);
       alignment = const Alignment(0.35, 0.25);
@@ -1229,11 +1302,13 @@ class _MorphState extends State<MorphBenchmark>
     final endpoint = Morph(
       tag: tag,
       duration: _transitionDuration,
-      watch: watch,
+      watchDestination: watchDestination,
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
       child: Text(
-        key: _endpointKey(watch ? 'watch-stationary' : 'watch-control'),
+        key: _endpointKey(
+          watchDestination ? 'watch-stationary' : 'watch-control',
+        ),
         _expanded ? 'Destino observado estável' : 'Origem observada estável',
         textAlign: TextAlign.center,
         locale: const Locale('pt', 'BR'),
@@ -1322,7 +1397,7 @@ class _MorphState extends State<MorphBenchmark>
     final endpoint = Morph(
       tag: fade ? 'benchmark-raw-fade' : 'benchmark-raw-null',
       duration: _transitionDuration,
-      nonMorphDescendantsTransition: transition,
+      switchTransition: transition,
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
       child: Container(
@@ -1361,6 +1436,25 @@ class _MorphState extends State<MorphBenchmark>
     );
   }
 
+  Widget _buildDescendantScenario(
+    MorphDescendantFlightBehavior behavior,
+  ) {
+    return MorphBenchmarkWorkloads.descendant(
+      expanded: _expanded,
+      behavior: behavior,
+      onStart: _handleFlightStarted,
+      onEnd: _handleFlightEnded,
+    );
+  }
+
+  Widget _buildDense() {
+    return MorphBenchmarkWorkloads.descendantSnapshotDense(
+      expanded: _expanded,
+      onStart: _handleFlightStarted,
+      onEnd: _handleFlightEnded,
+    );
+  }
+
   Widget _buildUnmatchedColumnScenario() {
     final ordinaryKey = _expanded ? 'arriving-ordinary' : 'departing-ordinary';
     var alignment = const Alignment(-0.2, -0.65);
@@ -1385,7 +1479,7 @@ class _MorphState extends State<MorphBenchmark>
     final endpoint = Morph(
       tag: 'benchmark-column-unmatched',
       duration: _transitionDuration,
-      nonMorphDescendantsTransition: (child, animation) {
+      switchTransition: (child, animation) {
         return FadeTransition(opacity: animation, child: child);
       },
       onStart: _handleFlightStarted,

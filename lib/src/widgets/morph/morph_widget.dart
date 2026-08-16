@@ -7,14 +7,18 @@ part of 'morph.dart';
 /// sizes.
 ///
 /// Eligible Widgets receive specialized transitions automatically.
-/// Other combinations move between their endpoint geometry an
+/// Other combinations move between their endpoint geometry and
 /// switch content at [switchThreshold]. Supply [flightDelegate]
 /// only for a custom transition.
 ///
 /// Generic transitions preserve inherited themes and MediaQuery values. They
 /// do not preserve other inherited values introduced locally around an
-/// endpoint. Their child subtrees must not contain GlobalKeys. Use a custom
-/// delegate when either constraint matters.
+/// endpoint. A live in-flight subtree must not contain GlobalKeys that are also
+/// mounted at an endpoint. Use [MorphDescendant] with
+/// [MorphDescendantFlightBehavior.snapshot] or
+/// [MorphDescendantFlightBehavior.hide] to keep such a subtree at its resting
+/// endpoint, or use a custom delegate when it must have a different in-flight
+/// visual.
 ///
 /// Replacing [child] on the same [Morph] starts an in-place transition. Give
 /// the old and new children the same non-null key when a rebuild should update
@@ -33,9 +37,9 @@ class Morph extends StatefulWidget {
     this.flightDelegate,
     this.duration,
     this.curve,
-    this.watch = false,
+    this.watchDestination = false,
     this.switchThreshold = 0.5,
-    this.nonMorphDescendantsTransition,
+    this.switchTransition,
     this.onStart,
     this.onEnd,
     this.onReceived,
@@ -87,26 +91,33 @@ class Morph extends StatefulWidget {
   /// Curves that overshoot may produce progress outside the 0 to 1 interval.
   final Curve? curve;
 
-  /// Whether a running transition follows changes to this widget's position
-  /// or size.
+  /// Whether a flight departing from this Morph follows changes to its
+  /// destination's position or size.
   ///
-  /// Set this to true when the destination can move or resize during the
-  /// transition. When false, the transition continues toward the destination's
-  /// initial position and size.
-  final bool watch;
+  /// Set this to true when the matching endpoint can move or resize while a
+  /// flight travels from this Morph toward it. The flight then continues
+  /// toward the destination's updated geometry instead of its initial
+  /// geometry.
+  ///
+  /// This setting has no effect on flights arriving at this Morph. Set it on
+  /// both matching Morphs when each direction's destination can move while the
+  /// flight is running.
+  final bool watchDestination;
 
   /// Progress at which automatic transitions switch discrete child values.
   ///
   /// The departing endpoint supplies this value.
   final double switchThreshold;
 
-  /// Transition applied when content changes at [switchThreshold].
+  /// Transition applied when automatic content changes at [switchThreshold].
   ///
-  /// For eligible Container, DecoratedBox, and Column pairs, this affects
-  /// ordinary child content as one visual while nested Morph widgets animate
-  /// independently. For other pairs, it affects the complete child. The
-  /// departing endpoint supplies this builder.
-  final AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition;
+  /// This includes changed Text values, generic widget pairs, and ordinary
+  /// content inside eligible widgets. The supplied animation moves from 1 to 0
+  /// for departing content and from 0 to 1 for arriving content. Without a
+  /// builder, discrete content changes immediately at [switchThreshold].
+  /// Nested Morph widgets animate independently. The departing endpoint
+  /// supplies this builder.
+  final AnimatedSwitcherTransitionBuilder? switchTransition;
 
   /// Called on the source when its transition starts.
   final VoidCallback? onStart;
@@ -146,7 +157,7 @@ class _MorphState extends State<Morph> {
     if (delegate != null) return delegate;
     return _MorphAutomaticFlightDelegate(
       switchThreshold: morph.switchThreshold,
-      nonMorphDescendantsTransition: morph.nonMorphDescendantsTransition,
+      switchTransition: morph.switchTransition,
     );
   }
 
@@ -304,13 +315,21 @@ class _MorphState extends State<Morph> {
       axisScale: geometry.axisScale,
     );
 
-    return MorphEndpoint<Object?>(
+    final endpoint = MorphEndpoint<Object?>(
       properties: flightDelegate.properties(endpointContext),
       bounds: geometry.overlayBounds,
       localSize: geometry.localSize,
       transform: capturedTransform,
       axisScale: geometry.axisScale,
     );
+    final endpointHandle = _endpoint;
+    if (endpointHandle != null) {
+      _MorphDescendantSnapshots.attach(
+        endpoint,
+        endpointHandle._captureDescendants(),
+      );
+    }
+    return endpoint;
   }
 
   void _attach() {
@@ -416,6 +435,7 @@ class _MorphState extends State<Morph> {
           sourceDelegate: oldDelegate,
           duration: oldDuration,
           curve: oldCurve,
+          watchDestination: oldWidget.watchDestination,
           onStart: oldWidget.onStart,
           onEnd: oldWidget.onEnd,
         );

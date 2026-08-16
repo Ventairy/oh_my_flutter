@@ -720,7 +720,9 @@ void main() {
                       key: ValueKey(destination),
                       width: destination ? 160 : 80,
                       height: destination ? 120 : 80,
-                      color: destination ? Colors.blue : Colors.red,
+                      decoration: BoxDecoration(
+                        color: destination ? Colors.blue : Colors.red,
+                      ),
                     ),
                   ),
                 );
@@ -1092,7 +1094,7 @@ void main() {
                       tag: 'ordinary-transition',
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.linear,
-                      nonMorphDescendantsTransition: (child, animation) {
+                      switchTransition: (child, animation) {
                         return FadeTransition(
                           key: const ValueKey(
                             'ordinary-content-transition',
@@ -1231,7 +1233,7 @@ void main() {
                       tag: 'retained-ordinary-transition',
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.linear,
-                      nonMorphDescendantsTransition: (child, animation) {
+                      switchTransition: (child, animation) {
                         transitionBuilds += 1;
                         return FadeTransition(
                           key: const ValueKey(
@@ -1324,7 +1326,7 @@ void main() {
                       tag: 'translated-raw-fallback',
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.linear,
-                      nonMorphDescendantsTransition: (child, animation) {
+                      switchTransition: (child, animation) {
                         return FractionalTranslation(
                           translation: const Offset(0.5, 0),
                           child: child,
@@ -1737,7 +1739,7 @@ void main() {
                       tag: 'watched-raw-fallback',
                       duration: const Duration(milliseconds: 500),
                       curve: Curves.linear,
-                      watch: destination,
+                      watchDestination: !destination,
                       child: Container(
                         key: ValueKey('watched-raw-$destination'),
                         width: destination ? destinationWidth : 100,
@@ -2053,7 +2055,7 @@ void main() {
                       tag: 'nested-surface',
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.linear,
-                      nonMorphDescendantsTransition: (child, animation) {
+                      switchTransition: (child, animation) {
                         return FadeTransition(
                           opacity: animation,
                           child: child,

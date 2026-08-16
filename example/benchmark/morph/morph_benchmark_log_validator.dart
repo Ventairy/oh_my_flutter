@@ -33,6 +33,7 @@ final class MorphBenchmarkLogValidator {
   }
 
   static const _recordMarker = 'MORPH_BENCHMARK ';
+  static const _chunkMarker = 'MORPH_BENCHMARK_CHUNK ';
   static const _expectedSteadyTrials = 2;
   static const _directions = <String>['forward', 'reverse'];
 
@@ -60,9 +61,25 @@ final class MorphBenchmarkLogValidator {
   validate(String flutterLog) {
     final issues = <String>[];
     final records = <Map<String, Object?>>[];
+    final chunkCounts = <int, int>{};
+    final chunkPayloads = <int, List<String?>>{};
     var markedLineCount = 0;
 
     for (final line in const LineSplitter().convert(flutterLog)) {
+      final chunkMarkerIndex = line.indexOf(_chunkMarker);
+      if (chunkMarkerIndex >= 0) {
+        markedLineCount += 1;
+        final payloadStart = chunkMarkerIndex + _chunkMarker.length;
+        final payload = line.substring(payloadStart).trim();
+        _collectChunk(
+          payload: payload,
+          markedLineCount: markedLineCount,
+          counts: chunkCounts,
+          payloads: chunkPayloads,
+          issues: issues,
+        );
+        continue;
+      }
       final markerIndex = line.indexOf(_recordMarker);
       if (markerIndex < 0) continue;
       markedLineCount += 1;
@@ -80,6 +97,13 @@ final class MorphBenchmarkLogValidator {
         );
       }
     }
+
+    _decodeChunks(
+      counts: chunkCounts,
+      payloads: chunkPayloads,
+      records: records,
+      issues: issues,
+    );
 
     if (markedLineCount == 0) {
       issues.add('The log contains no MORPH_BENCHMARK records.');
@@ -156,6 +180,89 @@ final class MorphBenchmarkLogValidator {
       passed: issues.isEmpty,
       summary: summary,
     );
+  }
+
+  void _collectChunk({
+    required String payload,
+    required int markedLineCount,
+    required Map<int, int> counts,
+    required Map<int, List<String?>> payloads,
+    required List<String> issues,
+  }) {
+    try {
+      final Object? decoded = jsonDecode(payload);
+      if (decoded is! Map<String, Object?>) {
+        issues.add('Chunk $markedLineCount is not a JSON object.');
+        return;
+      }
+      final record = decoded['record'];
+      final index = decoded['index'];
+      final count = decoded['count'];
+      final chunkPayload = decoded['payload'];
+      if (record is! int ||
+          index is! int ||
+          count is! int ||
+          chunkPayload is! String ||
+          count < 1 ||
+          index < 0 ||
+          index >= count) {
+        issues.add('Chunk $markedLineCount has invalid metadata.');
+        return;
+      }
+      final previousCount = counts[record];
+      if (previousCount != null && previousCount != count) {
+        issues.add('Chunked record $record has inconsistent counts.');
+        return;
+      }
+      counts[record] = count;
+      final parts = payloads.putIfAbsent(
+        record,
+        () => List<String?>.filled(count, null),
+      );
+      if (parts[index] != null) {
+        issues.add('Chunked record $record repeats index $index.');
+        return;
+      }
+      parts[index] = chunkPayload;
+    } on FormatException catch (error) {
+      issues.add(
+        'Chunk $markedLineCount contains invalid JSON: ${error.message}.',
+      );
+    }
+  }
+
+  void _decodeChunks({
+    required Map<int, int> counts,
+    required Map<int, List<String?>> payloads,
+    required List<Map<String, Object?>> records,
+    required List<String> issues,
+  }) {
+    for (final entry in payloads.entries) {
+      final record = entry.key;
+      final parts = entry.value;
+      if (parts.any((part) => part == null)) {
+        final received = parts.whereType<String>().length;
+        issues.add(
+          'Chunked record $record is incomplete: '
+          '$received/${counts[record]} chunks.',
+        );
+        continue;
+      }
+      try {
+        final encoded = parts.cast<String>().join();
+        final payload = utf8.decode(base64Decode(encoded));
+        final Object? decoded = jsonDecode(payload);
+        if (decoded is! Map<String, Object?>) {
+          issues.add('Chunked record $record is not a JSON object.');
+          continue;
+        }
+        records.add(Map<String, Object?>.unmodifiable(decoded));
+      } on FormatException catch (error) {
+        issues.add(
+          'Chunked record $record has invalid payload: ${error.message}.',
+        );
+      }
+    }
   }
 
   List<Map<String, Object?>> _recordsAtPath(

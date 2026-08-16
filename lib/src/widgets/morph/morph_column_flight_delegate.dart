@@ -5,7 +5,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
   /// Creates a transition for a vertical column and its children.
   const MorphColumnFlightDelegate({
     this.switchThreshold = 0.5,
-    this.nonMorphDescendantsTransition,
+    this.switchTransition,
   }) : assert(
          switchThreshold >= 0 && switchThreshold <= 1,
          'switchThreshold must be between 0 and 1.',
@@ -15,12 +15,12 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
   /// destination.
   final double switchThreshold;
 
-  /// Transition applied when non-Morph descendant content changes.
+  /// Transition applied when child content changes at [switchThreshold].
   ///
-  /// Nested Morph descendants continue using their own transitions. When the
-  /// source and destination specify different builders, the source builder is
-  /// used.
-  final AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition;
+  /// The supplied animation moves from 1 to 0 for departing content and from
+  /// 0 to 1 for arriving content. Nested Morph widgets continue using their
+  /// own transitions.
+  final AnimatedSwitcherTransitionBuilder? switchTransition;
 
   @override
   MorphColumnProperties properties(MorphEndpointContext endpoint) {
@@ -120,21 +120,21 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
     return _MorphColumnFlightPlan(
       source: source,
       destination: destination,
-      transitionEnabled: nonMorphDescendantsTransition != null,
+      transitionEnabled: switchTransition != null,
     ).lerp(progress);
   }
 
   Widget _buildProperties(
     BuildContext context,
     MorphColumnProperties properties, {
-    AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition,
+    AnimatedSwitcherTransitionBuilder? switchTransition,
   }) {
     return Stack(
       clipBehavior: Clip.none,
       children: _buildPositionedChildren(
         context,
         properties.children,
-        nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+        switchTransition: switchTransition,
       ),
     );
   }
@@ -144,40 +144,47 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
     BuildContext context,
     MorphFlight<MorphColumnProperties> flight,
   ) {
-    final plan = _MorphCompoundFlightPlan.forColumn(
-      source: flight.source.properties,
-      destination: flight.destination.properties,
-      textDirection: Directionality.of(context),
-    );
-    if (plan != null) {
-      return _MorphCompoundFlight(
-        animation: flight.animation,
-        plan: plan,
+    if (switchTransition == null ||
+        !MorphChildFlightDelegate._specializedTextChanges(
+          flight.source.properties,
+          flight.destination.properties,
+        )) {
+      final textDirection = Directionality.of(context);
+      final plan = _MorphCompoundFlightPlan.forColumn(
+        source: flight.source.properties,
+        destination: flight.destination.properties,
+        textDirection: textDirection,
       );
-    }
-    final hybridPlan = _MorphHybridColumnFlightPlan.tryCreate(
-      source: flight.source.properties,
-      destination: flight.destination.properties,
-      textDirection: Directionality.of(context),
-    );
-    if (hybridPlan != null) {
-      return _MorphHybridColumnFlight(
-        animation: flight.animation,
-        plan: hybridPlan,
-        transitionBuilder: nonMorphDescendantsTransition,
+      if (plan != null) {
+        return _MorphCompoundFlight(
+          animation: flight.animation,
+          plan: plan,
+        );
+      }
+      final hybridPlan = _MorphHybridColumnFlightPlan.tryCreate(
+        source: flight.source.properties,
+        destination: flight.destination.properties,
+        textDirection: textDirection,
       );
+      if (hybridPlan != null) {
+        return _MorphHybridColumnFlight(
+          animation: flight.animation,
+          plan: hybridPlan,
+          transitionBuilder: null,
+        );
+      }
     }
     return _MorphColumnFlight(
       delegate: this,
       flight: flight,
-      nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+      switchTransition: switchTransition,
     );
   }
 
   List<Widget> _buildPositionedChildren(
     BuildContext context,
     List<MorphChildProperties> properties, {
-    AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition,
+    AnimatedSwitcherTransitionBuilder? switchTransition,
   }) {
     final children = <Widget>[];
     Rect? previousLayoutRect;
@@ -192,7 +199,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
           context,
           properties,
           top: top,
-          nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+          switchTransition: switchTransition,
         ),
       );
       previousLayoutRect = properties.rect;
@@ -205,12 +212,12 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
     BuildContext context,
     MorphChildProperties properties, {
     required double top,
-    AnimatedSwitcherTransitionBuilder? nonMorphDescendantsTransition,
+    AnimatedSwitcherTransitionBuilder? switchTransition,
   }) {
     final child = MorphChildFlightDelegate.build(
       context,
       properties,
-      nonMorphDescendantsTransition: nonMorphDescendantsTransition,
+      switchTransition: switchTransition,
     );
     if (properties.text != null) {
       return Positioned(
