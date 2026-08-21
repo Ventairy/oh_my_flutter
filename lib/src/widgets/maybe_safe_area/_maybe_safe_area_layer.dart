@@ -1,6 +1,7 @@
 part of 'maybe_safe_area.dart';
 
 class _MaybeSafeAreaLayer extends ContainerLayer {
+  MaybeSafeAreaBehavior behavior = MaybeSafeAreaBehavior.live;
   _MaybeSafeAreaEdges enabledEdges = const (
     left: true,
     top: true,
@@ -24,6 +25,7 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
   final Matrix4 _viewToParent = Matrix4.identity();
   final Matrix4 _lastRelativeTransform = Matrix4.identity();
   final Matrix4 _lastTransform = Matrix4.identity();
+  final Matrix4 _preservedCorrection = Matrix4.identity();
   final Matrix4 _invertedTransform = Matrix4.identity();
   final Matrix4 _clipInverse = Matrix4.identity();
   final _MaybeSafeAreaBounds _unadjustedBounds = _MaybeSafeAreaBounds();
@@ -32,6 +34,7 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
   Rect? _localClipBounds;
   Rect? _localClipRect;
   bool _hasInvertedTransform = false;
+  bool _hasPreservedCorrection = false;
   bool _usesClipPath = false;
 
   Rect? get localClipBounds => _localClipBounds;
@@ -46,11 +49,71 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
 
   Matrix4 get lastTransform => _lastTransform;
 
+  bool hasPreservedCorrectionFor({required Size widgetSize}) {
+    return _hasPreservedCorrection && widgetWidth == widgetSize.width && widgetHeight == widgetSize.height;
+  }
+
+  void configure({
+    required MaybeSafeAreaBehavior behavior,
+    required _MaybeSafeAreaEdges enabledEdges,
+    required Offset unadjustedOffset,
+    required double viewWidth,
+    required double viewHeight,
+    required double viewPaddingLeft,
+    required double viewPaddingTop,
+    required double viewPaddingRight,
+    required double viewPaddingBottom,
+    required double widgetWidth,
+    required double widgetHeight,
+  }) {
+    final geometryChanged =
+        this.behavior != behavior ||
+        this.enabledEdges != enabledEdges ||
+        this.viewWidth != viewWidth ||
+        this.viewHeight != viewHeight ||
+        this.viewPaddingLeft != viewPaddingLeft ||
+        this.viewPaddingTop != viewPaddingTop ||
+        this.viewPaddingRight != viewPaddingRight ||
+        this.viewPaddingBottom != viewPaddingBottom ||
+        this.widgetWidth != widgetWidth ||
+        this.widgetHeight != widgetHeight;
+    final offsetChanged = this.unadjustedOffset != unadjustedOffset;
+    this.behavior = behavior;
+    this.enabledEdges = enabledEdges;
+    this.unadjustedOffset = unadjustedOffset;
+    this.viewWidth = viewWidth;
+    this.viewHeight = viewHeight;
+    this.viewPaddingLeft = viewPaddingLeft;
+    this.viewPaddingTop = viewPaddingTop;
+    this.viewPaddingRight = viewPaddingRight;
+    this.viewPaddingBottom = viewPaddingBottom;
+    this.widgetWidth = widgetWidth;
+    this.widgetHeight = widgetHeight;
+    if (geometryChanged) _hasPreservedCorrection = false;
+    if (!alwaysNeedsAddToScene && (geometryChanged || offsetChanged)) {
+      markNeedsAddToScene();
+    }
+  }
+
+  void invalidatePreservedCorrection() {
+    _hasPreservedCorrection = false;
+    if (!alwaysNeedsAddToScene) markNeedsAddToScene();
+  }
+
   @override
-  bool get alwaysNeedsAddToScene => true;
+  bool get alwaysNeedsAddToScene => switch (behavior) {
+    MaybeSafeAreaBehavior.live => true,
+    MaybeSafeAreaBehavior.preserve => false,
+  };
 
   @override
   void addToScene(ui.SceneBuilder builder) {
+    if (_hasPreservedCorrection) {
+      _applyPreservedCorrection();
+      _updateInteractionTransforms();
+      _addTransformedChildrenToScene(builder);
+      return;
+    }
     _resolveParentToViewTransform();
     _unadjustedTransform
       ..setFrom(_parentToView)
@@ -101,7 +164,23 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
       }
     }
     _updateInteractionTransforms();
+    if (!alwaysNeedsAddToScene) {
+      _preservedCorrection.setFrom(_lastTransform);
+      _hasPreservedCorrection = true;
+    }
     _addTransformedChildrenToScene(builder);
+  }
+
+  void _applyPreservedCorrection() {
+    _lastRelativeTransform
+      ..setIdentity()
+      ..translateByDouble(
+        unadjustedOffset.dx,
+        unadjustedOffset.dy,
+        0,
+        1,
+      )
+      ..multiply(_preservedCorrection);
   }
 
   void _setUnadjustedRelativeTransform() {

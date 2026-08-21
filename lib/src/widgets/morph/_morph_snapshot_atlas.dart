@@ -2,7 +2,7 @@ part of 'morph.dart';
 
 final class _MorphSnapshotAtlas {
   _MorphSnapshotAtlas(this.image) {
-    _scheduleDisposalIfUnused();
+    _scheduleDisposalIfUnused(afterFrame: false);
   }
 
   final ui.Image image;
@@ -22,17 +22,24 @@ final class _MorphSnapshotAtlas {
       'A Morph snapshot cannot be released without a matching retain.',
     );
     _references -= 1;
-    _scheduleDisposalIfUnused();
+    _scheduleDisposalIfUnused(afterFrame: true);
   }
 
-  void _scheduleDisposalIfUnused() {
+  void _scheduleDisposalIfUnused({required bool afterFrame}) {
     final generation = ++_disposalGeneration;
-    scheduleMicrotask(() {
+    void disposeIfUnused() {
       if (_disposed || _references != 0 || generation != _disposalGeneration) {
         return;
       }
       _disposed = true;
       image.dispose();
-    });
+    }
+
+    if (!afterFrame) {
+      scheduleMicrotask(disposeIfUnused);
+      return;
+    }
+    SchedulerBinding.instance.addPostFrameCallback((_) => disposeIfUnused());
+    SchedulerBinding.instance.ensureVisualUpdate();
   }
 }

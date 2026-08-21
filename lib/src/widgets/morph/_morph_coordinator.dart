@@ -203,6 +203,12 @@ class _MorphCoordinator extends ChangeNotifier {
     }
   }
 
+  void endpointPresented(_MorphEndpointHandle endpoint) {
+    final flight = _flights[endpoint.tag];
+    if (flight == null) return;
+    flight.endpointPresented(endpoint);
+  }
+
   void register(_MorphEndpointHandle endpoint) {
     endpoint
       ..active = true
@@ -532,6 +538,7 @@ class _MorphCoordinator extends ChangeNotifier {
     if (cohortReady) _scheduleReadyCohortRelease(flight.cohort);
     if ((arrived || returned) &&
         flight.beginEndpointHandoff(
+          winner: winner,
           arrived: arrived,
           returned: returned,
         )) {

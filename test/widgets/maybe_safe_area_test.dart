@@ -58,6 +58,15 @@ Finder _morphOverlay() {
 void main() {
   group('MaybeSafeArea', () {
     testWidgets(
+      'when behavior is omitted, it should track the child position live',
+      (tester) async {
+        const widget = MaybeSafeArea(child: SizedBox());
+
+        expect(widget.behavior, MaybeSafeAreaBehavior.live);
+      },
+    );
+
+    testWidgets(
       'when the child overlaps the top unsafe area, it should paint at the avoided position on the first frame',
       (tester) async {
         const childKey = ValueKey('child');
@@ -224,6 +233,581 @@ void main() {
             const Offset(100, 200),
             const Offset(100, 200),
           ),
+        );
+      },
+    );
+
+    testWidgets(
+      'when preserved avoidance moves with an ancestor, it should keep the resolved correction',
+      (tester) async {
+        const childKey = ValueKey('preserved-child');
+        late StateSetter rebuild;
+        var offset = Offset.zero;
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: offset,
+                    child: const MaybeSafeArea(
+                      behavior: MaybeSafeAreaBehavior.preserve,
+                      left: false,
+                      right: false,
+                      bottom: false,
+                      child: SizedBox(
+                        key: childKey,
+                        width: 40,
+                        height: 20,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => offset = const Offset(0, 200));
+        await tester.pump();
+
+        expect(
+          tester.getTopLeft(find.byKey(childKey)),
+          const Offset(0, 240),
+        );
+      },
+    );
+
+    testWidgets(
+      'when preserved content moves into an unsafe area, it should not add a new correction',
+      (tester) async {
+        const childKey = ValueKey('preserved-middle-child');
+        late StateSetter rebuild;
+        var offset = const Offset(0, 200);
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: offset,
+                    child: const MaybeSafeArea(
+                      behavior: MaybeSafeAreaBehavior.preserve,
+                      left: false,
+                      right: false,
+                      bottom: false,
+                      child: SizedBox(
+                        key: childKey,
+                        width: 40,
+                        height: 20,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => offset = Offset.zero);
+        await tester.pump();
+
+        expect(tester.getTopLeft(find.byKey(childKey)), Offset.zero);
+      },
+    );
+
+    testWidgets(
+      'when preserved content receives a new layout offset, it should move with its correction',
+      (tester) async {
+        const childKey = ValueKey('preserved-positioned-child');
+        late StateSetter rebuild;
+        var top = 0.0;
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Stack(
+                  children: [
+                    Positioned(
+                      top: top,
+                      child: const MaybeSafeArea(
+                        behavior: MaybeSafeAreaBehavior.preserve,
+                        left: false,
+                        right: false,
+                        bottom: false,
+                        child: SizedBox(
+                          key: childKey,
+                          width: 40,
+                          height: 20,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => top = 200);
+        await tester.pump();
+
+        expect(
+          tester.getTopLeft(find.byKey(childKey)),
+          const Offset(0, 240),
+        );
+      },
+    );
+
+    testWidgets(
+      'when preserved content changes size, it should resolve avoidance again',
+      (tester) async {
+        const childKey = ValueKey('preserved-sized-child');
+        late StateSetter rebuild;
+        var height = 20.0;
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Stack(
+                  children: [
+                    Positioned(
+                      bottom: 0,
+                      child: MaybeSafeArea(
+                        behavior: MaybeSafeAreaBehavior.preserve,
+                        left: false,
+                        top: false,
+                        right: false,
+                        child: SizedBox(
+                          key: childKey,
+                          width: 40,
+                          height: height,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => height = 40);
+        await tester.pump();
+
+        expect(
+          tester.getTopLeft(find.byKey(childKey)),
+          const Offset(0, 540),
+        );
+      },
+    );
+
+    testWidgets(
+      'when unsafe padding changes, preserved content should resolve avoidance again',
+      (tester) async {
+        const childKey = ValueKey('preserved-padding-child');
+        late StateSetter rebuild;
+        var padding = EdgeInsets.zero;
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return _testView(
+                padding: padding,
+                child: const Stack(
+                  children: [
+                    MaybeSafeArea(
+                      behavior: MaybeSafeAreaBehavior.preserve,
+                      left: false,
+                      right: false,
+                      bottom: false,
+                      child: SizedBox(
+                        key: childKey,
+                        width: 40,
+                        height: 20,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+        await tester.pump();
+        rebuild(() => padding = _viewPadding);
+        await tester.pump();
+        final changedPosition = tester.getTopLeft(find.byKey(childKey));
+        await tester.pump();
+
+        expect(
+          (changedPosition, tester.getTopLeft(find.byKey(childKey))),
+          (const Offset(0, 40), const Offset(0, 40)),
+        );
+      },
+    );
+
+    testWidgets(
+      'when the viewport changes, preserved content should resolve avoidance again',
+      (tester) async {
+        const childKey = ValueKey('preserved-viewport-child');
+        late StateSetter rebuild;
+        var viewSize = _viewSize;
+        await tester.pumpWidget(
+          StatefulBuilder(
+            builder: (context, setState) {
+              rebuild = setState;
+              return MediaQuery(
+                data: MediaQueryData(
+                  size: viewSize,
+                  padding: const EdgeInsets.only(bottom: 20),
+                  viewPadding: const EdgeInsets.only(bottom: 20),
+                ),
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Align(
+                    alignment: Alignment.topLeft,
+                    child: SizedBox.fromSize(
+                      size: _viewSize,
+                      child: const Stack(
+                        children: [
+                          Positioned(
+                            top: 470,
+                            child: MaybeSafeArea(
+                              behavior: MaybeSafeAreaBehavior.preserve,
+                              left: false,
+                              top: false,
+                              right: false,
+                              child: SizedBox(
+                                key: childKey,
+                                width: 40,
+                                height: 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+        await tester.pump();
+        rebuild(() => viewSize = const Size(300, 500));
+        await tester.pump();
+
+        expect(
+          tester.getTopLeft(find.byKey(childKey)),
+          const Offset(0, 460),
+        );
+      },
+    );
+
+    testWidgets(
+      'when the pixel ratio changes, preserved content should resolve avoidance again',
+      (tester) async {
+        _useTestView(tester);
+        const childKey = ValueKey('preserved-pixel-ratio-child');
+        late StateSetter rebuild;
+        var offset = Offset.zero;
+        await tester.pumpWidget(
+          _testApp(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: offset,
+                    child: const MaybeSafeArea(
+                      behavior: MaybeSafeAreaBehavior.preserve,
+                      left: false,
+                      right: false,
+                      bottom: false,
+                      child: SizedBox(
+                        key: childKey,
+                        width: 40,
+                        height: 20,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => offset = const Offset(0, 200));
+        tester.view.physicalSize = const Size(600, 1200);
+        tester.view.devicePixelRatio = 2;
+        await tester.pump();
+
+        expect(
+          tester.getTopLeft(find.byKey(childKey)),
+          const Offset(0, 200),
+        );
+      },
+    );
+
+    testWidgets(
+      'when an avoided edge is disabled, preserved content should resolve its position again',
+      (tester) async {
+        const childKey = ValueKey('preserved-edge-child');
+        late StateSetter rebuild;
+        var avoidTop = true;
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return MaybeSafeArea(
+                  behavior: MaybeSafeAreaBehavior.preserve,
+                  left: false,
+                  top: avoidTop,
+                  right: false,
+                  bottom: false,
+                  child: const SizedBox(
+                    key: childKey,
+                    width: 40,
+                    height: 20,
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => avoidTop = false);
+        await tester.pump();
+
+        expect(tester.getTopLeft(find.byKey(childKey)), Offset.zero);
+      },
+    );
+
+    testWidgets(
+      'when preserved content changes to live tracking, it should use its current position',
+      (tester) async {
+        const childKey = ValueKey('changed-behavior-child');
+        late StateSetter rebuild;
+        var behavior = MaybeSafeAreaBehavior.preserve;
+        var offset = Offset.zero;
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: offset,
+                    child: MaybeSafeArea(
+                      behavior: behavior,
+                      left: false,
+                      right: false,
+                      bottom: false,
+                      child: const SizedBox(
+                        key: childKey,
+                        width: 40,
+                        height: 20,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() {
+          behavior = MaybeSafeAreaBehavior.live;
+          offset = const Offset(0, 200);
+        });
+        await tester.pump();
+
+        expect(
+          tester.getTopLeft(find.byKey(childKey)),
+          const Offset(0, 200),
+        );
+      },
+    );
+
+    testWidgets(
+      'when preserved content moves with an ancestor, it should remain interactive at its painted position',
+      (tester) async {
+        late StateSetter rebuild;
+        var offset = Offset.zero;
+        var taps = 0;
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: offset,
+                    child: MaybeSafeArea(
+                      behavior: MaybeSafeAreaBehavior.preserve,
+                      left: false,
+                      right: false,
+                      bottom: false,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () => taps += 1,
+                        child: const SizedBox(width: 40, height: 20),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => offset = const Offset(0, 200));
+        await tester.pump();
+        await tester.tapAt(const Offset(20, 250));
+
+        expect(taps, 1);
+      },
+    );
+
+    testWidgets(
+      'when preserved content moves with an ancestor, it should move its semantics geometry',
+      (tester) async {
+        const semanticsKey = ValueKey('preserved-semantics');
+        final semantics = tester.ensureSemantics();
+        late StateSetter rebuild;
+        var offset = Offset.zero;
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: offset,
+                    child: MaybeSafeArea(
+                      behavior: MaybeSafeAreaBehavior.preserve,
+                      left: false,
+                      right: false,
+                      bottom: false,
+                      child: Semantics(
+                        key: semanticsKey,
+                        container: true,
+                        label: 'Preserved control',
+                        child: const SizedBox(width: 40, height: 20),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => offset = const Offset(0, 200));
+        await tester.pump();
+        final node = tester.getSemantics(find.byKey(semanticsKey));
+        semantics.dispose();
+
+        expect(
+          node.transform?.getTranslation().y,
+          240 * tester.view.devicePixelRatio,
+        );
+      },
+    );
+
+    testWidgets(
+      'when preserved oversized content moves, it should carry its safe clip with it',
+      (tester) async {
+        late StateSetter rebuild;
+        var offset = Offset.zero;
+        var taps = 0;
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Transform.translate(
+                  offset: offset,
+                  child: MaybeSafeArea(
+                    behavior: MaybeSafeAreaBehavior.preserve,
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () => taps += 1,
+                      child: const SizedBox.expand(),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => offset = const Offset(0, 100));
+        await tester.pump();
+        await tester.tapAt(const Offset(150, 120));
+        await tester.tapAt(const Offset(150, 160));
+
+        expect(taps, 1);
+      },
+    );
+
+    testWidgets(
+      'when preserved content moves with a retained ancestor, it should not repaint the boundary',
+      (tester) async {
+        const childKey = ValueKey('preserved-retained-child');
+        late StateSetter rebuild;
+        var offset = Offset.zero;
+        var paints = 0;
+        final painter = _CountingPainter(onPaint: () => paints += 1);
+        await tester.pumpWidget(
+          _testView(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return Align(
+                  alignment: Alignment.topLeft,
+                  child: Transform.translate(
+                    offset: offset,
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        painter: painter,
+                        child: const MaybeSafeArea(
+                          behavior: MaybeSafeAreaBehavior.preserve,
+                          left: false,
+                          right: false,
+                          bottom: false,
+                          child: SizedBox(
+                            key: childKey,
+                            width: 40,
+                            height: 20,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        await tester.pump();
+        rebuild(() => offset = const Offset(0, 200));
+        await tester.pump();
+
+        expect(
+          (tester.getTopLeft(find.byKey(childKey)), paints),
+          (const Offset(0, 240), 1),
         );
       },
     );

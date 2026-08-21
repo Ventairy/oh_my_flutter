@@ -28,6 +28,8 @@ class _MorphEndpointHandle {
   MorphEndpoint<Object?>? cachedEndpoint;
   int registrationOrder = 0;
   int? structuralOrder;
+  int presentationGeneration = 0;
+  bool presentationRequested = false;
   int retentionGeneration = 0;
   bool active = true;
   bool disposed = false;

@@ -26,6 +26,30 @@ first rendered frame, without an animation or delayed child mount, and remains
 current while the child scrolls or transforms. Horizontal and vertical
 avoidance are resolved independently.
 
+## Choosing how avoidance follows movement
+
+The default `MaybeSafeAreaBehavior.live` keeps checking the child's painted
+position. Use it for an independently moving control that must become safe as
+it scrolls or animates toward a view edge.
+
+Use `MaybeSafeAreaBehavior.preserve` when a larger surface moves as a unit and
+the child must keep its position within that surface:
+
+```dart
+const MaybeSafeArea(
+  behavior: MaybeSafeAreaBehavior.preserve,
+  left: false,
+  right: false,
+  bottom: false,
+  child: ViewHeader(),
+)
+```
+
+Preserved avoidance is resolved at the child's first rendered position. That
+correction then travels with the child and its ancestors instead of changing
+as the surface moves. It is resolved again when the unsafe padding, viewport,
+pixel ratio, enabled edges, behavior, or child's layout size changes.
+
 The nearest `MediaQuery.padding` defines which areas are unsafe. An ancestor
 `SafeArea` may remove padding that it has already handled, so a nested
 `MaybeSafeArea` does not avoid that edge again. Place `MaybeSafeArea` outside
@@ -46,9 +70,9 @@ const MaybeSafeArea(
 
 ## Morph transitions
 
-For a compact `Morph` child, place `MaybeSafeArea` outside the `Morph` so both
-endpoints are measured at their avoided positions, including when a route has
-not painted its destination yet:
+For a compact `Morph` child, place a live `MaybeSafeArea` outside the `Morph`
+so both endpoints are measured at their avoided positions, including when a
+route has not painted its destination yet:
 
 ```dart
 const MaybeSafeArea(

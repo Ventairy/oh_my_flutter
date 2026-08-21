@@ -1,10 +1,15 @@
 part of 'morph.dart';
 
 class _RenderMorphEndpoint extends RenderProxyBox {
-  _RenderMorphEndpoint(this._visibility, this.onPaint);
+  _RenderMorphEndpoint(
+    this._visibility,
+    this.onPaint,
+    this.onPresented,
+  );
 
   _MorphVisibilityHandle _visibility;
   VoidCallback onPaint;
+  VoidCallback onPresented;
   bool _snapshotSuppressed = false;
 
   _MorphVisibilityHandle get visibility => _visibility;
@@ -48,6 +53,7 @@ class _RenderMorphEndpoint extends RenderProxyBox {
     // geometry shown to the user while retained, unpainted subtrees do no work.
     onPaint();
     super.paint(context, offset);
+    if (_visibility.tickersEnabled.value) onPresented();
   }
 
   @override
