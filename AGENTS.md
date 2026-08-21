@@ -28,6 +28,13 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   animation curves default to `Curves.linear`; consumers must explicitly opt
   into eased, branded, or otherwise opinionated motion.
 - Every exported declaration and public member requires useful Dartdoc.
+- Lead public Dartdoc with the concrete outcome the API helps consumers
+  achieve. Explain its purpose through familiar use cases before adding
+  behavior details, configuration, or constraints; avoid abstract summaries
+  when a direct description would be easier to understand.
+- When a dedicated consumer guide under `doc/` provides useful detail for a
+  public API, link to it from the owning declaration's Dartdoc. Use the guide's
+  canonical GitHub URL so the link also works in generated API documentation.
 - Keep Dartdoc for extensible containers, such as libraries, classes,
   extensions, and mixins, generic enough to remain accurate when new
   capabilities are added. Do not define a container solely by the first or

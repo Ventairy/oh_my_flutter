@@ -29,6 +29,9 @@ import '../exceptions/offline_connection_dio_exception.dart';
 /// reports offline, throws, or times out, the interceptor places an
 /// [OfflineConnectionDioException] in [DioException.error]. Certificate,
 /// cancellation, and transform-timeout errors skip the probe.
+///
+/// See the [offline Dio errors guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/networking/offline_errors.md)
+/// for setup, handling, and error-classification details.
 class OfflineErrorDioInterceptor extends Interceptor {
   /// Creates an [OfflineErrorDioInterceptor] that probes real connectivity
   factory OfflineErrorDioInterceptor() {

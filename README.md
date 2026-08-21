@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.6.0
+  oh_my_flutter: ^0.8.0
 ```
 
 Import the public library wherever you need it:
@@ -99,6 +99,11 @@ gapless or single-strip cycle layouts.
 ### PauseAnimations
 
 `PauseAnimations` temporarily mutes ticker callbacks for a widget subtree.
+
+### MaybeSafeArea
+
+`MaybeSafeArea` keeps a child's layout bounds out of enabled unsafe view edges
+as it moves or scrolls, without changing its layout footprint.
 
 ### Sequence
 

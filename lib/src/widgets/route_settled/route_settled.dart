@@ -31,6 +31,9 @@ import 'package:oh_my_flutter/src/widgets/controlled_visibility/controlled_visib
 ///   child: const Text('Ready'),
 /// )
 /// ```
+///
+/// See the [RouteSettled guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/route_settled.md)
+/// for navigation lifecycle and transition behavior.
 class RouteSettled extends StatefulWidget {
   /// Creates a route-aware visibility wrapper around [child].
   const RouteSettled({

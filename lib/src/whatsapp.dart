@@ -18,6 +18,9 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// The utility sanitizes URI syntax but does not validate whether a number
 /// exists or infer a missing country code.
+///
+/// See the [WhatsApp guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/whatsapp.md)
+/// for fallback behavior and input handling.
 class Whatsapp {
   /// Creates an [Whatsapp] that delegates to the platform's deeplink
   /// launcher ([launchUrl] via `url_launcher`).

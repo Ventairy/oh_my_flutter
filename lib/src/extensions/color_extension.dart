@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../oklch/oklch.dart';
 
-/// Utilities for Flutter [Color] values.
+/// Utilities for transforming Flutter [Color] values and producing hex output.
+///
+/// See the [color transformations guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/extensions/color.md)
+/// for usage and behavior details.
 extension ColorExtension on Color {
   /// Returns this color lightened toward white by [amount].
   ///

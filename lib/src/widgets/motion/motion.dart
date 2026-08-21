@@ -48,6 +48,9 @@ part 'text_motion.dart';
 ///   child: const Icon(Icons.cloud),
 /// )
 /// ```
+///
+/// See the [Motion guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/motion.md)
+/// for effects, playback, controllers, and reduced-motion behavior.
 class Motion extends StatelessWidget {
   /// Creates a widget that applies one [effect] to [child].
   const Motion({

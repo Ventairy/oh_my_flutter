@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
 import 'package:oh_my_flutter_example/examples/marquee_example.dart';
+import 'package:oh_my_flutter_example/examples/maybe_safe_area_example.dart';
 import 'package:oh_my_flutter_example/examples/morph_example.dart';
 import 'package:oh_my_flutter_example/examples/motion_example.dart';
 import 'package:oh_my_flutter_example/examples/relative_time_example.dart';
@@ -20,52 +21,61 @@ class UtilityExample extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 640),
-                child: const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text('Relative time', style: _sectionStyle),
-                    SizedBox(height: 12),
-                    RelativeTimeExample(),
-                    SizedBox(height: 32),
-                    Text('Motion', style: _sectionStyle),
-                    SizedBox(height: 12),
-                    MotionExample(),
-                    SizedBox(height: 32),
-                    Text('TextMotion', style: _sectionStyle),
-                    SizedBox(height: 12),
-                    TextMotionExample(),
-                    SizedBox(height: 32),
-                    Text('Marquee', style: _sectionStyle),
-                    SizedBox(height: 12),
-                    MarqueeExample(),
-                    SizedBox(height: 32),
-                    Text('ControlledVisibility', style: _sectionStyle),
-                    SizedBox(height: 12),
-                    ControlledVisibilityExample(),
-                    SizedBox(height: 32),
-                    Text('Morph', style: _sectionStyle),
-                    SizedBox(height: 12),
-                    MorphExample(),
-                    SizedBox(height: 32),
-                    Text('Sequence', style: _sectionStyle),
-                    SizedBox(height: 12),
-                    SequenceExample(),
-                    SizedBox(height: 32),
-                    Text('RouteSettled', style: _sectionStyle),
-                    SizedBox(height: 12),
-                    RouteSettledExample(),
-                  ],
+        body: Stack(
+          children: [
+            SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(24, 72, 24, 24),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 640),
+                    child: const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Text('Relative time', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        RelativeTimeExample(),
+                        SizedBox(height: 32),
+                        Text('Motion', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        MotionExample(),
+                        SizedBox(height: 32),
+                        Text('TextMotion', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        TextMotionExample(),
+                        SizedBox(height: 32),
+                        Text('Marquee', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        MarqueeExample(),
+                        SizedBox(height: 32),
+                        Text('ControlledVisibility', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        ControlledVisibilityExample(),
+                        SizedBox(height: 32),
+                        Text('Morph', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        MorphExample(),
+                        SizedBox(height: 32),
+                        Text('Sequence', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        SequenceExample(),
+                        SizedBox(height: 32),
+                        Text('RouteSettled', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        RouteSettledExample(),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ),
-          ),
+            const Positioned(
+              top: 0,
+              right: 24,
+              child: MaybeSafeAreaExample(),
+            ),
+          ],
         ),
       ),
     );

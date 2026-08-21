@@ -13,6 +13,9 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// The utility sanitizes URI syntax but does not validate whether a number
 /// exists or infer a missing country code.
+///
+/// See the [telephony guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/telephony.md)
+/// for input handling and platform behavior.
 class Telephony {
   /// Creates an [Telephony] that delegates to the platform's URI
   /// launcher ([launchUrl] via `url_launcher`).
