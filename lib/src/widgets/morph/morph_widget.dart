@@ -421,6 +421,9 @@ class _MorphState extends State<Morph> {
       final oldDuration = endpoint?.duration ?? oldWidget.duration ?? Morph._defaultDuration;
       final oldCurve = endpoint?.curve ?? oldWidget.curve ?? Morph._defaultCurve;
       endpoint?.configurationChanged();
+      if (endpoint != null) {
+        _MorphCoordinator.of(endpoint.overlay)._scheduleStructuralOrderRefresh();
+      }
       final oldChildKey = oldWidget.child.key;
       final newChildKey = widget.child.key;
       final representsNewOwnership =

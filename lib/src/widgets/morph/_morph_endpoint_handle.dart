@@ -27,6 +27,7 @@ class _MorphEndpointHandle {
   VoidCallback? onReceived;
   MorphEndpoint<Object?>? cachedEndpoint;
   int registrationOrder = 0;
+  int? structuralOrder;
   int retentionGeneration = 0;
   bool active = true;
   bool disposed = false;

@@ -16,6 +16,8 @@ class _MorphActiveFlight {
     required this.onStart,
     required this.onEnd,
     required this.cohort,
+    required this.structuralOrder,
+    required this.registrationOrder,
     this.reversibleOriginIdentity,
     this.completesAtSource = false,
     this.controllerLease,
@@ -57,6 +59,8 @@ class _MorphActiveFlight {
   final VoidCallback? onStart;
   final VoidCallback? onEnd;
   final Object cohort;
+  final int structuralOrder;
+  final int registrationOrder;
   final Object? reversibleOriginIdentity;
   final bool completesAtSource;
   final _MorphControllerLease? controllerLease;

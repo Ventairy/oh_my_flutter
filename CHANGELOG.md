@@ -1,3 +1,8 @@
+## 0.9.1
+
+- Preserve the departing screen's visual stacking order when several `Morph`
+  transitions overlap, including route reversals and retargeted flights.
+
 ## 0.9.0
 
 - Add `MorphForeground` for keeping live controls and other content visible
