@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.8.0
+  oh_my_flutter: ^0.8.1
 ```
 
 Import the public library wherever you need it:
@@ -26,6 +26,13 @@ Import the public library wherever you need it:
 ```dart
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 ```
+
+## Documentation
+
+- Read the repository [consumer guides][guides] for setup, usage, configuration,
+  and constraints.
+- Read the generated [API reference][api] for exhaustive contracts and defaults.
+- Run the complete public-API [example][example].
 
 ## Quick start
 
@@ -135,11 +142,6 @@ start a call.
 `Whatsapp` opens a chat with an optional message through the native application
 or web fallback.
 
-## Documentation
-
-- Run the complete public-API [example][example].
-- Read the generated [API reference][api] for exhaustive contracts and defaults.
-
 ## Scope
 
 `oh_my_flutter` provides portable utility APIs. It intentionally does not own
@@ -151,6 +153,7 @@ application-specific domain logic.
 [ci-badge]: https://github.com/Ventairy/oh_my_flutter/actions/workflows/ci.yml/badge.svg
 [example]: https://github.com/Ventairy/oh_my_flutter/blob/main/example/lib/main.dart
 [extension-guides]: https://github.com/Ventairy/oh_my_flutter/tree/main/doc/extensions
+[guides]: https://github.com/Ventairy/oh_my_flutter/tree/main/doc
 [license]: https://github.com/Ventairy/oh_my_flutter/blob/main/LICENSE
 [license-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [networking-guides]: https://github.com/Ventairy/oh_my_flutter/tree/main/doc/networking

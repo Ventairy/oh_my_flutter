@@ -1,3 +1,8 @@
+## 0.8.1
+
+- Make the repository's consumer guides easier to discover from the README,
+  alongside the generated API reference and runnable example.
+
 ## 0.8.0
 
 - Add `MaybeSafeArea` to keep a child's layout bounds out of enabled unsafe view
