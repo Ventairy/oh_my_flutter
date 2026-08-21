@@ -1,3 +1,8 @@
+## 0.8.2
+
+- Keep `RouteSettled` content hidden while another route covers it, then replay
+  its configured show behavior after that route fully leaves.
+
 ## 0.8.1
 
 - Make the repository's consumer guides easier to discover from the README,

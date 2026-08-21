@@ -5,9 +5,9 @@ import 'package:oh_my_flutter/src/widgets/controlled_visibility/controlled_visib
 /// A visibility wrapper that shows [child] after its route settles.
 ///
 /// The child remains hidden while the enclosing route is entering, leaving,
-/// or participating in a navigator user gesture. This is useful for route
-/// chrome that should not overlap navigation motion, such as back buttons,
-/// dismiss handles, or secondary actions.
+/// covered by another route, or participating in a navigator user gesture.
+/// This is useful for route chrome that should not overlap navigation motion,
+/// such as back buttons, dismiss handles, or secondary actions.
 ///
 /// [RouteSettled] provides no built-in visual treatment. Supply
 /// [showTransition], [hideTransition], or both to animate a direction. A
@@ -16,7 +16,10 @@ import 'package:oh_my_flutter/src/widgets/controlled_visibility/controlled_visib
 /// The visibility rule is:
 ///
 /// ```text
-/// visible = route animation completed && no user gesture in progress
+/// visible = route animation completed
+///        && secondary animation dismissed
+///        && route is current
+///        && no user gesture in progress
 /// ```
 ///
 /// When no enclosing [ModalRoute] exists, the child is treated as settled and
@@ -73,15 +76,29 @@ class RouteSettled extends StatefulWidget {
 class _RouteSettledState extends State<RouteSettled> {
   final ControlledVisibilityController _controller = ControlledVisibilityController();
   Animation<double>? _routeAnimation;
+  Animation<double>? _secondaryRouteAnimation;
   ValueListenable<bool>? _gestureNotifier;
   bool _visible = false;
+  bool _routeIsCurrent = true;
+  bool _waitingForSecondaryDismissal = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_routeAnimation != null) return;
 
     final route = ModalRoute.of(context);
+    final wasCurrent = _routeIsCurrent;
+    _routeIsCurrent = route?.isCurrent ?? true;
+    if (!_routeIsCurrent) {
+      _waitingForSecondaryDismissal = true;
+    } else if (!wasCurrent && _waitingForSecondaryDismissal) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _handleRouteBecameCurrent());
+    }
+    if (_routeAnimation != null) {
+      _updateVisibility();
+      return;
+    }
+
     if (route == null) {
       _controller.show();
       _visible = true;
@@ -90,6 +107,8 @@ class _RouteSettledState extends State<RouteSettled> {
 
     _routeAnimation = route.animation;
     _routeAnimation?.addStatusListener(_handleStatusChanged);
+    _secondaryRouteAnimation = route.secondaryAnimation;
+    _secondaryRouteAnimation?.addStatusListener(_handleSecondaryStatusChanged);
 
     final navigator = Navigator.maybeOf(context);
     if (navigator != null) {
@@ -104,13 +123,32 @@ class _RouteSettledState extends State<RouteSettled> {
 
   void _handleStatusChanged(AnimationStatus status) => _updateVisibility();
 
+  void _handleSecondaryStatusChanged(AnimationStatus status) {
+    if (!status.isDismissed) {
+      _waitingForSecondaryDismissal = true;
+    } else if (_routeIsCurrent) {
+      _waitingForSecondaryDismissal = false;
+    }
+    _updateVisibility();
+  }
+
+  void _handleRouteBecameCurrent() {
+    if (!mounted || !_routeIsCurrent) return;
+    if (_secondaryRouteAnimation?.status.isDismissed ?? true) {
+      _waitingForSecondaryDismissal = false;
+    }
+    _updateVisibility();
+  }
+
   void _handleGestureChanged() => _updateVisibility();
 
   void _updateVisibility() {
     final routeAnimation = _routeAnimation;
     if (routeAnimation == null) return;
 
-    final settled = routeAnimation.status.isCompleted;
+    final secondaryRouteSettled = _secondaryRouteAnimation?.status.isDismissed ?? true;
+    final settled =
+        routeAnimation.status.isCompleted && secondaryRouteSettled && _routeIsCurrent && !_waitingForSecondaryDismissal;
     final gestureActive = _gestureNotifier?.value ?? false;
     final shouldShow = settled && !gestureActive;
     if (shouldShow == _visible) return;
@@ -122,6 +160,7 @@ class _RouteSettledState extends State<RouteSettled> {
   @override
   void dispose() {
     _routeAnimation?.removeStatusListener(_handleStatusChanged);
+    _secondaryRouteAnimation?.removeStatusListener(_handleSecondaryStatusChanged);
     _gestureNotifier?.removeListener(_handleGestureChanged);
     super.dispose();
   }
