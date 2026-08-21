@@ -154,6 +154,7 @@ class _MorphForegroundState extends State<MorphForeground> {
       visibility: _visibility,
       onRenderObjectReady: _ignoreEndpointRenderObject,
       onPaint: _ignoreEndpointPaint,
+      onPresented: _ignoreEndpointPaint,
       child: _MorphForegroundBoundary(
         handle: _handle,
         onGeometryChanged: _onGeometryChanged,

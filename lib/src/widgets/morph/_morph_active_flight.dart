@@ -16,6 +16,8 @@ class _MorphActiveFlight {
     required this.onStart,
     required this.onEnd,
     required this.cohort,
+    required this.structuralOrder,
+    required this.registrationOrder,
     this.reversibleOriginIdentity,
     this.completesAtSource = false,
     this.controllerLease,
@@ -57,6 +59,8 @@ class _MorphActiveFlight {
   final VoidCallback? onStart;
   final VoidCallback? onEnd;
   final Object cohort;
+  final int structuralOrder;
+  final int registrationOrder;
   final Object? reversibleOriginIdentity;
   final bool completesAtSource;
   final _MorphControllerLease? controllerLease;
@@ -98,9 +102,12 @@ class _MorphActiveFlight {
   bool _heldReleaseScheduled = false;
   bool _endpointHandoffPending = false;
   bool _endpointHandoffCompleted = false;
+  bool _endpointHandoffReleaseScheduled = false;
   bool _cohortCompleted = false;
   bool _heldForCohort = false;
   bool _finished = false;
+  _MorphEndpointHandle? _endpointHandoffWinner;
+  int _requiredPresentationGeneration = 0;
   late final FrameCallback _endpointHandoffCallback = _completeEndpointHandoff;
   late final ({
     MorphFlightDelegate<Object?> delegate,
@@ -132,6 +139,7 @@ class _MorphActiveFlight {
   }
 
   bool beginEndpointHandoff({
+    required _MorphEndpointHandle winner,
     required bool arrived,
     required bool returned,
   }) {
@@ -140,11 +148,26 @@ class _MorphActiveFlight {
     _heldArrived = arrived;
     _heldReturned = returned;
     _endpointHandoffPending = true;
+    _endpointHandoffWinner = winner;
+    _requiredPresentationGeneration = winner.presentationGeneration + 1;
+    winner.presentationRequested = true;
+    winner.owner._requestPresentation();
+    SchedulerBinding.instance.ensureVisualUpdate();
+    return true;
+  }
+
+  void endpointPresented(_MorphEndpointHandle endpoint) {
+    if (_finished ||
+        !_endpointHandoffPending ||
+        _endpointHandoffReleaseScheduled ||
+        !identical(endpoint, _endpointHandoffWinner) ||
+        endpoint.presentationGeneration < _requiredPresentationGeneration) {
+      return;
+    }
+    _endpointHandoffReleaseScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback(
       _endpointHandoffCallback,
     );
-    SchedulerBinding.instance.ensureVisualUpdate();
-    return true;
   }
 
   MorphEndpoint<Object?> get currentSource {
@@ -434,6 +457,8 @@ class _MorphActiveFlight {
   void _finish() {
     if (_finished) return;
     _finished = true;
+    _clearPresentationRequest();
+    _endpointHandoffWinner = null;
     coordinator._flightEnded(this);
     _clearHeldAncestorListeners();
     _paintHandle.hide();
@@ -521,9 +546,21 @@ class _MorphActiveFlight {
 
   void _completeEndpointHandoff(Duration _) {
     if (_finished || !_endpointHandoffPending) return;
+    final winner = _endpointHandoffWinner;
+    if (winner == null || !winner.active || winner.disposed) {
+      _endpointHandoffReleaseScheduled = false;
+      return;
+    }
+    _endpointHandoffReleaseScheduled = false;
     _endpointHandoffPending = false;
     _endpointHandoffCompleted = true;
+    _clearPresentationRequest();
+    _endpointHandoffWinner = null;
     coordinator._releaseEndpointHandoff(this);
+  }
+
+  void _clearPresentationRequest() {
+    _endpointHandoffWinner?.presentationRequested = false;
   }
 
   void _scheduleGeometryWatch() {

@@ -2,14 +2,24 @@ part of 'maybe_safe_area.dart';
 
 class _RenderMaybeSafeArea extends RenderProxyBox {
   _RenderMaybeSafeArea({
+    required MaybeSafeAreaBehavior initialBehavior,
     required double initialDevicePixelRatio,
     required _MaybeSafeAreaEdges initialEnabledEdges,
     required EdgeInsets initialViewPadding,
     required Size initialViewSize,
-  }) : _devicePixelRatio = initialDevicePixelRatio,
+  }) : _behavior = initialBehavior,
+       _devicePixelRatio = initialDevicePixelRatio,
        _enabledEdges = initialEnabledEdges,
        _viewPadding = initialViewPadding,
        _viewSize = initialViewSize;
+
+  MaybeSafeAreaBehavior get behavior => _behavior;
+  MaybeSafeAreaBehavior _behavior;
+  set behavior(MaybeSafeAreaBehavior value) {
+    if (value == _behavior) return;
+    _behavior = value;
+    _markGeometryChanged();
+  }
 
   double get devicePixelRatio => _devicePixelRatio;
   double _devicePixelRatio;
@@ -57,6 +67,7 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
   }
 
   void _markGeometryChanged({bool compositingChanged = false}) {
+    layer?.invalidatePreservedCorrection();
     if (compositingChanged) markNeedsCompositingBitsUpdate();
     markNeedsPaint();
     markNeedsSemanticsUpdate();
@@ -75,6 +86,9 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
 
   Matrix4 get _currentTransform {
     if (!_hasEnabledPadding) return _localCorrection..setIdentity();
+    if (_preservesCorrection && (layer?.hasPreservedCorrectionFor(widgetSize: size) ?? false)) {
+      return layer!.lastTransform;
+    }
     final unadjustedToView = _resolveUnadjustedToView();
     if (unadjustedToView == null) {
       return layer?.lastTransform ?? (_localCorrection..setIdentity());
@@ -112,6 +126,11 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
       ..multiply(unadjustedToView);
     return localCorrection;
   }
+
+  bool get _preservesCorrection => switch (_behavior) {
+    MaybeSafeAreaBehavior.live => false,
+    MaybeSafeAreaBehavior.preserve => true,
+  };
 
   Matrix4? _resolveUnadjustedToView() {
     final path = _validatedTransformPath();
@@ -192,17 +211,19 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
       return;
     }
     layer ??= _MaybeSafeAreaLayer();
-    layer!
-      ..enabledEdges = _enabledEdges
-      ..unadjustedOffset = offset
-      ..viewWidth = _viewSize.width * _devicePixelRatio
-      ..viewHeight = _viewSize.height * _devicePixelRatio
-      ..viewPaddingLeft = _viewPadding.left * _devicePixelRatio
-      ..viewPaddingTop = _viewPadding.top * _devicePixelRatio
-      ..viewPaddingRight = _viewPadding.right * _devicePixelRatio
-      ..viewPaddingBottom = _viewPadding.bottom * _devicePixelRatio
-      ..widgetWidth = size.width
-      ..widgetHeight = size.height;
+    layer!.configure(
+      behavior: _behavior,
+      enabledEdges: _enabledEdges,
+      unadjustedOffset: offset,
+      viewWidth: _viewSize.width * _devicePixelRatio,
+      viewHeight: _viewSize.height * _devicePixelRatio,
+      viewPaddingLeft: _viewPadding.left * _devicePixelRatio,
+      viewPaddingTop: _viewPadding.top * _devicePixelRatio,
+      viewPaddingRight: _viewPadding.right * _devicePixelRatio,
+      viewPaddingBottom: _viewPadding.bottom * _devicePixelRatio,
+      widgetWidth: size.width,
+      widgetHeight: size.height,
+    );
     context.pushLayer(
       layer!,
       super.paint,

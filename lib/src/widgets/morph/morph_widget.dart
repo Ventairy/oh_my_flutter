@@ -302,6 +302,19 @@ class _MorphState extends State<Morph> {
     _lastPaintedFlightDelegate = _resolvedFlightDelegate;
   }
 
+  void _rememberPresentation() {
+    final endpoint = _endpoint;
+    if (endpoint == null || !endpoint.active || endpoint.disposed || !endpoint.presentationRequested) {
+      return;
+    }
+    endpoint.presentationGeneration += 1;
+    _MorphCoordinator.of(endpoint.overlay).endpointPresented(endpoint);
+  }
+
+  void _requestPresentation() {
+    _renderObject?.markNeedsPaint();
+  }
+
   MorphEndpoint<Object?> _resolveEndpoint({
     required _MorphEndpointGeometry geometry,
     required Widget child,
@@ -421,6 +434,9 @@ class _MorphState extends State<Morph> {
       final oldDuration = endpoint?.duration ?? oldWidget.duration ?? Morph._defaultDuration;
       final oldCurve = endpoint?.curve ?? oldWidget.curve ?? Morph._defaultCurve;
       endpoint?.configurationChanged();
+      if (endpoint != null) {
+        _MorphCoordinator.of(endpoint.overlay)._scheduleStructuralOrderRefresh();
+      }
       final oldChildKey = oldWidget.child.key;
       final newChildKey = widget.child.key;
       final representsNewOwnership =
@@ -496,6 +512,7 @@ class _MorphState extends State<Morph> {
         _renderObject = renderObject;
       },
       onPaint: _rememberPaintedGeometry,
+      onPresented: _rememberPresentation,
       child: ValueListenableBuilder<bool>(
         valueListenable: visibility.tickersEnabled,
         builder: (context, tickersEnabled, child) {

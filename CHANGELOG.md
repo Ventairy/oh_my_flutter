@@ -1,3 +1,11 @@
+## 0.10.0
+
+- Preserve visual continuity when `Morph` transitions overlap or hand their
+  completed flight to a live endpoint, including route reversals and retargets.
+- Add configurable live or preserved `MaybeSafeArea` positioning so controls
+  can either track unsafe edges while moving or retain their initial correction
+  within a moving surface.
+
 ## 0.9.0
 
 - Add `MorphForeground` for keeping live controls and other content visible
