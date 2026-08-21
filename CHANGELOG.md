@@ -1,3 +1,8 @@
+## 0.9.0
+
+- Add `MorphForeground` for keeping live controls and other content visible
+  above nearby Morph transitions without joining their animation.
+
 ## 0.8.2
 
 - Keep `RouteSettled` content hidden while another route covers it, then replay
