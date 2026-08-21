@@ -9,6 +9,25 @@ enum MorphBenchmarkScenario {
   /// Retained decorated Container flight.
   surface('surface'),
 
+  /// Static foreground control painted above a moving surface flight.
+  foregroundStatic('foreground_static'),
+
+  /// Continuously repainting foreground control above a moving surface flight.
+  foregroundLive('foreground_live'),
+
+  /// Multiple static foreground controls above a moving surface flight.
+  foregroundMultiStatic('foreground_multi_static'),
+
+  /// Multiple foreground controls with one paint-only live control.
+  foregroundMultiMixed('foreground_multi_mixed'),
+
+  /// Static foreground control above a fallback flight that repaints each tick.
+  foregroundFallbackStatic('foreground_fallback_static'),
+
+  /// Repainting foreground control above a fallback flight that repaints each
+  /// tick.
+  foregroundFallbackLive('foreground_fallback_live'),
+
   /// Retained Text whose watched destination continuously moves and resizes.
   watchText('watch_text'),
 

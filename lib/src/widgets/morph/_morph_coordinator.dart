@@ -14,13 +14,126 @@ class _MorphCoordinator extends ChangeNotifier {
   final Map<Object, _MorphActiveFlight> _flights = {};
   final Map<Object, _MorphEndpointHandle> _owners = {};
   final Map<Object, List<_MorphEndpointHandle>> _pendingRouteEndpoints = {};
+  final List<_MorphForegroundHandle> _foregrounds = [];
+  final List<_MorphForegroundHandle> _visibleForegrounds = [];
   final Map<Duration, _MorphControllerLease> _sameFrameControllers = {};
   final _MorphTextRasterPool textRasterPool = _MorphTextRasterPool();
   OverlayEntry? _overlayEntry;
   Object? _sameFrameCohort;
   int _registrationOrder = 0;
+  bool _notificationScheduled = false;
 
   Iterable<_MorphActiveFlight> get flights => _flights.values;
+
+  List<_MorphForegroundHandle> get foregrounds {
+    _visibleForegrounds.clear();
+    for (final foreground in _foregrounds) {
+      if (!foreground.active || foreground.disposed || !foreground.canPaint) {
+        continue;
+      }
+      for (final flight in _flights.values) {
+        if (identical(foreground.route, _foregroundRoute(flight))) {
+          _visibleForegrounds.add(foreground);
+          break;
+        }
+      }
+    }
+    return _visibleForegrounds;
+  }
+
+  void registerForeground(_MorphForegroundHandle foreground) {
+    foreground
+      ..active = true
+      ..disposed = false;
+    if (!_foregrounds.contains(foreground)) _foregrounds.add(foreground);
+    _attachForegroundFlightAnimations(foreground);
+    if (_hasFlightUsingForeground(foreground)) {
+      _notifyListenersSafely();
+    }
+  }
+
+  void foregroundGeometryChanged(_MorphForegroundHandle foreground) {
+    if (!_foregrounds.contains(foreground)) return;
+    if (_hasFlightUsingForeground(foreground)) {
+      foreground.changed();
+      if (!foreground.isProjected) _notifyListenersSafely();
+    }
+  }
+
+  void deactivateForeground(_MorphForegroundHandle foreground) {
+    foreground
+      ..active = false
+      ..detachAllFlightAnimations();
+    if (_overlayEntry != null) _notifyListenersSafely();
+  }
+
+  void activateForeground(_MorphForegroundHandle foreground) {
+    foreground
+      ..active = true
+      ..disposed = false;
+    _attachForegroundFlightAnimations(foreground);
+    if (_hasFlightUsingForeground(foreground)) {
+      foreground.changed();
+      _notifyListenersSafely();
+    }
+  }
+
+  void unregisterForeground(_MorphForegroundHandle foreground) {
+    foreground
+      ..active = false
+      ..visibility.hidden = false;
+    _foregrounds.remove(foreground);
+    _visibleForegrounds.remove(foreground);
+    foreground.dispose();
+    if (_overlayEntry != null) _notifyListenersSafely();
+  }
+
+  bool showsForeground(_MorphForegroundHandle foreground) {
+    if (!foreground.canPaint) return false;
+    for (final flight in _flights.values) {
+      if (identical(_foregroundRoute(flight), foreground.route)) return true;
+    }
+    return false;
+  }
+
+  ModalRoute<Object?>? _foregroundRoute(_MorphActiveFlight flight) {
+    if (flight.completesAtSource) return flight.sourceHandle?.route;
+    return flight.destinationHandle.route;
+  }
+
+  bool _flightUsesForeground(
+    _MorphActiveFlight flight,
+    _MorphForegroundHandle foreground,
+  ) {
+    return identical(flight.sourceHandle?.route, foreground.route) ||
+        identical(flight.destinationHandle.route, foreground.route);
+  }
+
+  bool _hasFlightUsingForeground(_MorphForegroundHandle foreground) {
+    for (final flight in _flights.values) {
+      if (_flightUsesForeground(flight, foreground)) return true;
+    }
+    return false;
+  }
+
+  void _installFlight(_MorphActiveFlight flight) {
+    _flights[flight.tag] = flight;
+    final route = _foregroundRoute(flight);
+    for (final foreground in _foregrounds) {
+      if (foreground.active && identical(foreground.route, route)) {
+        foreground.attachFlightAnimation(flight.flightAnimation);
+      }
+    }
+  }
+
+  void _attachForegroundFlightAnimations(_MorphForegroundHandle foreground) {
+    if (!foreground.active) return;
+    for (final flight in _flights.values) {
+      if (identical(_foregroundRoute(flight), foreground.route)) {
+        foreground.attachFlightAnimation(flight.flightAnimation);
+      }
+    }
+  }
 
   void geometryChanged(
     _MorphEndpointHandle endpoint,
@@ -218,7 +331,7 @@ class _MorphCoordinator extends ChangeNotifier {
         reversibleOriginIdentity: sourceIdentity,
         controllerLease: controllerLease,
       );
-      _flights[destination.tag] = flight;
+      _installFlight(flight);
       _ensureOverlay();
       notifyListeners();
       flight.start();
@@ -429,6 +542,12 @@ class _MorphCoordinator extends ChangeNotifier {
   }
 
   void _flightEnded(_MorphActiveFlight flight) {
+    final route = _foregroundRoute(flight);
+    for (final foreground in _foregrounds) {
+      if (identical(foreground.route, route)) {
+        foreground.detachFlightAnimation(flight.flightAnimation);
+      }
+    }
     scheduleMicrotask(() {
       if (_cohortIsReady(flight.cohort)) {
         _releaseReadyCohort(flight.cohort);
@@ -665,7 +784,7 @@ class _MorphCoordinator extends ChangeNotifier {
     );
     current.destinationHandle.visibility.hidden = true;
     destination.visibility.hidden = true;
-    _flights[destination.tag] = flight;
+    _installFlight(flight);
     _ensureOverlay();
     notifyListeners();
     flight.start();
@@ -729,7 +848,7 @@ class _MorphCoordinator extends ChangeNotifier {
       completesAtSource: true,
       controllerLease: controllerLease,
     );
-    _flights[destination.tag] = flight;
+    _installFlight(flight);
     _ensureOverlay();
     notifyListeners();
     flight.start();
@@ -774,7 +893,7 @@ class _MorphCoordinator extends ChangeNotifier {
     );
     current.destinationHandle.visibility.hidden = true;
     destination.visibility.hidden = true;
-    _flights[destination.tag] = flight;
+    _installFlight(flight);
     _ensureOverlay();
     notifyListeners();
     flight.start();
@@ -840,7 +959,10 @@ class _MorphCoordinator extends ChangeNotifier {
 
   void _notifyListenersSafely() {
     if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.persistentCallbacks) {
+      if (_notificationScheduled) return;
+      _notificationScheduled = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
+        _notificationScheduled = false;
         if (_overlayEntry != null) notifyListeners();
       });
       return;
@@ -891,7 +1013,7 @@ class _MorphCoordinator extends ChangeNotifier {
     );
     current.destinationHandle.visibility.hidden = true;
     destination.visibility.hidden = true;
-    _flights[destination.tag] = flight;
+    _installFlight(flight);
     _ensureOverlay();
     notifyListeners();
     flight.start();
@@ -952,7 +1074,7 @@ class _MorphCoordinator extends ChangeNotifier {
       reversibleOriginIdentity: kind == MorphFlightKind.sameScreen ? _endpointIdentity(sourceHandle) : null,
       controllerLease: controllerLease,
     );
-    _flights[sourceHandle.tag] = flight;
+    _installFlight(flight);
     _ensureOverlay();
     notifyListeners();
     flight.start();

@@ -12,6 +12,8 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 import 'morph_benchmark_custom_flight_delegate.dart';
 import 'morph_benchmark_interruption_tracker.dart';
+import 'morph_benchmark_live_caret_painter.dart';
+import 'morph_benchmark_multi_foreground_workload.dart';
 import 'morph_benchmark_record_buffer.dart';
 import 'morph_benchmark_resting_flow_delegate.dart';
 import 'morph_benchmark_scenario.dart';
@@ -31,6 +33,10 @@ const int _soakCycles = int.fromEnvironment(
 );
 const int _heapPauseSeconds = int.fromEnvironment(
   'MORPH_HEAP_PAUSE_SECONDS',
+);
+const int _foregroundCount = int.fromEnvironment(
+  'MORPH_FOREGROUND_COUNT',
+  defaultValue: 16,
 );
 const String _requestedScenario = String.fromEnvironment(
   'MORPH_SCENARIO',
@@ -102,6 +108,8 @@ class _MorphState extends State<MorphBenchmark>
   bool _complete = false;
   late final Widget _restingMorphEndpoints;
   late final AnimationController _restingScrollController;
+  late final AnimationController _foregroundPaintController;
+  late final MorphBenchmarkLiveCaretPainter _foregroundLiveCaretPainter;
   MorphBenchmarkScenario _scenario = MorphBenchmarkScenario.text;
   String _status = 'Preparing Morph benchmark…';
   double _refreshRate = 60;
@@ -137,10 +145,24 @@ class _MorphState extends State<MorphBenchmark>
       vsync: this,
       duration: _transitionDuration,
     );
+    _foregroundPaintController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _foregroundLiveCaretPainter = MorphBenchmarkLiveCaretPainter(
+      _foregroundPaintController,
+    );
     if (_steadyFramesPerTrial < 1) {
       throw ArgumentError.value(
         _steadyFramesPerTrial,
         'MORPH_STEADY_FRAMES_PER_TRIAL',
+        'must be at least one',
+      );
+    }
+    if (_foregroundCount < 1) {
+      throw ArgumentError.value(
+        _foregroundCount,
+        'MORPH_FOREGROUND_COUNT',
         'must be at least one',
       );
     }
@@ -183,6 +205,7 @@ class _MorphState extends State<MorphBenchmark>
       ui.Image.onDispose = _previousImageDisposedCallback;
     }
     _restingScrollController.dispose();
+    _foregroundPaintController.dispose();
     super.dispose();
   }
 
@@ -304,6 +327,9 @@ class _MorphState extends State<MorphBenchmark>
       _status = 'Benchmarking $scenarioId…';
     });
     await SchedulerBinding.instance.endOfFrame;
+    _setForegroundPaintActive(
+      scenario == MorphBenchmarkScenario.foregroundMultiMixed,
+    );
     await _flushReportedTimings();
 
     final cold = await _collectColdTrial(scenarioId);
@@ -416,6 +442,20 @@ class _MorphState extends State<MorphBenchmark>
       'largest_flight_image_pixels': _largestFlightImagePixels,
       'attribution': 'temporal process-wide ui.Image callbacks',
     });
+    _setForegroundPaintActive(false);
+  }
+
+  void _setForegroundPaintActive(bool active) {
+    if (active) {
+      if (!_foregroundPaintController.isAnimating) {
+        unawaited(_foregroundPaintController.repeat());
+      }
+      return;
+    }
+    _foregroundPaintController.stop();
+    if (_foregroundPaintController.value != 0) {
+      _foregroundPaintController.value = 0;
+    }
   }
 
   void _handleImageCreated(ui.Image image) {
@@ -641,6 +681,7 @@ class _MorphState extends State<MorphBenchmark>
   }
 
   Future<void> _runSoak(MorphBenchmarkScenario scenario) async {
+    _setForegroundPaintActive(false);
     await _ensureCollapsed();
     final scenarioId = scenario.id;
     setState(() {
@@ -654,6 +695,12 @@ class _MorphState extends State<MorphBenchmark>
       scenario: scenarioId,
       phase: 'baseline_ready',
     );
+    final mixed = scenario == MorphBenchmarkScenario.foregroundMultiMixed;
+    _setForegroundPaintActive(mixed);
+    if (mixed) {
+      await SchedulerBinding.instance.endOfFrame;
+      await _flushReportedTimings();
+    }
     final creationsBefore = _scenarioImageCreations;
     final disposalsBefore = _scenarioImageDisposals;
     _scenarioIsRunning = true;
@@ -665,6 +712,7 @@ class _MorphState extends State<MorphBenchmark>
       }
     } finally {
       _scenarioIsRunning = false;
+      _setForegroundPaintActive(false);
     }
     stopwatch.stop();
     final soakImageCreations = _scenarioImageCreations - creationsBefore;
@@ -960,6 +1008,7 @@ class _MorphState extends State<MorphBenchmark>
       'maximum_trial_attempts': _maximumTrialAttempts,
       'soak_cycles': _soakCycles,
       'heap_pause_seconds': _heapPauseSeconds,
+      'foreground_count': _foregroundCount,
       'text_cache_probe': _textCacheProbe,
     });
   }
@@ -1132,6 +1181,16 @@ class _MorphState extends State<MorphBenchmark>
       MorphBenchmarkScenario.text => _buildTextScenario(),
       MorphBenchmarkScenario.column => _buildColumnScenario(),
       MorphBenchmarkScenario.surface => _buildSurfaceScenario(),
+      MorphBenchmarkScenario.foregroundStatic => _buildForegroundScenario(
+        live: false,
+      ),
+      MorphBenchmarkScenario.foregroundLive => _buildForegroundScenario(
+        live: true,
+      ),
+      MorphBenchmarkScenario.foregroundMultiStatic => _buildMultiStatic(),
+      MorphBenchmarkScenario.foregroundMultiMixed => _buildMultiMixed(),
+      MorphBenchmarkScenario.foregroundFallbackStatic => _buildFallback(false),
+      MorphBenchmarkScenario.foregroundFallbackLive => _buildFallback(true),
       MorphBenchmarkScenario.watchText => _buildWatchTextScenario(),
       MorphBenchmarkScenario.watchCompound => _buildWatchCompoundScenario(),
       MorphBenchmarkScenario.watchCustom => _buildWatchCustomScenario(),
@@ -1804,6 +1863,177 @@ class _MorphState extends State<MorphBenchmark>
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildForegroundScenario({
+    required bool live,
+    bool fallback = false,
+  }) {
+    final scenarioId = [
+      'foreground',
+      if (fallback) 'fallback',
+      if (live) 'live' else 'static',
+    ].join('-');
+    var surfaceColor = const Color(0xFFFFFFFF);
+    if (_expanded) surfaceColor = const Color(0xFFE8F1FF);
+    final surface = Align(
+      alignment: _expanded ? Alignment.center : const Alignment(0, -0.72),
+      child: Morph(
+        tag: 'benchmark-$scenarioId-surface',
+        duration: _transitionDuration,
+        switchTransition: fallback ? _buildForegroundFallbackTransition : null,
+        onStart: _handleFlightStarted,
+        onEnd: _handleFlightEnded,
+        child: Container(
+          key: _endpointKey('$scenarioId-surface'),
+          width: _expanded ? 340 : 300,
+          height: _expanded ? 520 : 240,
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(_expanded ? 34 : 24),
+          ),
+          child: fallback ? const ColoredBox(color: Color(0x01000000)) : null,
+        ),
+      ),
+    );
+    final foreground = live
+        ? TweenAnimationBuilder<double>(
+            duration: _transitionDuration,
+            tween: Tween<double>(end: _expanded ? 1 : 0),
+            builder: (context, progress, child) {
+              return DecoratedBox(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFFFF),
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: <BoxShadow>[
+                    BoxShadow(
+                      color: const Color(0x33000000),
+                      blurRadius: 10 + progress * 8,
+                      offset: Offset(0, 5 + progress * 3),
+                    ),
+                  ],
+                ),
+                child: child,
+              );
+            },
+            child: _buildForegroundControl(),
+          )
+        : DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFFFFF),
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(
+                  color: Color(0x33000000),
+                  blurRadius: 14,
+                  offset: Offset(0, 7),
+                ),
+              ],
+            ),
+            child: _buildForegroundControl(),
+          );
+    return Stack(
+      children: <Widget>[
+        Positioned.fill(child: surface),
+        Positioned(
+          left: 24,
+          right: 24,
+          bottom: 32,
+          child: MorphForeground(child: foreground),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFallback(bool live) {
+    return _buildForegroundScenario(live: live, fallback: true);
+  }
+
+  Widget _buildMultiStatic() {
+    return _buildMultiForegroundScenario(mixed: false);
+  }
+
+  Widget _buildMultiMixed() {
+    return _buildMultiForegroundScenario(mixed: true);
+  }
+
+  Widget _buildMultiForegroundScenario({required bool mixed}) {
+    var scenario = MorphBenchmarkScenario.foregroundMultiStatic;
+    if (mixed) scenario = MorphBenchmarkScenario.foregroundMultiMixed;
+    var surfaceColor = const Color(0xFFFFFFFF);
+    if (_expanded) surfaceColor = const Color(0xFFE8F1FF);
+    final surface = Align(
+      alignment: _expanded ? Alignment.center : const Alignment(0, -0.72),
+      child: Morph(
+        tag: 'benchmark-${scenario.id}-surface',
+        duration: _transitionDuration,
+        onStart: _handleFlightStarted,
+        onEnd: _handleFlightEnded,
+        child: Container(
+          key: _endpointKey('${scenario.id}-surface'),
+          width: _expanded ? 340 : 300,
+          height: _expanded ? 520 : 240,
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(_expanded ? 34 : 24),
+          ),
+        ),
+      ),
+    );
+    return Stack(
+      children: <Widget>[
+        Positioned.fill(child: surface),
+        Positioned.fill(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: MorphBenchmarkMultiForegroundWorkload(
+                count: _foregroundCount,
+                mixed: mixed,
+                livePainter: _foregroundLiveCaretPainter,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildForegroundFallbackTransition(
+    Widget child,
+    Animation<double> animation,
+  ) {
+    return FractionalTranslation(
+      translation: const Offset(0.12, 0),
+      child: child,
+    );
+  }
+
+  Widget _buildForegroundControl() {
+    return const SizedBox(
+      height: 64,
+      child: Row(
+        children: <Widget>[
+          SizedBox(width: 20),
+          Icon(Icons.search, color: Color(0xFF30343B)),
+          SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Search for an address',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Color(0xFF30343B),
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          SizedBox(width: 20),
+        ],
       ),
     );
   }

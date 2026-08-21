@@ -45,6 +45,12 @@ The harness measures these Morph scenarios independently:
 | `text`                      | Reflowing and restyled `Text`                                                      |
 | `column`                    | Keyed four-text `Column`                                                           |
 | `surface`                   | Decorated `Container` containing a `Column`                                        |
+| `foreground_static`         | Static shadowed control painted live above a moving Morph surface                   |
+| `foreground_live`           | Shadowed foreground control repainting continuously above a moving Morph surface    |
+| `foreground_multi_static`   | Sixteen independently retained static shadowed foreground controls                  |
+| `foreground_multi_mixed`    | Fifteen static controls plus one paint-only live caret control                      |
+| `foreground_fallback_static` | Static shadowed control above a per-frame fallback Morph flight                     |
+| `foreground_fallback_live`  | Repainting shadowed control above a per-frame fallback Morph flight                  |
 | `watch_text`                | Continuously moving and resizing watched `Text` destination                        |
 | `watch_compound`            | Continuously moving and resizing watched compound destination                      |
 | `watch_custom`              | Continuously moving and resizing watched custom-delegate destination               |
@@ -139,6 +145,12 @@ Run only one scenario while investigating it:
 --dart-define=MORPH_SCENARIO=text
 --dart-define=MORPH_SCENARIO=column
 --dart-define=MORPH_SCENARIO=surface
+--dart-define=MORPH_SCENARIO=foreground_static
+--dart-define=MORPH_SCENARIO=foreground_live
+--dart-define=MORPH_SCENARIO=foreground_multi_static
+--dart-define=MORPH_SCENARIO=foreground_multi_mixed
+--dart-define=MORPH_SCENARIO=foreground_fallback_static
+--dart-define=MORPH_SCENARIO=foreground_fallback_live
 --dart-define=MORPH_SCENARIO=watch_text
 --dart-define=MORPH_SCENARIO=watch_compound
 --dart-define=MORPH_SCENARIO=watch_custom
@@ -157,6 +169,13 @@ Run only one scenario while investigating it:
 --dart-define=MORPH_SCENARIO=nested_watch_hold
 --dart-define=MORPH_SCENARIO=decorated_background
 --dart-define=MORPH_SCENARIO=decorated_foreground
+```
+
+The multi-foreground scenarios use 16 controls by default. Override the count
+for focused scaling comparisons while keeping at least one control:
+
+```console
+--dart-define=MORPH_FOREGROUND_COUNT=4
 ```
 
 The default is `all`. For quick local investigation, reduce the per-trial
