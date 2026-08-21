@@ -1,6 +1,9 @@
 import 'package:flutter/gestures.dart';
 
 /// Utilities for Flutter [Velocity] values.
+///
+/// See the [velocity classification guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/extensions/velocity.md)
+/// for gesture-boundary usage and configuration.
 extension VelocityExtension on Velocity {
   /// Whether this velocity represents a fast downward swipe.
   ///

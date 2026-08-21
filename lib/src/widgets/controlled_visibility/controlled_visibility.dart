@@ -36,6 +36,9 @@ part 'controlled_visibility_controller.dart';
 ///   child: const Text('Details'),
 /// )
 /// ```
+///
+/// See the [ControlledVisibility guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/controlled_visibility.md)
+/// for lifecycle, transition, and unmounting behavior.
 class ControlledVisibility extends StatefulWidget {
   /// Creates a controller-driven visibility wrapper around [child].
   const ControlledVisibility({

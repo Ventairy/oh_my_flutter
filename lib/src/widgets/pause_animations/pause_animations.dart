@@ -6,6 +6,9 @@ import 'package:flutter/widgets.dart';
 ///
 /// Elapsed time still advances while animations are paused, so they catch up
 /// when they resume.
+///
+/// See the [PauseAnimations guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/pause_animations.md)
+/// for explicit and temporary pause behavior.
 class PauseAnimations extends StatefulWidget {
   /// Creates a widget that pauses child animations while [paused] is true.
   const PauseAnimations({

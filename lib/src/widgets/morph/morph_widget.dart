@@ -29,6 +29,9 @@ part of 'morph.dart';
 /// destination immediately without invoking lifecycle callbacks. If they
 /// become disabled during a transition, Morph finishes immediately without
 /// invoking [onReceived] or [onEnd]; an earlier [onStart] remains invoked.
+///
+/// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md)
+/// for endpoint setup, automatic transitions, and customization.
 class Morph extends StatefulWidget {
   /// Creates a widget that can transition to another [Morph] with the same tag.
   const Morph({

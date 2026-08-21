@@ -4,6 +4,9 @@ part '_time_ago_bucket.dart';
 part 'time_ago_fallback.dart';
 
 /// Shared helpers for [DateTime] values.
+///
+/// See the [relative time guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/extensions/date_time.md)
+/// for usage, fallback behavior, and examples.
 extension DateTimeExtension on DateTime {
   /// Returns a "time ago" value for this [DateTime] relative to now.
   ///

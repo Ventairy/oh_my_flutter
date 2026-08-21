@@ -27,6 +27,9 @@ part of 'motion.dart';
 /// This widget is intended for short display text where losing ligatures,
 /// kerning, contextual shaping, identical line wrapping, and text selection is
 /// acceptable. Rich text created with [Text.rich] is not supported.
+///
+/// See the [TextMotion guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/text_motion.md)
+/// for effects, staggering, callbacks, and text constraints.
 class TextMotion extends StatefulWidget {
   /// Creates text that applies one [effect] to each visible character.
   const TextMotion({

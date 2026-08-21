@@ -1,3 +1,9 @@
+## 0.8.0
+
+- Add `MaybeSafeArea` to keep a child's layout bounds out of enabled unsafe view
+  edges as it moves or scrolls, without changing layout or delaying its first
+  rendered frame.
+
 ## 0.7.1
 
 - Fix nested Morphs without a matching endpoint in the current transition so

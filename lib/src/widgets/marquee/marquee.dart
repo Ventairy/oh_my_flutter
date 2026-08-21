@@ -35,6 +35,9 @@ part '_render_marquee.dart';
 ///   ],
 /// )
 /// ```
+///
+/// See the [Marquee guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/marquee.md)
+/// for sizing, interaction, and repetition behavior.
 class Marquee extends StatefulWidget {
   /// Creates a continuously moving strip from [children].
   ///

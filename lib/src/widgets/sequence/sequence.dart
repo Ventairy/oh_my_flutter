@@ -33,6 +33,9 @@ part 'sequence_types.dart';
 ///   ],
 /// )
 /// ```
+///
+/// See the [Sequence guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/sequence.md)
+/// for navigation, transitions, and child lifecycle behavior.
 class Sequence extends StatefulWidget {
   /// Creates a widget that displays one child from [children] at a time.
   const Sequence({

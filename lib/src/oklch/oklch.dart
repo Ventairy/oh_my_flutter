@@ -19,6 +19,9 @@ part '_oklch_converter.dart';
 ///
 /// final color = oklch.toColor();
 /// ```
+///
+/// See the [OKLCH color guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/extensions/oklch.md)
+/// for conversion and color-adjustment examples.
 @immutable
 final class Oklch {
   /// Creates an opaque OKLCH color.

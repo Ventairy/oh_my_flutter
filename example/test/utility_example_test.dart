@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
 import 'package:oh_my_flutter_example/examples/marquee_example.dart';
+import 'package:oh_my_flutter_example/examples/maybe_safe_area_example.dart';
 import 'package:oh_my_flutter_example/examples/morph_example.dart';
 import 'package:oh_my_flutter_example/examples/motion_example.dart';
 import 'package:oh_my_flutter_example/examples/relative_time_example.dart';
@@ -30,12 +31,13 @@ void main() {
           find.byType(MotionExample).evaluate().length,
           find.byType(TextMotionExample).evaluate().length,
           find.byType(MarqueeExample).evaluate().length,
+          find.byType(MaybeSafeAreaExample).evaluate().length,
           find.byType(ControlledVisibilityExample).evaluate().length,
           find.byType(MorphExample).evaluate().length,
           find.byType(SequenceExample).evaluate().length,
           find.byType(RouteSettledExample).evaluate().length,
         ),
-        (null, 1, 1, 1, 1, 1, 1, 1, 1),
+        (null, 1, 1, 1, 1, 1, 1, 1, 1, 1),
       );
     },
   );
