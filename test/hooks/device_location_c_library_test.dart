@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oh_my_flutter/src/device/device_location/device_location_c_library.dart';
 import 'package:record_use/record_use.dart';
-
-import '../../hook/device_location_c_library.dart';
 
 void main() {
   const dartLibrary = Library(

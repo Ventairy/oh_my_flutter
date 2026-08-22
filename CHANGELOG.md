@@ -1,8 +1,12 @@
-## 0.11.0
+## 0.11.1
 
 - Add `DeviceLocation` for managing foreground permission and settings and
   retrieving fresh Android or iOS coordinates. This release requires Flutter
   3.47 and Dart 3.13.
+
+## 0.11.0
+
+- This version was tagged but not published.
 
 ## 0.10.0
 
