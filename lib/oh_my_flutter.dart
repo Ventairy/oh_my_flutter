@@ -7,7 +7,12 @@
 /// ```
 library;
 
+export 'src/device/device_location/device_location.dart' show DeviceLocation;
+export 'src/device/device_location/device_location_coordinates.dart' show DeviceLocationCoordinates;
+export 'src/device/device_location/device_location_permission_status.dart' show DeviceLocationPermissionStatus;
 export 'src/dio_interceptors/offline_error_dio_interceptor.dart' show OfflineErrorDioInterceptor;
+export 'src/exceptions/device_location_exception.dart' show DeviceLocationException;
+export 'src/exceptions/device_location_exception_reason.dart' show DeviceLocationExceptionReason;
 export 'src/exceptions/offline_connection_dio_exception.dart' show OfflineConnectionDioException;
 export 'src/extensions/color_extension.dart' show ColorExtension;
 export 'src/extensions/date_time_extension/date_time_extension.dart' show DateTimeExtension, TimeAgoFallback;

@@ -1,6 +1,7 @@
 .agents/
 .dart_tool/
 .fvm/
+.gradle/
 .github/
 .gitignore
 .fvmrc
@@ -13,7 +14,9 @@ doc/api/
 **/*.iml
 **/android/local.properties
 **/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
-**/ios/Flutter/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/flutter_export_environment.sh
 **/ios/Runner/GeneratedPluginRegistrant.*
 **/ios/*/.swiftpm/
 /pubspec.lock

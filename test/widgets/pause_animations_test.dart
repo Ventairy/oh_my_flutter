@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
@@ -276,7 +274,7 @@ class _TickingChildState extends State<_TickingChild> with SingleTickerProviderS
       duration: const Duration(seconds: 1),
       vsync: this,
     )..addListener(widget.onTick);
-    unawaited(_controller.repeat());
+    _controller.repeat();
   }
 
   @override

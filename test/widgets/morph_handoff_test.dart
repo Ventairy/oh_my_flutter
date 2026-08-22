@@ -464,41 +464,39 @@ class _HandoffTestApp extends StatelessWidget {
                   child: FilledButton(
                     key: const ValueKey('open-destination'),
                     onPressed: () {
-                      unawaited(
-                        Navigator.of(context).push<void>(
-                          PageRouteBuilder<void>(
-                            opaque: false,
-                            transitionDuration: const Duration(
-                              milliseconds: 200,
-                            ),
-                            reverseTransitionDuration: const Duration(
-                              milliseconds: 200,
-                            ),
-                            pageBuilder: (_, _, _) {
-                              return ValueListenableBuilder<bool>(
-                                valueListenable: destinationOffstage,
-                                builder: (context, offstage, child) {
-                                  return Scaffold(
-                                    backgroundColor: Colors.transparent,
-                                    body: Offstage(
-                                      offstage: offstage,
-                                      child: child,
-                                    ),
-                                  );
-                                },
-                                child: Center(
-                                  child: Morph(
-                                    key: const ValueKey(
-                                      'handoff-destination',
-                                    ),
-                                    tag: 'paint-confirmed-handoff',
-                                    child: destinationChild,
-                                  ),
-                                ),
-                              );
-                            },
-                            transitionsBuilder: (_, _, _, child) => child,
+                      Navigator.of(context).push<void>(
+                        PageRouteBuilder<void>(
+                          opaque: false,
+                          transitionDuration: const Duration(
+                            milliseconds: 200,
                           ),
+                          reverseTransitionDuration: const Duration(
+                            milliseconds: 200,
+                          ),
+                          pageBuilder: (_, _, _) {
+                            return ValueListenableBuilder<bool>(
+                              valueListenable: destinationOffstage,
+                              builder: (context, offstage, child) {
+                                return Scaffold(
+                                  backgroundColor: Colors.transparent,
+                                  body: Offstage(
+                                    offstage: offstage,
+                                    child: child,
+                                  ),
+                                );
+                              },
+                              child: Center(
+                                child: Morph(
+                                  key: const ValueKey(
+                                    'handoff-destination',
+                                  ),
+                                  tag: 'paint-confirmed-handoff',
+                                  child: destinationChild,
+                                ),
+                              ),
+                            );
+                          },
+                          transitionsBuilder: (_, _, _, child) => child,
                         ),
                       );
                     },

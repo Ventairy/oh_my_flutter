@@ -173,19 +173,17 @@ class _CrossFlightRasterAppState extends State<_CrossFlightRasterApp> {
   void toggle() {
     final expanded = !_expanded;
     _expanded = expanded;
-    unawaited(
-      _navigatorKey.currentState!.push(
-        PageRouteBuilder<void>(
-          transitionDuration: const Duration(milliseconds: 300),
-          reverseTransitionDuration: const Duration(milliseconds: 300),
-          opaque: false,
-          pageBuilder: (context, animation, secondaryAnimation) {
-            return _buildPage(expanded: expanded);
-          },
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return child;
-          },
-        ),
+    _navigatorKey.currentState!.push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 300),
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _buildPage(expanded: expanded);
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return child;
+        },
       ),
     );
   }
@@ -257,19 +255,17 @@ class _ColumnRasterWorkingSetAppState extends State<_ColumnRasterWorkingSetApp> 
   bool _changeFirstDestination = false;
 
   void push() {
-    unawaited(
-      _navigatorKey.currentState!.push(
-        PageRouteBuilder<void>(
-          transitionDuration: const Duration(seconds: 2),
-          reverseTransitionDuration: const Duration(seconds: 2),
-          opaque: false,
-          pageBuilder: (context, animation, secondaryAnimation) {
-            return _buildPage(expanded: true);
-          },
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            return child;
-          },
-        ),
+    _navigatorKey.currentState!.push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(seconds: 2),
+        reverseTransitionDuration: const Duration(seconds: 2),
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) {
+          return _buildPage(expanded: true);
+        },
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return child;
+        },
       ),
     );
   }

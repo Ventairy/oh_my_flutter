@@ -448,7 +448,7 @@ class _MorphState extends State<MorphBenchmark>
   void _setForegroundPaintActive(bool active) {
     if (active) {
       if (!_foregroundPaintController.isAnimating) {
-        unawaited(_foregroundPaintController.repeat());
+        _foregroundPaintController.repeat();
       }
       return;
     }

@@ -1,3 +1,9 @@
+## 0.11.0
+
+- Add `DeviceLocation` for managing foreground permission and settings and
+  retrieving fresh Android or iOS coordinates. This release requires Flutter
+  3.47 and Dart 3.13.
+
 ## 0.10.0
 
 - Preserve visual continuity when `Morph` transitions overlap or hand their
