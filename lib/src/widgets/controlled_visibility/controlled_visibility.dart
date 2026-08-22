@@ -253,7 +253,7 @@ class _ControlledVisibilityState extends State<ControlledVisibility> with Single
         });
       }
 
-      unawaited(_animationController.forward());
+      _animationController.forward();
       return;
     }
 
@@ -266,7 +266,7 @@ class _ControlledVisibilityState extends State<ControlledVisibility> with Single
     if (_activeTransition != transition) {
       setState(() => _activeTransition = transition);
     }
-    unawaited(_animationController.reverse());
+    _animationController.reverse();
   }
 
   void _handleAnimationStatus(AnimationStatus status) {

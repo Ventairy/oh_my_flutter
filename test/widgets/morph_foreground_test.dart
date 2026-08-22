@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -140,48 +139,45 @@ class _RouteForegroundApp extends StatelessWidget {
                   child: FilledButton(
                     key: const ValueKey('push'),
                     onPressed: () {
-                      unawaited(
-                        Navigator.of(context).push<void>(
-                          PageRouteBuilder<void>(
-                            transitionDuration: const Duration(
-                              milliseconds: 400,
-                            ),
-                            reverseTransitionDuration: const Duration(
-                              milliseconds: 400,
-                            ),
-                            pageBuilder: (context, animation, secondaryAnimation) {
-                              return Scaffold(
-                                body: Stack(
-                                  children: [
-                                    Morph(
-                                      tag: 'route-surface',
-                                      child: Container(color: Colors.blue),
-                                    ),
-                                    const Positioned(
-                                      left: 150,
-                                      top: 100,
-                                      child: MorphForeground(
-                                        child: ColoredBox(
-                                          color: Colors.green,
-                                          child: SizedBox(
-                                            width: 100,
-                                            height: 50,
-                                          ),
+                      Navigator.of(context).push<void>(
+                        PageRouteBuilder<void>(
+                          transitionDuration: const Duration(
+                            milliseconds: 400,
+                          ),
+                          reverseTransitionDuration: const Duration(
+                            milliseconds: 400,
+                          ),
+                          pageBuilder: (context, animation, secondaryAnimation) {
+                            return Scaffold(
+                              body: Stack(
+                                children: [
+                                  Morph(
+                                    tag: 'route-surface',
+                                    child: Container(color: Colors.blue),
+                                  ),
+                                  const Positioned(
+                                    left: 150,
+                                    top: 100,
+                                    child: MorphForeground(
+                                      child: ColoredBox(
+                                        color: Colors.green,
+                                        child: SizedBox(
+                                          width: 100,
+                                          height: 50,
                                         ),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              );
-                            },
-                            transitionsBuilder:
-                                (
-                                  context,
-                                  animation,
-                                  secondaryAnimation,
-                                  child,
-                                ) => child,
-                          ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) => child,
                         ),
                       );
                     },
@@ -548,7 +544,7 @@ void main() {
         update(() => expanded = true);
         await tester.pump();
         await tester.pump();
-        unawaited(paintAnimation.forward());
+        paintAnimation.forward();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 120));
         paintAnimation.stop();
@@ -728,7 +724,7 @@ void main() {
         await tester.pumpAndSettle();
 
         update(() => expanded = true);
-        unawaited(transform.forward());
+        transform.forward();
         await tester.pump();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));

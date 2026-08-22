@@ -7,14 +7,19 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 
 ## Environment and commands
 
-- Use Flutter 3.44.0 through FVM. Never invoke an untracked global Flutter SDK.
+- Use Flutter 3.47.1 through FVM. Never invoke an untracked global Flutter SDK.
 - Do not commit the root `pubspec.lock`; resolve the package's newest compatible
   dependencies during normal development and CI. Commit `example/pubspec.lock`
   and enforce it for the runnable example application.
 - Use the root Makefile; this repository does not use Melos.
 - Keep the Makefile as a local developer interface. GitHub Actions workflows
   must run the underlying FVM commands directly instead of invoking Make targets.
-- Run `make check` before every pull request and `make pana` for publication changes.
+- Name each Make target after the action it performs. For multiword targets,
+  start with a clear action verb such as `check`, `generate`, `test`, or
+  `validate`; do not use platform-only or tool-only names that require reading
+  the recipe to understand the operation.
+- Run `make check` before every pull request and `make analyze-package` for
+  publication changes.
 
 ## Public API
 
@@ -64,12 +69,20 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   Keep those two classes together in the widget's file for easier reading; do
   not split the state class into a `part of` file. Other additional classes in
   the same library must live in separate `part of` files.
+- Prefix every exported class in a feature family with that family's complete
+  canonical name so it remains identifiable outside its source file. For
+  example, use `DeviceLocationCoordinates`, not `DeviceCoordinates`.
 - Place libraries that use `part` or `part of`, and other closely related
   source files, in a dedicated folder. Keep the owning library and its related
   files together in that folder.
 - Keep each enum in its own file with no other declarations. Name the file
   after the enum in snake case, such as `MotionPlayback` in
   `motion_playback.dart`.
+- Name every enum with a semantic category suffix that makes its closed set of
+  choices clear, such as `Type`, `Status`, `Reason`, `Kind`, `Mode`,
+  `Direction`, or `Behavior`. Avoid names that could reasonably describe a
+  class or data object, such as a bare `Failure`; use `ExceptionReason` when
+  the values explain why an exception occurred.
 - Do not declare typedefs or callback aliases used in only one place. Write the
   function type inline at the callback definition. When an alias is reused,
   declare it in a `*_types.dart` file that is part of the owning library.
@@ -78,6 +91,9 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   failures under `lib/src/exceptions`.
 - Prefer explicit, readable code, immutable values, named parameters for
   multi-argument APIs, early returns, and exhaustive enum switches.
+- Name constructors annotated with `@visibleForTesting` `.test` and call them
+  only from tests. Production constructors must initialize through production
+  or private constructors instead.
 - Prefer semantic enum methods and getters over raw equality comparisons when
   an enum exposes or can provide them. For example, use `status.isCompleted`
   and `playback.isOnce` instead of comparing directly with enum values.
@@ -143,6 +159,7 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   bug fix, or refinement. Use more granular entries only for changes made after
   the feature has appeared in a public release.
 - Keep the example runnable and limited to public imports.
-- Verify `make check`, `make pana`, and an inspected zero-warning publish dry run.
+- Verify `make check`, `make analyze-package`, and an inspected zero-warning
+  publish dry run.
 - Never run a real `pub publish` command without explicit release authorization.
 - Release tags are immutable and must match `pubspec.yaml` (`v0.1.0` for version `0.1.0`).

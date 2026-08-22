@@ -117,11 +117,10 @@ void main() {
         final acceptanceLine = ordinaryLog.split('\n').last;
         final acceptance = Map<String, Object>.from(
           jsonDecode(
-                acceptanceLine.substring(
-                  acceptanceLine.indexOf('{'),
-                ),
-              )
-              as Map<String, Object?>,
+            acceptanceLine.substring(
+              acceptanceLine.indexOf('{'),
+            ),
+          ) as Map<String, Object?>,
         );
         acceptance['diagnostic_padding'] = List<String>.filled(
           5000,

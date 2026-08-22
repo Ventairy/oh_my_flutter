@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -549,7 +548,7 @@ class _TickCounterState extends State<_TickCounter> with SingleTickerProviderSta
       vsync: this,
       duration: const Duration(seconds: 1),
     )..addListener(widget.onTick);
-    unawaited(_controller.repeat());
+    _controller.repeat();
   }
 
   @override
@@ -1109,13 +1108,12 @@ class _CrossRouteRetargetTestApp extends StatelessWidget {
                                   ),
                                 );
                               },
-                          transitionsBuilder:
-                              (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                                child,
-                              ) => child,
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) => child,
                         ),
                       );
                     },
@@ -1283,13 +1281,12 @@ class _SameScreenDuringRoutePopTestApp extends StatelessWidget {
                               ),
                             );
                           },
-                          transitionsBuilder:
-                              (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                                child,
-                              ) => child,
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) => child,
                         ),
                       );
                     },
@@ -1370,13 +1367,12 @@ class _DynamicReducedMotionRouteTestApp extends StatelessWidget {
                               ),
                             );
                           },
-                          transitionsBuilder:
-                              (
-                                context,
-                                animation,
-                                secondaryAnimation,
-                                child,
-                              ) => child,
+                          transitionsBuilder: (
+                            context,
+                            animation,
+                            secondaryAnimation,
+                            child,
+                          ) => child,
                         ),
                       );
                     },

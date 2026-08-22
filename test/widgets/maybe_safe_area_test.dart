@@ -1944,13 +1944,12 @@ void main() {
                                         ),
                                       );
                                     },
-                                transitionsBuilder:
-                                    (
-                                      context,
-                                      animation,
-                                      secondaryAnimation,
-                                      child,
-                                    ) => child,
+                                transitionsBuilder: (
+                                  context,
+                                  animation,
+                                  secondaryAnimation,
+                                  child,
+                                ) => child,
                               ),
                             );
                           },

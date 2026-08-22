@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -71,27 +70,25 @@ class _MorphDescendantRouteTestApp extends StatelessWidget {
                 FilledButton(
                   key: const ValueKey('open-destination'),
                   onPressed: () {
-                    unawaited(
-                      Navigator.of(context).push<void>(
-                        PageRouteBuilder<void>(
-                          opaque: false,
-                          transitionDuration: const Duration(milliseconds: 400),
-                          pageBuilder: (context, animation, secondaryAnimation) {
-                            return Align(
-                              key: const ValueKey('destination'),
-                              alignment: Alignment.bottomRight,
-                              child: Morph(
-                                tag: 'descendant-route',
-                                child: Container(
-                                  width: 300,
-                                  height: 300,
-                                  color: Colors.blue,
-                                ),
+                    Navigator.of(context).push<void>(
+                      PageRouteBuilder<void>(
+                        opaque: false,
+                        transitionDuration: const Duration(milliseconds: 400),
+                        pageBuilder: (context, animation, secondaryAnimation) {
+                          return Align(
+                            key: const ValueKey('destination'),
+                            alignment: Alignment.bottomRight,
+                            child: Morph(
+                              tag: 'descendant-route',
+                              child: Container(
+                                width: 300,
+                                height: 300,
+                                color: Colors.blue,
                               ),
-                            );
-                          },
-                          transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
-                        ),
+                            ),
+                          );
+                        },
+                        transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
                       ),
                     );
                   },

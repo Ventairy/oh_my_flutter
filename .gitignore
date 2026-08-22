@@ -1,5 +1,7 @@
 # Dart and Flutter
 .dart_tool/
+.build/
+.gradle/
 .packages
 .flutter-plugins-dependencies
 build/
@@ -8,7 +10,9 @@ doc/api/
 # Generated platform plugin integration
 **/android/local.properties
 **/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java
-**/ios/Flutter/
+**/ios/Flutter/Generated.xcconfig
+**/ios/Flutter/ephemeral/
+**/ios/Flutter/flutter_export_environment.sh
 **/ios/Runner/GeneratedPluginRegistrant.*
 **/ios/*/.swiftpm/
 

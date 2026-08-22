@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/widgets.dart';
 
 part 'sequence_controller.dart';
@@ -254,8 +252,8 @@ class _SequenceState extends State<Sequence> with TickerProviderStateMixin {
       }
     });
 
-    if (sourceController != null) unawaited(sourceController!.reverse());
-    if (targetController != null) unawaited(targetController!.forward());
+    if (sourceController != null) sourceController!.reverse();
+    if (targetController != null) targetController!.forward();
   }
 
   AnimationController _ensureAnimationController(

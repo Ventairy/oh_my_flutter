@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -18,10 +17,7 @@ void main() {
           navigatorKey: navigatorKey,
           boundaryKey: boundaryKey,
         );
-
-        unawaited(
-          navigatorKey.currentState!.push(_route(lazyBackground: true)),
-        );
+        navigatorKey.currentState!.push(_route(lazyBackground: true));
         await tester.pump();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));
@@ -43,9 +39,7 @@ void main() {
           navigatorKey: navigatorKey,
           boundaryKey: boundaryKey,
         );
-        unawaited(
-          navigatorKey.currentState!.push(_route(lazyBackground: true)),
-        );
+        navigatorKey.currentState!.push(_route(lazyBackground: true));
         await tester.pumpAndSettle();
 
         navigatorKey.currentState!.pop();
@@ -133,13 +127,10 @@ void main() {
           navigatorKey: navigatorKey,
           boundaryKey: boundaryKey,
         );
-
-        unawaited(
-          navigatorKey.currentState!.push(
-            _route(
-              lazyBackground: false,
-              foregroundFirst: true,
-            ),
+        navigatorKey.currentState!.push(
+          _route(
+            lazyBackground: false,
+            foregroundFirst: true,
           ),
         );
         await tester.pump();
@@ -163,9 +154,7 @@ void main() {
           navigatorKey: navigatorKey,
           boundaryKey: boundaryKey,
         );
-        unawaited(
-          navigatorKey.currentState!.push(_route(lazyBackground: true)),
-        );
+        navigatorKey.currentState!.push(_route(lazyBackground: true));
         await tester.pump();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 100));
@@ -197,15 +186,12 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-
-        unawaited(
-          navigatorKey.currentState!.push(
-            PageRouteBuilder<void>(
-              transitionDuration: const Duration(milliseconds: 400),
-              pageBuilder: (context, animation, secondaryAnimation) {
-                return const _NestedMorphPage(lazyParent: true);
-              },
-            ),
+        navigatorKey.currentState!.push(
+          PageRouteBuilder<void>(
+            transitionDuration: const Duration(milliseconds: 400),
+            pageBuilder: (context, animation, secondaryAnimation) {
+              return const _NestedMorphPage(lazyParent: true);
+            },
           ),
         );
         await tester.pump();
@@ -229,13 +215,10 @@ void main() {
           navigatorKey: navigatorKey,
           boundaryKey: boundaryKey,
         );
-
-        unawaited(
-          navigatorKey.currentState!.push(
-            _route(
-              lazyBackground: true,
-              showMorphForeground: true,
-            ),
+        navigatorKey.currentState!.push(
+          _route(
+            lazyBackground: true,
+            showMorphForeground: true,
           ),
         );
         await tester.pump();

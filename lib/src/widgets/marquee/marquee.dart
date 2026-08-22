@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
@@ -183,7 +182,7 @@ class _MarqueeState extends State<Marquee> with SingleTickerProviderStateMixin {
       ..stop()
       ..value = 0;
     if (!_animationsDisabled) {
-      unawaited(_controller.repeat());
+      _controller.repeat();
     }
   }
 

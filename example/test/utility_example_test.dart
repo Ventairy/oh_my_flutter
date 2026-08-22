@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
+import 'package:oh_my_flutter_example/examples/device_location_example.dart';
 import 'package:oh_my_flutter_example/examples/marquee_example.dart';
 import 'package:oh_my_flutter_example/examples/maybe_safe_area_example.dart';
 import 'package:oh_my_flutter_example/examples/morph_example.dart';
@@ -27,6 +28,7 @@ void main() {
       expect(
         (
           tester.takeException(),
+          find.byType(DeviceLocationExample).evaluate().length,
           find.byType(RelativeTimeExample).evaluate().length,
           find.byType(MotionExample).evaluate().length,
           find.byType(TextMotionExample).evaluate().length,
@@ -37,7 +39,7 @@ void main() {
           find.byType(SequenceExample).evaluate().length,
           find.byType(RouteSettledExample).evaluate().length,
         ),
-        (null, 1, 1, 1, 1, 1, 1, 1, 1, 1),
+        (null, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1),
       );
     },
   );

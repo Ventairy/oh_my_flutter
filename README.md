@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.8.1
+  oh_my_flutter: ^0.11.0
 ```
 
 Import the public library wherever you need it:
@@ -132,6 +132,11 @@ failures into a typed error that callers can detect without repeating
 connectivity probes.
 
 ## [Utilities][utility-guides]
+
+### Device location
+
+`DeviceLocation` manages foreground location permission and retrieves fresh
+coordinates on Android or iOS.
 
 ### Telephony
 

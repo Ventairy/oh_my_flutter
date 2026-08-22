@@ -1,17 +1,23 @@
 SHELL := /bin/bash
 
-.PHONY: setup format format-check analyze test update-goldens coverage docs example publish-dry-run pana check clean
+.PHONY: setup generate-device-location-pigeon check-device-location-pigeon format check-format analyze test update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-native-code dry-run-publish analyze-package check clean
 
 setup:
 	fvm install
 	fvm flutter pub upgrade
 	cd example && fvm flutter pub get --enforce-lockfile
 
-format:
-	fvm dart format lib test example/lib example/test example/benchmark
+generate-device-location-pigeon:
+	./tool/generate_device_location_pigeon.sh
 
-format-check:
-	fvm dart format --output none --set-exit-if-changed lib test example/lib example/test example/benchmark
+check-device-location-pigeon:
+	./tool/check_device_location_pigeon.sh
+
+format:
+	fvm dart format hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
+
+check-format:
+	fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
 
 analyze:
 	fvm flutter analyze --fatal-infos
@@ -22,25 +28,39 @@ test:
 update-goldens:
 	fvm flutter test --update-goldens
 
-coverage:
+test-with-coverage:
 	fvm flutter test --coverage
 
-docs:
+generate-api-docs:
 	rm -rf doc/api
 	fvm dart doc --validate-links
 
-example:
+check-example:
 	cd example && fvm flutter analyze --fatal-infos
 	cd example && fvm flutter test
 
-publish-dry-run:
+validate-android-native-code:
+	cd example && fvm flutter build apk --release
+	cd example/android && ./gradlew :oh_my_flutter:testDebugUnitTest :oh_my_flutter:lintDebug
+
+test-device-location-on-android-emulators:
+	./tool/check_device_location_android_integration.sh
+
+validate-ios-native-code:
+	./tool/check_device_location_ios_integration.sh
+	./tool/check_device_location_ios.sh
+
+validate-native-code: validate-android-native-code
+	if [ "$$(uname -s)" = "Darwin" ]; then $(MAKE) validate-ios-native-code; fi
+
+dry-run-publish:
 	fvm flutter pub publish --dry-run
 
-pana:
+analyze-package:
 	fvm dart pub global activate pana
 	fvm dart pub global run pana .
 
-check: format-check analyze test docs example publish-dry-run
+check: check-device-location-pigeon check-format analyze test generate-api-docs check-example validate-native-code dry-run-publish
 
 clean:
 	fvm flutter clean
