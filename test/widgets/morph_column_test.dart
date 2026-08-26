@@ -35,15 +35,18 @@ Rect _hybridColumnDebugRect(
 }
 
 List<Map<String, Object?>> _retainedTextLayouts(WidgetTester tester) {
-  final renderObject = tester.renderObject<RenderBox>(
-    find.byWidgetPredicate(
-      (widget) => widget.runtimeType.toString() == '_MorphCompoundFlight',
-    ),
-  );
-  final property = renderObject.toDiagnosticsNode().getProperties().singleWhere(
-    (property) => property.name == 'retainedTextLayouts',
-  );
-  return (property.value! as List<Object?>).cast<Map<String, Object?>>();
+  return find
+      .byWidgetPredicate(
+        (widget) => widget.runtimeType.toString() == '_MorphCompoundFlight',
+      )
+      .evaluate()
+      .expand((element) {
+        final property = element.renderObject!.toDiagnosticsNode().getProperties().singleWhere(
+          (property) => property.name == 'retainedTextLayouts',
+        );
+        return (property.value! as List<Object?>).cast<Map<String, Object?>>();
+      })
+      .toList(growable: false);
 }
 
 Rect _retainedPaintBounds(WidgetTester tester) {
@@ -378,6 +381,76 @@ void main() {
     );
 
     testWidgets(
+      'when only one positional child has a key, it should interpolate with its counterpart',
+      (tester) async {
+        const text = '14 meses atras';
+        await tester.pumpWidget(
+          _ColumnMorphTestApp(
+            builder: ({required destination}) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  text,
+                  key: destination ? const ValueKey('job_time') : null,
+                  style: TextStyle(fontSize: destination ? 22 : 14),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        final layout = _retainedTextLayouts(tester).singleWhere(
+          (layout) => layout['text'] == text,
+        );
+
+        expect(
+          (layout['style']! as TextStyle).fontSize! * (layout['paintScaleY']! as double),
+          inInclusiveRange(17, 19),
+        );
+      },
+    );
+
+    testWidgets(
+      'when positional children have different keys, it should interpolate them as counterparts',
+      (tester) async {
+        const text = '14 meses atras';
+        await tester.pumpWidget(
+          _ColumnMorphTestApp(
+            builder: ({required destination}) => Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  text,
+                  key: ValueKey(destination ? 'destination-time' : 'source-time'),
+                  style: TextStyle(fontSize: destination ? 22 : 14),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        final layout = _retainedTextLayouts(tester).singleWhere(
+          (layout) => layout['text'] == text,
+        );
+
+        expect(
+          (layout['style']! as TextStyle).fontSize! * (layout['paintScaleY']! as double),
+          inInclusiveRange(17, 19),
+        );
+      },
+    );
+
+    testWidgets(
       'when an unsupported child uses a SizedBox wrapper, it should preserve the measured size during flight',
       (tester) async {
         var destination = false;
@@ -488,7 +561,7 @@ void main() {
     );
 
     testWidgets(
-      'when a keyed Column flight advances, it should reuse its child match plan',
+      'when a keyed Column flight advances, it should not compare child keys',
       (tester) async {
         final sourceKeys = [
           for (var index = 0; index < 24; index += 1) _CountingKey(index),
@@ -1249,7 +1322,7 @@ void main() {
     );
 
     testWidgets(
-      'when raw islands cross the switch threshold, it should preserve their exact endpoint layout and ownership',
+      'when a positional raw island crosses the switch threshold, it should interpolate layout and switch ownership',
       (tester) async {
         await tester.pumpWidget(
           _ColumnMorphTestApp(
@@ -1313,20 +1386,23 @@ void main() {
         expect(
           (
             sourceSize,
-            preThresholdSize,
+            (preThresholdSize.width.round(), preThresholdSize.height.round()),
             sourceAtThreshold,
             sourceAfterThreshold,
             destinationAtThreshold,
-            destinationFlightSize,
+            (
+              destinationFlightSize.width.toStringAsFixed(1),
+              destinationFlightSize.height.toStringAsFixed(1),
+            ),
             destinationSize,
           ),
           (
             const Size(40, 30),
-            const Size(40, 30),
-            1,
+            (58, 39),
+            0,
             0,
             1,
-            const Size(80, 50),
+            ('70.1', '45.1'),
             const Size(80, 50),
           ),
         );
@@ -2818,6 +2894,336 @@ void main() {
     );
 
     testWidgets(
+      'when padded multiline typography grows, it should keep its clip and following payment aligned',
+      (tester) async {
+        const title = 'Atendente de Relacionamento (Voz e Chat)';
+        const payment = r'R$1.766,99/mes';
+        await tester.pumpWidget(
+          _ColumnMorphTestApp(
+            sourceWidth: 260,
+            destinationWidth: 260,
+            switchThreshold: 0.1,
+            builder: ({required destination}) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    title,
+                    maxLines: destination ? 4 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: destination ? 34 : 22,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+                Text(
+                  payment,
+                  style: TextStyle(
+                    fontSize: destination ? 30 : 26,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pump();
+        await tester.pump();
+
+        final samples = <({bool clipContainsTitle, double separation})>[];
+        var elapsed = Duration.zero;
+        for (final time in const [
+          Duration(milliseconds: 48),
+          Duration(milliseconds: 80),
+          Duration(milliseconds: 120),
+          Duration(milliseconds: 160),
+        ]) {
+          await tester.pump(time - elapsed);
+          elapsed = time;
+          final titleEntry = _columnFlightText(tester, title);
+          final paymentEntry = _columnFlightText(tester, payment);
+          final titleLayout = _retainedTextLayouts(
+            tester,
+          ).singleWhere((layout) => layout['text'] == title);
+          samples.add((
+            clipContainsTitle: (titleLayout['clipRect']! as Rect).bottom >= titleEntry.rect.bottom - 0.5,
+            separation: paymentEntry.rect.top - titleEntry.rect.bottom,
+          ));
+        }
+
+        expect(
+          (
+            samples.every((sample) => sample.clipContainsTitle),
+            samples.every((sample) => sample.separation >= -0.5),
+            [
+              for (var index = 1; index < samples.length; index += 1)
+                samples[index].separation >= samples[index - 1].separation - 0.5,
+            ].every((isMonotonic) => isMonotonic),
+          ),
+          (true, true, true),
+        );
+      },
+    );
+
+    testWidgets(
+      'when padded multiline typography shrinks, it should keep its clip and following payment aligned',
+      (tester) async {
+        const title = 'Atendente de Relacionamento (Voz e Chat)';
+        const payment = r'R$1.766,99/mes';
+        await tester.pumpWidget(
+          _ColumnMorphTestApp(
+            sourceWidth: 260,
+            destinationWidth: 260,
+            switchThreshold: 0.3,
+            builder: ({required destination}) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    title,
+                    maxLines: destination ? 4 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: destination ? 34 : 22,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+                Text(
+                  payment,
+                  style: TextStyle(
+                    fontSize: destination ? 30 : 26,
+                    height: 1.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pump();
+        await tester.pump();
+
+        final samples = <({bool clipContainsTitle, double separation})>[];
+        var elapsed = Duration.zero;
+        for (final time in const [
+          Duration(milliseconds: 128),
+          Duration(milliseconds: 160),
+          Duration(milliseconds: 200),
+          Duration(milliseconds: 240),
+        ]) {
+          await tester.pump(time - elapsed);
+          elapsed = time;
+          final titleEntry = _columnFlightText(tester, title);
+          final paymentEntry = _columnFlightText(tester, payment);
+          final titleLayout = _retainedTextLayouts(
+            tester,
+          ).singleWhere((layout) => layout['text'] == title);
+          samples.add((
+            clipContainsTitle: (titleLayout['clipRect']! as Rect).bottom >= titleEntry.rect.bottom - 0.5,
+            separation: paymentEntry.rect.top - titleEntry.rect.bottom,
+          ));
+        }
+
+        expect(
+          (
+            samples.every((sample) => sample.clipContainsTitle),
+            samples.every((sample) => sample.separation >= -0.5),
+            [
+              for (var index = 1; index < samples.length; index += 1)
+                samples[index].separation <= samples[index - 1].separation + 0.5,
+            ].every((isMonotonic) => isMonotonic),
+          ),
+          (true, true, true),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a clipped nested header returns with its route, it should not expose a stale snapshot owner',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const title = 'Descarregar Caminhao';
+        const surfaceTag = 'reverse-owner-surface';
+        const headerTag = 'reverse-owner-header';
+        const fadeTag = 'reverse-owner-edge-fade';
+        const boundaryKey = ValueKey<String>('reverse-owner-boundary');
+
+        Widget surface({required bool expanded}) {
+          return Align(
+            alignment: Alignment.topLeft,
+            child: Morph(
+              tag: surfaceTag,
+              curve: Curves.linear,
+              child: Container(
+                key: const ValueKey<String>(surfaceTag),
+                width: expanded ? 400 : 360,
+                height: expanded ? 520 : 300,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(expanded ? 0 : 32),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(expanded ? 0 : 32),
+                  child: Stack(
+                    children: [
+                      MorphDescendant(
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        child: RepaintBoundary(
+                          child: Padding(
+                            padding: expanded ? const EdgeInsets.fromLTRB(28, 120, 28, 28) : const EdgeInsets.all(24),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Morph(
+                                  tag: headerTag,
+                                  curve: Curves.linear,
+                                  switchThreshold: expanded ? 0.3 : 0.1,
+                                  child: Column(
+                                    key: const ValueKey<String>(headerTag),
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '14 meses atras',
+                                        style: TextStyle(
+                                          color: Colors.blue,
+                                          fontSize: expanded ? 16 : 14,
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          title,
+                                          maxLines: expanded ? 4 : 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Colors.red,
+                                            fontSize: expanded ? 34 : 22,
+                                            height: 1.2,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        'Outro pagamento',
+                                        style: TextStyle(
+                                          color: Colors.green,
+                                          fontSize: expanded ? 30 : 26,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                const SizedBox(
+                                  width: 300,
+                                  height: 50,
+                                  child: ColoredBox(color: Color(0xFFE0E0E0)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned.fill(
+                        child: Morph(
+                          tag: fadeTag,
+                          curve: Curves.linear,
+                          child: Container(
+                            key: const ValueKey<String>(fadeTag),
+                            decoration: const BoxDecoration(),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              home: Scaffold(
+                body: Builder(
+                  builder: (context) => Stack(
+                    children: [
+                      surface(expanded: false),
+                      TextButton(
+                        key: const ValueKey<String>('open-reverse-owner-route'),
+                        onPressed: () {
+                          Navigator.of(context).push<void>(
+                            PageRouteBuilder<void>(
+                              transitionDuration: const Duration(milliseconds: 400),
+                              reverseTransitionDuration: const Duration(milliseconds: 400),
+                              pageBuilder: (context, animation, secondaryAnimation) => Scaffold(
+                                body: surface(expanded: true),
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text('Open'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(
+          find.byKey(const ValueKey<String>('open-reverse-owner-route')),
+        );
+        await tester.pumpAndSettle();
+
+        Navigator.of(tester.element(find.text(title).last)).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+
+        final titleRect = _columnFlightText(tester, title).rect.inflate(8);
+        final retainedTitleCount = _columnFlightTextCount(tester, title);
+        final frame = await _capturePixels(tester, boundaryKey);
+        final redPixelsOutsideTitle =
+            _redPixelCount(frame, const Rect.fromLTWH(0, 0, 400, 600)) - _redPixelCount(frame, titleRect);
+        await tester.pump(const Duration(milliseconds: 200));
+        final lateTitleRect = _columnFlightText(tester, title).rect.inflate(8);
+        final lateFrame = await _capturePixels(tester, boundaryKey);
+        final lateRedPixelsOutsideTitle =
+            _redPixelCount(lateFrame, const Rect.fromLTWH(0, 0, 400, 600)) - _redPixelCount(lateFrame, lateTitleRect);
+
+        expect(
+          (
+            retainedTitleCount,
+            redPixelsOutsideTitle,
+            lateRedPixelsOutsideTitle,
+          ),
+          (1, 0, 0),
+          reason: 'titleRect=$titleRect lateTitleRect=$lateTitleRect',
+        );
+      },
+    );
+
+    testWidgets(
       'when endpoint line counts differ, it should not exceed their ceiling or inject ellipsis',
       (tester) async {
         const title = 'Auxiliar de Cozinha Noturno Agua Branca';
@@ -2996,6 +3402,103 @@ void main() {
         ];
 
         expect(deltas.every((delta) => delta < 0), isTrue);
+      },
+    );
+
+    testWidgets(
+      'when multiline text shrinks before following content, it should reflow every child from the resolved bottom',
+      (tester) async {
+        const title = 'Descarregar Caminhao';
+        const payment = 'Outro pagamento';
+        const summary =
+            'Experimente em atendimento ao cliente, disponibilidade para '
+            'finais de semana e feriados.';
+        const description =
+            'Mock job for staging QA. Need one person to help unload boxes '
+            'from a small truck for about two hours near Centro.';
+        await tester.pumpWidget(
+          _ColumnMorphTestApp(
+            sourceWidth: 334,
+            destinationWidth: 334,
+            switchThreshold: 0.3,
+            builder: ({required destination}) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    title,
+                    maxLines: destination ? 4 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: destination ? 34 : 22,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+                Text(
+                  payment,
+                  style: TextStyle(
+                    fontSize: destination ? 30 : 26,
+                    height: 1.3,
+                  ),
+                ),
+                if (destination)
+                  const Motion(
+                    effect: FadeInMotionEffect(
+                      duration: Duration(milliseconds: 200),
+                    ),
+                    child: Text(
+                      description,
+                      key: ValueKey<String>('job_description'),
+                      style: TextStyle(fontSize: 16),
+                    ),
+                  )
+                else
+                  const Text(
+                    summary,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 15),
+                  ),
+              ],
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pump();
+        await tester.pump();
+
+        final gaps = <({double description, double payment})>[];
+        var elapsed = Duration.zero;
+        for (final time in const [
+          Duration(milliseconds: 128),
+          Duration(milliseconds: 160),
+          Duration(milliseconds: 200),
+          Duration(milliseconds: 240),
+        ]) {
+          await tester.pump(time - elapsed);
+          elapsed = time;
+          final titleRect = _columnFlightText(tester, title).rect;
+          final paymentRect = _columnFlightText(tester, payment).rect;
+          final descriptionRect = _columnFlightText(tester, summary).rect;
+          gaps.add((
+            payment: paymentRect.top - titleRect.bottom,
+            description: descriptionRect.top - paymentRect.bottom,
+          ));
+        }
+
+        expect(
+          gaps.every(
+            (gap) => gap.payment.abs() <= 0.5 && gap.description.abs() <= 0.5,
+          ),
+          isTrue,
+          reason: 'gaps=$gaps',
+        );
       },
     );
 

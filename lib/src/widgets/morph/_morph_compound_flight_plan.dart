@@ -225,24 +225,22 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
       if (!child._isVisible(progress)) return result;
       final childRect = child._rectAt(progress).shift(bounds.topLeft);
       return result.expandToInclude(
-        child._childPaintBounds(childRect, progress),
+        child._childPaintBounds(
+          childRect,
+          progress,
+          owningBounds: bounds,
+        ),
       );
     }
 
     if (sourceColumn != null || destinationColumn != null) {
-      Rect? previousLayoutRect;
+      _MorphCompoundFlightPlan? previousChild;
       var previousPaintBottom = 0.0;
       for (final child in children) {
         if (!child._isVisible(progress)) continue;
         final layoutRect = child._rectAt(progress);
-        final previousRect = previousLayoutRect;
-        final gap = previousRect == null ? 0.0 : layoutRect.top - previousRect.bottom;
-        final top = previousRect == null
-            ? layoutRect.top
-            : math.max(
-                layoutRect.top,
-                previousPaintBottom + gap,
-              );
+        final previous = previousChild;
+        final top = previous == null ? layoutRect.top : previousPaintBottom + child._columnGapAfter(previous, progress);
         final childRect = Rect.fromLTWH(
           bounds.left + layoutRect.left,
           bounds.top + top,
@@ -250,9 +248,13 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
           layoutRect.height,
         );
         result = result.expandToInclude(
-          child._childPaintBounds(childRect, progress),
+          child._childPaintBounds(
+            childRect,
+            progress,
+            owningBounds: bounds,
+          ),
         );
-        previousLayoutRect = layoutRect;
+        previousChild = child;
         previousPaintBottom =
             top +
             child._estimatedPaintHeight(
@@ -283,7 +285,11 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
     return expanded;
   }
 
-  Rect _childPaintBounds(Rect rect, double progress) {
+  Rect _childPaintBounds(
+    Rect rect,
+    double progress, {
+    required Rect owningBounds,
+  }) {
     final padding = _paddingAt(progress);
     final innerRect = Rect.fromLTRB(
       math.min(rect.right, rect.left + padding.left),
@@ -293,12 +299,7 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
     );
     final text = _textAt(progress);
     if (text != null) {
-      final textBounds = Rect.fromLTWH(
-        innerRect.left,
-        innerRect.top,
-        innerRect.width,
-        math.max(innerRect.height, text.estimatedHeight),
-      );
+      final textBounds = _resolvedTextPaintBounds(innerRect, text);
       final style = text.paintStyle;
       var overflow = style.fontSize ?? kDefaultFontSize;
       final foreground = style.foreground;
@@ -311,7 +312,8 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
           shadow.blurRadius * 2 + math.max(shadow.offset.dx.abs(), shadow.offset.dy.abs()),
         );
       }
-      return textBounds.inflate(overflow);
+      final expandedBounds = textBounds.inflate(overflow);
+      return _shouldClipText(text, innerRect) ? expandedBounds.intersect(owningBounds) : expandedBounds;
     }
     return paintBounds(innerRect, progress);
   }
@@ -320,7 +322,43 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
     final text = _textAt(progress);
     if (text == null) return rect.height;
     final padding = _paddingAt(progress);
-    return math.max(rect.height, text.estimatedHeight + padding.vertical);
+    final innerHeight = rect.height - math.min(rect.height, padding.vertical);
+    return _resolvedTextPaintHeight(innerHeight, text) + padding.vertical;
+  }
+
+  bool get _hasCapturedSize => sourceChild?.explicitSize != null || destinationChild?.explicitSize != null;
+
+  double _resolvedTextPaintHeight(
+    double capturedHeight,
+    MorphTextProperties properties,
+  ) {
+    if (_hasCapturedSize) return capturedHeight;
+    return math.max(0, properties.baselineOffset + properties.estimatedHeight);
+  }
+
+  Rect _resolvedTextPaintBounds(
+    Rect bounds,
+    MorphTextProperties properties,
+  ) {
+    if (_hasCapturedSize) return bounds;
+    final paragraph = Rect.fromLTWH(
+      bounds.left,
+      bounds.top + properties.baselineOffset,
+      bounds.width,
+      properties.estimatedHeight,
+    );
+    return bounds.expandToInclude(paragraph);
+  }
+
+  bool _shouldClipText(
+    MorphTextProperties properties,
+    Rect bounds,
+  ) {
+    final exceedsCapturedHeight = properties.baselineOffset + properties.estimatedHeight > bounds.height;
+    return properties.overflow == TextOverflow.ellipsis ||
+        (properties.overflow == TextOverflow.clip && properties.softWrap == false) ||
+        properties.maxLines != null ||
+        (properties.overflow != TextOverflow.visible && exceedsCapturedHeight);
   }
 
   MorphTextProperties? _textAt(double progress) {
@@ -457,8 +495,9 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
   double _paintChild(
     Canvas canvas,
     Rect rect,
-    double progress,
-  ) {
+    double progress, {
+    required Rect owningBounds,
+  }) {
     final padding = _paddingAt(progress);
     final innerRect = Rect.fromLTRB(
       math.min(rect.right, rect.left + padding.left),
@@ -476,6 +515,7 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
         sourceText,
         destinationText,
         progress,
+        owningBounds: owningBounds,
       );
       return hasInterpolatedText ? textHeight + padding.vertical : rect.height;
     }
@@ -501,8 +541,9 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
     Rect bounds,
     MorphTextProperties? source,
     MorphTextProperties? destination,
-    double progress,
-  ) {
+    double progress, {
+    required Rect owningBounds,
+  }) {
     final properties = _textAt(progress) ?? (throw StateError('A retained text child has no endpoint.'));
     final layoutWidth = const MorphTextFlightDelegate()._paintLayoutWidth(
       properties: properties,
@@ -521,14 +562,11 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
             progress: progress,
             endpointStyleBlocker: _textEndpointStyleBlocker,
           );
-    final clipBounds = bounds;
-    final exceedsAnimatedHeight =
-        properties.baselineOffset + properties.estimatedHeight * properties.paintScaleY > bounds.height;
+    final resolvedBounds = _resolvedTextPaintBounds(bounds, properties);
+    final clipBounds = resolvedBounds.intersect(owningBounds);
+    final shouldClip = _shouldClipText(properties, bounds);
     canvas.save();
-    if (properties.overflow == TextOverflow.ellipsis ||
-        (properties.overflow == TextOverflow.clip && properties.softWrap == false) ||
-        properties.maxLines != null ||
-        (properties.overflow != TextOverflow.visible && exceedsAnimatedHeight)) {
+    if (shouldClip) {
       canvas.clipRect(clipBounds);
     }
     canvas
@@ -553,22 +591,27 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
     );
     canvas.restore();
     final paintedHeight = rasterCache.height * properties.paintScaleY;
+    assert(
+      (paintedHeight - properties.estimatedHeight).abs() <= precisionErrorTolerance,
+      'Retained-flight text height should match its resolved paragraph height. '
+      'resolved=${properties.estimatedHeight}, painted=$paintedHeight',
+    );
     assert(() {
       final lineMetrics = rasterCache.computeLineMetrics();
       _debugTextLayouts.add(<String, Object?>{
         'text': properties.text,
         'rect': Rect.fromLTWH(
           bounds.left,
-          bounds.top,
+          bounds.top + properties.baselineOffset,
           bounds.width,
-          paintedHeight,
+          properties.estimatedHeight,
         ),
         'style': rasterCache.debugPaintStyle ?? properties.paintStyle,
         'textDirection': properties.textDirection,
         'textScaler': properties.textScaler,
         'maxLines': properties.maxLines,
         'overflow': properties.overflow,
-        'clipRect': clipBounds,
+        'clipRect': shouldClip ? clipBounds : resolvedBounds,
         'paintScaleX': properties.paintScaleX,
         'paintScaleY': properties.paintScaleY,
         'baseline':
@@ -584,7 +627,7 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
       });
       return true;
     }(), 'Retained-flight text diagnostics should describe the current paint.');
-    return paintedHeight;
+    return _resolvedTextPaintHeight(bounds.height, properties);
   }
 
   void _updateDevicePixelRatio(double value) {
@@ -651,7 +694,12 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
       final child = children.single;
       if (child._isVisible(progress)) {
         final childRect = child._rectAt(progress).shift(bounds.topLeft);
-        child._paintChild(canvas, childRect, progress);
+        child._paintChild(
+          canvas,
+          childRect,
+          progress,
+          owningBounds: bounds,
+        );
       }
     }
 
@@ -745,19 +793,13 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
   }
 
   void _paintColumn(Canvas canvas, Rect bounds, double progress) {
-    Rect? previousLayoutRect;
+    _MorphCompoundFlightPlan? previousChild;
     var previousPaintBottom = 0.0;
     for (final child in children) {
       if (!child._isVisible(progress)) continue;
       final layoutRect = child._rectAt(progress);
-      final previousRect = previousLayoutRect;
-      final gap = previousRect == null ? 0.0 : layoutRect.top - previousRect.bottom;
-      final top = previousRect == null
-          ? layoutRect.top
-          : math.max(
-              layoutRect.top,
-              previousPaintBottom + gap,
-            );
+      final previous = previousChild;
+      final top = previous == null ? layoutRect.top : previousPaintBottom + child._columnGapAfter(previous, progress);
       final paintRect = Rect.fromLTWH(
         bounds.left + layoutRect.left,
         bounds.top + top,
@@ -768,10 +810,35 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
         canvas,
         paintRect,
         progress,
+        owningBounds: bounds,
       );
-      previousLayoutRect = layoutRect;
+      previousChild = child;
       previousPaintBottom = top + paintedHeight;
     }
+  }
+
+  double _columnGapAfter(
+    _MorphCompoundFlightPlan previous,
+    double progress,
+  ) {
+    final source = sourceChild;
+    final previousSource = previous.sourceChild;
+    final destination = destinationChild;
+    final previousDestination = previous.destinationChild;
+    final sourceGap = source == null || previousSource == null ? null : source.rect.top - previousSource.rect.bottom;
+    final destinationGap = destination == null || previousDestination == null
+        ? null
+        : destination.rect.top - previousDestination.rect.bottom;
+    return switch ((sourceGap, destinationGap)) {
+      (final double source, final double destination) => ui.lerpDouble(
+        source,
+        destination,
+        progress,
+      )!,
+      (final double source, null) => source,
+      (null, final double destination) => destination,
+      _ => 0,
+    };
   }
 
   bool _isVisible(double progress) {

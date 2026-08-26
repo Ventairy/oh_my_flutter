@@ -12,6 +12,12 @@ class _RenderMorphEndpoint extends RenderProxyBox {
   VoidCallback onPresented;
   bool _snapshotSuppressed = false;
 
+  void _setSnapshotSuppressed(bool value) {
+    if (value == _snapshotSuppressed) return;
+    _snapshotSuppressed = value;
+    markNeedsPaint();
+  }
+
   _MorphVisibilityHandle get visibility => _visibility;
 
   set visibility(_MorphVisibilityHandle value) {

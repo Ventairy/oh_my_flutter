@@ -85,6 +85,10 @@ children:
   uses the generic behavior automatically. No eligibility check is required in
   application code.
 
+Children inside matching `Column` endpoints correspond by their list position.
+Flutter keys continue controlling widget identity at each endpoint but do not
+change which Column children animate together.
+
 Specialization is best-effort: supported values interpolate smoothly, while
 unsupported or discrete values can switch. Use a custom delegate when a
 particular property must follow an application-defined interpolation contract.

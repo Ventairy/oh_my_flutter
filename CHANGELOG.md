@@ -1,8 +1,13 @@
-## Unreleased
+## 0.12.0
 
 - Add `Skeleton` for turning existing widget layouts into neutral loading
   placeholders with optional fade and shimmer effects, configurable rectangular
   radius and effect timing, and a localized live loading-status label.
+- Keep multiline `Morph` text fully visible and following `Column` content
+  correctly positioned and spaced while typography grows or shrinks, with
+  children corresponding by position regardless of their Flutter keys.
+- Prevent shrinking reverse `Morph` transitions from leaving duplicated text
+  from earlier frames.
 
 ## 0.11.1
 

@@ -117,7 +117,11 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 - Every bug fix includes a regression test, test-first when the cause is known.
 - Test names use `when ..., it should ...`; keep one assertion per test case.
 - Pin time with `package:clock` whenever behavior depends on the current time.
-- Diagnose and reproduce uncertain failures before changing production code.
+- When a bug or its cause is unclear, do not make speculative production
+  changes. Add targeted diagnostic logging and reproduce the bug locally when
+  possible; otherwise ask the human to reproduce it and provide the logs.
+- Use the resulting logs as concrete evidence of the cause, then write a
+  regression test that fails because of the bug before implementing the fix.
 - Fix analyzer findings in source; do not add blanket ignores or change `.agents` copies to satisfy Dart analysis.
 - Use `goldenTest` from `alchemist`, not raw `matchesGoldenFile` assertions.
 - Keep golden tests beside their widget tests and commit their CI references

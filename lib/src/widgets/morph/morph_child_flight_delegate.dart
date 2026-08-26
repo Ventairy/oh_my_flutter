@@ -160,7 +160,6 @@ final class MorphChildFlightDelegate {
       text: text,
       container: container,
       column: column,
-      key: widget.key ?? content.key,
       capturedThemes: text == null && container == null && column == null ? capturedEnvironment.capturedThemes : null,
       mediaQueryData: text == null && container == null && column == null ? capturedEnvironment.mediaQueryData : null,
     );
@@ -213,7 +212,6 @@ final class MorphChildFlightDelegate {
       text: text,
       container: container,
       column: column,
-      key: selected.key,
       capturedThemes: selected._capturedThemes,
       mediaQueryData: selected._mediaQueryData,
       transitionProgress: transitionEnabled
@@ -287,7 +285,6 @@ final class MorphChildFlightDelegate {
       text: null,
       container: null,
       column: null,
-      key: widget.key,
       capturedThemes: capturedEnvironment.capturedThemes,
       mediaQueryData: capturedEnvironment.mediaQueryData,
     );
