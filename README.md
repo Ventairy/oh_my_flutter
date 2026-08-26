@@ -123,6 +123,11 @@ optional directional transitions.
 `RouteSettled` shows route chrome or controls only while the enclosing route is
 settled and no navigator gesture is active.
 
+### Skeleton
+
+`Skeleton` preserves a widget subtree's layout while replacing its painted leaf
+content with neutral loading bones and optional fade or shimmer effects.
+
 ## [Networking][networking-guides]
 
 ### Offline Dio errors

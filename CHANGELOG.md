@@ -1,3 +1,9 @@
+## Unreleased
+
+- Add `Skeleton` for turning existing widget layouts into neutral loading
+  placeholders with optional fade and shimmer effects, configurable rectangular
+  radius and effect timing, and a localized live loading-status label.
+
 ## 0.11.1
 
 - Add `DeviceLocation` for managing foreground permission and settings and

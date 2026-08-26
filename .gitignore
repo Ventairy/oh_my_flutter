@@ -22,6 +22,9 @@ doc/api/
 # Coverage
 coverage/
 
+# Local benchmark evidence
+**/benchmark/**/artifacts/
+
 # Generated golden-test failure artifacts
 **/goldens/failures/
 **/test/**/goldens/linux/

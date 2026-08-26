@@ -9,6 +9,7 @@ import 'package:oh_my_flutter_example/examples/motion_example.dart';
 import 'package:oh_my_flutter_example/examples/relative_time_example.dart';
 import 'package:oh_my_flutter_example/examples/route_settled_example.dart';
 import 'package:oh_my_flutter_example/examples/sequence_example.dart';
+import 'package:oh_my_flutter_example/examples/skeleton_example.dart';
 import 'package:oh_my_flutter_example/examples/text_motion_example.dart';
 
 void main() => runApp(const UtilityExample());
@@ -53,6 +54,10 @@ class UtilityExample extends StatelessWidget {
                         Text('Marquee', style: _sectionStyle),
                         SizedBox(height: 12),
                         MarqueeExample(),
+                        SizedBox(height: 32),
+                        Text('Skeleton', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        SkeletonExample(),
                         SizedBox(height: 32),
                         Text('ControlledVisibility', style: _sectionStyle),
                         SizedBox(height: 12),
