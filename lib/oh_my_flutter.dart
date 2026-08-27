@@ -7,10 +7,12 @@
 /// ```
 library;
 
+export 'src/debouncer.dart' show Debouncer;
 export 'src/device/device_location/device_location.dart' show DeviceLocation;
 export 'src/device/device_location/device_location_coordinates.dart' show DeviceLocationCoordinates;
 export 'src/device/device_location/device_location_permission_status.dart' show DeviceLocationPermissionStatus;
 export 'src/dio_interceptors/offline_error_dio_interceptor.dart' show OfflineErrorDioInterceptor;
+export 'src/exceptions/debouncer_canceled_exception.dart' show DebouncerCanceledException;
 export 'src/exceptions/device_location_exception.dart' show DeviceLocationException;
 export 'src/exceptions/device_location_exception_reason.dart' show DeviceLocationExceptionReason;
 export 'src/exceptions/offline_connection_dio_exception.dart' show OfflineConnectionDioException;
@@ -22,8 +24,7 @@ export 'src/extensions/velocity_extension.dart' show VelocityExtension;
 export 'src/oklch/oklch.dart' show Oklch;
 export 'src/telephony.dart' show Telephony;
 export 'src/whatsapp.dart' show Whatsapp;
-export 'src/widgets/controlled_visibility/controlled_visibility.dart'
-    show ControlledVisibility, ControlledVisibilityController;
+export 'src/widgets/controlled_visibility/controlled_visibility.dart' show ControlledVisibility, VisibilityController;
 export 'src/widgets/marquee/marquee.dart' show Marquee;
 export 'src/widgets/marquee/marquee_direction.dart' show MarqueeDirection;
 export 'src/widgets/maybe_safe_area/maybe_safe_area.dart' show MaybeSafeArea, MaybeSafeAreaBehavior;
@@ -49,3 +50,12 @@ export 'src/widgets/motion/motion.dart'
 export 'src/widgets/pause_animations/pause_animations.dart' show PauseAnimations;
 export 'src/widgets/route_settled/route_settled.dart' show RouteSettled;
 export 'src/widgets/sequence/sequence.dart' show Sequence, SequenceController, SequenceTransitionBuilder;
+export 'src/widgets/skeleton/skeleton.dart'
+    show
+        Skeleton,
+        SkeletonAnimatedEffectBase,
+        SkeletonEffect,
+        SkeletonFadeEffect,
+        SkeletonShimmerEffect,
+        SkeletonStaticEffectBase,
+        SkeletonStyle;

@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.11.0
+  oh_my_flutter: ^0.13.0
 ```
 
 Import the public library wherever you need it:
@@ -123,6 +123,11 @@ optional directional transitions.
 `RouteSettled` shows route chrome or controls only while the enclosing route is
 settled and no navigator gesture is active.
 
+### Skeleton
+
+`Skeleton` preserves a widget subtree's layout while replacing its painted leaf
+content with neutral loading bones and optional fade or shimmer effects.
+
 ## [Networking][networking-guides]
 
 ### Offline Dio errors
@@ -132,6 +137,11 @@ failures into a typed error that callers can detect without repeating
 connectivity probes.
 
 ## [Utilities][utility-guides]
+
+### Debouncer
+
+`Debouncer<T>` delays repeated value-producing callbacks until calls stop,
+while sharing the latest callback's result across the pending burst.
 
 ### Device location
 

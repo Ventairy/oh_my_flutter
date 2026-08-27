@@ -13,7 +13,6 @@ final class MorphChildProperties {
     required this.text,
     required this.container,
     required this.column,
-    required this.key,
     required this._capturedThemes,
     required this._mediaQueryData,
     this._transitionProgress = 1,
@@ -47,9 +46,6 @@ final class MorphChildProperties {
   /// Column values when the child is a vertical column.
   final MorphColumnProperties? column;
 
-  /// Key used to match this child with its counterpart.
-  final Key? key;
-
   MorphChildProperties _withTransitionProgress(double progress) {
     return MorphChildProperties(
       widget: widget,
@@ -60,7 +56,6 @@ final class MorphChildProperties {
       text: text,
       container: container,
       column: column,
-      key: key,
       capturedThemes: _capturedThemes,
       mediaQueryData: _mediaQueryData,
       transitionProgress: progress,

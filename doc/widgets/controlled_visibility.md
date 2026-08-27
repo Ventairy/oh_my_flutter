@@ -7,7 +7,7 @@ changes immediately.
 ## Basic usage
 
 ```dart
-final visibilityController = ControlledVisibilityController();
+final visibilityController = VisibilityController();
 
 ControlledVisibility(
   controller: visibilityController,

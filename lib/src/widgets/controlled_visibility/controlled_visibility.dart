@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-part 'controlled_visibility_controller.dart';
+part 'visibility_controller.dart';
 
 /// A controller-driven wrapper that shows or hides [child].
 ///
@@ -21,7 +21,7 @@ part 'controlled_visibility_controller.dart';
 /// element subtree before an optional transition begins.
 ///
 /// ```dart
-/// final controller = ControlledVisibilityController();
+/// final controller = VisibilityController();
 ///
 /// ControlledVisibility(
 ///   controller: controller,
@@ -55,7 +55,7 @@ class ControlledVisibility extends StatefulWidget {
   });
 
   /// Controller that shows or hides [child].
-  final ControlledVisibilityController controller;
+  final VisibilityController controller;
 
   /// Widget whose visibility is controlled.
   final Widget child;

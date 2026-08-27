@@ -143,14 +143,15 @@ final class _MorphHybridColumnFlightPlan extends ChangeNotifier {
       (rawChild.parentData! as ContainerBoxParentData<RenderBox>).offset = Offset.zero;
     }
 
-    Rect? previousLayoutRect;
+    _MorphHybridColumnChildPlan? previousChild;
     var previousPaintBottom = 0.0;
     for (final childPlan in children) {
       if (!childPlan.isVisible(progress)) continue;
       final layoutRect = childPlan.rectAt(progress);
-      final previousRect = previousLayoutRect;
-      final gap = previousRect == null ? 0.0 : layoutRect.top - previousRect.bottom;
-      final top = previousRect == null ? layoutRect.top : math.max(layoutRect.top, previousPaintBottom + gap);
+      final previous = previousChild;
+      final top = previous == null
+          ? layoutRect.top
+          : previousPaintBottom + childPlan.columnGapAfter(previous, progress);
       final childRect = Rect.fromLTWH(
         bounds.left + layoutRect.left,
         bounds.top + top,
@@ -162,7 +163,7 @@ final class _MorphHybridColumnFlightPlan extends ChangeNotifier {
         final rawChild = rawChildren[rawSlotIndex];
         (rawChild.parentData! as ContainerBoxParentData<RenderBox>).offset = childRect.topLeft;
       }
-      previousLayoutRect = layoutRect;
+      previousChild = childPlan;
       previousPaintBottom = top + childPlan.estimatedPaintHeight(childRect, progress);
     }
   }
@@ -185,14 +186,15 @@ final class _MorphHybridColumnFlightPlan extends ChangeNotifier {
       }(), 'Hybrid retained-text diagnostics should reset before painting.');
     }
 
-    Rect? previousLayoutRect;
+    _MorphHybridColumnChildPlan? previousChild;
     var previousPaintBottom = 0.0;
     for (final childPlan in children) {
       if (!childPlan.isVisible(progress)) continue;
       final layoutRect = childPlan.rectAt(progress);
-      final previousRect = previousLayoutRect;
-      final gap = previousRect == null ? 0.0 : layoutRect.top - previousRect.bottom;
-      final top = previousRect == null ? layoutRect.top : math.max(layoutRect.top, previousPaintBottom + gap);
+      final previous = previousChild;
+      final top = previous == null
+          ? layoutRect.top
+          : previousPaintBottom + childPlan.columnGapAfter(previous, progress);
       final childRect = Rect.fromLTWH(
         bounds.left + layoutRect.left,
         bounds.top + top,
@@ -206,6 +208,7 @@ final class _MorphHybridColumnFlightPlan extends ChangeNotifier {
           context.canvas,
           childRect.shift(offset),
           progress,
+          owningBounds: bounds.shift(offset),
         );
       } else {
         final rawChild = rawChildren[rawSlotIndex];
@@ -213,21 +216,22 @@ final class _MorphHybridColumnFlightPlan extends ChangeNotifier {
         context.paintChild(rawChild, offset + childRect.topLeft);
         paintedHeight = childRect.height;
       }
-      previousLayoutRect = layoutRect;
+      previousChild = childPlan;
       previousPaintBottom = top + paintedHeight;
     }
   }
 
   Rect paintBounds(Rect bounds, double progress) {
     var result = bounds;
-    Rect? previousLayoutRect;
+    _MorphHybridColumnChildPlan? previousChild;
     var previousPaintBottom = 0.0;
     for (final childPlan in children) {
       if (!childPlan.isVisible(progress)) continue;
       final layoutRect = childPlan.rectAt(progress);
-      final previousRect = previousLayoutRect;
-      final gap = previousRect == null ? 0.0 : layoutRect.top - previousRect.bottom;
-      final top = previousRect == null ? layoutRect.top : math.max(layoutRect.top, previousPaintBottom + gap);
+      final previous = previousChild;
+      final top = previous == null
+          ? layoutRect.top
+          : previousPaintBottom + childPlan.columnGapAfter(previous, progress);
       final childRect = Rect.fromLTWH(
         bounds.left + layoutRect.left,
         bounds.top + top,
@@ -238,10 +242,14 @@ final class _MorphHybridColumnFlightPlan extends ChangeNotifier {
         result = result.expandToInclude(childRect);
       } else {
         result = result.expandToInclude(
-          childPlan.retainedPaintBounds(childRect, progress),
+          childPlan.retainedPaintBounds(
+            childRect,
+            progress,
+            owningBounds: bounds,
+          ),
         );
       }
-      previousLayoutRect = layoutRect;
+      previousChild = childPlan;
       previousPaintBottom = top + childPlan.estimatedPaintHeight(childRect, progress);
     }
     return result;

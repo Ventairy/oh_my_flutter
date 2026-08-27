@@ -128,9 +128,15 @@ final class _MorphHybridColumnChildPlan implements _MorphHybridRawSlotPlan {
   double retainedPaintHeight(
     Canvas canvas,
     Rect rect,
-    double progress,
-  ) {
-    return retained!._paintChild(canvas, rect, progress);
+    double progress, {
+    required Rect owningBounds,
+  }) {
+    return retained!._paintChild(
+      canvas,
+      rect,
+      progress,
+      owningBounds: owningBounds,
+    );
   }
 
   double estimatedPaintHeight(Rect rect, double progress) {
@@ -138,7 +144,39 @@ final class _MorphHybridColumnChildPlan implements _MorphHybridRawSlotPlan {
     return retained == null ? rect.height : retained._estimatedPaintHeight(rect, progress);
   }
 
-  Rect retainedPaintBounds(Rect rect, double progress) {
-    return retained!._childPaintBounds(rect, progress);
+  double columnGapAfter(
+    _MorphHybridColumnChildPlan previous,
+    double progress,
+  ) {
+    final source = this.source;
+    final previousSource = previous.source;
+    final destination = this.destination;
+    final previousDestination = previous.destination;
+    final sourceGap = source == null || previousSource == null ? null : source.rect.top - previousSource.rect.bottom;
+    final destinationGap = destination == null || previousDestination == null
+        ? null
+        : destination.rect.top - previousDestination.rect.bottom;
+    return switch ((sourceGap, destinationGap)) {
+      (final double source, final double destination) => ui.lerpDouble(
+        source,
+        destination,
+        progress,
+      )!,
+      (final double source, null) => source,
+      (null, final double destination) => destination,
+      _ => 0,
+    };
+  }
+
+  Rect retainedPaintBounds(
+    Rect rect,
+    double progress, {
+    required Rect owningBounds,
+  }) {
+    return retained!._childPaintBounds(
+      rect,
+      progress,
+      owningBounds: owningBounds,
+    );
   }
 }

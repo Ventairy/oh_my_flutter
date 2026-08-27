@@ -11,6 +11,7 @@ Makefile
 build/
 coverage/
 doc/api/
+**/benchmark/**/artifacts/
 **/*.iml
 **/android/local.properties
 **/android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java

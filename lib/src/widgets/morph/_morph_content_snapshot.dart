@@ -78,7 +78,7 @@ final class _MorphContentSnapshot {
       _collectNestedEndpoints(renderObject, suppressedEndpoints, isRoot: true);
     }
     for (final endpoint in suppressedEndpoints) {
-      endpoint._snapshotSuppressed = true;
+      endpoint._setSnapshotSuppressed(true);
     }
 
     try {
@@ -135,7 +135,7 @@ final class _MorphContentSnapshot {
       );
     } finally {
       for (final endpoint in suppressedEndpoints) {
-        endpoint._snapshotSuppressed = false;
+        endpoint._setSnapshotSuppressed(false);
       }
       layer.dispose();
     }

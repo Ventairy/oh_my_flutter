@@ -248,7 +248,10 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
         interpolatedFontSize > 0 &&
         destinationFontSize > 0 &&
         destination.lineHeight > 0) {
-      paintStyle = style.copyWith(fontSize: destinationFontSize);
+      paintStyle = style.copyWith(
+        fontSize: destinationFontSize,
+        height: destination.style.height,
+      );
       paintScaleX *= interpolatedFontSize / destinationFontSize;
       if (selected.strutStyle != null) {
         paintMetrics = _measurePaintMetrics(
@@ -266,7 +269,9 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
     final estimatedHeight = paintMetrics != null
         ? paintMetrics.height * paintScaleY
         : !estimateHeight
-        ? selected.estimatedHeight
+        ? selected.lineHeight > 0
+              ? selected.estimatedHeight * lineHeight / selected.lineHeight
+              : selected.estimatedHeight
         : _estimatedHeight(
             selected: selected,
             paintStyle: paintStyle,

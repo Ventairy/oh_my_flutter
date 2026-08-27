@@ -74,7 +74,7 @@ class RouteSettled extends StatefulWidget {
 }
 
 class _RouteSettledState extends State<RouteSettled> {
-  final ControlledVisibilityController _controller = ControlledVisibilityController();
+  final VisibilityController _controller = VisibilityController();
   Animation<double>? _routeAnimation;
   Animation<double>? _secondaryRouteAnimation;
   ValueListenable<bool>? _gestureNotifier;
