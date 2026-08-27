@@ -6,6 +6,7 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 example_directory="$repository_root/example"
 bundle_identifier='dev.ventairy.ohMyFlutterExample'
 simulated_location='-23.556391,-46.844076'
+permission_lifecycle_test_name='when iOS backgrounds an active permission prompt, it should resolve it'
 permission_lifecycle_teardown='+1: (tearDownAll)'
 
 booted_device_line="$(xcrun simctl list devices available | grep 'iPhone.*(Booted)' | head -n 1 || true)"
@@ -66,7 +67,8 @@ fvm flutter test \
   --device-id "$device_id" \
   --no-pub 2>&1 | while IFS= read -r output; do
   printf '%s\n' "$output"
-  if [[ "$output" == *"$permission_lifecycle_teardown"* ]]; then
+  if [[ "$output" == *"$permission_lifecycle_teardown"* ||
+    "$output" == *"✅ $permission_lifecycle_test_name"* ]]; then
     xcrun simctl launch "$device_id" "$bundle_identifier" >/dev/null
   fi
 done
