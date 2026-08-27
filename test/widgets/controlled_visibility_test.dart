@@ -37,7 +37,7 @@ void main() {
     testWidgets('when show is called, it should show immediately', (
       tester,
     ) async {
-      final controller = ControlledVisibilityController();
+      final controller = VisibilityController();
       await tester.pumpWidget(
         _testApp(
           child: ControlledVisibility(
@@ -56,7 +56,7 @@ void main() {
     testWidgets('when hide is called, it should hide immediately', (
       tester,
     ) async {
-      final controller = ControlledVisibilityController()..show();
+      final controller = VisibilityController()..show();
       await tester.pumpWidget(
         _testApp(
           child: ControlledVisibility(
@@ -76,7 +76,7 @@ void main() {
     testWidgets(
       'when hidden and mounted, it should retain the child layout size',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         await tester.pumpWidget(
           _testApp(
             child: ControlledVisibility(
@@ -101,7 +101,7 @@ void main() {
     testWidgets(
       'when hidden and mounted, it should prevent pointer interaction',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         var tapCount = 0;
         await tester.pumpWidget(
           _testApp(
@@ -128,7 +128,7 @@ void main() {
     testWidgets(
       'when hidden and mounted, it should exclude the child semantics',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         await tester.pumpWidget(
           _testApp(
             child: ControlledVisibility(
@@ -150,7 +150,7 @@ void main() {
     testWidgets(
       'when show is called, it should drive the transition from 0 to 1',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         await tester.pumpWidget(
           _testApp(
             child: ControlledVisibility(
@@ -175,7 +175,7 @@ void main() {
     testWidgets(
       'when hide is called, it should use the independent hide duration',
       (tester) async {
-        final controller = ControlledVisibilityController()..show();
+        final controller = VisibilityController()..show();
         await tester.pumpWidget(
           _testApp(
             child: ControlledVisibility(
@@ -201,7 +201,7 @@ void main() {
     testWidgets(
       'when durations change, it should use the updated duration',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         Widget build(Duration duration) => _testApp(
           child: ControlledVisibility(
             controller: controller,
@@ -224,7 +224,7 @@ void main() {
     testWidgets(
       'when reduced motion is requested, it should skip the transition',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         await tester.pumpWidget(
           _testApp(
             disableAnimations: true,
@@ -253,7 +253,7 @@ void main() {
     testWidgets(
       'when the show transition is absent, it should show immediately',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         await tester.pumpWidget(
           _testApp(
             child: ControlledVisibility(
@@ -275,7 +275,7 @@ void main() {
     testWidgets(
       'when the hide transition is absent, it should hide immediately',
       (tester) async {
-        final controller = ControlledVisibilityController()..show();
+        final controller = VisibilityController()..show();
         await tester.pumpWidget(
           _testApp(
             child: ControlledVisibility(
@@ -298,7 +298,7 @@ void main() {
     testWidgets(
       'when transition wrappers differ, it should preserve the child state',
       (tester) async {
-        final controller = ControlledVisibilityController()..show();
+        final controller = VisibilityController()..show();
         var initCount = 0;
         var disposeCount = 0;
         await tester.pumpWidget(
@@ -341,7 +341,7 @@ void main() {
     testWidgets(
       'when show is called before mounting, it should apply the command',
       (tester) async {
-        final controller = ControlledVisibilityController()..show();
+        final controller = VisibilityController()..show();
 
         await tester.pumpWidget(
           _testApp(
@@ -361,7 +361,7 @@ void main() {
     testWidgets(
       'when hidden without unmounting, it should retain the child state',
       (tester) async {
-        final controller = ControlledVisibilityController()..show();
+        final controller = VisibilityController()..show();
         var disposeCount = 0;
         await tester.pumpWidget(
           _testApp(
@@ -382,7 +382,7 @@ void main() {
     testWidgets(
       'when unmounting and showing again, it should create a fresh subtree',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         var initCount = 0;
         var disposeCount = 0;
         await tester.pumpWidget(
@@ -412,9 +412,9 @@ void main() {
     testWidgets(
       'when the controller changes, the old controller should detach',
       (tester) async {
-        final oldController = ControlledVisibilityController();
-        final newController = ControlledVisibilityController();
-        Widget build(ControlledVisibilityController controller) => _testApp(
+        final oldController = VisibilityController();
+        final newController = VisibilityController();
+        Widget build(VisibilityController controller) => _testApp(
           child: ControlledVisibility(
             controller: controller,
             showTransition: _fadeTransition,
@@ -434,7 +434,7 @@ void main() {
     testWidgets(
       'when disposed, its former controller should remain safe to call',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         await tester.pumpWidget(
           _testApp(
             child: ControlledVisibility(
@@ -458,7 +458,7 @@ void main() {
     testWidgets(
       'when hide duration is zero, it should complete the hide operation immediately',
       (tester) async {
-        final controller = ControlledVisibilityController()..show();
+        final controller = VisibilityController()..show();
         var hideCalled = false;
         var hideCompleted = false;
         await tester.pumpWidget(
@@ -490,7 +490,7 @@ void main() {
     testWidgets(
       'when a transition completes, its operation future should complete',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         Future<void>? operation;
         var completed = false;
         await tester.pumpWidget(
@@ -525,7 +525,7 @@ void main() {
     testWidgets(
       'when an operation is interrupted, its future should complete',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         var showCompleted = false;
         await tester.pumpWidget(
           _testApp(
@@ -551,7 +551,7 @@ void main() {
     testWidgets(
       'when no transition exists, its operation future should complete immediately',
       (tester) async {
-        final controller = ControlledVisibilityController();
+        final controller = VisibilityController();
         Future<void>? operation;
         await tester.pumpWidget(
           _testApp(

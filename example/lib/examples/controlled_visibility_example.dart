@@ -13,7 +13,7 @@ class ControlledVisibilityExample extends StatefulWidget {
 }
 
 class _VisibilityExampleState extends State<ControlledVisibilityExample> {
-  final _controller = ControlledVisibilityController();
+  final _controller = VisibilityController();
   bool _detailsVisible = false;
 
   void _toggleDetails() {

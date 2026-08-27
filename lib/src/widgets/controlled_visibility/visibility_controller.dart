@@ -6,14 +6,14 @@ part of 'controlled_visibility.dart';
 /// controller is attached is retained and applied when the widget mounts.
 ///
 /// ```dart
-/// final controller = ControlledVisibilityController();
+/// final controller = VisibilityController();
 ///
 /// controller.show();
 /// controller.hide();
 /// ```
-class ControlledVisibilityController {
+class VisibilityController {
   /// Creates a controller for one [ControlledVisibility] widget.
-  ControlledVisibilityController();
+  VisibilityController();
 
   void Function({required bool visible})? _onChanged;
   bool? _pendingVisibility;
