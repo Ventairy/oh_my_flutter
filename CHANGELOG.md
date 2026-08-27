@@ -1,3 +1,12 @@
+## 0.13.0
+
+- **Breaking:** Rename `ControlledVisibilityController` to
+  `VisibilityController`.
+- Add a generic callable `Debouncer<T>` for delaying repeated synchronous or
+  asynchronous callbacks, sharing the latest pending result, discarding
+  superseded running results by default, and explicitly cancelling or disposing
+  active results.
+
 ## 0.12.0
 
 - Add `Skeleton` for turning existing widget layouts into neutral loading

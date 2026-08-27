@@ -18,7 +18,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.11.0
+  oh_my_flutter: ^0.13.0
 ```
 
 Import the public library wherever you need it:
@@ -137,6 +137,11 @@ failures into a typed error that callers can detect without repeating
 connectivity probes.
 
 ## [Utilities][utility-guides]
+
+### Debouncer
+
+`Debouncer<T>` delays repeated value-producing callbacks until calls stop,
+while sharing the latest callback's result across the pending burst.
 
 ### Device location
 
