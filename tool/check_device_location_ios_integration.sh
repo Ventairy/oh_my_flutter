@@ -6,6 +6,7 @@ repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 example_directory="$repository_root/example"
 bundle_identifier='dev.ventairy.ohMyFlutterExample'
 simulated_location='-23.556391,-46.844076'
+permission_lifecycle_complete='OH_MY_FLUTTER_IOS_PERMISSION_LIFECYCLE_COMPLETE'
 
 booted_device_line="$(xcrun simctl list devices available | grep 'iPhone.*(Booted)' | head -n 1 || true)"
 booted_by_script=false
@@ -58,7 +59,15 @@ fvm flutter test \
   --no-pub
 
 xcrun simctl privacy "$device_id" reset location "$bundle_identifier"
+# Opening Settings backgrounds Runner. Restore it once the test confirms the
+# lifecycle result so Flutter can close the integration-test connection.
 fvm flutter test \
   integration_test/device_location_ios_permission_lifecycle_test.dart \
   --device-id "$device_id" \
-  --no-pub
+  --reporter expanded \
+  --no-pub 2>&1 | while IFS= read -r output; do
+  printf '%s\n' "$output"
+  if [[ "$output" == *"$permission_lifecycle_complete"* ]]; then
+    xcrun simctl launch "$device_id" "$bundle_identifier" >/dev/null
+  fi
+done
