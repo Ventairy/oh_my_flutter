@@ -64,6 +64,7 @@ xcrun simctl privacy "$device_id" reset location "$bundle_identifier"
 fvm flutter test \
   integration_test/device_location_ios_permission_lifecycle_test.dart \
   --device-id "$device_id" \
+  --reporter expanded \
   --no-pub 2>&1 | while IFS= read -r output; do
   printf '%s\n' "$output"
   if [[ "$output" == *"$permission_lifecycle_complete"* ]]; then
