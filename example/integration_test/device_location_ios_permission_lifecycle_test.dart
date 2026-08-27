@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
@@ -27,6 +28,7 @@ void main() {
           failure: DeviceLocationExceptionReason.operationUnavailable,
         ),
       );
+      debugPrint('OH_MY_FLUTTER_IOS_PERMISSION_LIFECYCLE_COMPLETE');
     },
   );
 }
