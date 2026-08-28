@@ -15,12 +15,6 @@ class _SkeletonPaintingContext extends PaintingContext {
   ) : _containerLayer = containerLayer,
       super(containerLayer, estimatedBounds);
 
-  static bool _isLeaf(RenderObject child) {
-    var hasChild = false;
-    child.visitChildren((_) => hasChild = true);
-    return !hasChild;
-  }
-
   final ContainerLayer _containerLayer;
   final _SkeletonPaintState _paintState;
   final List<_SkeletonBoneSegment> _segments;
@@ -50,32 +44,86 @@ class _SkeletonPaintingContext extends PaintingContext {
 
   @override
   void paintChild(RenderObject child, Offset offset) {
-    if (child.isRepaintBoundary) {
-      (canvas as _SkeletonCanvas).recordBoundsBone(
-        child.paintBounds.shift(offset),
-      );
+    final parentScope = _paintState.activeScope;
+    if (parentScope?.capturesOwnPaint ?? false) return;
+
+    if (child is _RenderSkeletonDescendant && !(parentScope?.ignoreAnnotations ?? false)) {
+      _paintAnnotatedChild(child, offset, parentScope);
       return;
     }
 
-    if (!_isLeaf(child)) {
-      super.paintChild(child, offset);
-      return;
-    }
+    _paintNode(
+      child,
+      offset,
+      deferredPaintLevels: parentScope?.childDeferredPaintLevels ?? 0,
+      ignoreAnnotations: parentScope?.ignoreAnnotations ?? false,
+    );
+  }
 
-    final wasPaintingLeaf = _paintState.isPaintingLeaf;
-    final previousBounds = _paintState.leafBounds;
-    final previousFallbackRecorded = _paintState.leafFallbackRecorded;
-    _paintState
-      ..isPaintingLeaf = true
-      ..leafBounds = child.paintBounds.shift(offset)
-      ..leafFallbackRecorded = false;
+  void _paintAnnotatedChild(
+    _RenderSkeletonDescendant child,
+    Offset offset,
+    _SkeletonPaintScope? parentScope,
+  ) {
+    switch (child.behavior) {
+      case SkeletonDescendantBehavior.hide:
+        return;
+      case SkeletonDescendantBehavior.deferToChildren:
+        _paintNode(
+          child,
+          offset,
+          deferredPaintLevels: (parentScope?.childDeferredPaintLevels ?? 0) + 1,
+          ignoreAnnotations: false,
+        );
+        return;
+      case SkeletonDescendantBehavior.paintAsBone:
+        final previousBoneCount = _paintState.boneCount;
+        _paintNode(
+          child,
+          offset,
+          deferredPaintLevels: 0,
+          ignoreAnnotations: true,
+        );
+        if (_paintState.boneCount == previousBoneCount) {
+          (canvas as _SkeletonCanvas).recordBoundsBone(
+            child.paintBounds.shift(offset),
+          );
+          parentScope?.hasDescendantBone = true;
+        }
+        return;
+    }
+  }
+
+  void _paintNode(
+    RenderObject child,
+    Offset offset, {
+    required int deferredPaintLevels,
+    required bool ignoreAnnotations,
+  }) {
+    final parentScope = _paintState.activeScope;
+    final scope = _SkeletonPaintScope(
+      bounds: child.paintBounds.shift(offset),
+      deferredPaintLevels: deferredPaintLevels,
+      ignoreAnnotations: ignoreAnnotations,
+    );
+    final previousBoneCount = _paintState.boneCount;
+    _paintState.activeScope = scope;
     try {
-      super.paintChild(child, offset);
+      if (child.isRepaintBoundary && deferredPaintLevels == 0) {
+        (canvas as _SkeletonCanvas).recordBoundsBone(scope.bounds);
+        scope.capturesOwnPaint = true;
+        return;
+      }
+      if (child.isRepaintBoundary) {
+        child.paint(this, offset);
+      } else {
+        super.paintChild(child, offset);
+      }
     } finally {
-      _paintState
-        ..isPaintingLeaf = wasPaintingLeaf
-        ..leafBounds = previousBounds
-        ..leafFallbackRecorded = previousFallbackRecorded;
+      _paintState.activeScope = parentScope;
+      if (parentScope != null && _paintState.boneCount > previousBoneCount) {
+        parentScope.hasDescendantBone = true;
+      }
     }
   }
 
@@ -86,13 +134,6 @@ class _SkeletonPaintingContext extends PaintingContext {
     Offset offset, {
     Rect? childPaintBounds,
   }) {
-    if (_paintState.isPaintingLeaf) {
-      childLayer
-        ..removeAllChildren()
-        ..remove();
-      (canvas as _SkeletonCanvas).recordLeafFallbackBone();
-      return;
-    }
     if (childLayer is ShaderMaskLayer || childLayer is BackdropFilterLayer || childLayer is ColorFilterLayer) {
       childLayer.removeAllChildren();
       painter(this, offset);
@@ -137,12 +178,8 @@ class _SkeletonPaintingContext extends PaintingContext {
 
   @override
   void appendLayer(Layer layer) {
-    if (_paintState.isPaintingLeaf) {
-      layer.remove();
-      (canvas as _SkeletonCanvas).recordLeafFallbackBone();
-      return;
-    }
-    super.appendLayer(layer);
+    layer.remove();
+    (canvas as _SkeletonCanvas).recordFallbackBone();
   }
 
   @override

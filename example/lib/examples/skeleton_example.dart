@@ -14,7 +14,10 @@ class SkeletonExample extends StatelessWidget {
         radius: Radius.circular(6),
       ),
       child: ListTile(
-        leading: CircleAvatar(child: Icon(Icons.person)),
+        leading: SkeletonDescendant(
+          behavior: SkeletonDescendantBehavior.deferToChildren,
+          child: CircleAvatar(child: Icon(Icons.person)),
+        ),
         title: Text('Loading profile'),
         subtitle: Text('Loading profile details'),
       ),

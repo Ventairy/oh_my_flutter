@@ -1,3 +1,10 @@
+## 0.14.0
+
+- **Breaking:** Make `Skeleton` represent the first visibly painted descendant
+  on each branch as one bone, and add nested `SkeletonDescendant` behaviors for
+  painting a branch root, deferring to its children, or hiding it while
+  retaining layout.
+
 ## 0.13.0
 
 - **Breaking:** Rename `ControlledVisibilityController` to
