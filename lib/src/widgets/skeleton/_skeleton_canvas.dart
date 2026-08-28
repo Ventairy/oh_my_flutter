@@ -14,115 +14,87 @@ class _SkeletonCanvas implements Canvas {
   final Radius _radius;
 
   void _recordFallbackBone() {
-    if (!_paintState.isPaintingLeaf || _paintState.leafFallbackRecorded) {
-      return;
-    }
-    _paintState.leafFallbackRecorded = true;
-    _commands.addBone(
-      _SkeletonDrawRRectCommand(
-        RRect.fromRectAndRadius(_paintState.leafBounds, _radius),
-      ),
+    final scope = _paintState.activeScope;
+    if (scope == null || scope.fallbackRecorded) return;
+    if (!_paintState.beginVisiblePaint()) return;
+    scope.fallbackRecorded = true;
+    _addBone(
+      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(scope.bounds, _radius)),
     );
   }
 
-  void _recordLeafBone(_SkeletonBoneCommand command) {
-    _paintState.leafFallbackRecorded = true;
+  void _addBone(_SkeletonBoneCommand command) {
     _commands.addBone(command);
+    _paintState.boneCount += 1;
+  }
+
+  void _recordBone(_SkeletonBoneCommand command) {
+    if (!_paintState.beginVisiblePaint()) return;
+    _addBone(command);
   }
 
   void recordBoundsBone(Rect bounds) {
-    _commands.addBone(
-      _SkeletonDrawRRectCommand(
-        RRect.fromRectAndRadius(bounds, _radius),
-      ),
+    _addBone(
+      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(bounds, _radius)),
     );
   }
 
-  void recordLeafFallbackBone() => _recordFallbackBone();
+  void recordFallbackBone() => _recordFallbackBone();
 
   @override
   void drawRect(Rect rect, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordLeafBone(
-        _SkeletonDrawRRectCommand(
-          RRect.fromRectAndRadius(rect, _radius),
-        ),
-      );
-    } else {
-      _parent.drawRect(rect, paint);
-    }
+    _recordBone(
+      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(rect, _radius)),
+    );
   }
 
   @override
   void drawRRect(RRect rrect, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordLeafBone(
-        _SkeletonDrawRRectCommand(
-          RRect.fromRectAndRadius(rrect.outerRect, _radius),
-        ),
-      );
-    } else {
-      _parent.drawRRect(rrect, paint);
-    }
+    _recordBone(
+      _SkeletonDrawRRectCommand(
+        RRect.fromRectAndRadius(rrect.outerRect, _radius),
+      ),
+    );
   }
 
   @override
   void drawDRRect(RRect outer, RRect inner, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordLeafBone(
-        _SkeletonDrawDRRectCommand(
-          RRect.fromRectAndRadius(outer.outerRect, _radius),
-          RRect.fromRectAndRadius(inner.outerRect, _radius),
-        ),
-      );
-    } else {
-      _parent.drawDRRect(outer, inner, paint);
-    }
+    _recordBone(
+      _SkeletonDrawDRRectCommand(
+        RRect.fromRectAndRadius(outer.outerRect, _radius),
+        RRect.fromRectAndRadius(inner.outerRect, _radius),
+      ),
+    );
   }
 
   @override
   void drawCircle(Offset c, double radius, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordLeafBone(_SkeletonDrawCircleCommand(c, radius));
-    } else {
-      _parent.drawCircle(c, radius, paint);
-    }
+    _recordBone(_SkeletonDrawCircleCommand(c, radius));
   }
 
   @override
   void drawOval(Rect rect, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordLeafBone(_SkeletonDrawOvalCommand(rect));
-    } else {
-      _parent.drawOval(rect, paint);
-    }
+    _recordBone(_SkeletonDrawOvalCommand(rect));
   }
 
   @override
   void drawPath(Path path, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      if (path.getBounds().isEmpty) {
-        _recordFallbackBone();
-      } else {
-        _recordLeafBone(_SkeletonDrawPathCommand(path));
-      }
+    if (path.getBounds().isEmpty) {
+      _recordFallbackBone();
     } else {
-      _parent.drawPath(path, paint);
+      _recordBone(_SkeletonDrawPathCommand(path));
     }
   }
 
   @override
   void drawParagraph(Paragraph paragraph, Offset offset) {
-    if (!_paintState.isPaintingLeaf) {
-      _parent.drawParagraph(paragraph, offset);
-      return;
-    }
-
     if (paragraph.height <= 0) return;
 
     var lineStart = 0;
     for (var lineNumber = 0; lineNumber < paragraph.numberOfLines; lineNumber += 1) {
-      final lineRange = paragraph.getLineBoundary(TextPosition(offset: lineStart));
+      final lineRange = paragraph.getLineBoundary(
+        TextPosition(offset: lineStart),
+      );
       Rect? lineBounds;
       for (final box in paragraph.getBoxesForRange(
         lineRange.start,
@@ -141,7 +113,7 @@ class _SkeletonCanvas implements Canvas {
       lineStart = nextLineStart;
 
       if (lineBounds == null || lineBounds.isEmpty) continue;
-      _recordLeafBone(
+      _recordBone(
         _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(lineBounds, _radius)),
       );
     }
@@ -149,86 +121,49 @@ class _SkeletonCanvas implements Canvas {
 
   @override
   void drawImage(ui.Image image, Offset offset, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      final rect =
-          offset &
-          Size(
-            image.width.toDouble(),
-            image.height.toDouble(),
-          );
-      _recordLeafBone(
-        _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(rect, _radius)),
-      );
-    } else {
-      _parent.drawImage(image, offset, paint);
-    }
+    final rect = offset & Size(image.width.toDouble(), image.height.toDouble());
+    _recordBone(
+      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(rect, _radius)),
+    );
   }
 
   @override
   void drawImageRect(ui.Image image, Rect src, Rect dst, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordLeafBone(
-        _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(dst, _radius)),
-      );
-    } else {
-      _parent.drawImageRect(image, src, dst, paint);
-    }
+    _recordBone(
+      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(dst, _radius)),
+    );
   }
 
   @override
   void drawImageNine(ui.Image image, Rect center, Rect dst, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordLeafBone(
-        _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(dst, _radius)),
-      );
-    } else {
-      _parent.drawImageNine(image, center, dst, paint);
-    }
+    _recordBone(
+      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(dst, _radius)),
+    );
   }
 
   @override
   void drawColor(Color color, BlendMode blendMode) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawColor(color, blendMode);
-    }
+    _recordFallbackBone();
   }
 
   @override
   void drawLine(Offset p1, Offset p2, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawLine(p1, p2, paint);
-    }
+    _recordFallbackBone();
   }
 
   @override
   void drawPaint(Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawPaint(paint);
-    }
+    _recordFallbackBone();
   }
 
   @override
   void drawPoints(ui.PointMode pointMode, List<Offset> points, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawPoints(pointMode, points, paint);
-    }
+    _recordFallbackBone();
   }
 
   @override
   void drawRawPoints(ui.PointMode pointMode, Float32List points, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawRawPoints(pointMode, points, paint);
-    }
+    _recordFallbackBone();
   }
 
   @override
@@ -238,18 +173,12 @@ class _SkeletonCanvas implements Canvas {
     double elevation,
     bool transparentOccluder,
   ) {
-    if (!_paintState.isPaintingLeaf) {
-      _parent.drawShadow(path, color, elevation, transparentOccluder);
-    }
+    // Shadows are omitted so the following source shape defines the bone.
   }
 
   @override
   void drawVertices(ui.Vertices vertices, ui.BlendMode blendMode, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawVertices(vertices, blendMode, paint);
-    }
+    _recordFallbackBone();
   }
 
   @override
@@ -262,19 +191,7 @@ class _SkeletonCanvas implements Canvas {
     Rect? cullRect,
     Paint paint,
   ) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawAtlas(
-        atlas,
-        transforms,
-        rects,
-        colors,
-        blendMode,
-        cullRect,
-        paint,
-      );
-    }
+    _recordFallbackBone();
   }
 
   @override
@@ -287,28 +204,12 @@ class _SkeletonCanvas implements Canvas {
     Rect? cullRect,
     Paint paint,
   ) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawRawAtlas(
-        atlas,
-        rstTransforms,
-        rects,
-        colors,
-        blendMode,
-        cullRect,
-        paint,
-      );
-    }
+    _recordFallbackBone();
   }
 
   @override
   void drawPicture(ui.Picture picture) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawPicture(picture);
-    }
+    _recordFallbackBone();
   }
 
   @override
@@ -331,10 +232,7 @@ class _SkeletonCanvas implements Canvas {
   void clipRRect(RRect rrect, {bool doAntiAlias = true}) {
     _parent.clipRRect(rrect, doAntiAlias: doAntiAlias);
     _commands.add(
-      _SkeletonClipRRectCommand(
-        rrect: rrect,
-        doAntiAlias: doAntiAlias,
-      ),
+      _SkeletonClipRRectCommand(rrect: rrect, doAntiAlias: doAntiAlias),
     );
   }
 
@@ -368,20 +266,12 @@ class _SkeletonCanvas implements Canvas {
     bool useCenter,
     Paint paint,
   ) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawArc(rect, startAngle, sweepAngle, useCenter, paint);
-    }
+    _recordFallbackBone();
   }
 
   @override
   void drawRSuperellipse(ui.RSuperellipse rsuperellipse, Paint paint) {
-    if (_paintState.isPaintingLeaf) {
-      _recordFallbackBone();
-    } else {
-      _parent.drawRSuperellipse(rsuperellipse, paint);
-    }
+    _recordFallbackBone();
   }
 
   @override

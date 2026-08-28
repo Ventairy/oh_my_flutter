@@ -54,6 +54,8 @@ export 'src/widgets/skeleton/skeleton.dart'
     show
         Skeleton,
         SkeletonAnimatedEffectBase,
+        SkeletonDescendant,
+        SkeletonDescendantBehavior,
         SkeletonEffect,
         SkeletonFadeEffect,
         SkeletonShimmerEffect,

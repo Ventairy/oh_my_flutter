@@ -76,6 +76,21 @@ bool _containsSaturatedSourcePixel(
   return false;
 }
 
+bool _containsBonePixel(
+  ({int height, List<int> pixels, int width}) frame,
+) {
+  for (var offset = 0; offset < frame.pixels.length; offset += 4) {
+    final color = Color.fromARGB(
+      frame.pixels[offset + 3],
+      frame.pixels[offset],
+      frame.pixels[offset + 1],
+      frame.pixels[offset + 2],
+    );
+    if (color == _boneColor) return true;
+  }
+  return false;
+}
+
 Skeleton _skeleton(Widget child) {
   return Skeleton(
     style: const SkeletonStyle(color: _boneColor, radius: Radius.zero),
@@ -94,11 +109,11 @@ Widget _centerSourceLeaf() {
 }
 
 void main() {
-  // Structural render objects keep their own paint while descendant leaf draw
-  // calls become bones.
+  // The first render object that paints on each branch becomes the bone and
+  // terminates traversal below it.
   group('Skeleton non-leaf pixel contract', () {
     testWidgets(
-      'when a decorated box paints behind a leaf child, it should preserve the surface and replace the leaf',
+      'when a decorated box paints behind a child, it should replace the surface and omit the child',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-decorated-box-pixels');
         await tester.pumpWidget(
@@ -122,16 +137,16 @@ void main() {
             sourceColorVisible: _containsSaturatedSourcePixel(frame),
           ),
           (
-            background: Colors.red.toARGB32(),
+            background: _boneColor.toARGB32(),
             child: _boneColor.toARGB32(),
-            sourceColorVisible: true,
+            sourceColorVisible: false,
           ),
         );
       },
     );
 
     testWidgets(
-      'when a colored container paints behind a leaf child, it should preserve the surface and replace the leaf',
+      'when a colored container paints behind a child, it should replace the surface and omit the child',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-container-pixels');
         await tester.pumpWidget(
@@ -160,16 +175,16 @@ void main() {
             sourceColorVisible: _containsSaturatedSourcePixel(frame),
           ),
           (
-            background: Colors.green.toARGB32(),
+            background: _boneColor.toARGB32(),
             child: _boneColor.toARGB32(),
-            sourceColorVisible: true,
+            sourceColorVisible: false,
           ),
         );
       },
     );
 
     testWidgets(
-      'when a physical model paints behind a leaf child, it should preserve the surface and replace the leaf',
+      'when a physical model paints behind a child, it should replace the surface and omit the child',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-physical-model-pixels');
         await tester.pumpWidget(
@@ -194,16 +209,16 @@ void main() {
             sourceColorVisible: _containsSaturatedSourcePixel(frame),
           ),
           (
-            background: Colors.red.toARGB32(),
+            background: _boneColor.toARGB32(),
             child: _boneColor.toARGB32(),
-            sourceColorVisible: true,
+            sourceColorVisible: false,
           ),
         );
       },
     );
 
     testWidgets(
-      'when a card paints behind a leaf child, it should preserve the surface and replace the leaf',
+      'when a card paints behind a child, it should replace the surface and omit the child',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-card-pixels');
         await tester.pumpWidget(
@@ -230,16 +245,16 @@ void main() {
             sourceColorVisible: _containsSaturatedSourcePixel(frame),
           ),
           (
-            background: Colors.green.toARGB32(),
+            background: _boneColor.toARGB32(),
             child: _boneColor.toARGB32(),
-            sourceColorVisible: true,
+            sourceColorVisible: false,
           ),
         );
       },
     );
 
     testWidgets(
-      'when custom painters surround a leaf child, it should preserve non-leaf paint around the bone',
+      'when custom painters surround a child, it should replace their paint and omit the child source',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-custom-paint-pixels');
         await tester.pumpWidget(
@@ -268,17 +283,17 @@ void main() {
             sourceColorVisible: _containsSaturatedSourcePixel(frame),
           ),
           (
-            foreground: Colors.green.toARGB32(),
-            background: Colors.red.toARGB32(),
+            foreground: _boneColor.toARGB32(),
+            background: _boneColor.toARGB32(),
             child: _boneColor.toARGB32(),
-            sourceColorVisible: true,
+            sourceColorVisible: false,
           ),
         );
       },
     );
 
     testWidgets(
-      'when a non-leaf custom painter draws text, it should preserve the text and replace the leaf',
+      'when a non-leaf custom painter draws text, it should capture the text and omit the child',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-custom-paint-text-pixels');
         await tester.pumpWidget(
@@ -300,10 +315,11 @@ void main() {
 
         expect(
           (
-            child: _pixelAt(frame, 32, 20).toARGB32(),
+            hasBone: _containsBonePixel(frame),
+            childAlpha: _pixelAt(frame, 32, 20).a,
             sourceColorVisible: _containsSaturatedSourcePixel(frame),
           ),
-          (child: _boneColor.toARGB32(), sourceColorVisible: true),
+          (hasBone: true, childAlpha: 0.0, sourceColorVisible: false),
         );
       },
     );

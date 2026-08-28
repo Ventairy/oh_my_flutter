@@ -125,8 +125,9 @@ settled and no navigator gesture is active.
 
 ### Skeleton
 
-`Skeleton` preserves a widget subtree's layout while replacing its painted leaf
-content with neutral loading bones and optional fade or shimmer effects.
+`Skeleton` preserves a widget subtree's layout while replacing the first
+painted descendant on each branch with neutral loading bones, with optional
+descendant overrides and fade or shimmer effects.
 
 ## [Networking][networking-guides]
 

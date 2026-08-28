@@ -20,12 +20,14 @@ part '_skeleton_clip_path_command.dart';
 part '_skeleton_clip_rect_command.dart';
 part '_skeleton_clip_rrect_command.dart';
 part '_skeleton_clip_rsuperellipse_command.dart';
+part '_skeleton_descendant_render_object.dart';
 part '_skeleton_draw_circle_command.dart';
 part '_skeleton_draw_drrect_command.dart';
 part '_skeleton_draw_oval_command.dart';
 part '_skeleton_draw_path_command.dart';
 part '_skeleton_draw_rrect_command.dart';
 part '_skeleton_effect_frame_cache.dart';
+part '_skeleton_paint_scope.dart';
 part '_skeleton_paint_state.dart';
 part '_skeleton_painting_context.dart';
 part '_skeleton_render_object.dart';
@@ -40,6 +42,8 @@ part '_skeleton_transform_command.dart';
 part '_skeleton_translate_command.dart';
 part 'skeleton_animated_effect_base.dart';
 part 'skeleton_effect.dart';
+part 'skeleton_descendant.dart';
+part 'skeleton_descendant_behavior.dart';
 part 'skeleton_fade_effect.dart';
 part 'skeleton_shimmer_effect.dart';
 part 'skeleton_static_effect_base.dart';
@@ -47,9 +51,10 @@ part 'skeleton_style.dart';
 
 /// A loading placeholder that replaces a widget subtree's painted content with skeleton bones.
 ///
-/// The child keeps its original layout while text, images, icons, and other
-/// painted leaves become neutral placeholder shapes. Set [enabled] to `false`
-/// to render [child] normally.
+/// The child keeps its original layout. On each branch, the first descendant
+/// that paints visible content becomes a neutral placeholder shape and its
+/// children are omitted. Use [SkeletonDescendant] to customize individual
+/// branches. Set [enabled] to `false` to render [child] normally.
 ///
 /// Animated effects stop when the platform requests reduced motion, leaving a
 /// visible static placeholder in place.
