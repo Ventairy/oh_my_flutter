@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'package:oh_my_flutter/src/device/device_location/device_location_platform.dart';
 
 part '_fake_device_location_platform.dart';
+part '_fake_device_location.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -29,6 +31,13 @@ void main() {
     tearDown(() {
       DeviceLocationPlatform.instance = originalPlatform;
     });
+
+    test(
+      'when a consumer implements DeviceLocation, it should support test substitution',
+      () {
+        expect(const _FakeDeviceLocation(), isA<DeviceLocation>());
+      },
+    );
 
     test(
       'when permission status is checked, it should return the native status',
@@ -156,6 +165,274 @@ void main() {
         final coordinates = await const DeviceLocation().getCurrentCoordinates();
 
         expect(coordinates, platform.coordinates);
+      },
+    );
+
+    test(
+      'when an address is available, it should return its components',
+      () async {
+        final address = await const DeviceLocation().getCurrentAddress();
+
+        expect(address.street, 'Rua Harmonia');
+      },
+    );
+
+    test(
+      'when an address locale is supplied, it should forward its language tag',
+      () async {
+        await const DeviceLocation().getCurrentAddress(
+          locale: const Locale('pt', 'BR'),
+        );
+
+        expect(platform.localeIdentifier, 'pt-BR');
+      },
+    );
+
+    test(
+      'when an address locale has a script, it should forward a BCP-47 tag',
+      () async {
+        await const DeviceLocation().getCurrentAddress(
+          locale: const Locale.fromSubtags(
+            languageCode: 'zh',
+            scriptCode: 'Hant',
+            countryCode: 'TW',
+          ),
+        );
+
+        expect(platform.localeIdentifier, 'zh-Hant-TW');
+      },
+    );
+
+    test(
+      'when address permission is not requested, it should not show a prompt',
+      () async {
+        platform.checkedPermission = DeviceLocationPermissionStatus.denied;
+
+        try {
+          await const DeviceLocation().getCurrentAddress(
+            requestPermission: false,
+          );
+        } on DeviceLocationException {
+          // Expected permission failure.
+        }
+
+        expect(platform.permissionRequests, 0);
+      },
+    );
+
+    test(
+      'when address lookup fails, it should report operationUnavailable',
+      () async {
+        platform.addressError = Exception('unavailable');
+
+        expect(
+          const DeviceLocation().getCurrentAddress(),
+          throwsA(hasReason(DeviceLocationExceptionReason.operationUnavailable)),
+        );
+      },
+    );
+
+    test(
+      'when address lookup throws a non-exception object, it should report operationUnavailable',
+      () async {
+        platform.addressErrorObject = StateError('malformed platform response');
+
+        expect(
+          const DeviceLocation().getCurrentAddress(),
+          throwsA(hasReason(DeviceLocationExceptionReason.operationUnavailable)),
+        );
+      },
+    );
+
+    test(
+      'when address coordinate acquisition fails, it should preserve that failure',
+      () async {
+        platform.coordinatesError = const DeviceLocationException(
+          DeviceLocationExceptionReason.coordinatesUnavailable,
+        );
+
+        expect(
+          const DeviceLocation().getCurrentAddress(),
+          throwsA(hasReason(DeviceLocationExceptionReason.coordinatesUnavailable)),
+        );
+      },
+    );
+
+    test(
+      'when address coordinate acquisition returns malformed platform data, it should report operationUnavailable',
+      () async {
+        platform.coordinatesErrorObject = StateError(
+          'malformed platform response',
+        );
+
+        expect(
+          const DeviceLocation().getCurrentAddress(),
+          throwsA(
+            hasReason(DeviceLocationExceptionReason.operationUnavailable),
+          ),
+        );
+      },
+    );
+
+    test(
+      'when address location services are disabled, it should preserve that failure',
+      () async {
+        platform.serviceEnabled = false;
+
+        expect(
+          const DeviceLocation().getCurrentAddress(),
+          throwsA(hasReason(DeviceLocationExceptionReason.servicesDisabled)),
+        );
+      },
+    );
+
+    test(
+      'when native address lookup reports a typed failure, it should preserve it',
+      () async {
+        platform.addressError = const DeviceLocationException(
+          DeviceLocationExceptionReason.unsupportedPlatform,
+        );
+
+        expect(
+          const DeviceLocation().getCurrentAddress(),
+          throwsA(hasReason(DeviceLocationExceptionReason.unsupportedPlatform)),
+        );
+      },
+    );
+
+    test(
+      'when matching address requests overlap, it should reverse geocode once',
+      () async {
+        final coordinatesCompleter = Completer<DeviceLocationCoordinates>();
+        final addressCompleter = Completer<DeviceLocationAddress>();
+        platform
+          ..coordinatesCompleter = coordinatesCompleter
+          ..addressCompleter = addressCompleter;
+
+        final first = const DeviceLocation().getCurrentAddress();
+        final second = const DeviceLocation().getCurrentAddress();
+        coordinatesCompleter.complete(platform.coordinates);
+        await Future<void>.delayed(Duration.zero);
+        addressCompleter.complete(platform.address);
+        await Future.wait([first, second]);
+
+        expect(platform.addressRequests, 1);
+      },
+    );
+
+    test(
+      'when pending address requests have equal nonidentical coordinates, '
+      'it should reverse geocode independently',
+      () async {
+        final firstCoordinatesCompleter = Completer<DeviceLocationCoordinates>();
+        final secondCoordinatesCompleter = Completer<DeviceLocationCoordinates>();
+        final addressCompleter = Completer<DeviceLocationAddress>();
+        final firstCoordinates = DeviceLocationCoordinates(
+          latitude: platform.coordinates.latitude,
+          longitude: platform.coordinates.longitude,
+          accuracy: platform.coordinates.accuracy,
+        );
+        final secondCoordinates = DeviceLocationCoordinates(
+          latitude: platform.coordinates.latitude,
+          longitude: platform.coordinates.longitude,
+          accuracy: platform.coordinates.accuracy,
+        );
+        platform
+          ..coordinatesCompleter = firstCoordinatesCompleter
+          ..addressCompleter = addressCompleter;
+
+        final first = const DeviceLocation().getCurrentAddress();
+        firstCoordinatesCompleter.complete(firstCoordinates);
+        await Future<void>.delayed(Duration.zero);
+        platform.coordinatesCompleter = secondCoordinatesCompleter;
+
+        final second = const DeviceLocation().getCurrentAddress();
+        secondCoordinatesCompleter.complete(secondCoordinates);
+        await Future<void>.delayed(Duration.zero);
+        addressCompleter.complete(platform.address);
+        await Future.wait([first, second]);
+
+        expect(
+          (
+            coordinates: platform.coordinatesRequests,
+            addresses: platform.addressRequests,
+          ),
+          (coordinates: 2, addresses: 2),
+        );
+      },
+    );
+
+    test(
+      'when address requests capture different platforms, '
+      'it should reverse geocode independently',
+      () async {
+        final firstCoordinatesCompleter = Completer<DeviceLocationCoordinates>();
+        final firstAddressCompleter = Completer<DeviceLocationAddress>();
+        final secondAddressCompleter = Completer<DeviceLocationAddress>();
+        final replacement = _FakeDeviceLocationPlatform()..addressCompleter = secondAddressCompleter;
+        platform
+          ..coordinatesCompleter = firstCoordinatesCompleter
+          ..addressCompleter = firstAddressCompleter;
+
+        final first = const DeviceLocation().getCurrentAddress();
+        DeviceLocationPlatform.instance = replacement;
+        final second = const DeviceLocation().getCurrentAddress();
+        firstCoordinatesCompleter.complete(platform.coordinates);
+        await Future<void>.delayed(Duration.zero);
+        firstAddressCompleter.complete(platform.address);
+        secondAddressCompleter.complete(replacement.address);
+        await Future.wait([first, second]);
+
+        expect(
+          (
+            first: platform.addressRequests,
+            second: replacement.addressRequests,
+          ),
+          (first: 1, second: 1),
+        );
+      },
+    );
+
+    test(
+      'when address locales differ, it should reverse geocode independently',
+      () async {
+        final coordinatesCompleter = Completer<DeviceLocationCoordinates>();
+        platform.coordinatesCompleter = coordinatesCompleter;
+
+        final portuguese = const DeviceLocation().getCurrentAddress(
+          locale: const Locale('pt', 'BR'),
+        );
+        final english = const DeviceLocation().getCurrentAddress(
+          locale: const Locale('en', 'US'),
+        );
+        coordinatesCompleter.complete(platform.coordinates);
+        await Future.wait([portuguese, english]);
+
+        expect(platform.addressRequests, 2);
+      },
+    );
+
+    test(
+      'when address lookup completes, it should let the next call refresh',
+      () async {
+        await const DeviceLocation().getCurrentAddress();
+        await const DeviceLocation().getCurrentAddress();
+
+        expect(platform.addressRequests, 2);
+      },
+    );
+
+    test(
+      'when the platform changes during address acquisition, it should use the captured platform',
+      () async {
+        final replacement = _FakeDeviceLocationPlatform();
+        platform.onServiceEnabled = () {
+          DeviceLocationPlatform.instance = replacement;
+        };
+
+        final address = await const DeviceLocation().getCurrentAddress();
+
+        expect(address, platform.address);
       },
     );
 

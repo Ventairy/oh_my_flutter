@@ -6,16 +6,25 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
 import android.net.Uri
+import android.os.Build
 import android.os.CancellationSignal
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import androidx.core.location.LocationListenerCompat
 import androidx.core.location.LocationManagerCompat
 import androidx.core.location.LocationRequestCompat
+import java.io.IOException
+import java.util.Locale
 import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /** Owns Android foreground-location permissions and one-shot coordinate requests. */
 internal class DeviceLocationHandler(
@@ -47,6 +56,28 @@ internal class DeviceLocationHandler(
         Executor,
         (Location?) -> Unit,
     ) -> Unit = Companion::requestCurrentLocation,
+    private val geocoderPresentOperation: () -> Boolean = Geocoder::isPresent,
+    private val backgroundExecutor: Executor = Executors.newSingleThreadExecutor(),
+    private val currentAddressOperation: (
+        Double,
+        Double,
+        String?,
+        Executor,
+        (Result<Address?>) -> Unit,
+    ) -> Unit = { latitude, longitude, localeIdentifier, executor, callback ->
+        requestAddress(
+            applicationContext,
+            latitude,
+            longitude,
+            localeIdentifier,
+            executor,
+            callback,
+        )
+    },
+    private val scheduleAddressTimeoutOperation: (
+        Long,
+        () -> Unit,
+    ) -> (() -> Unit) = Companion::scheduleAddressTimeout,
 ) : AndroidDeviceLocationApi {
     private var activity: Activity? = null
     private var permissionCallback:
@@ -56,6 +87,10 @@ internal class DeviceLocationHandler(
     private var coordinatesCallback:
         ((Result<AndroidDeviceCoordinates>) -> Unit)? = null
     private var cancellationSignal: CancellationSignal? = null
+    private val addressCallbacks =
+        mutableSetOf<(Result<AndroidDeviceLocationAddress>) -> Unit>()
+    private val addressTimeoutCancellations =
+        mutableMapOf<(Result<AndroidDeviceLocationAddress>) -> Unit, () -> Unit>()
 
     override fun isServiceEnabled(): Boolean {
         return try {
@@ -174,6 +209,192 @@ internal class DeviceLocationHandler(
         }
     }
 
+    override fun getAddress(
+        latitude: Double,
+        longitude: Double,
+        localeIdentifier: String?,
+        timeoutMilliseconds: Long,
+        callback: (Result<AndroidDeviceLocationAddress>) -> Unit,
+    ) {
+        var isCompleted = false
+        lateinit var complete: (Result<AndroidDeviceLocationAddress>) -> Unit
+        complete = { result ->
+            if (!isCompleted) {
+                isCompleted = true
+                addressCallbacks.remove(complete)
+                addressTimeoutCancellations.remove(complete)?.invoke()
+                callback(result)
+            }
+        }
+        try {
+            startAddressRequest(
+                latitude,
+                longitude,
+                localeIdentifier,
+                timeoutMilliseconds,
+                complete,
+            )
+        } catch (error: Exception) {
+            complete.failure(
+                AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                error.message,
+            )
+        }
+    }
+
+    private fun startAddressRequest(
+        latitude: Double,
+        longitude: Double,
+        localeIdentifier: String?,
+        timeoutMilliseconds: Long,
+        callback: (Result<AndroidDeviceLocationAddress>) -> Unit,
+    ) {
+        if (!latitude.isFinite() || latitude !in -90.0..90.0 ||
+            !longitude.isFinite() || longitude !in -180.0..180.0
+        ) {
+            callback.failure(
+                AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                "Reverse geocoding requires valid coordinates.",
+            )
+            return
+        }
+        if (!geocoderPresentOperation()) {
+            callback.failure(
+                AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                "No device geocoder is available.",
+            )
+            return
+        }
+        if (timeoutMilliseconds !in 1..MAX_ADDRESS_TIMEOUT_MILLISECONDS) {
+            callback.failure(
+                AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                "Reverse geocoding requires a valid timeout.",
+            )
+            return
+        }
+
+        addressCallbacks.add(callback)
+        val cancelTimeout = scheduleAddressTimeoutOperation(timeoutMilliseconds) {
+            if (callback in addressCallbacks) {
+                callback.failure(
+                    AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                    "Reverse geocoding timed out.",
+                )
+            }
+        }
+        if (callback in addressCallbacks) {
+            addressTimeoutCancellations[callback] = cancelTimeout
+        } else {
+            cancelTimeout()
+        }
+        if (callback !in addressCallbacks) return
+        currentAddressOperation(
+            latitude,
+            longitude,
+            localeIdentifier,
+            backgroundExecutor,
+        ) { result ->
+            try {
+                mainExecutorOperation(applicationContext).execute {
+                    if (callback !in addressCallbacks) return@execute
+                    try {
+                        completeAddressResult(callback, result)
+                    } catch (error: Exception) {
+                        callback.failure(
+                            AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                            error.message,
+                        )
+                    }
+                }
+            } catch (error: Exception) {
+                callback.failure(
+                    AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                    error.message,
+                )
+            }
+        }
+    }
+
+    private fun completeAddressResult(
+        callback: (Result<AndroidDeviceLocationAddress>) -> Unit,
+        result: Result<Address?>,
+    ) {
+        val address = result.getOrNull()
+        if (address == null) {
+            callback.failure(
+                AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                result.exceptionOrNull()?.message ?: "No address was found.",
+            )
+            return
+        }
+        val mappedAddress = mapAddress(address)
+        if (!mappedAddress.hasUsableValue()) {
+            callback.failure(
+                AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                "The device geocoder returned an empty address.",
+            )
+            return
+        }
+        callback(Result.success(mappedAddress))
+    }
+
+    private fun mapAddress(address: Address): AndroidDeviceLocationAddress {
+        val maximumLineIndex = address.maxAddressLineIndex
+        val formattedAddress = if (maximumLineIndex >= 0) {
+            // Address permits arbitrary sparse indexes; bound provider-controlled work.
+            val inspectedLineCount = minOf(
+                maximumLineIndex,
+                MAX_ADDRESS_LINE_COUNT - 1,
+            ) + 1
+            (0 until inspectedLineCount)
+                .mapNotNull { index -> normalized(address.getAddressLine(index)) }
+                .joinToString("\n")
+                .ifEmpty { null }
+        } else {
+            null
+        }
+        val countryCode = normalized(address.countryCode)
+            ?.takeIf(::isAsciiCountryCode)
+            ?.uppercase(Locale.ROOT)
+        return AndroidDeviceLocationAddress(
+            formattedAddress = formattedAddress,
+            name = normalized(address.featureName),
+            street = normalized(address.thoroughfare),
+            streetNumber = normalized(address.subThoroughfare),
+            neighborhood = normalized(address.subLocality),
+            district = normalized(address.subAdminArea),
+            city = normalized(address.locality),
+            state = normalized(address.adminArea),
+            postalCode = normalized(address.postalCode),
+            country = normalized(address.countryName),
+            countryCode = countryCode,
+        )
+    }
+
+    private fun isAsciiCountryCode(value: String): Boolean {
+        return value.length == 2 && value.all { character ->
+            character in 'A'..'Z' || character in 'a'..'z'
+        }
+    }
+
+    private fun AndroidDeviceLocationAddress.hasUsableValue(): Boolean {
+        return formattedAddress != null ||
+            name != null ||
+            street != null ||
+            streetNumber != null ||
+            neighborhood != null ||
+            district != null ||
+            city != null ||
+            state != null ||
+            postalCode != null ||
+            country != null ||
+            countryCode != null
+    }
+
+    private fun normalized(value: String?): String? {
+        return value?.trim()?.takeIf(String::isNotEmpty)
+    }
+
     @SuppressLint("MissingPermission")
     private fun startCurrentCoordinates(
         callback: (Result<AndroidDeviceCoordinates>) -> Unit,
@@ -269,12 +490,15 @@ internal class DeviceLocationHandler(
         activity = null
         failPermissionRequest("The activity was detached.")
         failCoordinatesRequest("The activity was detached.")
+        failAddressRequests("The activity was detached.")
     }
 
     fun dispose() {
         activity = null
         failPermissionRequest("The Flutter engine was detached.")
         failCoordinatesRequest("The Flutter engine was detached.")
+        failAddressRequests("The Flutter engine was detached.")
+        (backgroundExecutor as? ExecutorService)?.shutdownNow()
     }
 
     fun onRequestPermissionsResult(
@@ -427,6 +651,17 @@ internal class DeviceLocationHandler(
         signal?.cancel()
     }
 
+    private fun failAddressRequests(message: String) {
+        val callbacks = addressCallbacks.toList()
+        addressCallbacks.clear()
+        for (callback in callbacks) {
+            callback.failure(
+                AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+                message,
+            )
+        }
+    }
+
     private fun <T> ((Result<T>) -> Unit).failure(
         failure: AndroidDeviceLocationFailure,
         message: String?,
@@ -451,7 +686,19 @@ internal class DeviceLocationHandler(
         return FlutterError(code, message, failure)
     }
 
-    private companion object {
+    companion object {
+        private fun scheduleAddressTimeout(
+            timeoutMilliseconds: Long,
+            onTimeout: () -> Unit,
+        ): () -> Unit {
+            val handler = Handler(Looper.getMainLooper())
+            val timeout = Runnable(onTimeout)
+            check(handler.postDelayed(timeout, timeoutMilliseconds)) {
+                "Could not schedule the reverse-geocoding timeout."
+            }
+            return { handler.removeCallbacks(timeout) }
+        }
+
         @SuppressLint("MissingPermission")
         fun requestCurrentLocation(
             manager: LocationManager,
@@ -501,6 +748,104 @@ internal class DeviceLocationHandler(
             return true
         }
 
+        fun requestAddress(
+            context: Context,
+            latitude: Double,
+            longitude: Double,
+            localeIdentifier: String?,
+            backgroundExecutor: Executor,
+            callback: (Result<Address?>) -> Unit,
+            sdkInt: Int = Build.VERSION.SDK_INT,
+            geocoderFactory: (Context, Locale) -> Geocoder = ::Geocoder,
+        ) {
+            val requestedLocale = localeIdentifier
+                ?.takeIf(String::isNotBlank)
+                ?.let(Locale::forLanguageTag)
+                ?.takeIf { locale -> locale.language.isNotEmpty() }
+                ?: Locale.getDefault()
+            val geocoder = geocoderFactory(context, requestedLocale)
+            if (sdkInt >= Build.VERSION_CODES.TIRAMISU) {
+                requestModernAddress(
+                    geocoder,
+                    latitude,
+                    longitude,
+                    callback,
+                )
+                return
+            }
+
+            requestLegacyAddressOnExecutor(
+                geocoder,
+                latitude,
+                longitude,
+                backgroundExecutor,
+                callback,
+            )
+        }
+
+        @android.annotation.TargetApi(Build.VERSION_CODES.TIRAMISU)
+        fun requestModernAddress(
+            geocoder: Geocoder,
+            latitude: Double,
+            longitude: Double,
+            callback: (Result<Address?>) -> Unit,
+        ) {
+            geocoder.getFromLocation(
+                latitude,
+                longitude,
+                1,
+                object : Geocoder.GeocodeListener {
+                    override fun onGeocode(addresses: MutableList<Address>) {
+                        callback(Result.success(addresses.firstOrNull()))
+                    }
+
+                    override fun onError(errorMessage: String?) {
+                        callback(
+                            Result.failure(
+                                IOException(errorMessage ?: "Reverse geocoding failed."),
+                            ),
+                        )
+                    }
+                },
+            )
+        }
+
+        fun requestLegacyAddressOnExecutor(
+            geocoder: Geocoder,
+            latitude: Double,
+            longitude: Double,
+            backgroundExecutor: Executor,
+            callback: (Result<Address?>) -> Unit,
+        ) {
+            backgroundExecutor.execute {
+                requestLegacyAddress(
+                    geocoder,
+                    latitude,
+                    longitude,
+                    callback,
+                )
+            }
+        }
+
+        @Suppress("DEPRECATION")
+        private fun requestLegacyAddress(
+            geocoder: Geocoder,
+            latitude: Double,
+            longitude: Double,
+            callback: (Result<Address?>) -> Unit,
+        ) {
+            try {
+                callback(
+                    Result.success(
+                        geocoder.getFromLocation(latitude, longitude, 1)
+                            ?.firstOrNull(),
+                    ),
+                )
+            } catch (error: Exception) {
+                callback(Result.failure(error))
+            }
+        }
+
         const val PERMISSION_REQUEST_CODE = 7642
         const val SERVICES_DISABLED = "servicesDisabled"
         const val PERMISSION_DENIED = "permissionDenied"
@@ -509,5 +854,8 @@ internal class DeviceLocationHandler(
         const val OPERATION_UNAVAILABLE = "operationUnavailable"
         const val COORDINATES_UNAVAILABLE = "coordinatesUnavailable"
         const val FUSED_PROVIDER = "fused"
+        const val ADDRESS_TIMEOUT_MILLISECONDS = 30_000L
+        const val MAX_ADDRESS_LINE_COUNT = 16
+        private const val MAX_ADDRESS_TIMEOUT_MILLISECONDS = 120_000L
     }
 }

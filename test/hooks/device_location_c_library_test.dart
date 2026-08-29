@@ -67,6 +67,9 @@ void main() {
     '_nativeCheckPermission',
     '_nativeRequestPermission',
     '_nativeRequestCoordinates',
+    '_nativeRequestAddress',
+    '_nativeAllocate',
+    '_nativeFree',
     '_nativeOpenSettings',
   ]) {
     test(

@@ -1,7 +1,7 @@
 # Device location
 
 Use `DeviceLocation` to manage foreground location permission and retrieve
-fresh coordinates on Android or iOS.
+fresh coordinates or a device-formatted current address on Android or iOS.
 
 The supported native targets are Android 7.0 (API 24) or newer and iOS 15 or
 newer, matching the minimums of the supported Flutter toolchain.
@@ -26,6 +26,64 @@ Overlapping coordinate calls share one acquisition. After it completes, the
 next call asks for fresh coordinates. The operating system controls how long
 acquisition takes; the package does not expose a timeout or return a cached
 result.
+
+## Retrieve the current address
+
+Call `getCurrentAddress()` when the application needs a readable description
+of the user's current location:
+
+```dart
+import 'package:oh_my_flutter/oh_my_flutter.dart';
+
+final address = await const DeviceLocation().getCurrentAddress();
+
+showCurrentStreet(address.street ?? address.formattedAddress);
+```
+
+The returned `DeviceLocationAddress` keeps the coordinates used for the lookup
+and exposes `formattedAddress`, `name`, `street`, `streetNumber`,
+`neighborhood`, `district`, `city`, `state`, `postalCode`, `country`, and
+`countryCode`. Every text field is nullable because the device can return only
+the detail available for that location. A regional result might contain a city
+and country without a street, for example.
+
+`formattedAddress` uses the device's address formatting and can contain line
+breaks. Select an individual component when the interface needs a shorter
+label. Empty device values are returned as null. Two-letter ASCII country codes
+supplied by the device are returned uppercase.
+
+Pass a locale when the application prefers a particular language or region:
+
+```dart
+import 'package:flutter/widgets.dart' show Locale;
+
+final address = await const DeviceLocation().getCurrentAddress(
+  locale: const Locale('pt', 'BR'),
+);
+```
+
+The locale is a best-effort preference. Device geocoders can return another
+locale when localized data is unavailable. A null locale uses the device
+locale.
+
+Address lookup first acquires fresh coordinates and therefore follows the same
+permission and location-service behavior as `getCurrentCoordinates()`.
+`requestPermission: false` guarantees that it does not display a permission
+prompt. Matching overlapping lookups share their active work, while a call
+made after completion starts a fresh coordinate acquisition and address
+lookup.
+
+Device geocoding can require a network connection and does not guarantee an
+address or a particular level of accuracy. Do not use the result for
+safety-critical or regulatory decisions. When coordinates are available but
+the device cannot return a usable address, `getCurrentAddress()` throws
+`DeviceLocationException` with `operationUnavailable`.
+
+After fresh coordinates are available, address resolution stops waiting after
+30 seconds and reports `operationUnavailable`. The package does not
+automatically retry. Applications making frequent sequential refreshes should
+pace retries and wait for a later user action or connectivity change after a
+failure.
 
 ## Manage permission explicitly
 
@@ -106,7 +164,8 @@ try {
 
 `coordinatesUnavailable` can be retried after an appropriate user action.
 `operationUnavailable` covers a platform operation that could not run, such as
-settings navigation while the application has no usable native lifecycle.
+settings navigation while the application has no usable native lifecycle or a
+current address that the device could not resolve.
 
 ## Configure Android
 
@@ -168,10 +227,8 @@ does not request temporary full-accuracy access.
 
 ## Privacy and store disclosures
 
-`DeviceLocation` returns coordinates to the calling application in memory. It
-does not retain or transmit them and does not track the user. The application
-remains responsible for its privacy policy, consent flow, store disclosures,
-and secure handling if it stores, links, or transmits the returned coordinates.
+`DeviceLocation` returns coordinates and address data to the calling
+application in memory.
 
 ## Other platforms
 

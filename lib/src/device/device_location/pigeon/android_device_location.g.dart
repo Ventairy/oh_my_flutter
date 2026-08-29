@@ -189,6 +189,124 @@ class AndroidDeviceCoordinates {
   }
 }
 
+/// Carries an Android reverse-geocoding result across the platform channel.
+class AndroidDeviceLocationAddress {
+  AndroidDeviceLocationAddress({
+    this.formattedAddress,
+    this.name,
+    this.street,
+    this.streetNumber,
+    this.neighborhood,
+    this.district,
+    this.city,
+    this.state,
+    this.postalCode,
+    this.country,
+    this.countryCode,
+  });
+
+  /// The localized, display-ready address.
+  String? formattedAddress;
+
+  /// The named place, building, landmark, or feature.
+  String? name;
+
+  /// The street or thoroughfare name.
+  String? street;
+
+  /// The building or street number.
+  String? streetNumber;
+
+  /// The neighborhood or sublocality.
+  String? neighborhood;
+
+  /// The county, district, or subadministrative area.
+  String? district;
+
+  /// The city or locality.
+  String? city;
+
+  /// The state, province, or administrative area.
+  String? state;
+
+  /// The postal or ZIP code.
+  String? postalCode;
+
+  /// The localized country or region name.
+  String? country;
+
+  /// The two-letter country or region code.
+  String? countryCode;
+
+  List<Object?> _toList() {
+    return <Object?>[
+      formattedAddress,
+      name,
+      street,
+      streetNumber,
+      neighborhood,
+      district,
+      city,
+      state,
+      postalCode,
+      country,
+      countryCode,
+    ];
+  }
+
+  Object encode() {
+    return _toList();
+  }
+
+  static AndroidDeviceLocationAddress decode(Object result) {
+    result as List<Object?>;
+    return AndroidDeviceLocationAddress(
+      formattedAddress: result[0] as String?,
+      name: result[1] as String?,
+      street: result[2] as String?,
+      streetNumber: result[3] as String?,
+      neighborhood: result[4] as String?,
+      district: result[5] as String?,
+      city: result[6] as String?,
+      state: result[7] as String?,
+      postalCode: result[8] as String?,
+      country: result[9] as String?,
+      countryCode: result[10] as String?,
+    );
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  bool operator ==(Object other) {
+    if (other is! AndroidDeviceLocationAddress || other.runtimeType != runtimeType) {
+      return false;
+    }
+    if (identical(this, other)) {
+      return true;
+    }
+    return _deepEquals(formattedAddress, other.formattedAddress) &&
+        _deepEquals(name, other.name) &&
+        _deepEquals(street, other.street) &&
+        _deepEquals(streetNumber, other.streetNumber) &&
+        _deepEquals(neighborhood, other.neighborhood) &&
+        _deepEquals(district, other.district) &&
+        _deepEquals(city, other.city) &&
+        _deepEquals(state, other.state) &&
+        _deepEquals(postalCode, other.postalCode) &&
+        _deepEquals(country, other.country) &&
+        _deepEquals(countryCode, other.countryCode);
+  }
+
+  @override
+  // ignore: avoid_equals_and_hash_code_on_mutable_classes
+  int get hashCode => _deepHash(<Object?>[runtimeType, ..._toList()]);
+
+  @override
+  String toString() {
+    return 'AndroidDeviceLocationAddress(formattedAddress: $formattedAddress, name: $name, street: $street, streetNumber: $streetNumber, neighborhood: $neighborhood, district: $district, city: $city, state: $state, postalCode: $postalCode, country: $country, countryCode: $countryCode)';
+  }
+}
+
 class _PigeonCodec extends StandardMessageCodec {
   const _PigeonCodec();
   @override
@@ -204,6 +322,9 @@ class _PigeonCodec extends StandardMessageCodec {
       writeValue(buffer, value.index);
     } else if (value is AndroidDeviceCoordinates) {
       buffer.putUint8(131);
+      writeValue(buffer, value.encode());
+    } else if (value is AndroidDeviceLocationAddress) {
+      buffer.putUint8(132);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -221,6 +342,8 @@ class _PigeonCodec extends StandardMessageCodec {
         return value == null ? null : AndroidDeviceLocationPermissionStatus.values[value];
       case 131:
         return AndroidDeviceCoordinates.decode(readValue(buffer)!);
+      case 132:
+        return AndroidDeviceLocationAddress.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
@@ -319,6 +442,36 @@ class AndroidDeviceLocationApi {
       isNullValid: false,
     );
     return pigeonVar_replyValue! as AndroidDeviceCoordinates;
+  }
+
+  /// Returns the device-formatted address for geographic coordinates.
+  Future<AndroidDeviceLocationAddress> getAddress(
+    double latitude,
+    double longitude,
+    String? localeIdentifier,
+    int timeoutMilliseconds,
+  ) async {
+    final pigeonVar_channelName =
+        'dev.flutter.pigeon.oh_my_flutter.AndroidDeviceLocationApi.getAddress$pigeonVar_messageChannelSuffix';
+    final pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final Future<Object?> pigeonVar_sendFuture = pigeonVar_channel.send(<Object?>[
+      latitude,
+      longitude,
+      localeIdentifier,
+      timeoutMilliseconds,
+    ]);
+    final pigeonVar_replyList = await pigeonVar_sendFuture as List<Object?>?;
+
+    final Object? pigeonVar_replyValue = _extractReplyValueOrThrow(
+      pigeonVar_replyList,
+      pigeonVar_channelName,
+      isNullValid: false,
+    );
+    return pigeonVar_replyValue! as AndroidDeviceLocationAddress;
   }
 
   /// Opens Android's application-details settings page.

@@ -1,14 +1,19 @@
+import 'package:flutter/widgets.dart' show Locale;
+
 import '../../exceptions/device_location_exception.dart';
 import '../../exceptions/device_location_exception_reason.dart';
+import 'device_location_address.dart';
 import 'device_location_coordinates.dart';
 import 'device_location_permission_status.dart';
 import 'device_location_platform.dart';
 
-/// Manages foreground location permission and retrieves device coordinates.
+/// Manages foreground location permission and retrieves device location data.
 ///
 /// ```dart
 /// final coordinates = await const DeviceLocation().getCurrentCoordinates();
 /// print('${coordinates.latitude}, ${coordinates.longitude}');
+/// final address = await const DeviceLocation().getCurrentAddress();
+/// print(address.street ?? address.formattedAddress);
 /// ```
 ///
 /// Handle [DeviceLocationException] when a requested operation is unavailable.
@@ -16,7 +21,7 @@ import 'device_location_platform.dart';
 ///
 /// See the [device location guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/device_location.md)
 /// for platform setup and failure handling.
-final class DeviceLocation {
+interface class DeviceLocation {
   /// Creates a utility for managing the device's foreground location access.
   const DeviceLocation();
 
@@ -24,6 +29,15 @@ final class DeviceLocation {
   static Future<DeviceLocationPermissionStatus>? _pendingPermission;
   static DeviceLocationPlatform? _coordinatesPlatform;
   static Future<DeviceLocationCoordinates>? _pendingCoordinates;
+  static final List<
+    ({
+      DeviceLocationPlatform platform,
+      DeviceLocationCoordinates coordinates,
+      String? localeIdentifier,
+      Future<DeviceLocationAddress> future,
+    })
+  >
+  _pendingAddresses = [];
 
   /// Reports the application's current foreground location permission.
   ///
@@ -62,9 +76,67 @@ final class DeviceLocation {
   /// made after that request completes starts a fresh request.
   Future<DeviceLocationCoordinates> getCurrentCoordinates({
     bool requestPermission = true,
-  }) async {
+  }) {
     final platform = DeviceLocationPlatform.instance;
+    return _getCurrentCoordinatesWithPlatform(
+      platform,
+      requestPermission: requestPermission,
+    );
+  }
 
+  /// Retrieves the device-formatted address for fresh foreground coordinates.
+  ///
+  /// Select a component such as [DeviceLocationAddress.street], or use
+  /// [DeviceLocationAddress.formattedAddress] when the device provides a
+  /// display-ready address. Components are nullable because device geocoders
+  /// can return partial results.
+  ///
+  /// When [requestPermission] is true and permission is missing, the operating
+  /// system may display its permission prompt. When it is false, this method
+  /// never prompts and reports the same permission failures as
+  /// [getCurrentCoordinates]. [locale] is a best-effort preference; when it is
+  /// null, the device locale is used.
+  ///
+  /// After fresh coordinates are available, reverse geocoding has a 30-second
+  /// deadline. Exceeding it reports
+  /// [DeviceLocationExceptionReason.operationUnavailable].
+  ///
+  /// Overlapping calls for the same coordinate acquisition and locale share
+  /// one reverse-geocoding request. Later calls acquire fresh coordinates and
+  /// do not use a completed address as a cache.
+  ///
+  /// Throws [DeviceLocationException] with
+  /// [DeviceLocationExceptionReason.operationUnavailable] when the device
+  /// cannot provide a usable address.
+  Future<DeviceLocationAddress> getCurrentAddress({
+    bool requestPermission = true,
+    Locale? locale,
+  }) async {
+    try {
+      final platform = DeviceLocationPlatform.instance;
+      final coordinates = await _getCurrentCoordinatesWithPlatform(
+        platform,
+        requestPermission: requestPermission,
+      );
+      return await _getAddress(
+        platform,
+        coordinates,
+        locale?.toLanguageTag(),
+      );
+    } on DeviceLocationException {
+      rethrow;
+    } on Object catch (error) {
+      throw DeviceLocationException(
+        DeviceLocationExceptionReason.operationUnavailable,
+        cause: error,
+      );
+    }
+  }
+
+  Future<DeviceLocationCoordinates> _getCurrentCoordinatesWithPlatform(
+    DeviceLocationPlatform platform, {
+    required bool requestPermission,
+  }) async {
     try {
       await _ensureLocationServicesEnabled(platform);
       var permission = await _checkPermission(platform);
@@ -78,6 +150,55 @@ final class DeviceLocation {
     } on DeviceLocationException {
       rethrow;
     } on Exception catch (error) {
+      throw DeviceLocationException(
+        DeviceLocationExceptionReason.operationUnavailable,
+        cause: error,
+      );
+    }
+  }
+
+  Future<DeviceLocationAddress> _getAddress(
+    DeviceLocationPlatform platform,
+    DeviceLocationCoordinates coordinates,
+    String? localeIdentifier,
+  ) {
+    for (final pending in _pendingAddresses) {
+      if (identical(pending.platform, platform) &&
+          identical(pending.coordinates, coordinates) &&
+          pending.localeIdentifier == localeIdentifier) {
+        return pending.future;
+      }
+    }
+
+    late final Future<DeviceLocationAddress> request;
+
+    request = _performAddressRequest(platform, coordinates, localeIdentifier).whenComplete(() {
+      _pendingAddresses.removeWhere(
+        (pending) => identical(pending.future, request),
+      );
+    });
+    _pendingAddresses.add((
+      platform: platform,
+      coordinates: coordinates,
+      localeIdentifier: localeIdentifier,
+      future: request,
+    ));
+    return request;
+  }
+
+  Future<DeviceLocationAddress> _performAddressRequest(
+    DeviceLocationPlatform platform,
+    DeviceLocationCoordinates coordinates,
+    String? localeIdentifier,
+  ) async {
+    try {
+      return await platform.getAddress(
+        coordinates: coordinates,
+        localeIdentifier: localeIdentifier,
+      );
+    } on DeviceLocationException {
+      rethrow;
+    } on Object catch (error) {
       throw DeviceLocationException(
         DeviceLocationExceptionReason.operationUnavailable,
         cause: error,

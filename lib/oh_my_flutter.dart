@@ -9,6 +9,7 @@ library;
 
 export 'src/debouncer.dart' show Debouncer;
 export 'src/device/device_location/device_location.dart' show DeviceLocation;
+export 'src/device/device_location/device_location_address.dart' show DeviceLocationAddress;
 export 'src/device/device_location/device_location_coordinates.dart' show DeviceLocationCoordinates;
 export 'src/device/device_location/device_location_permission_status.dart' show DeviceLocationPermissionStatus;
 export 'src/dio_interceptors/offline_error_dio_interceptor.dart' show OfflineErrorDioInterceptor;

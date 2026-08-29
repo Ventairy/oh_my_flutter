@@ -28,6 +28,15 @@ abstract class AndroidDeviceLocationApi {
   @asyncCallback
   AndroidDeviceCoordinates getCurrentCoordinates();
 
+  /// Returns the device-formatted address for geographic coordinates.
+  @asyncCallback
+  AndroidDeviceLocationAddress getAddress(
+    double latitude,
+    double longitude,
+    String? localeIdentifier,
+    int timeoutMilliseconds,
+  );
+
   /// Opens Android's application-details settings page.
   bool openLocationSettings();
 }
@@ -82,4 +91,55 @@ class AndroidDeviceCoordinates {
 
   /// The estimated horizontal uncertainty in meters.
   final double accuracy;
+}
+
+/// Carries an Android reverse-geocoding result across the platform channel.
+class AndroidDeviceLocationAddress {
+  /// Creates a message with nullable device-supplied address components.
+  AndroidDeviceLocationAddress({
+    this.formattedAddress,
+    this.name,
+    this.street,
+    this.streetNumber,
+    this.neighborhood,
+    this.district,
+    this.city,
+    this.state,
+    this.postalCode,
+    this.country,
+    this.countryCode,
+  });
+
+  /// The localized, display-ready address.
+  final String? formattedAddress;
+
+  /// The named place, building, landmark, or feature.
+  final String? name;
+
+  /// The street or thoroughfare name.
+  final String? street;
+
+  /// The building or street number.
+  final String? streetNumber;
+
+  /// The neighborhood or sublocality.
+  final String? neighborhood;
+
+  /// The county, district, or subadministrative area.
+  final String? district;
+
+  /// The city or locality.
+  final String? city;
+
+  /// The state, province, or administrative area.
+  final String? state;
+
+  /// The postal or ZIP code.
+  final String? postalCode;
+
+  /// The localized country or region name.
+  final String? country;
+
+  /// The two-letter country or region code.
+  final String? countryCode;
 }

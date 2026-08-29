@@ -5,10 +5,14 @@ import android.app.Activity
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Geocoder
 import android.location.Location
 import android.location.LocationManager
+import android.os.Build
 import android.os.CancellationSignal
 import android.provider.Settings
+import java.io.IOException
 import java.util.concurrent.Executor
 import kotlin.test.BeforeTest
 import kotlin.test.Test
@@ -18,6 +22,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.ArgumentMatchers.anyString
+import org.mockito.ArgumentCaptor
 import org.mockito.Mockito
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
@@ -482,6 +487,580 @@ class DeviceLocationHandlerTest {
     }
 
     @Test
+    fun `when reverse geocoding succeeds, it should map every address field`() {
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(nativeAddress.maxAddressLineIndex).thenReturn(1)
+        Mockito.`when`(nativeAddress.getAddressLine(0)).thenReturn("Rua Harmonia, 797")
+        Mockito.`when`(nativeAddress.getAddressLine(1)).thenReturn("São Paulo - SP")
+        Mockito.`when`(nativeAddress.featureName).thenReturn("Edifício Harmonia")
+        Mockito.`when`(nativeAddress.thoroughfare).thenReturn("Rua Harmonia")
+        Mockito.`when`(nativeAddress.subThoroughfare).thenReturn("797")
+        Mockito.`when`(nativeAddress.subLocality).thenReturn("Vila Madalena")
+        Mockito.`when`(nativeAddress.subAdminArea).thenReturn("São Paulo")
+        Mockito.`when`(nativeAddress.locality).thenReturn("São Paulo")
+        Mockito.`when`(nativeAddress.adminArea).thenReturn("SP")
+        Mockito.`when`(nativeAddress.postalCode).thenReturn("05435-001")
+        Mockito.`when`(nativeAddress.countryName).thenReturn("Brasil")
+        Mockito.`when`(nativeAddress.countryCode).thenReturn("br")
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback ->
+                callback(Result.success(nativeAddress))
+            },
+        )
+
+        handler.getAddress(
+            -23.556391,
+            -46.844076,
+            "pt-BR",
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { response = it }
+
+        assertEquals(
+            AndroidDeviceLocationAddress(
+                formattedAddress = "Rua Harmonia, 797\nSão Paulo - SP",
+                name = "Edifício Harmonia",
+                street = "Rua Harmonia",
+                streetNumber = "797",
+                neighborhood = "Vila Madalena",
+                district = "São Paulo",
+                city = "São Paulo",
+                state = "SP",
+                postalCode = "05435-001",
+                country = "Brasil",
+                countryCode = "BR",
+            ),
+            response?.getOrNull(),
+        )
+    }
+
+    @Test
+    fun `when address lines have an excessive sparse index, it should inspect a bounded range`() {
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(nativeAddress.maxAddressLineIndex)
+            .thenReturn(DeviceLocationHandler.MAX_ADDRESS_LINE_COUNT)
+        Mockito.`when`(nativeAddress.getAddressLine(0)).thenReturn("Cupertino")
+        Mockito.`when`(
+            nativeAddress.getAddressLine(DeviceLocationHandler.MAX_ADDRESS_LINE_COUNT),
+        ).thenReturn("Untrusted sparse line")
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback ->
+                callback(Result.success(nativeAddress))
+            },
+        )
+
+        handler.getAddress(
+            37.3317,
+            -122.0301,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { response = it }
+
+        assertEquals("Cupertino", response?.getOrNull()?.formattedAddress)
+    }
+
+    @Test
+    fun `when country codes are malformed, it should omit them`() {
+        val returnedCountryCodes = listOf("1x", "ßx", "ß").map { countryCode ->
+            val nativeAddress = mock(Address::class.java)
+            Mockito.`when`(nativeAddress.maxAddressLineIndex).thenReturn(-1)
+            Mockito.`when`(nativeAddress.locality).thenReturn("Cupertino")
+            Mockito.`when`(nativeAddress.countryCode).thenReturn(countryCode)
+            var response: Result<AndroidDeviceLocationAddress>? = null
+            val handler = handler(
+                currentAddress = { _, _, _, _, callback ->
+                    callback(Result.success(nativeAddress))
+                },
+            )
+            handler.getAddress(
+                37.3317,
+                -122.0301,
+                null,
+                DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+            ) { response = it }
+            response?.getOrNull()?.countryCode
+        }
+
+        assertEquals(listOf(null, null, null), returnedCountryCodes)
+    }
+
+    @Test
+    fun `when asynchronous address mapping throws, it should report operation unavailable`() {
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(nativeAddress.maxAddressLineIndex).thenThrow(
+            IllegalStateException("malformed address"),
+        )
+        var nativeCallback: ((Result<Address?>) -> Unit)? = null
+        var mainWork: Runnable? = null
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback -> nativeCallback = callback },
+            mainExecutor = Executor { work -> mainWork = work },
+        )
+        handler.getAddress(
+            37.3317,
+            -122.0301,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { response = it }
+
+        requireNotNull(nativeCallback).invoke(Result.success(nativeAddress))
+        requireNotNull(mainWork).run()
+
+        assertEquals(
+            AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+            response.locationFailure,
+        )
+    }
+
+    @Test
+    fun `when reverse geocoding starts, it should forward coordinates and locale`() {
+        var request: Triple<Double, Double, String?>? = null
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(nativeAddress.maxAddressLineIndex).thenReturn(-1)
+        Mockito.`when`(nativeAddress.locality).thenReturn("Cupertino")
+        val handler = handler(
+            currentAddress = { latitude, longitude, locale, _, callback ->
+                request = Triple(latitude, longitude, locale)
+                callback(Result.success(nativeAddress))
+            },
+        )
+
+        handler.getAddress(
+            37.3317,
+            -122.0301,
+            "en-US",
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) {}
+
+        assertEquals(Triple(37.3317, -122.0301, "en-US"), request)
+    }
+
+    @Test
+    fun `when address locales overlap, it should keep their native results independent`() {
+        val callbacks = mutableMapOf<String, (Result<Address?>) -> Unit>()
+        var portuguese: Result<AndroidDeviceLocationAddress>? = null
+        var english: Result<AndroidDeviceLocationAddress>? = null
+        val handler = handler(
+            currentAddress = { _, _, locale, _, callback ->
+                callbacks[requireNotNull(locale)] = callback
+            },
+        )
+        handler.getAddress(
+            0.0,
+            0.0,
+            "pt-BR",
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { portuguese = it }
+        handler.getAddress(
+            0.0,
+            0.0,
+            "en-US",
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { english = it }
+        val portugueseAddress = mock(Address::class.java)
+        Mockito.`when`(portugueseAddress.maxAddressLineIndex).thenReturn(-1)
+        Mockito.`when`(portugueseAddress.locality).thenReturn("São Paulo")
+        val englishAddress = mock(Address::class.java)
+        Mockito.`when`(englishAddress.maxAddressLineIndex).thenReturn(-1)
+        Mockito.`when`(englishAddress.locality).thenReturn("New York")
+
+        requireNotNull(callbacks["en-US"]).invoke(Result.success(englishAddress))
+        requireNotNull(callbacks["pt-BR"]).invoke(Result.success(portugueseAddress))
+
+        assertEquals(
+            "São Paulo" to "New York",
+            portuguese?.getOrNull()?.city to english?.getOrNull()?.city,
+        )
+    }
+
+    @Test
+    fun `when Android is API 33 or newer, it should use asynchronous geocoding`() {
+        val geocoder = mock(Geocoder::class.java)
+        val nativeAddress = mock(Address::class.java)
+        val listener = ArgumentCaptor.forClass(Geocoder.GeocodeListener::class.java)
+        Mockito.doNothing().`when`(geocoder).getFromLocation(
+            Mockito.eq(37.3317),
+            Mockito.eq(-122.0301),
+            Mockito.eq(1),
+            listener.capture(),
+        )
+        var response: Result<Address?>? = null
+
+        DeviceLocationHandler.requestModernAddress(
+            geocoder,
+            37.3317,
+            -122.0301,
+        ) { response = it }
+        listener.value.onGeocode(mutableListOf(nativeAddress))
+
+        assertEquals(nativeAddress, response?.getOrNull())
+    }
+
+    @Test
+    fun `when Android routes API 33 geocoding, it should use the asynchronous path`() {
+        val geocoder = mock(Geocoder::class.java)
+        val nativeAddress = mock(Address::class.java)
+        val listener = ArgumentCaptor.forClass(Geocoder.GeocodeListener::class.java)
+        Mockito.doNothing().`when`(geocoder).getFromLocation(
+            Mockito.eq(37.3317),
+            Mockito.eq(-122.0301),
+            Mockito.eq(1),
+            listener.capture(),
+        )
+        var backgroundExecutions = 0
+        var response: Result<Address?>? = null
+
+        DeviceLocationHandler.requestAddress(
+            context,
+            37.3317,
+            -122.0301,
+            "en-US",
+            Executor { command ->
+                backgroundExecutions += 1
+                command.run()
+            },
+            { response = it },
+            sdkInt = Build.VERSION_CODES.TIRAMISU,
+            geocoderFactory = { _, _ -> geocoder },
+        )
+        listener.value.onGeocode(mutableListOf(nativeAddress))
+
+        assertEquals(nativeAddress to 0, response?.getOrNull() to backgroundExecutions)
+    }
+
+    @Test
+    fun `when asynchronous geocoding reports a null error, it should return a safe failure`() {
+        val geocoder = mock(Geocoder::class.java)
+        val listener = ArgumentCaptor.forClass(Geocoder.GeocodeListener::class.java)
+        Mockito.doNothing().`when`(geocoder).getFromLocation(
+            Mockito.eq(37.3317),
+            Mockito.eq(-122.0301),
+            Mockito.eq(1),
+            listener.capture(),
+        )
+        var response: Result<Address?>? = null
+
+        DeviceLocationHandler.requestModernAddress(
+            geocoder,
+            37.3317,
+            -122.0301,
+        ) { response = it }
+        listener.value.onError(null)
+
+        assertEquals("Reverse geocoding failed.", response?.exceptionOrNull()?.message)
+    }
+
+    @Suppress("DEPRECATION")
+    @Test
+    fun `when Android is before API 33, it should geocode on the background executor`() {
+        val geocoder = mock(Geocoder::class.java)
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(geocoder.getFromLocation(37.3317, -122.0301, 1))
+            .thenReturn(listOf(nativeAddress))
+        var backgroundExecutions = 0
+        var response: Result<Address?>? = null
+
+        DeviceLocationHandler.requestLegacyAddressOnExecutor(
+            geocoder,
+            37.3317,
+            -122.0301,
+            Executor { command ->
+                backgroundExecutions += 1
+                command.run()
+            },
+        ) { response = it }
+
+        assertEquals(nativeAddress to 1, response?.getOrNull() to backgroundExecutions)
+    }
+
+    @Suppress("DEPRECATION")
+    @Test
+    fun `when Android routes pre API 33 geocoding, it should use the legacy path`() {
+        val geocoder = mock(Geocoder::class.java)
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(geocoder.getFromLocation(37.3317, -122.0301, 1))
+            .thenReturn(listOf(nativeAddress))
+        var backgroundExecutions = 0
+        var response: Result<Address?>? = null
+
+        DeviceLocationHandler.requestAddress(
+            context,
+            37.3317,
+            -122.0301,
+            "en-US",
+            Executor { command ->
+                backgroundExecutions += 1
+                command.run()
+            },
+            { response = it },
+            sdkInt = Build.VERSION_CODES.TIRAMISU - 1,
+            geocoderFactory = { _, _ -> geocoder },
+        )
+
+        assertEquals(nativeAddress to 1, response?.getOrNull() to backgroundExecutions)
+    }
+
+    @Test
+    fun `when no geocoder is present, it should report operation unavailable`() {
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val handler = handler(geocoderPresent = { false })
+
+        handler.getAddress(
+            0.0,
+            0.0,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { response = it }
+
+        assertEquals(
+            AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+            response.locationFailure,
+        )
+    }
+
+    @Test
+    fun `when reverse geocoding returns no address, it should report operation unavailable`() {
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback ->
+                callback(Result.success(null))
+            },
+        )
+
+        handler.getAddress(
+            0.0,
+            0.0,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { response = it }
+
+        assertEquals(
+            AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+            response.locationFailure,
+        )
+    }
+
+    @Test
+    fun `when reverse geocoding returns blank fields, it should report operation unavailable`() {
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(nativeAddress.maxAddressLineIndex).thenReturn(-1)
+        Mockito.`when`(nativeAddress.locality).thenReturn("   ")
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback ->
+                callback(Result.success(nativeAddress))
+            },
+        )
+
+        handler.getAddress(
+            0.0,
+            0.0,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { response = it }
+
+        assertEquals(
+            AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+            response.locationFailure,
+        )
+    }
+
+    @Test
+    fun `when reverse geocoding fails, it should report operation unavailable`() {
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback ->
+                callback(Result.failure(IOException("unavailable")))
+            },
+        )
+
+        handler.getAddress(
+            0.0,
+            0.0,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { response = it }
+
+        assertEquals(
+            AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+            response.locationFailure,
+        )
+    }
+
+    @Test
+    fun `when reverse geocoding never completes, it should time out once`() {
+        var nativeCallback: ((Result<Address?>) -> Unit)? = null
+        var timeout: (() -> Unit)? = null
+        var callbackCount = 0
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(nativeAddress.maxAddressLineIndex).thenReturn(-1)
+        Mockito.`when`(nativeAddress.locality).thenReturn("Cupertino")
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback -> nativeCallback = callback },
+            scheduleAddressTimeout = { _, onTimeout ->
+                timeout = onTimeout
+                {}
+            },
+        )
+        handler.getAddress(
+            37.3317,
+            -122.0301,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) {
+            callbackCount += 1
+            response = it
+        }
+
+        requireNotNull(timeout).invoke()
+        requireNotNull(nativeCallback).invoke(Result.success(nativeAddress))
+
+        assertEquals(
+            1 to AndroidDeviceLocationFailure.OPERATION_UNAVAILABLE,
+            callbackCount to response.locationFailure,
+        )
+    }
+
+    @Test
+    fun `when reverse geocoding completes, it should cancel its timeout`() {
+        var timeoutCancellationCount = 0
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(nativeAddress.maxAddressLineIndex).thenReturn(-1)
+        Mockito.`when`(nativeAddress.locality).thenReturn("Cupertino")
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback ->
+                callback(Result.success(nativeAddress))
+            },
+            scheduleAddressTimeout = { _, _ ->
+                { timeoutCancellationCount += 1 }
+            },
+        )
+
+        handler.getAddress(
+            37.3317,
+            -122.0301,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) {}
+
+        assertEquals(1, timeoutCancellationCount)
+    }
+
+    @Test
+    fun `when reverse geocoding starts, it should schedule the requested timeout`() {
+        var scheduledTimeout: Long? = null
+        val handler = handler(
+            scheduleAddressTimeout = { timeout, _ ->
+                scheduledTimeout = timeout
+                {}
+            },
+        )
+
+        handler.getAddress(
+            37.3317,
+            -122.0301,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) {}
+
+        assertEquals(DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS, scheduledTimeout)
+        handler.dispose()
+    }
+
+    @Test
+    fun `when coordinates are invalid, it should not start reverse geocoding`() {
+        var requestCount = 0
+        val handler = handler(
+            currentAddress = { _, _, _, _, _ -> requestCount += 1 },
+        )
+
+        handler.getAddress(
+            Double.NaN,
+            0.0,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) {}
+
+        assertEquals(0, requestCount)
+    }
+
+    @Test
+    fun `when the engine detaches during reverse geocoding, it should complete once`() {
+        var nativeCallback: ((Result<Address?>) -> Unit)? = null
+        var callbackCount = 0
+        var timeoutCancellationCount = 0
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback -> nativeCallback = callback },
+            scheduleAddressTimeout = { _, _ ->
+                { timeoutCancellationCount += 1 }
+            },
+        )
+        handler.getAddress(
+            0.0,
+            0.0,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { callbackCount += 1 }
+
+        handler.dispose()
+        nativeCallback?.invoke(Result.success(mock(Address::class.java)))
+
+        assertEquals(1 to 1, callbackCount to timeoutCancellationCount)
+    }
+
+    @Test
+    fun `when the activity detaches during reverse geocoding, it should complete once`() {
+        var nativeCallback: ((Result<Address?>) -> Unit)? = null
+        var callbackCount = 0
+        var timeoutCancellationCount = 0
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback -> nativeCallback = callback },
+            scheduleAddressTimeout = { _, _ ->
+                { timeoutCancellationCount += 1 }
+            },
+        )
+        handler.attachActivity(mock(Activity::class.java))
+        handler.getAddress(
+            0.0,
+            0.0,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { callbackCount += 1 }
+
+        handler.detachActivity()
+        nativeCallback?.invoke(Result.success(mock(Address::class.java)))
+
+        assertEquals(1 to 1, callbackCount to timeoutCancellationCount)
+    }
+
+    @Test
+    fun `when activity configuration changes, it should preserve reverse geocoding`() {
+        var nativeCallback: ((Result<Address?>) -> Unit)? = null
+        var response: Result<AndroidDeviceLocationAddress>? = null
+        val nativeAddress = mock(Address::class.java)
+        Mockito.`when`(nativeAddress.maxAddressLineIndex).thenReturn(-1)
+        Mockito.`when`(nativeAddress.locality).thenReturn("Cupertino")
+        val handler = handler(
+            currentAddress = { _, _, _, _, callback -> nativeCallback = callback },
+        )
+        handler.attachActivity(mock(Activity::class.java))
+        handler.getAddress(
+            37.3317,
+            -122.0301,
+            null,
+            DeviceLocationHandler.ADDRESS_TIMEOUT_MILLISECONDS,
+        ) { response = it }
+
+        handler.detachActivityForConfigChanges()
+        requireNotNull(nativeCallback).invoke(Result.success(nativeAddress))
+
+        assertEquals("Cupertino", response?.getOrNull()?.city)
+    }
+
+    @Test
     fun `when the engine detaches during acquisition, it should cancel the request`() {
         grantPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
         Mockito.`when`(locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER))
@@ -579,12 +1158,22 @@ class DeviceLocationHandlerTest {
             Executor,
             (Location?) -> Unit,
         ) -> Unit = { _, _, _, _, _ -> },
+        geocoderPresent: () -> Boolean = { true },
+        currentAddress: (
+            Double,
+            Double,
+            String?,
+            Executor,
+            (Result<Address?>) -> Unit,
+        ) -> Unit = { _, _, _, _, _ -> },
+        mainExecutor: Executor = Executor(Runnable::run),
+        scheduleAddressTimeout: (Long, () -> Unit) -> (() -> Unit) = { _, _ -> {} },
     ): DeviceLocationHandler {
         return DeviceLocationHandler(
             applicationContext = context,
             locationManager = locationManager,
             isLocationEnabledOperation = isLocationEnabled,
-            mainExecutorOperation = { Executor(Runnable::run) },
+            mainExecutorOperation = { mainExecutor },
             checkPermissionOperation = { _, permission ->
                 if (permission in grantedPermissions) {
                     PackageManager.PERMISSION_GRANTED
@@ -597,6 +1186,10 @@ class DeviceLocationHandlerTest {
             cancellationSignalFactory = cancellationSignalFactory,
             openLocationSettingsOperation = openLocationSettings,
             currentCoordinatesOperation = currentCoordinates,
+            geocoderPresentOperation = geocoderPresent,
+            backgroundExecutor = Executor(Runnable::run),
+            currentAddressOperation = currentAddress,
+            scheduleAddressTimeoutOperation = scheduleAddressTimeout,
         )
     }
 }
