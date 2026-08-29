@@ -21,6 +21,9 @@ abstract final class DeviceLocationCLibrary {
     Method('_nativeCheckPermission', _platformClass),
     Method('_nativeRequestPermission', _platformClass),
     Method('_nativeRequestCoordinates', _platformClass),
+    Method('_nativeRequestAddress', _platformClass),
+    Method('_nativeAllocate', _platformClass),
+    Method('_nativeFree', _platformClass),
     Method('_nativeOpenSettings', _platformClass),
   ];
 
@@ -30,7 +33,13 @@ abstract final class DeviceLocationCLibrary {
     assetName: assetName,
     sources: const ['src/device_location/apple_device_location.m'],
     includes: const ['src/device_location'],
-    frameworks: const ['Foundation', 'CoreLocation', 'UIKit'],
+    frameworks: const [
+      'Foundation',
+      'CoreLocation',
+      'MapKit',
+      'Contacts',
+      'UIKit',
+    ],
     flags: const [
       '-fobjc-arc',
       '-mios-version-min=15.0',

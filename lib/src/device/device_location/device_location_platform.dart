@@ -1,3 +1,4 @@
+import 'device_location_address.dart';
 import 'device_location_coordinates.dart';
 import 'device_location_permission_status.dart';
 import 'device_location_unsupported.dart' if (dart.library.io) 'device_location_io.dart' as default_implementation;
@@ -26,6 +27,15 @@ abstract class DeviceLocationPlatform {
 
   /// Retrieves current coordinates at the best available accuracy.
   Future<DeviceLocationCoordinates> getCurrentCoordinates();
+
+  /// Returns the device-formatted address for [coordinates].
+  ///
+  /// [localeIdentifier] is a best-effort BCP-47 language tag. A null value
+  /// uses the device locale.
+  Future<DeviceLocationAddress> getAddress({
+    required DeviceLocationCoordinates coordinates,
+    required String? localeIdentifier,
+  });
 
   /// Opens the deepest supported settings page for the app's location access.
   Future<bool> openLocationSettings();

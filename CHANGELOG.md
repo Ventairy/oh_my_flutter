@@ -1,3 +1,10 @@
+## 0.15.0
+
+- Add device-formatted current addresses with selectable nullable components,
+  retained coordinates, an optional best-effort locale, and a bounded
+  reverse-geocoding wait, while keeping `DeviceLocation` implementable for
+  consumer test doubles.
+
 ## 0.14.0
 
 - **Breaking:** Make `Skeleton` represent the first visibly painted descendant

@@ -14,6 +14,9 @@ native_symbols=(
   '_omf_device_location_check_permission'
   '_omf_device_location_request_permission'
   '_omf_device_location_request_coordinates'
+  '_omf_device_location_request_address'
+  '_omf_device_location_allocate'
+  '_omf_device_location_free'
   '_omf_device_location_open_settings'
 )
 
@@ -38,6 +41,14 @@ fvm flutter build ios --release --no-codesign --target=lib/main.dart
 test -f "$framework_binary"
 xcrun vtool -show-build "$framework_binary" | grep -Eq 'minos 15(\.0+)?$'
 otool -L "$framework_binary" | grep -Fq '/System/Library/Frameworks/CoreLocation.framework/'
+otool -L "$framework_binary" | grep -Fq '/System/Library/Frameworks/MapKit.framework/'
+otool -L "$framework_binary" | grep -Fq '/System/Library/Frameworks/Contacts.framework/'
+if otool -L "$framework_binary" | grep -Fq 'LocationEssentials.framework'; then
+  echo 'The DeviceLocation framework links a private LocationEssentials framework.' >&2
+  exit 1
+fi
+nm -m "$framework_binary" |
+  grep -F 'weak external _OBJC_CLASS_$_MKReverseGeocodingRequest' >/dev/null
 for symbol in "${native_symbols[@]}"; do
   nm -gU "$framework_binary" | grep -Fq "$symbol"
 done

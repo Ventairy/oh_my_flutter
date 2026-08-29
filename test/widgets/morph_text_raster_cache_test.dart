@@ -2715,6 +2715,10 @@ void main() {
     testWidgets(
       'when a later flight repeats a text segment, it should reuse the coordinator raster',
       (tester) async {
+        _binding.rasterLoader = (picture, width, height) async {
+          return picture.toImageSync(width, height);
+        };
+        addTearDown(_binding.resetRasterLoader);
         final appKey = GlobalKey<_CrossFlightRasterAppState>();
         await tester.pumpWidget(_CrossFlightRasterApp(key: appKey));
         await tester.pumpAndSettle();
@@ -2734,14 +2738,18 @@ void main() {
           tester,
           appKey.currentState!,
         );
+        final repeatedStats = await _waitForPoolEntries(
+          tester,
+          minimumEntries: 3,
+        );
 
         expect(
           (
             identical(first, repeated),
             first.isCloneOf(repeated),
-            _diagnostic<int>(tester, 'retainedTextRasterPoolEntries'),
-            _diagnostic<int>(tester, 'retainedTextRasterPoolPixels')! <= 4194304,
-            _diagnostic<int>(tester, 'retainedTextRasterPoolHits')! > hitsBeforeRepeatedFlight!,
+            repeatedStats.entries,
+            repeatedStats.pixels <= 4194304,
+            repeatedStats.hits > hitsBeforeRepeatedFlight!,
           ),
           (true, true, 3, true, true),
         );

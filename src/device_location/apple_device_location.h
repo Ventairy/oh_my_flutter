@@ -21,6 +21,9 @@ typedef void (*OMFDeviceLocationCoordinatesCallback)(double latitude,
                                                      double accuracy,
                                                      int32_t failure);
 
+typedef void (*OMFDeviceLocationAddressCallback)(const char *address_json,
+                                                 int32_t failure);
+
 typedef int32_t OMFDeviceLocationFailure;
 
 enum {
@@ -44,6 +47,17 @@ void omf_device_location_request_permission(
 
 void omf_device_location_request_coordinates(
     OMFDeviceLocationCoordinatesCallback callback) OMF_DEVICE_LOCATION_IOS_15;
+
+void omf_device_location_request_address(
+    double latitude,
+    double longitude,
+    const char *locale_identifier,
+    int64_t timeout_milliseconds,
+    OMFDeviceLocationAddressCallback callback) OMF_DEVICE_LOCATION_IOS_15;
+
+void *omf_device_location_allocate(intptr_t size) OMF_DEVICE_LOCATION_IOS_15;
+
+void omf_device_location_free(void *value) OMF_DEVICE_LOCATION_IOS_15;
 
 void omf_device_location_open_settings(
     OMFDeviceLocationValueCallback callback) OMF_DEVICE_LOCATION_IOS_15;

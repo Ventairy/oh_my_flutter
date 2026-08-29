@@ -17,3 +17,10 @@ typedef _AppleCoordinatesResult = ({
   double accuracy,
   int failure,
 });
+
+typedef _AppleAddressCallbackNative = Void Function(
+  Pointer<Uint8> addressJson,
+  Int32 failure,
+);
+
+typedef _AppleAddressResult = ({String? addressJson, int failure});

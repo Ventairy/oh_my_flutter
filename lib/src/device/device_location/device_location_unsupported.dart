@@ -1,5 +1,6 @@
 import '../../exceptions/device_location_exception.dart';
 import '../../exceptions/device_location_exception_reason.dart';
+import 'device_location_address.dart';
 import 'device_location_coordinates.dart';
 import 'device_location_permission_status.dart';
 import 'device_location_platform.dart';
@@ -29,6 +30,14 @@ final class DeviceLocationPlatformImplementation extends DeviceLocationPlatform 
   @override
   Future<DeviceLocationCoordinates> getCurrentCoordinates() {
     return Future<DeviceLocationCoordinates>.error(_error);
+  }
+
+  @override
+  Future<DeviceLocationAddress> getAddress({
+    required DeviceLocationCoordinates coordinates,
+    required String? localeIdentifier,
+  }) {
+    return Future<DeviceLocationAddress>.error(_error);
   }
 
   @override

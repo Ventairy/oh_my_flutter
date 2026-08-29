@@ -80,6 +80,173 @@ void main() {
     },
   );
 
+  test(
+    'when Android returns an address, it should map and normalize every field',
+    () async {
+      when(
+        () => api.getAddress(-23.556391, -46.844076, 'pt-BR', 30_000),
+      ).thenAnswer(
+        (_) async => AndroidDeviceLocationAddress(
+          formattedAddress: '  Rua Harmonia, 797\nSão Paulo - SP  ',
+          name: ' Edifício Harmonia ',
+          street: ' Rua Harmonia ',
+          streetNumber: ' 797 ',
+          neighborhood: ' Vila Madalena ',
+          district: ' São Paulo ',
+          city: ' São Paulo ',
+          state: ' SP ',
+          postalCode: ' 05435-001 ',
+          country: ' Brasil ',
+          countryCode: ' br ',
+        ),
+      );
+
+      expect(
+        platform.getAddress(
+          coordinates: const DeviceLocationCoordinates(
+            latitude: -23.556391,
+            longitude: -46.844076,
+            accuracy: 8.5,
+          ),
+          localeIdentifier: 'pt-BR',
+        ),
+        completion(
+          const DeviceLocationAddress(
+            coordinates: DeviceLocationCoordinates(
+              latitude: -23.556391,
+              longitude: -46.844076,
+              accuracy: 8.5,
+            ),
+            formattedAddress: 'Rua Harmonia, 797\nSão Paulo - SP',
+            name: 'Edifício Harmonia',
+            street: 'Rua Harmonia',
+            streetNumber: '797',
+            neighborhood: 'Vila Madalena',
+            district: 'São Paulo',
+            city: 'São Paulo',
+            state: 'SP',
+            postalCode: '05435-001',
+            country: 'Brasil',
+            countryCode: 'BR',
+          ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'when Android returns no usable address fields, it should report operationUnavailable',
+    () async {
+      when(
+        () => api.getAddress(0, 0, null, 30_000),
+      ).thenAnswer(
+        (_) async => AndroidDeviceLocationAddress(street: '   '),
+      );
+
+      expect(
+        platform.getAddress(
+          coordinates: const DeviceLocationCoordinates(
+            latitude: 0,
+            longitude: 0,
+            accuracy: 0,
+          ),
+          localeIdentifier: null,
+        ),
+        throwsA(
+          isA<DeviceLocationException>().having(
+            (exception) => exception.reason,
+            'reason',
+            DeviceLocationExceptionReason.operationUnavailable,
+          ),
+        ),
+      );
+    },
+  );
+
+  for (final countryCode in ['1x', 'éx', 'ß']) {
+    test(
+      'when Android returns invalid country code $countryCode, it should omit it',
+      () async {
+        when(
+          () => api.getAddress(0, 0, null, 30_000),
+        ).thenAnswer(
+          (_) async => AndroidDeviceLocationAddress(
+            city: 'São Paulo',
+            countryCode: countryCode,
+          ),
+        );
+
+        final address = await platform.getAddress(
+          coordinates: const DeviceLocationCoordinates(
+            latitude: 0,
+            longitude: 0,
+            accuracy: 0,
+          ),
+          localeIdentifier: null,
+        );
+
+        expect(address.countryCode, isNull);
+      },
+    );
+  }
+
+  test(
+    'when Android returns a malformed address reply, it should report operationUnavailable',
+    () async {
+      final error = StateError('malformed platform reply');
+      when(() => api.getAddress(0, 0, null, 30_000)).thenThrow(error);
+
+      expect(
+        platform.getAddress(
+          coordinates: const DeviceLocationCoordinates(
+            latitude: 0,
+            longitude: 0,
+            accuracy: 0,
+          ),
+          localeIdentifier: null,
+        ),
+        throwsA(
+          isA<DeviceLocationException>()
+              .having(
+                (exception) => exception.reason,
+                'reason',
+                DeviceLocationExceptionReason.operationUnavailable,
+              )
+              .having((exception) => exception.cause, 'cause', same(error)),
+        ),
+      );
+    },
+  );
+
+  test(
+    'when Android address lookup fails, it should map operationUnavailable',
+    () async {
+      when(
+        () => api.getAddress(0, 0, null, 30_000),
+      ).thenAnswer(
+        (_) async => throw PlatformException(code: 'operationUnavailable'),
+      );
+
+      expect(
+        platform.getAddress(
+          coordinates: const DeviceLocationCoordinates(
+            latitude: 0,
+            longitude: 0,
+            accuracy: 0,
+          ),
+          localeIdentifier: null,
+        ),
+        throwsA(
+          isA<DeviceLocationException>().having(
+            (exception) => exception.reason,
+            'reason',
+            DeviceLocationExceptionReason.operationUnavailable,
+          ),
+        ),
+      );
+    },
+  );
+
   for (final entry in <String, AndroidDeviceCoordinates>{
     'non-finite latitude': AndroidDeviceCoordinates(
       latitude: double.nan,
@@ -273,6 +440,87 @@ void main() {
             'details',
             AndroidDeviceLocationFailure.permissionDenied,
           ),
+        ),
+      );
+    },
+  );
+
+  test(
+    'when a malformed address value crosses the codec, it should report operationUnavailable',
+    () async {
+      const channelName =
+          'dev.flutter.pigeon.oh_my_flutter.'
+          'AndroidDeviceLocationApi.getAddress';
+      final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const channel = BasicMessageChannel<Object?>(
+        channelName,
+        AndroidDeviceLocationApi.pigeonChannelCodec,
+      );
+      messenger.setMockDecodedMessageHandler(
+        channel,
+        (_) async => <Object?>[42],
+      );
+      addTearDown(
+        () => messenger.setMockDecodedMessageHandler(channel, null),
+      );
+      final malformedPlatform = PigeonDeviceLocationPlatform.test(
+        AndroidDeviceLocationApi(binaryMessenger: messenger),
+      );
+
+      expect(
+        malformedPlatform.getAddress(
+          coordinates: const DeviceLocationCoordinates(
+            latitude: 0,
+            longitude: 0,
+            accuracy: 0,
+          ),
+          localeIdentifier: null,
+        ),
+        throwsA(
+          isA<DeviceLocationException>()
+              .having(
+                (exception) => exception.reason,
+                'reason',
+                DeviceLocationExceptionReason.operationUnavailable,
+              )
+              .having((exception) => exception.cause, 'cause', isA<TypeError>()),
+        ),
+      );
+    },
+  );
+
+  test(
+    'when malformed coordinates cross the codec, it should report operationUnavailable',
+    () async {
+      const channelName =
+          'dev.flutter.pigeon.oh_my_flutter.'
+          'AndroidDeviceLocationApi.getCurrentCoordinates';
+      final messenger = TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      const channel = BasicMessageChannel<Object?>(
+        channelName,
+        AndroidDeviceLocationApi.pigeonChannelCodec,
+      );
+      messenger.setMockDecodedMessageHandler(
+        channel,
+        (_) async => <Object?>[42],
+      );
+      addTearDown(
+        () => messenger.setMockDecodedMessageHandler(channel, null),
+      );
+      final malformedPlatform = PigeonDeviceLocationPlatform.test(
+        AndroidDeviceLocationApi(binaryMessenger: messenger),
+      );
+
+      expect(
+        malformedPlatform.getCurrentCoordinates(),
+        throwsA(
+          isA<DeviceLocationException>()
+              .having(
+                (exception) => exception.reason,
+                'reason',
+                DeviceLocationExceptionReason.operationUnavailable,
+              )
+              .having((exception) => exception.cause, 'cause', isA<TypeError>()),
         ),
       );
     },

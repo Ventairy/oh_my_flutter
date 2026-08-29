@@ -281,6 +281,98 @@ data class AndroidDeviceCoordinates (
     return "AndroidDeviceCoordinates(latitude=$latitude, longitude=$longitude, accuracy=$accuracy)"
   }
 }
+
+/**
+ * Carries an Android reverse-geocoding result across the platform channel.
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class AndroidDeviceLocationAddress (
+  /** The localized, display-ready address. */
+  val formattedAddress: String? = null,
+  /** The named place, building, landmark, or feature. */
+  val name: String? = null,
+  /** The street or thoroughfare name. */
+  val street: String? = null,
+  /** The building or street number. */
+  val streetNumber: String? = null,
+  /** The neighborhood or sublocality. */
+  val neighborhood: String? = null,
+  /** The county, district, or subadministrative area. */
+  val district: String? = null,
+  /** The city or locality. */
+  val city: String? = null,
+  /** The state, province, or administrative area. */
+  val state: String? = null,
+  /** The postal or ZIP code. */
+  val postalCode: String? = null,
+  /** The localized country or region name. */
+  val country: String? = null,
+  /** The two-letter country or region code. */
+  val countryCode: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): AndroidDeviceLocationAddress {
+      val formattedAddress = pigeonVar_list[0] as String?
+      val name = pigeonVar_list[1] as String?
+      val street = pigeonVar_list[2] as String?
+      val streetNumber = pigeonVar_list[3] as String?
+      val neighborhood = pigeonVar_list[4] as String?
+      val district = pigeonVar_list[5] as String?
+      val city = pigeonVar_list[6] as String?
+      val state = pigeonVar_list[7] as String?
+      val postalCode = pigeonVar_list[8] as String?
+      val country = pigeonVar_list[9] as String?
+      val countryCode = pigeonVar_list[10] as String?
+      return AndroidDeviceLocationAddress(formattedAddress, name, street, streetNumber, neighborhood, district, city, state, postalCode, country, countryCode)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      formattedAddress,
+      name,
+      street,
+      streetNumber,
+      neighborhood,
+      district,
+      city,
+      state,
+      postalCode,
+      country,
+      countryCode,
+    )
+  }
+  override fun equals(other: Any?): Boolean {
+    if (other == null || other.javaClass != javaClass) {
+      return false
+    }
+    if (this === other) {
+      return true
+    }
+    val other = other as AndroidDeviceLocationAddress
+    return AndroidDeviceLocationPigeonUtils.deepEquals(this.formattedAddress, other.formattedAddress) && AndroidDeviceLocationPigeonUtils.deepEquals(this.name, other.name) && AndroidDeviceLocationPigeonUtils.deepEquals(this.street, other.street) && AndroidDeviceLocationPigeonUtils.deepEquals(this.streetNumber, other.streetNumber) && AndroidDeviceLocationPigeonUtils.deepEquals(this.neighborhood, other.neighborhood) && AndroidDeviceLocationPigeonUtils.deepEquals(this.district, other.district) && AndroidDeviceLocationPigeonUtils.deepEquals(this.city, other.city) && AndroidDeviceLocationPigeonUtils.deepEquals(this.state, other.state) && AndroidDeviceLocationPigeonUtils.deepEquals(this.postalCode, other.postalCode) && AndroidDeviceLocationPigeonUtils.deepEquals(this.country, other.country) && AndroidDeviceLocationPigeonUtils.deepEquals(this.countryCode, other.countryCode)
+  }
+
+  override fun hashCode(): Int {
+    var result = javaClass.hashCode()
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.formattedAddress)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.name)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.street)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.streetNumber)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.neighborhood)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.district)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.city)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.state)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.postalCode)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.country)
+    result = 31 * result + AndroidDeviceLocationPigeonUtils.deepHash(this.countryCode)
+    return result
+  }
+  override fun toString(): String {
+    return "AndroidDeviceLocationAddress(formattedAddress=$formattedAddress, name=$name, street=$street, streetNumber=$streetNumber, neighborhood=$neighborhood, district=$district, city=$city, state=$state, postalCode=$postalCode, country=$country, countryCode=$countryCode)"
+  }
+}
 private open class AndroidDeviceLocationPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
@@ -299,6 +391,11 @@ private open class AndroidDeviceLocationPigeonCodec : StandardMessageCodec() {
           AndroidDeviceCoordinates.fromList(it)
         }
       }
+      132.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          AndroidDeviceLocationAddress.fromList(it)
+        }
+      }
       else -> super.readValueOfType(type, buffer)
     }
   }
@@ -314,6 +411,10 @@ private open class AndroidDeviceLocationPigeonCodec : StandardMessageCodec() {
       }
       is AndroidDeviceCoordinates -> {
         stream.write(131)
+        writeValue(stream, value.toList())
+      }
+      is AndroidDeviceLocationAddress -> {
+        stream.write(132)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -336,6 +437,8 @@ interface AndroidDeviceLocationApi {
   fun requestPermission(callback: (Result<AndroidDeviceLocationPermissionStatus>) -> Unit)
   /** Retrieves the current Android device coordinates. */
   fun getCurrentCoordinates(callback: (Result<AndroidDeviceCoordinates>) -> Unit)
+  /** Returns the device-formatted address for geographic coordinates. */
+  fun getAddress(latitude: Double, longitude: Double, localeIdentifier: String?, timeoutMilliseconds: Long, callback: (Result<AndroidDeviceLocationAddress>) -> Unit)
   /** Opens Android's application-details settings page. */
   fun openLocationSettings(): Boolean
 
@@ -401,6 +504,29 @@ interface AndroidDeviceLocationApi {
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             api.getCurrentCoordinates{ result: Result<AndroidDeviceCoordinates> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(AndroidDeviceLocationPigeonUtils.wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(AndroidDeviceLocationPigeonUtils.wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.oh_my_flutter.AndroidDeviceLocationApi.getAddress$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val latitudeArg = args[0] as Double
+            val longitudeArg = args[1] as Double
+            val localeIdentifierArg = args[2] as String?
+            val timeoutMillisecondsArg = args[3] as Long
+            api.getAddress(latitudeArg, longitudeArg, localeIdentifierArg, timeoutMillisecondsArg) { result: Result<AndroidDeviceLocationAddress> ->
               val error = result.exceptionOrNull()
               if (error != null) {
                 reply.reply(AndroidDeviceLocationPigeonUtils.wrapError(error))

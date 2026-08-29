@@ -147,7 +147,7 @@ while sharing the latest callback's result across the pending burst.
 ### Device location
 
 `DeviceLocation` manages foreground location permission and retrieves fresh
-coordinates on Android or iOS.
+coordinates or a device-formatted current address on Android or iOS.
 
 ### Telephony
 

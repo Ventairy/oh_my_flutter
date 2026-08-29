@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'apple_device_location/apple_device_location_platform.dart';
+import 'device_location_address.dart';
 import 'device_location_coordinates.dart';
 import 'device_location_permission_status.dart';
 import 'device_location_platform.dart';
@@ -37,6 +38,17 @@ final class DeviceLocationPlatformImplementation extends DeviceLocationPlatform 
   @override
   Future<DeviceLocationCoordinates> getCurrentCoordinates() {
     return _platform.getCurrentCoordinates();
+  }
+
+  @override
+  Future<DeviceLocationAddress> getAddress({
+    required DeviceLocationCoordinates coordinates,
+    required String? localeIdentifier,
+  }) {
+    return _platform.getAddress(
+      coordinates: coordinates,
+      localeIdentifier: localeIdentifier,
+    );
   }
 
   @override
