@@ -27,12 +27,13 @@ class _MorphOverlayState extends State<_MorphOverlay> {
             return Stack(
               clipBehavior: Clip.none,
               children: [
-                for (final flight in widget.coordinator.flights)
+                for (final flight in widget.coordinator.flights) ...[
                   KeyedSubtree(
                     key: ValueKey<Object>(flight.tag),
                     child: flight.build(context),
                   ),
-                for (final foreground in widget.coordinator.foregrounds) foreground.overlayProjection,
+                  for (final sibling in widget.coordinator.siblingsAbove(flight)) sibling.overlayProjection,
+                ],
               ],
             );
           },

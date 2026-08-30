@@ -86,8 +86,9 @@ other widgets. `MorphDescendant` configures how a selected descendant subtree
 participates in its nearest ancestor Morph, currently including live,
 snapshotted, or hidden transition behavior. Discrete content switches and
 moving destinations remain configurable without replacing the automatic
-transition. `MorphForeground` keeps live controls visible above those flights
-without animating them as matched content.
+transition. `MorphSibling` coordinates tagged widgets outside a Morph subtree,
+letting them animate from that Morph's visual progress and optionally remain in
+their natural paint order instead of painting above the matching flight.
 
 ### Motion
 

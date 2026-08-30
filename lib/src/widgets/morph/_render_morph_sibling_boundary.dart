@@ -1,18 +1,18 @@
 part of 'morph.dart';
 
-class _RenderMorphForegroundBoundary extends RenderProxyBox {
-  _RenderMorphForegroundBoundary(
+class _RenderMorphSiblingBoundary extends RenderProxyBox {
+  _RenderMorphSiblingBoundary(
     this._handle, {
     required this.onGeometryChanged,
   });
 
-  _MorphForegroundHandle? _handle;
+  _MorphSiblingHandle? _handle;
   VoidCallback onGeometryChanged;
   bool _projected = false;
 
-  _MorphForegroundHandle? get handle => _handle;
+  _MorphSiblingHandle? get handle => _handle;
 
-  set handle(_MorphForegroundHandle? value) {
+  set handle(_MorphSiblingHandle? value) {
     if (identical(value, _handle)) return;
     _handle = value;
   }

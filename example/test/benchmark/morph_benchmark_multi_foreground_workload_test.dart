@@ -26,7 +26,7 @@ void main() {
           ),
         );
 
-        expect(find.byType(MorphForeground), findsNWidgets(16));
+        expect(find.byType(MorphSibling), findsNWidgets(16));
       },
     );
 

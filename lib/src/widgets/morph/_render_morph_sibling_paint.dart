@@ -1,17 +1,17 @@
 part of 'morph.dart';
 
-class _RenderMorphForegroundPaint extends RenderBox {
-  _RenderMorphForegroundPaint({required this._handle});
+class _RenderMorphSiblingPaint extends RenderBox {
+  _RenderMorphSiblingPaint({required this._handle});
 
   static final Matrix4 _hiddenLayerTransform = Matrix4.zero();
 
-  _MorphForegroundHandle _handle;
+  _MorphSiblingHandle _handle;
   bool _canPaintSource = false;
   bool _sourceWasPainted = false;
 
-  _MorphForegroundHandle get handle => _handle;
+  _MorphSiblingHandle get handle => _handle;
 
-  set handle(_MorphForegroundHandle value) {
+  set handle(_MorphSiblingHandle value) {
     if (identical(value, _handle)) return;
     if (attached) _handle.detachProjection(this);
     _handle = value;

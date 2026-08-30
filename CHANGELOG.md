@@ -1,3 +1,9 @@
+## Unreleased
+
+- **Breaking:** Replace `MorphForeground` with tagged `MorphSibling` controls
+  that coordinate widgets outside a Morph subtree through matching visual
+  progress and configurable above-Morph paint ordering.
+
 ## 0.15.0
 
 - Add device-formatted current addresses with selectable nullable components,

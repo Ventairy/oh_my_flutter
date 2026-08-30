@@ -1941,7 +1941,10 @@ class _MorphState extends State<MorphBenchmark>
           left: 24,
           right: 24,
           bottom: 32,
-          child: MorphForeground(child: foreground),
+          child: MorphSibling(
+            tag: 'benchmark-$scenarioId-surface',
+            child: foreground,
+          ),
         ),
       ],
     );

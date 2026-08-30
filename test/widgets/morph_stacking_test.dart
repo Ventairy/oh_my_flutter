@@ -206,10 +206,10 @@ void main() {
     );
 
     testWidgets(
-      'when MorphForeground overlaps ordered flights, it should remain above every flight',
+      'when MorphSibling overlaps its ordered flight, it should remain above that flight',
       (tester) async {
         final navigatorKey = GlobalKey<NavigatorState>();
-        const boundaryKey = ValueKey('morph-foreground-boundary');
+        const boundaryKey = ValueKey('morph-sibling-boundary');
         await _pumpApp(
           tester,
           navigatorKey: navigatorKey,
@@ -218,7 +218,7 @@ void main() {
         navigatorKey.currentState!.push(
           _route(
             lazyBackground: true,
-            showMorphForeground: true,
+            showMorphSibling: true,
           ),
         );
         await tester.pump();
@@ -277,7 +277,7 @@ void _configureView(WidgetTester tester) {
 PageRoute<void> _route({
   required bool lazyBackground,
   bool foregroundFirst = false,
-  bool showMorphForeground = false,
+  bool showMorphSibling = false,
 }) {
   return PageRouteBuilder<void>(
     transitionDuration: const Duration(milliseconds: 400),
@@ -287,7 +287,7 @@ PageRoute<void> _route({
         lazyBackground: lazyBackground,
         foregroundFirst: foregroundFirst,
         generation: 1,
-        showMorphForeground: showMorphForeground,
+        showMorphSibling: showMorphSibling,
       );
     },
   );
@@ -298,21 +298,22 @@ class _MorphLayerPage extends StatelessWidget {
     required this.lazyBackground,
     this.foregroundFirst = false,
     this.generation = 0,
-    this.showMorphForeground = false,
+    this.showMorphSibling = false,
   });
 
   final bool lazyBackground;
   final bool foregroundFirst;
   final int generation;
-  final bool showMorphForeground;
+  final bool showMorphSibling;
 
   @override
   Widget build(BuildContext context) {
     final children = foregroundFirst ? [_foreground(), _background()] : [_background(), _foreground()];
-    if (showMorphForeground) {
+    if (showMorphSibling) {
       children.add(
         const Center(
-          child: MorphForeground(
+          child: MorphSibling(
+            tag: 'foreground',
             child: ColoredBox(
               color: Color(0xFF4CAF50),
               child: SizedBox.square(dimension: 40),

@@ -1,20 +1,20 @@
 part of 'morph.dart';
 
-class _MorphForegroundBoundary extends SingleChildRenderObjectWidget {
-  const _MorphForegroundBoundary({
+class _MorphSiblingBoundary extends SingleChildRenderObjectWidget {
+  const _MorphSiblingBoundary({
     required this.handle,
     required this.onRenderObjectReady,
     required this.onGeometryChanged,
     required super.child,
   });
 
-  final _MorphForegroundHandle? handle;
-  final ValueChanged<_RenderMorphForegroundBoundary> onRenderObjectReady;
+  final _MorphSiblingHandle? handle;
+  final ValueChanged<_RenderMorphSiblingBoundary> onRenderObjectReady;
   final VoidCallback onGeometryChanged;
 
   @override
   RenderObject createRenderObject(BuildContext context) {
-    final renderObject = _RenderMorphForegroundBoundary(
+    final renderObject = _RenderMorphSiblingBoundary(
       handle,
       onGeometryChanged: onGeometryChanged,
     );
@@ -25,7 +25,7 @@ class _MorphForegroundBoundary extends SingleChildRenderObjectWidget {
   @override
   void updateRenderObject(
     BuildContext context,
-    _RenderMorphForegroundBoundary renderObject,
+    _RenderMorphSiblingBoundary renderObject,
   ) {
     renderObject
       ..handle = handle

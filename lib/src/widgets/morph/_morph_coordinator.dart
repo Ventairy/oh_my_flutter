@@ -15,8 +15,9 @@ class _MorphCoordinator extends ChangeNotifier {
   final List<_MorphActiveFlight> _orderedFlights = [];
   final Map<Object, _MorphEndpointHandle> _owners = {};
   final Map<Object, List<_MorphEndpointHandle>> _pendingRouteEndpoints = {};
-  final List<_MorphForegroundHandle> _foregrounds = [];
-  final List<_MorphForegroundHandle> _visibleForegrounds = [];
+  final Set<_MorphEndpointHandle> _scheduledIncomingEndpoints = {};
+  final List<_MorphSiblingHandle> _siblings = [];
+  final List<_MorphSiblingHandle> _visibleSiblings = [];
   final Map<Duration, _MorphControllerLease> _sameFrameControllers = {};
   final _MorphTextRasterPool textRasterPool = _MorphTextRasterPool();
   OverlayEntry? _overlayEntry;
@@ -27,95 +28,151 @@ class _MorphCoordinator extends ChangeNotifier {
 
   Iterable<_MorphActiveFlight> get flights => _orderedFlights;
 
-  List<_MorphForegroundHandle> get foregrounds {
-    _visibleForegrounds.clear();
-    for (final foreground in _foregrounds) {
-      if (!foreground.active || foreground.disposed || !foreground.canPaint) {
+  List<_MorphSiblingHandle> siblingsAbove(
+    _MorphActiveFlight flight,
+  ) {
+    _visibleSiblings.clear();
+    for (final sibling in _siblings) {
+      if (!sibling.active ||
+          sibling.disposed ||
+          !sibling.paintsAboveMorph ||
+          !sibling.canPaint ||
+          sibling.tag != flight.tag) {
         continue;
       }
-      for (final flight in _flights.values) {
-        if (identical(foreground.route, _foregroundRoute(flight))) {
-          _visibleForegrounds.add(foreground);
-          break;
-        }
+      if (_siblingParticipates(flight, sibling)) {
+        _visibleSiblings.add(sibling);
       }
     }
-    return _visibleForegrounds;
+    return _visibleSiblings;
   }
 
-  void registerForeground(_MorphForegroundHandle foreground) {
-    foreground
+  void registerSibling(_MorphSiblingHandle sibling) {
+    sibling
       ..active = true
       ..disposed = false;
-    if (!_foregrounds.contains(foreground)) _foregrounds.add(foreground);
-    _attachForegroundFlightAnimations(foreground);
-    if (_hasFlightUsingForeground(foreground)) {
+    if (!_siblings.contains(sibling)) _siblings.add(sibling);
+    _attachSiblingFlight(sibling);
+    if (_hasScheduledIncomingFlightUsingSibling(sibling)) {
+      sibling.prepareForIncomingFlight();
+    } else if (!_hasFlightUsingSibling(sibling)) {
+      sibling.settleTransition();
+    }
+    if (_hasFlightUsingSibling(sibling)) {
       _notifyListenersSafely();
     }
   }
 
-  void foregroundGeometryChanged(_MorphForegroundHandle foreground) {
-    if (!_foregrounds.contains(foreground)) return;
-    if (_hasFlightUsingForeground(foreground)) {
-      foreground.changed();
-      if (!foreground.isProjected) _notifyListenersSafely();
+  void siblingGeometryChanged(_MorphSiblingHandle sibling) {
+    if (!_siblings.contains(sibling)) return;
+    if (_hasProjectedFlightUsingSibling(sibling)) {
+      sibling.changed();
+      if (!sibling.isProjected) _notifyListenersSafely();
     }
   }
 
-  void deactivateForeground(_MorphForegroundHandle foreground) {
-    foreground
+  void deactivateSibling(_MorphSiblingHandle sibling) {
+    sibling
       ..active = false
-      ..detachAllFlightAnimations();
+      ..resetFlight();
     if (_overlayEntry != null) _notifyListenersSafely();
   }
 
-  void activateForeground(_MorphForegroundHandle foreground) {
-    foreground
+  void activateSibling(_MorphSiblingHandle sibling) {
+    sibling
       ..active = true
       ..disposed = false;
-    _attachForegroundFlightAnimations(foreground);
-    if (_hasFlightUsingForeground(foreground)) {
-      foreground.changed();
+    _attachSiblingFlight(sibling);
+    if (_hasScheduledIncomingFlightUsingSibling(sibling)) {
+      sibling.prepareForIncomingFlight();
+    } else if (!_hasFlightUsingSibling(sibling)) {
+      sibling.settleTransition();
+    }
+    if (_hasFlightUsingSibling(sibling)) {
+      sibling.changed();
       _notifyListenersSafely();
     }
   }
 
-  void unregisterForeground(_MorphForegroundHandle foreground) {
-    foreground
+  void unregisterSibling(_MorphSiblingHandle sibling) {
+    sibling
       ..active = false
       ..visibility.hidden = false;
-    _foregrounds.remove(foreground);
-    _visibleForegrounds.remove(foreground);
-    foreground.dispose();
+    _siblings.remove(sibling);
+    _visibleSiblings.remove(sibling);
+    sibling.dispose();
     if (_overlayEntry != null) _notifyListenersSafely();
   }
 
-  bool showsForeground(_MorphForegroundHandle foreground) {
-    if (!foreground.canPaint) return false;
-    for (final flight in _flights.values) {
-      if (identical(_foregroundRoute(flight), foreground.route)) return true;
-    }
-    return false;
+  bool showsSibling(_MorphSiblingHandle sibling) {
+    if (!sibling.paintsAboveMorph || !sibling.canPaint) return false;
+    final flight = _flights[sibling.tag];
+    return flight != null && _siblingParticipates(flight, sibling);
   }
 
-  ModalRoute<Object?>? _foregroundRoute(_MorphActiveFlight flight) {
+  ModalRoute<Object?>? _siblingRoute(_MorphActiveFlight flight) {
     if (flight.completesAtSource) return flight.sourceHandle?.route;
     return flight.destinationHandle.route;
   }
 
-  bool _flightUsesForeground(
+  bool _siblingParticipates(
     _MorphActiveFlight flight,
-    _MorphForegroundHandle foreground,
+    _MorphSiblingHandle sibling,
   ) {
-    return identical(flight.sourceHandle?.route, foreground.route) ||
-        identical(flight.destinationHandle.route, foreground.route);
+    if (identical(_siblingRoute(flight), sibling.route)) return true;
+    return sibling.hasTransition &&
+        !identical(flight.sourceHandle?.route, flight.destinationHandle.route) &&
+        identical(flight.sourceHandle?.route, sibling.route);
   }
 
-  bool _hasFlightUsingForeground(_MorphForegroundHandle foreground) {
-    for (final flight in _flights.values) {
-      if (_flightUsesForeground(flight, foreground)) return true;
+  Animation<double>? _siblingAnimation(
+    _MorphActiveFlight flight,
+    _MorphSiblingHandle sibling,
+  ) {
+    if (!_siblingParticipates(flight, sibling)) return null;
+    if (identical(flight.sourceHandle?.route, sibling.route) &&
+        !identical(flight.sourceHandle?.route, flight.destinationHandle.route)) {
+      return ReverseAnimation(flight.morphAnimation);
+    }
+    return flight.morphAnimation;
+  }
+
+  bool _hasFlightUsingSibling(_MorphSiblingHandle sibling) {
+    final flight = _flights[sibling.tag];
+    return flight != null && _siblingParticipates(flight, sibling);
+  }
+
+  bool _hasProjectedFlightUsingSibling(_MorphSiblingHandle sibling) {
+    return sibling.paintsAboveMorph && _hasFlightUsingSibling(sibling);
+  }
+
+  bool _hasScheduledIncomingFlightUsingSibling(
+    _MorphSiblingHandle sibling,
+  ) {
+    if (!sibling.hasTransition) return false;
+    for (final endpoint in _scheduledIncomingEndpoints) {
+      if (endpoint.tag == sibling.tag &&
+          identical(endpoint.route, sibling.route) &&
+          endpoint.active &&
+          !endpoint.disposed) {
+        return true;
+      }
     }
     return false;
+  }
+
+  void _prepareSiblingsForIncomingFlight(
+    _MorphEndpointHandle destination,
+  ) {
+    for (final sibling in _siblings) {
+      if (!sibling.active ||
+          sibling.disposed ||
+          sibling.tag != destination.tag ||
+          !identical(sibling.route, destination.route)) {
+        continue;
+      }
+      sibling.prepareForIncomingFlight();
+    }
   }
 
   void _installFlight(_MorphActiveFlight flight) {
@@ -128,11 +185,10 @@ class _MorphCoordinator extends ChangeNotifier {
       insertionIndex += 1;
     }
     _orderedFlights.insert(insertionIndex, flight);
-    final route = _foregroundRoute(flight);
-    for (final foreground in _foregrounds) {
-      if (foreground.active && identical(foreground.route, route)) {
-        foreground.attachFlightAnimation(flight.flightAnimation);
-      }
+    for (final sibling in _siblings) {
+      if (!sibling.active || sibling.tag != flight.tag) continue;
+      final animation = _siblingAnimation(flight, sibling);
+      if (animation != null) sibling.attachFlight(flight, animation);
     }
   }
 
@@ -179,13 +235,12 @@ class _MorphCoordinator extends ChangeNotifier {
     overlay.context.visitChildElements(visit);
   }
 
-  void _attachForegroundFlightAnimations(_MorphForegroundHandle foreground) {
-    if (!foreground.active) return;
-    for (final flight in _flights.values) {
-      if (identical(_foregroundRoute(flight), foreground.route)) {
-        foreground.attachFlightAnimation(flight.flightAnimation);
-      }
-    }
+  void _attachSiblingFlight(_MorphSiblingHandle sibling) {
+    if (!sibling.active) return;
+    final flight = _flights[sibling.tag];
+    if (flight == null) return;
+    final animation = _siblingAnimation(flight, sibling);
+    if (animation != null) sibling.attachFlight(flight, animation);
   }
 
   void geometryChanged(
@@ -229,8 +284,20 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
     endpoint.visibility.hidden = true;
+    _scheduledIncomingEndpoints.add(endpoint);
+    _prepareSiblingsForIncomingFlight(endpoint);
     WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _startIncoming(endpoint),
+      (_) {
+        _scheduledIncomingEndpoints.remove(endpoint);
+        _startIncoming(endpoint);
+        for (final sibling in _siblings) {
+          if (sibling.tag == endpoint.tag &&
+              !_hasFlightUsingSibling(sibling) &&
+              !_hasScheduledIncomingFlightUsingSibling(sibling)) {
+            sibling.settleTransition();
+          }
+        }
+      },
     );
   }
 
@@ -610,10 +677,9 @@ class _MorphCoordinator extends ChangeNotifier {
   }
 
   void _flightEnded(_MorphActiveFlight flight) {
-    final route = _foregroundRoute(flight);
-    for (final foreground in _foregrounds) {
-      if (identical(foreground.route, route)) {
-        foreground.detachFlightAnimation(flight.flightAnimation);
+    for (final sibling in _siblings) {
+      if (sibling.tag == flight.tag) {
+        sibling.detachFlight(flight);
       }
     }
     scheduleMicrotask(() {

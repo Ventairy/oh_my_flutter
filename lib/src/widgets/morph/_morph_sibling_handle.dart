@@ -1,32 +1,35 @@
 part of 'morph.dart';
 
-final class _MorphForegroundHandle {
-  _MorphForegroundHandle({
+final class _MorphSiblingHandle {
+  _MorphSiblingHandle({
     required this.owner,
     required this.visibility,
     required this.coordinator,
     required this.route,
+    required this.tag,
+    required this.transitionAnimation,
   });
 
-  final _MorphForegroundState owner;
+  final _MorphSiblingState owner;
   final _MorphVisibilityHandle visibility;
   final _MorphCoordinator coordinator;
   final ModalRoute<Object?>? route;
+  final Object tag;
+  final ProxyAnimation transitionAnimation;
   final Matrix4 _transform = Matrix4.identity();
   late final VoidCallback _flightAnimationListener = changed;
   late final Widget overlayProjection = Positioned.fill(
     key: ObjectKey(this),
     child: ExcludeSemantics(
-      child: _MorphForegroundPaint(handle: this),
+      child: _MorphSiblingPaint(handle: this),
     ),
   );
   Matrix4? _firstLayerTransform;
   Matrix4? _secondLayerTransform;
   List<RenderObject>? _transformPath;
-  Animation<double>? _primaryFlightAnimation;
-  int _primaryFlightAnimationRetainCount = 0;
-  Map<Animation<double>, int>? _additionalFlightAnimations;
-  _RenderMorphForegroundPaint? _projection;
+  _MorphActiveFlight? _flight;
+  Animation<double>? _flightAnimation;
+  _RenderMorphSiblingPaint? _projection;
   bool active = true;
   bool disposed = false;
   bool _usesFirstLayerTransform = false;
@@ -46,6 +49,12 @@ final class _MorphForegroundHandle {
         overlayRenderObject.hasSize;
   }
 
+  bool get isProjected => _projection != null;
+
+  bool get hasTransition => owner.widget.transitionBuilder != null;
+
+  bool get paintsAboveMorph => owner.widget.paintAboveMorph;
+
   void changed() {
     if (!disposed) _projection?.markTransformNeedsUpdate();
   }
@@ -54,84 +63,71 @@ final class _MorphForegroundHandle {
     if (!disposed) _projection?.markSourceNeedsUpdate();
   }
 
-  void attachProjection(_RenderMorphForegroundPaint projection) {
+  void attachProjection(_RenderMorphSiblingPaint projection) {
     assert(
       _projection == null || identical(_projection, projection),
-      'A MorphForeground can only have one live overlay projection.',
+      'A MorphSibling can only have one live overlay projection.',
     );
     _projection = projection;
     owner._renderObject?.projected = true;
   }
 
-  bool get isProjected => _projection != null;
-
-  void attachFlightAnimation(Animation<double> animation) {
-    if (identical(_primaryFlightAnimation, animation)) {
-      _primaryFlightAnimationRetainCount += 1;
+  void attachFlight(
+    _MorphActiveFlight flight,
+    Animation<double> animation,
+  ) {
+    if (identical(_flight, flight) && identical(_flightAnimation, animation)) {
       return;
     }
-    final additionalAnimations = _additionalFlightAnimations;
-    final additionalRetainCount = additionalAnimations?[animation];
-    if (additionalRetainCount != null) {
-      additionalAnimations![animation] = additionalRetainCount + 1;
-      return;
-    }
-    if (_primaryFlightAnimation == null) {
-      _primaryFlightAnimation = animation;
-      _primaryFlightAnimationRetainCount = 1;
-    } else {
-      (_additionalFlightAnimations ??= Map<Animation<double>, int>.identity())[animation] = 1;
-    }
+    _flightAnimation?.removeListener(_flightAnimationListener);
+    _flight = flight;
+    _flightAnimation = animation;
     animation.addListener(_flightAnimationListener);
+    transitionAnimation.parent = _MorphSiblingClampedAnimation(
+      animation,
+    );
+    changed();
   }
 
-  void detachFlightAnimation(Animation<double> animation) {
-    if (identical(_primaryFlightAnimation, animation)) {
-      if (_primaryFlightAnimationRetainCount > 1) {
-        _primaryFlightAnimationRetainCount -= 1;
-        return;
-      }
-      animation.removeListener(_flightAnimationListener);
-      _primaryFlightAnimation = null;
-      _primaryFlightAnimationRetainCount = 0;
+  void detachFlight(_MorphActiveFlight flight) {
+    if (!identical(_flight, flight)) return;
+    _flightAnimation?.removeListener(_flightAnimationListener);
+    _flight = null;
+    _flightAnimation = null;
+    transitionAnimation.parent = kAlwaysCompleteAnimation;
+    changed();
+  }
+
+  void prepareForIncomingFlight() {
+    if (_flight != null || !hasTransition) return;
+    transitionAnimation.parent = kAlwaysDismissedAnimation;
+  }
+
+  void resetFlight() {
+    _flightAnimation?.removeListener(_flightAnimationListener);
+    _flight = null;
+    _flightAnimation = null;
+  }
+
+  void settleTransition() {
+    if (identical(transitionAnimation.parent, kAlwaysCompleteAnimation)) {
       return;
     }
-    final animations = _additionalFlightAnimations;
-    final retainCount = animations?[animation];
-    if (retainCount == null) return;
-    if (retainCount > 1) {
-      animations![animation] = retainCount - 1;
-      return;
-    }
-    animation.removeListener(_flightAnimationListener);
-    animations!.remove(animation);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (disposed || _flight != null) return;
+      transitionAnimation.parent = kAlwaysCompleteAnimation;
+    });
   }
 
-  void detachAllFlightAnimations() {
-    final primaryAnimation = _primaryFlightAnimation;
-    if (primaryAnimation != null) {
-      primaryAnimation.removeListener(_flightAnimationListener);
-      _primaryFlightAnimation = null;
-      _primaryFlightAnimationRetainCount = 0;
-    }
-    final additionalAnimations = _additionalFlightAnimations;
-    if (additionalAnimations != null) {
-      for (final animation in additionalAnimations.keys) {
-        animation.removeListener(_flightAnimationListener);
-      }
-      additionalAnimations.clear();
-    }
-  }
-
-  void detachProjection(_RenderMorphForegroundPaint projection) {
+  void detachProjection(_RenderMorphSiblingPaint projection) {
     if (!identical(_projection, projection)) return;
     _projection = null;
     owner._renderObject?.projected = false;
   }
 
   void renderObjectChanged(
-    _RenderMorphForegroundBoundary? previous,
-    _RenderMorphForegroundBoundary current,
+    _RenderMorphSiblingBoundary? previous,
+    _RenderMorphSiblingBoundary current,
   ) {
     if (identical(previous, current)) return;
     previous?.projected = false;
@@ -141,7 +137,7 @@ final class _MorphForegroundHandle {
     sourceChanged();
   }
 
-  void renderObjectDisposed(_RenderMorphForegroundBoundary renderObject) {
+  void renderObjectDisposed(_RenderMorphSiblingBoundary renderObject) {
     if (identical(owner._renderObject, renderObject)) {
       owner._renderObject = null;
     }
@@ -222,8 +218,7 @@ final class _MorphForegroundHandle {
   void dispose() {
     if (disposed) return;
     disposed = true;
-    detachAllFlightAnimations();
-    _additionalFlightAnimations = null;
+    resetFlight();
     _transformPath?.clear();
     _transformPath = null;
     _firstLayerTransform = null;

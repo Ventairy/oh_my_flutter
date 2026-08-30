@@ -29,7 +29,8 @@ final class MorphBenchmarkMultiForegroundWorkload extends StatelessWidget {
       runSpacing: 8,
       children: <Widget>[
         for (var index = 0; index < count; index += 1)
-          MorphForeground(
+          MorphSibling(
+            tag: 'benchmark-multi-foreground',
             child: _buildControl(live: index == liveIndex),
           ),
       ],
