@@ -26,12 +26,17 @@ jobs:
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
       - run: ./tool/check_device_location_pigeon.sh
+      - run: ./tool/check_device_display_pigeon.sh
+      - run: ./tool/device_display_model/validate_device_display_model.sh
       - run: fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
       - run: fvm flutter analyze --fatal-infos
       - run: fvm flutter test
       - name: Test portable APIs on web
         run: >-
           fvm flutter test --platform chrome
+          test/device/device_test.dart
+          test/device/device_display/device_display_unsupported_test.dart
+          test/device/device_display/estimator/device_display_estimator_test.dart
           test/device/device_location/device_location_test.dart
           test/device/device_location/device_location_unsupported_test.dart
           test/device/device_location/device_location_coordinates_test.dart
@@ -47,6 +52,7 @@ jobs:
       - run: fvm flutter test
         working-directory: example
       - run: fvm flutter pub publish --dry-run
+      - run: ./tool/device_display_model/check_device_display_publish_archive.sh
       - run: fvm dart pub global activate pana
       - run: fvm dart pub global run pana .
 
@@ -97,6 +103,7 @@ jobs:
       - run: fvm flutter pub upgrade
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
+      - run: fvm dart run tool/device_display_model/device_display_model.dart check-collectors
       - run: fvm flutter build apk --release
         working-directory: example
       - run: ./gradlew :oh_my_flutter:testDebugUnitTest :oh_my_flutter:lintDebug
@@ -116,6 +123,7 @@ jobs:
       - run: fvm flutter pub upgrade
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
+      - run: ./tool/device_display_model/validate_device_display_collectors.sh
       - run: ./tool/check_device_location_ios_integration.sh
       - run: ./tool/check_device_location_ios.sh
 

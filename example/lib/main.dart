@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
+import 'package:oh_my_flutter_example/examples/device_display_example.dart';
 import 'package:oh_my_flutter_example/examples/device_location_example.dart';
 import 'package:oh_my_flutter_example/examples/marquee_example.dart';
 import 'package:oh_my_flutter_example/examples/maybe_safe_area_example.dart';
@@ -35,6 +36,10 @@ class UtilityExample extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Text('Device display', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        DeviceDisplayExample(),
+                        SizedBox(height: 32),
                         Text('Device location', style: _sectionStyle),
                         SizedBox(height: 12),
                         DeviceLocationExample(),

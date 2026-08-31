@@ -1,0 +1,20 @@
+{
+  "protocolVersion": 1,
+  "sourceKind": "ios26_connected_public_uikit_concentric_corner",
+  "requiredFields": [
+    "nonce",
+    "physicalWidth",
+    "physicalHeight",
+    "viewPhysicalWidth",
+    "viewPhysicalHeight",
+    "devicePixelRatio",
+    "viewPaddingLeftPhysical",
+    "viewPaddingTopPhysical",
+    "viewPaddingRightPhysical",
+    "viewPaddingBottomPhysical",
+    "topLeftRadiusPhysical",
+    "topRightRadiusPhysical",
+    "bottomRightRadiusPhysical",
+    "bottomLeftRadiusPhysical"
+  ]
+}

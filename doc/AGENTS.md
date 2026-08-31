@@ -25,10 +25,14 @@ root README as a compact catalog that links here.
   observable behavior, configuration, constraints, and focused examples.
 - Use only exports from `package:oh_my_flutter/oh_my_flutter.dart` in examples.
 - Keep implementation and optimization machinery out of guides.
-- Do not summarize a general-purpose class, such as a controller, by its first
-  or only method. Describe the class by its stable role so the documentation
-  remains accurate as capabilities are added, then document each current
-  operation separately.
+- Treat a class as an extensible feature family when its name owns a broader
+  domain and related capabilities are reasonably likely to be added. Lead its
+  guide with that durable role even when the class currently has only one
+  member; never define the class by its first or only operation.
+- Put each current operation under its own heading. Before finalizing a guide,
+  test its opening description against plausible future members. If adding one
+  would make the description inaccurate, broaden the class description and
+  keep the current capability in its operation-specific section.
 - Put detailed usage here, not in the root README. Do not duplicate long
   examples or reference material between both locations.
 - Link to the generated API reference for exhaustive member contracts rather

@@ -140,15 +140,26 @@ connectivity probes.
 
 ## [Utilities][utility-guides]
 
+### Device
+
+`Device` groups device feature objects behind one reusable entry point for
+applications that need several capabilities.
+
+#### Display
+
+`DeviceDisplay` provides information about and interaction with the device
+display. Its initial capability reads exact corner radii when Flutter exposes
+them and can optionally provide an approximate phone fallback.
+
+#### Location
+
+`DeviceLocation` manages foreground location permission and retrieves fresh
+coordinates or a device-formatted current address on Android or iOS.
+
 ### Debouncer
 
 `Debouncer<T>` delays repeated value-producing callbacks until calls stop,
 while sharing the latest callback's result across the pending burst.
-
-### Device location
-
-`DeviceLocation` manages foreground location permission and retrieves fresh
-coordinates or a device-formatted current address on Android or iOS.
 
 ### Telephony
 

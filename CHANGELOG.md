@@ -3,6 +3,8 @@
 - **Breaking:** Replace `MorphForeground` with tagged `MorphSibling` controls
   that coordinate widgets outside a Morph subtree through matching visual
   progress and configurable above-Morph paint ordering.
+- Add `Device` for grouping device features and `DeviceDisplay` for reading
+  exact display corner radii with an optional approximate phone fallback.
 
 ## 0.15.0
 
