@@ -2844,6 +2844,10 @@ void main() {
     testWidgets(
       'when memory pressure is reported, it should release reusable rasters',
       (tester) async {
+        _binding.rasterLoader = (picture, width, height) async {
+          return picture.toImageSync(width, height);
+        };
+        addTearDown(_binding.resetRasterLoader);
         final appKey = GlobalKey<_CrossFlightRasterAppState>();
         await tester.pumpWidget(_CrossFlightRasterApp(key: appKey));
         await tester.pump();

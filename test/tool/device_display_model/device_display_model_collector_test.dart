@@ -664,6 +664,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
           <Object?>[true, true, false, true],
         );
       },
+      skip: Platform.isMacOS ? false : 'The iOS simulator collector requires macOS.',
       timeout: const Timeout(Duration(minutes: 1)),
     );
 
@@ -910,6 +911,9 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
         final security = File(
           'test/tool/device_display_model/fixtures/fake_security.sh',
         ).copySync('${binaries.path}/security');
+        final plutil = File(
+          'test/tool/device_display_model/fixtures/fake_plutil.sh',
+        ).copySync('${binaries.path}/plutil');
         final xcrun = File(
           'test/tool/device_display_model/fixtures/fake_xcrun.sh',
         ).copySync('${binaries.path}/xcrun');
@@ -918,6 +922,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
           devicectl.path,
           codesign.path,
           security.path,
+          plutil.path,
           xcrun.path,
         ]);
         final sourceHeader = File(

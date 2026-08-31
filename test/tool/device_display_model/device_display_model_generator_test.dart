@@ -172,10 +172,17 @@ void main(List<String> arguments) {
   final models = (payload['models']! as List<Object?>)
       .map((value) => (value! as Map<String, Object?>))
       .toList();
-  stdout.write(jsonEncode(<double>[
-    for (final model in models)
-      _DeviceDisplayEstimatorModel._predict(model, features, 0.1),
-  ]));
+  try {
+    stdout.write(jsonEncode(<double>[
+      for (final model in models)
+        _DeviceDisplayEstimatorModel._predict(model, features, 0.1),
+    ]));
+  } on StateError catch (error) {
+    if (payload['expectStateError'] != true) {
+      rethrow;
+    }
+    stdout.write(error.message);
+  }
 }
 ''');
         final equivalentResult = await DeviceDisplayModelTestProcess.run([
@@ -203,6 +210,7 @@ void main(List<String> arguments) {
               },
             ],
             'features': probe,
+            'expectStateError': true,
           }),
         ]);
 
@@ -210,13 +218,13 @@ void main(List<String> arguments) {
           <Object?>[
             equivalentResult.exitCode,
             ...actual,
-            unknownResult.exitCode == 0,
-            unknownResult.stderr as String,
+            unknownResult.exitCode,
+            unknownResult.stdout as String,
           ],
           <Object?>[
             0,
             for (final value in expected) closeTo(value, 0.0000001),
-            false,
+            0,
             contains('Unknown generated display-radius model kind'),
           ],
         );
