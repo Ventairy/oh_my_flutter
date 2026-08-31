@@ -15,8 +15,16 @@ final class _MorphDescendantFlightResolver extends ChangeNotifier {
   final List<_MorphDescendantFlightRecord> source;
   final List<_MorphDescendantFlightRecord> destination;
   bool _showsSource;
+  int _recordsRevision = 0;
 
   bool get showsSource => _showsSource;
+
+  int get recordsRevision => _recordsRevision;
+
+  void recordsChanged() {
+    _recordsRevision += 1;
+    notifyListeners();
+  }
 
   _MorphDescendantFlightRecord? claim({
     required Key? key,

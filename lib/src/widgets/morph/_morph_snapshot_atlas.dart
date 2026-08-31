@@ -10,6 +10,8 @@ final class _MorphSnapshotAtlas {
   int _disposalGeneration = 0;
   bool _disposed = false;
 
+  int get physicalPixels => image.width * image.height;
+
   void retain() {
     assert(!_disposed, 'A disposed Morph snapshot cannot be retained.');
     _references += 1;
@@ -22,7 +24,9 @@ final class _MorphSnapshotAtlas {
       'A Morph snapshot cannot be released without a matching retain.',
     );
     _references -= 1;
-    _scheduleDisposalIfUnused(afterFrame: true);
+    if (_references == 0) {
+      _scheduleDisposalIfUnused(afterFrame: true);
+    }
   }
 
   void _scheduleDisposalIfUnused({required bool afterFrame}) {

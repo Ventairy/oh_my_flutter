@@ -2,26 +2,26 @@ part of 'morph.dart';
 
 final class _MorphContentSnapshotPainter extends CustomPainter {
   _MorphContentSnapshotPainter({
-    required this.atlas,
-    required this.sourceRect,
+    required this.tiles,
   });
 
-  final _MorphSnapshotAtlas atlas;
-  final Rect sourceRect;
+  final List<_MorphContentSnapshotTile> tiles;
   final Paint _paint = Paint()..filterQuality = FilterQuality.medium;
 
   @override
   void paint(Canvas canvas, Size size) {
-    canvas.drawImageRect(
-      atlas.image,
-      sourceRect,
-      Offset.zero & size,
-      _paint,
-    );
+    for (final tile in tiles) {
+      canvas.drawImageRect(
+        tile.atlas.image,
+        tile.sourceRect,
+        tile.destinationRect,
+        _paint,
+      );
+    }
   }
 
   @override
   bool shouldRepaint(_MorphContentSnapshotPainter oldDelegate) {
-    return !identical(atlas, oldDelegate.atlas) || sourceRect != oldDelegate.sourceRect;
+    return !identical(tiles, oldDelegate.tiles);
   }
 }

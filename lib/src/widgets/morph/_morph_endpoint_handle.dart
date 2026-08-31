@@ -37,21 +37,54 @@ class _MorphEndpointHandle {
   MorphEndpoint<Object?>? _sameFrameEndpoint;
   final List<_MorphDescendantHandle> _descendants = [];
   int _descendantRegistrationOrder = 0;
+  int _descendantRevision = 0;
+
+  int get descendantRevision => _descendantRevision;
 
   void _registerDescendant(_MorphDescendantHandle descendant) {
     if (_descendants.contains(descendant)) return;
     descendant.registrationOrder = ++_descendantRegistrationOrder;
     _descendants.add(descendant);
+    _descendantRevision += 1;
   }
 
   void _unregisterDescendant(_MorphDescendantHandle descendant) {
-    _descendants.remove(descendant);
+    if (!_descendants.remove(descendant)) return;
+    _descendantRevision += 1;
+  }
+
+  void _descendantChanged(_MorphDescendantHandle descendant) {
+    if (_descendants.contains(descendant)) _descendantRevision += 1;
   }
 
   List<_MorphDescendantFlightRecord> _captureDescendants() {
+    return _buildDescendantRecords(
+      previousRecords: const [],
+      pixelRatioChanged: true,
+      refresh: false,
+      rejectStaleCapture: false,
+    )!;
+  }
+
+  List<_MorphDescendantFlightRecord>? _refreshDescendants({
+    required List<_MorphDescendantFlightRecord> previousRecords,
+    required bool pixelRatioChanged,
+  }) {
+    return _buildDescendantRecords(
+      previousRecords: previousRecords,
+      pixelRatioChanged: pixelRatioChanged,
+      refresh: true,
+      rejectStaleCapture: true,
+    );
+  }
+
+  List<_MorphDescendantFlightRecord>? _buildDescendantRecords({
+    required List<_MorphDescendantFlightRecord> previousRecords,
+    required bool pixelRatioChanged,
+    required bool refresh,
+    required bool rejectStaleCapture,
+  }) {
     if (_descendants.isEmpty) return const [];
-    final ordered = List<_MorphDescendantHandle>.of(_descendants)
-      ..sort((first, second) => first.registrationOrder.compareTo(second.registrationOrder));
     final candidates =
         <
           ({
@@ -60,37 +93,150 @@ class _MorphEndpointHandle {
           })
         >[];
     final boundaries = <_RenderMorphDescendant>{};
-    for (final descendant in ordered) {
+    for (final descendant in _descendants) {
       final renderObject = descendant.capturableRenderObject;
       if (renderObject == null) continue;
       candidates.add((handle: descendant, renderObject: renderObject));
       boundaries.add(renderObject);
     }
+    final previousByHandle = <_MorphDescendantHandle, _MorphDescendantFlightRecord>{
+      for (final record in previousRecords) record.handle: record,
+    };
     final records = <_MorphDescendantFlightRecord>[];
+    final allSnapshotRecords = <_MorphDescendantFlightRecord>[];
+    final allSnapshotRenderObjects = <_RenderMorphDescendant>[];
     final snapshotRecords = <_MorphDescendantFlightRecord>[];
     final snapshotRenderObjects = <_RenderMorphDescendant>[];
+    var retainedSnapshotPhysicalPixels = 0;
+    var replacesAllRetainedSnapshots = false;
     double? pixelRatio;
     for (final candidate in candidates) {
       final renderObject = candidate.renderObject;
       if (_hasDescendantBoundaryAncestor(renderObject, boundaries)) continue;
       final descendant = candidate.handle;
-      final record = descendant.capture(renderObject);
+      final previous = previousByHandle[descendant];
+      final behavior = descendant.owner.widget.flightBehavior;
+      final canReuseSnapshot = refresh && previous != null && previous.behavior.usesSnapshot && behavior.usesSnapshot;
+      final record = descendant.capture(
+        renderObject,
+        snapshot: canReuseSnapshot ? previous.snapshot : null,
+        snapshotCaptureCompleted: canReuseSnapshot && previous.snapshotCaptureCompleted,
+        capturesContinuously: refresh && previous != null && !descendant.snapshotDirty && previous.behavior == behavior
+            ? previous.capturesContinuously
+            : null,
+      );
       records.add(record);
-      if (!record.behavior.usesSnapshot || record.size.isEmpty) continue;
-      pixelRatio ??= View.of(descendant.owner.context).devicePixelRatio;
+      if (!record.behavior.usesSnapshot) continue;
+      if (record.size.isEmpty) {
+        record
+          ..snapshot = null
+          ..snapshotCaptureCompleted = true;
+        continue;
+      }
+      allSnapshotRecords.add(record);
+      allSnapshotRenderObjects.add(renderObject);
+      final snapshotChanged =
+          !refresh ||
+          pixelRatioChanged ||
+          previous == null ||
+          descendant.snapshotDirty ||
+          (record.capturesContinuously && !(previous.snapshotCaptureCompleted && previous.snapshot == null)) ||
+          previous.behavior != record.behavior ||
+          previous.size != record.size ||
+          previous.childType != record.childType ||
+          previous.key != record.key;
+      if (!snapshotChanged) continue;
+      pixelRatio ??= View.of(owner.context).devicePixelRatio;
       snapshotRecords.add(record);
       snapshotRenderObjects.add(renderObject);
     }
     if (snapshotRecords.isNotEmpty) {
-      final snapshots = _MorphContentSnapshot.captureAll(
+      replacesAllRetainedSnapshots = snapshotRecords.length == allSnapshotRecords.length;
+      if (refresh && !replacesAllRetainedSnapshots) {
+        final projection = _snapshotPhysicalPixelProjection(
+          records: records,
+          replacedRecords: snapshotRecords,
+          replacementRenderObjects: snapshotRenderObjects,
+          pixelRatio: pixelRatio!,
+        );
+        retainedSnapshotPhysicalPixels = projection.retained;
+        if (projection.total > _MorphContentSnapshot._maximumCapturePhysicalPixels) {
+          final originallyReplacedRecords = Set<_MorphDescendantFlightRecord>.identity()..addAll(snapshotRecords);
+          snapshotRecords.clear();
+          snapshotRenderObjects.clear();
+          for (var index = 0; index < allSnapshotRecords.length; index += 1) {
+            final record = allSnapshotRecords[index];
+            if (record.snapshot == null && !originallyReplacedRecords.contains(record)) {
+              continue;
+            }
+            snapshotRecords.add(record);
+            snapshotRenderObjects.add(allSnapshotRenderObjects[index]);
+          }
+          replacesAllRetainedSnapshots = true;
+          retainedSnapshotPhysicalPixels = 0;
+        }
+      }
+      final capture = _MorphContentSnapshot.captureAll(
         pixelRatio: pixelRatio!,
         renderObjects: snapshotRenderObjects,
       );
-      for (var index = 0; index < snapshotRecords.length; index += 1) {
-        snapshotRecords[index].snapshot = snapshots[index];
+      if (capture == null) {
+        if (refresh) return null;
+        for (final record in snapshotRecords) {
+          record.snapshotCaptureCompleted = true;
+        }
+      } else {
+        for (var index = 0; index < snapshotRecords.length; index += 1) {
+          snapshotRecords[index]
+            ..snapshot = capture.snapshots[index]
+            ..snapshotCaptureCompleted = true;
+        }
+        if (refresh &&
+            !replacesAllRetainedSnapshots &&
+            retainedSnapshotPhysicalPixels + capture.physicalPixels >
+                _MorphContentSnapshot._maximumCapturePhysicalPixels) {
+          return null;
+        }
       }
     }
+    if (rejectStaleCapture &&
+        records.any(
+          (record) => record.snapshotRevision != record.handle.snapshotRevision,
+        )) {
+      return null;
+    }
+    for (final record in records) {
+      record.handle.acceptSnapshotRevision(record.snapshotRevision);
+    }
     return records;
+  }
+
+  ({int retained, int total}) _snapshotPhysicalPixelProjection({
+    required List<_MorphDescendantFlightRecord> records,
+    required List<_MorphDescendantFlightRecord> replacedRecords,
+    required List<_RenderMorphDescendant> replacementRenderObjects,
+    required double pixelRatio,
+  }) {
+    final replaced = Set<_MorphDescendantFlightRecord>.identity()..addAll(replacedRecords);
+    final retainedAtlases = Set<_MorphSnapshotAtlas>.identity();
+    for (final record in records) {
+      if (!replaced.contains(record)) {
+        record.snapshot?.addAtlasesTo(retainedAtlases);
+      }
+    }
+    var retainedPixels = 0;
+    for (final atlas in retainedAtlases) {
+      retainedPixels += atlas.physicalPixels;
+    }
+    return (
+      retained: retainedPixels,
+      total:
+          retainedPixels +
+          _MorphContentSnapshot._plannedCapturePhysicalPixels(
+            pixelRatio: pixelRatio,
+            renderObjects: replacementRenderObjects,
+          ),
+    );
   }
 
   bool _hasDescendantBoundaryAncestor(

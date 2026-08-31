@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
@@ -87,22 +88,88 @@ abstract final class MorphBenchmarkWorkloads {
   /// Builds twenty-four sibling snapshot descendants in one surface.
   static Widget descendantSnapshotDense({
     required bool expanded,
+    bool watchDestination = false,
+    bool dynamicWatchedSnapshot = false,
+    bool geometryOnlyWatchedSnapshot = false,
+    bool nestedSnapshotFallback = false,
+    ValueListenable<int>? surfaceChanges,
+    CustomPainter? dirtySnapshotPainter,
+    CustomPainter? unchangedSnapshotPainter,
     Duration duration = const Duration(milliseconds: 320),
     VoidCallback? onStart,
     VoidCallback? onEnd,
   }) {
-    const scenario = MorphBenchmarkScenario.descendantSnapshotDense;
+    assert(
+      !dynamicWatchedSnapshot || watchDestination,
+      'A dynamic watched snapshot must watch its destination.',
+    );
+    assert(
+      !dynamicWatchedSnapshot || surfaceChanges != null,
+      'A dynamic watched snapshot must declare geometry and pixel changes.',
+    );
+    assert(
+      !geometryOnlyWatchedSnapshot || watchDestination,
+      'A geometry-only watched snapshot must watch its destination.',
+    );
+    assert(
+      !geometryOnlyWatchedSnapshot || surfaceChanges != null,
+      'A geometry-only watched snapshot must declare geometry changes.',
+    );
+    assert(
+      !nestedSnapshotFallback || watchDestination,
+      'A nested snapshot fallback must watch its destination.',
+    );
+    assert(
+      <bool>[
+            dynamicWatchedSnapshot,
+            geometryOnlyWatchedSnapshot,
+            nestedSnapshotFallback,
+          ].where((enabled) => enabled).length <=
+          1,
+      'A watched snapshot workload must select only one mutation mode.',
+    );
+    var scenario = MorphBenchmarkScenario.descendantSnapshotDense;
+    if (watchDestination) {
+      scenario = MorphBenchmarkScenario.watchSnapshotDense;
+    }
+    if (dynamicWatchedSnapshot) {
+      scenario = MorphBenchmarkScenario.watchSnapshotDynamic;
+    }
+    if (geometryOnlyWatchedSnapshot) {
+      scenario = MorphBenchmarkScenario.watchSnapshotGeometryOnly;
+    }
+    if (nestedSnapshotFallback) {
+      scenario = MorphBenchmarkScenario.watchSnapshotNestedFallback;
+    }
     var alignment = const Alignment(-0.18, -0.5);
     var surfaceColor = const Color(0xFFFFF0E6);
     if (expanded) {
       alignment = const Alignment(0.18, 0.18);
       surfaceColor = const Color(0xFFE8F1FF);
     }
-    return Align(
-      alignment: alignment,
-      child: Morph(
+    Alignment alignmentForGeneration(int generation) {
+      var currentAlignment = alignment;
+      if (dynamicWatchedSnapshot || geometryOnlyWatchedSnapshot) {
+        final batch = generation ~/ scenario.snapshotMutationsPerBatch;
+        final horizontalOffset = batch.isEven ? -0.035 : 0.035;
+        currentAlignment = Alignment(
+          alignment.x + horizontalOffset,
+          alignment.y + ((batch % 3) - 1) * 0.02,
+        );
+      }
+      return currentAlignment;
+    }
+
+    Widget buildEndpoint(int generation) {
+      var width = expanded ? 350.0 : 286.0;
+      if (dynamicWatchedSnapshot) {
+        final batch = generation ~/ scenario.snapshotMutationsPerBatch;
+        width += (batch % 5) * 2;
+      }
+      return Morph(
         tag: 'benchmark-${scenario.id}',
         duration: duration,
+        watchDestination: watchDestination,
         onStart: onStart,
         onEnd: onEnd,
         child: Container(
@@ -111,7 +178,7 @@ abstract final class MorphBenchmarkWorkloads {
             child: 'surface',
             expanded: expanded,
           ),
-          width: expanded ? 350 : 286,
+          width: width,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: surfaceColor,
@@ -122,46 +189,220 @@ abstract final class MorphBenchmarkWorkloads {
             runSpacing: 4,
             children: List<Widget>.generate(
               24,
-              (index) => _denseSnapshotDescendant(
-                index: index,
-                expanded: expanded,
-              ),
+              (index) {
+                final isFirst = index == 0;
+                final isSecond = index == 1;
+                CustomPainter? painter;
+                if (isFirst) painter = dirtySnapshotPainter;
+                if (isSecond) painter = unchangedSnapshotPainter;
+                return _denseSnapshotDescendant(
+                  index: index,
+                  expanded: expanded,
+                  snapshotPainter: painter,
+                  nestedRepaintBoundary: nestedSnapshotFallback,
+                );
+              },
               growable: false,
             ),
           ),
         ),
-      ),
+      );
+    }
+
+    Widget buildSurface(int generation) {
+      return Align(
+        alignment: alignmentForGeneration(generation),
+        child: buildEndpoint(generation),
+      );
+    }
+
+    if (surfaceChanges == null) return buildSurface(0);
+    if (geometryOnlyWatchedSnapshot) {
+      return ValueListenableBuilder<int>(
+        valueListenable: surfaceChanges,
+        builder: (context, generation, child) {
+          return Align(
+            alignment: alignmentForGeneration(generation),
+            child: child,
+          );
+        },
+        child: RepaintBoundary(
+          child: buildEndpoint(0),
+        ),
+      );
+    }
+    return ValueListenableBuilder<int>(
+      valueListenable: surfaceChanges,
+      builder: (context, generation, child) => buildSurface(generation),
+    );
+  }
+
+  /// Builds a near-full-surface watched snapshot that changes on consecutive
+  /// benchmark frames while one sibling snapshot remains unchanged.
+  static Widget watchedSnapshotFullSurface({
+    required bool expanded,
+    required ValueListenable<int> surfaceChanges,
+    required CustomPainter dirtySnapshotPainter,
+    required CustomPainter unchangedSnapshotPainter,
+    Duration duration = const Duration(milliseconds: 640),
+    VoidCallback? onStart,
+    VoidCallback? onEnd,
+  }) {
+    const scenario = MorphBenchmarkScenario.watchSnapshotFullSurface;
+    const snapshotBehavior = MorphDescendantFlightBehavior.snapshot;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maximumSize = constraints.biggest;
+        var availableWidth = maximumSize.width;
+        if (!availableWidth.isFinite) availableWidth = 400.0;
+        var availableHeight = maximumSize.height;
+        if (!availableHeight.isFinite) availableHeight = 800.0;
+        return ValueListenableBuilder<int>(
+          valueListenable: surfaceChanges,
+          builder: (context, generation, child) {
+            final batch = generation ~/ scenario.snapshotMutationsPerBatch;
+            final maximumWidth = math.max(1, availableWidth - 24);
+            final maximumHeight = math.max(1, availableHeight - 24);
+            final baseWidth = math.min(maximumWidth, 356);
+            final baseHeight = math.min(
+              maximumHeight,
+              availableHeight * (expanded ? 0.82 : 0.68),
+            );
+            final width = math.max(1, baseWidth - (batch % 3) * 2).toDouble();
+            final height = math
+                .min(
+                  maximumHeight,
+                  math.max(1, baseHeight + (batch % 5) * 3),
+                )
+                .toDouble();
+            final alignment = Alignment(
+              (batch.isEven ? -0.035 : 0.035) + (expanded ? 0.08 : -0.08),
+              ((batch % 3) - 1) * 0.025,
+            );
+            var panelColor = const Color(0xFFE8F1FF);
+            if (!batch.isEven) panelColor = const Color(0xFFFFF0E6);
+            return Align(
+              alignment: alignment,
+              child: Morph(
+                tag: 'benchmark-${scenario.id}',
+                duration: duration,
+                watchDestination: true,
+                onStart: onStart,
+                onEnd: onEnd,
+                child: Container(
+                  key: _endpointKey(
+                    scenario: scenario,
+                    child: 'surface',
+                    expanded: expanded,
+                  ),
+                  width: width,
+                  height: height,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF182033),
+                    borderRadius: BorderRadius.circular(expanded ? 32 : 20),
+                  ),
+                  child: Stack(
+                    children: <Widget>[
+                      Positioned.fill(
+                        child: MorphDescendant(
+                          key: const ValueKey<String>('full-surface-dirty'),
+                          flightBehavior: snapshotBehavior,
+                          child: CustomPaint(
+                            foregroundPainter: dirtySnapshotPainter,
+                            child: DecoratedBox(
+                              decoration: BoxDecoration(
+                                color: panelColor,
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(24),
+                                  child: Text(
+                                    'A near-full destination surface changes '
+                                    'height and pixels while a watched Morph '
+                                    'flight remains active.',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: Color(0xFF182033),
+                                      fontSize: 20,
+                                      height: 1.35,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: 12,
+                        right: 12,
+                        child: MorphDescendant(
+                          key: const ValueKey<String>(
+                            'full-surface-unchanged',
+                          ),
+                          flightBehavior: snapshotBehavior,
+                          child: CustomPaint(
+                            foregroundPainter: unchangedSnapshotPainter,
+                            child: const SizedBox(
+                              width: 28,
+                              height: 28,
+                              child: ColoredBox(color: Color(0xFFFF4A4B)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
   static Widget _denseSnapshotDescendant({
     required int index,
     required bool expanded,
+    required CustomPainter? snapshotPainter,
+    required bool nestedRepaintBoundary,
   }) {
     var color = const Color(0xFFFF4A4B);
     if (index.isEven) color = const Color(0xFF3057D5);
-    return MorphDescendant(
-      key: ValueKey<int>(index),
-      flightBehavior: MorphDescendantFlightBehavior.snapshot,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: SizedBox(
-          width: expanded ? 48 : 38,
-          height: expanded ? 36 : 30,
-          child: Center(
-            child: Text(
-              '$index',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
+    final tile = DecoratedBox(
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: SizedBox(
+        width: expanded ? 48 : 38,
+        height: expanded ? 36 : 30,
+        child: Center(
+          child: Text(
+            '$index',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
             ),
           ),
         ),
       ),
+    );
+    Widget child = tile;
+    if (snapshotPainter != null) {
+      child = CustomPaint(foregroundPainter: snapshotPainter, child: tile);
+    }
+    if (nestedRepaintBoundary) {
+      child = RepaintBoundary(child: child);
+    }
+    return MorphDescendant(
+      key: ValueKey<int>(index),
+      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+      child: child,
     );
   }
 

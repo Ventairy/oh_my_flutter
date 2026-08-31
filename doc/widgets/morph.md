@@ -160,6 +160,28 @@ The source snapshot remains visible until `switchThreshold`; the destination
 snapshot is visible afterward. The endpoint behavior is selected at the same
 time, so matching endpoints may deliberately use different behaviors.
 
+When the departing Morph sets `watchDestination: true`, the destination
+snapshot and its reserved size refresh while the flight is active. This keeps
+the in-flight image aligned with destination layout changes without mounting a
+second copy of the snapshotted subtree. Configure both endpoints when this is
+required in both directions.
+
+Rebuilds, layout changes, and paints that reach the `MorphDescendant` are
+detected automatically, and several changes in one frame produce one refreshed
+image. Content that repaints independently inside a nested repaint boundary
+also stays current, but may require an image refresh on every watched frame.
+Keep frequently changing captured regions small, or use `live` or `hide` when
+their behavior is a better fit.
+
+Snapshot capture is bounded to avoid unbounded image memory on constrained
+devices. If one capture batch is unusually large, an active watched flight
+keeps its last coherent snapshot until the content becomes capturable again;
+an initially oversized snapshot is empty. Reduce the total captured area or the
+number of captured descendants, or use `live` or `hide` when that result is more
+appropriate. Splitting content into separate descendants can isolate future
+refreshes to the regions that changed, but it does not bypass the total capture
+bound.
+
 A snapshot is visual only: it does not accept input or animate its own internal
 state during the flight. Content that Flutter cannot capture as an image, such
 as a platform view, is empty during the flight. Use `hide` when an empty result

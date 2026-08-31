@@ -15,6 +15,8 @@ enum MorphDescendantFlightBehavior {
   /// the destination image afterward. Each image keeps its endpoint dimensions
   /// instead of laying out against the changing flight size. The resting
   /// subtree keeps its mounted state, focus, selection, and scroll position.
+  /// When the departing Morph watches its destination, the destination image
+  /// and dimensions follow changes that occur during the flight.
   ///
   /// Content that Flutter cannot capture as an image, such as a platform view,
   /// is empty during the flight. Use [hide] when empty flight content is the

@@ -28,6 +28,11 @@ void main() {
             'watch_custom',
             'watch_stationary',
             'watch_stationary_control',
+            'watch_snapshot_dense',
+            'watch_snapshot_geometry_only',
+            'watch_snapshot_dynamic',
+            'watch_snapshot_full_surface',
+            'watch_snapshot_nested_fallback',
             'resting_scroll',
             'raw_descendants',
             'raw_descendants_fade',
@@ -119,6 +124,94 @@ void main() {
           destination: true,
         );
         expect(source == destination, isFalse);
+      },
+    );
+
+    test(
+      'when the dynamic watched snapshot scenario is inspected, '
+      'it should declare four coalesced mutation batches',
+      () {
+        const scenario = MorphBenchmarkScenario.watchSnapshotDynamic;
+        expect(
+          (
+            scenario.gatesWatchedSnapshotRefresh,
+            scenario.snapshotMutationBatches,
+            scenario.snapshotMutationsPerBatch,
+            scenario.mutatesSnapshotPixels,
+            scenario.mutatesSnapshotGeometry,
+            scenario.usesConservativeSnapshotFallback,
+          ),
+          (true, 4, 3, true, true, false),
+        );
+      },
+    );
+
+    test(
+      'when the geometry-only watched snapshot scenario is inspected, '
+      'it should mutate geometry without requesting new pixels',
+      () {
+        const scenario = MorphBenchmarkScenario.watchSnapshotGeometryOnly;
+        expect(
+          (
+            scenario.gatesWatchedSnapshotRefresh,
+            scenario.snapshotMutationBatches,
+            scenario.snapshotMutationsPerBatch,
+            scenario.mutatesSnapshotPixels,
+            scenario.mutatesSnapshotGeometry,
+          ),
+          (true, 4, 3, false, true),
+        );
+      },
+    );
+
+    test(
+      'when the full-surface watched snapshot scenario is inspected, '
+      'it should request twelve consecutive-frame refreshes',
+      () {
+        const scenario = MorphBenchmarkScenario.watchSnapshotFullSurface;
+        expect(
+          (
+            scenario.snapshotMutationBatches,
+            scenario.snapshotMutationsPerBatch,
+            scenario.mutatesSnapshotPixels,
+            scenario.mutatesSnapshotGeometry,
+          ),
+          (12, 1, true, true),
+        );
+      },
+    );
+
+    test(
+      'when the nested fallback watched snapshot scenario is inspected, '
+      'it should declare independent pixel changes without a signal',
+      () {
+        const scenario = MorphBenchmarkScenario.watchSnapshotNestedFallback;
+        expect(
+          (
+            scenario.gatesWatchedSnapshotRefresh,
+            scenario.snapshotMutationBatches,
+            scenario.snapshotMutationsPerBatch,
+            scenario.mutatesSnapshotPixels,
+            scenario.mutatesSnapshotGeometry,
+            scenario.usesConservativeSnapshotFallback,
+          ),
+          (true, 8, 1, true, false, true),
+        );
+      },
+    );
+
+    test(
+      'when the static watched snapshot scenario is inspected, '
+      'it should require no post-start mutation batches',
+      () {
+        const scenario = MorphBenchmarkScenario.watchSnapshotDense;
+        expect(
+          (
+            scenario.gatesWatchedSnapshotRefresh,
+            scenario.snapshotMutationBatches,
+          ),
+          (true, 0),
+        );
       },
     );
   });

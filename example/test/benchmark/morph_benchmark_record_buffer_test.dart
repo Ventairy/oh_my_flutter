@@ -56,7 +56,7 @@ void main() {
 
         expect(emitted.length, greaterThan(1));
         expect(
-          emitted.every((line) => line.length <= 3000),
+          emitted.every((line) => line.length <= 900),
           isTrue,
         );
         expect(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
+import '../../benchmark/morph/morph_benchmark_snapshot_paint_probe.dart';
 import '../../benchmark/morph/morph_benchmark_workloads.dart';
 
 void main() {
@@ -48,6 +49,226 @@ void main() {
         );
 
         expect(find.byType(MorphDescendant), findsNWidgets(24));
+      },
+    );
+
+    testWidgets(
+      'when the dense snapshot workload watches its destination, '
+      'it should enable destination watching',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                expanded: false,
+                watchDestination: true,
+              ),
+            ),
+          ),
+        );
+
+        expect(
+          tester.widget<Morph>(find.byType(Morph)).watchDestination,
+          isTrue,
+        );
+      },
+    );
+
+    testWidgets(
+      'when the dynamic dense snapshot workload is built, '
+      'it should track one dirty descendant and preserve one control',
+      (tester) async {
+        final dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
+        final unchangedProbe = MorphBenchmarkSnapshotPaintProbe();
+        addTearDown(dirtyProbe.dispose);
+        addTearDown(unchangedProbe.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                expanded: false,
+                watchDestination: true,
+                dynamicWatchedSnapshot: true,
+                surfaceChanges: dirtyProbe.changes,
+                dirtySnapshotPainter: dirtyProbe,
+                unchangedSnapshotPainter: unchangedProbe,
+              ),
+            ),
+          ),
+        );
+
+        final descendants = tester.widgetList<MorphDescendant>(
+          find.byType(MorphDescendant),
+        );
+        final dirtyDescendant = find.byKey(const ValueKey<int>(0));
+        final nestedRepaintBoundaries = find.descendant(
+          of: dirtyDescendant,
+          matching: find.byType(RepaintBoundary),
+        );
+        final surface = find.byKey(
+          const ValueKey<String>(
+            'benchmark-watch_snapshot_dynamic-surface-source',
+          ),
+        );
+        final initialRect = tester.getRect(surface);
+
+        dirtyProbe.requestMutationBatch();
+        await tester.pump();
+        final changedRect = tester.getRect(surface);
+
+        expect(
+          (
+            tester.widget<Morph>(find.byType(Morph)).watchDestination,
+            descendants.length,
+            nestedRepaintBoundaries.evaluate().length,
+            changedRect != initialRect,
+            dirtyProbe.requestedGeneration,
+          ),
+          (true, 24, 0, true, 3),
+        );
+      },
+    );
+
+    testWidgets(
+      'when the geometry-only watched snapshot workload changes, '
+      'it should move the surface without repainting descendant pixels',
+      (tester) async {
+        final geometryChanges = ValueNotifier<int>(0);
+        final dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
+        final unchangedProbe = MorphBenchmarkSnapshotPaintProbe();
+        addTearDown(geometryChanges.dispose);
+        addTearDown(dirtyProbe.dispose);
+        addTearDown(unchangedProbe.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                expanded: false,
+                watchDestination: true,
+                geometryOnlyWatchedSnapshot: true,
+                surfaceChanges: geometryChanges,
+                dirtySnapshotPainter: dirtyProbe,
+                unchangedSnapshotPainter: unchangedProbe,
+              ),
+            ),
+          ),
+        );
+
+        final descendants = tester.widgetList<MorphDescendant>(
+          find.byType(MorphDescendant),
+        );
+        final surface = find.byKey(
+          const ValueKey<String>(
+            'benchmark-watch_snapshot_geometry_only-surface-source',
+          ),
+        );
+        final initialRect = tester.getRect(surface);
+        final dirtyPaintStart = dirtyProbe.paintEventCount;
+        final unchangedPaintStart = unchangedProbe.paintEventCount;
+        geometryChanges.value = 3;
+        await tester.pump();
+        final changedRect = tester.getRect(surface);
+
+        expect(
+          (
+            descendants.length,
+            changedRect != initialRect,
+            dirtyProbe.paintEventCount - dirtyPaintStart,
+            unchangedProbe.paintEventCount - unchangedPaintStart,
+          ),
+          (24, true, 0, 0),
+        );
+      },
+    );
+
+    testWidgets(
+      'when the full-surface watched snapshot workload changes, '
+      'it should resize one automatically tracked near-full descendant only',
+      (tester) async {
+        final dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
+        final unchangedProbe = MorphBenchmarkSnapshotPaintProbe();
+        addTearDown(dirtyProbe.dispose);
+        addTearDown(unchangedProbe.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MorphBenchmarkWorkloads.watchedSnapshotFullSurface(
+                expanded: false,
+                surfaceChanges: dirtyProbe.changes,
+                dirtySnapshotPainter: dirtyProbe,
+                unchangedSnapshotPainter: unchangedProbe,
+              ),
+            ),
+          ),
+        );
+
+        final changingDescendant = find.byKey(
+          const ValueKey<String>('full-surface-dirty'),
+        );
+        final initialSize = tester.getSize(changingDescendant);
+        dirtyProbe.requestMutationBatch(mutations: 1);
+        await tester.pump();
+        final changedSize = tester.getSize(changingDescendant);
+
+        expect(
+          (
+            find.byType(MorphDescendant).evaluate().length,
+            changingDescendant.evaluate().length,
+            changedSize != initialSize,
+          ),
+          (2, 1, true),
+        );
+      },
+    );
+
+    testWidgets(
+      'when the nested fallback snapshot workload is built, '
+      'it should independently repaint one nested boundary',
+      (tester) async {
+        final dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
+        final unchangedProbe = MorphBenchmarkSnapshotPaintProbe();
+        addTearDown(dirtyProbe.dispose);
+        addTearDown(unchangedProbe.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                expanded: false,
+                watchDestination: true,
+                nestedSnapshotFallback: true,
+                dirtySnapshotPainter: dirtyProbe,
+                unchangedSnapshotPainter: unchangedProbe,
+              ),
+            ),
+          ),
+        );
+
+        final descendantFinder = find.byType(MorphDescendant);
+        final widgetList = tester.widgetList<MorphDescendant>(descendantFinder);
+        final descendants = List<MorphDescendant>.of(
+          widgetList,
+          growable: false,
+        );
+        bool hasNestedBoundary(MorphDescendant descendant) {
+          return descendant.child is RepaintBoundary;
+        }
+
+        final nestedBoundaryCount = descendants.where(hasNestedBoundary).length;
+        final dirtyPaintStart = dirtyProbe.paintEventCount;
+        final unchangedPaintStart = unchangedProbe.paintEventCount;
+        dirtyProbe.requestMutationBatch(mutations: 1);
+        await tester.pump();
+
+        expect(
+          (
+            descendants.length,
+            nestedBoundaryCount,
+            dirtyProbe.paintEventCount - dirtyPaintStart,
+            unchangedProbe.paintEventCount - unchangedPaintStart,
+            dirtyProbe.lastPaintedGeneration,
+          ),
+          (24, 24, 1, 0, 1),
+        );
       },
     );
 

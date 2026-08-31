@@ -9,8 +9,8 @@ final class MorphBenchmarkRecordBuffer {
 
   static const String _recordMarker = 'MORPH_BENCHMARK ';
   static const String _chunkMarker = 'MORPH_BENCHMARK_CHUNK ';
-  static const int _maximumLogLineLength = 3000;
-  static const int _maximumChunkPayloadLength = 2600;
+  static const int _maximumLogLineLength = 900;
+  static const int _maximumChunkPayloadLength = 768;
 
   final void Function(String message) _emit;
   final List<Map<String, Object>> _records = <Map<String, Object>>[];

@@ -44,6 +44,7 @@ part '_morph_sibling_paint.dart';
 part '_morph_flight_paint_handle.dart';
 part '_morph_flight_scope.dart';
 part '_morph_content_snapshot.dart';
+part '_morph_content_snapshot_tile.dart';
 part '_morph_snapshot_atlas.dart';
 part '_morph_content_snapshot_painter.dart';
 part '_morph_hybrid_column_child_plan.dart';

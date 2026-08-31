@@ -10,12 +10,20 @@ class _RenderMorphEndpoint extends RenderProxyBox {
   _MorphVisibilityHandle _visibility;
   VoidCallback onPaint;
   VoidCallback onPresented;
-  bool _snapshotSuppressed = false;
+  int _snapshotSuppressionDepth = 0;
 
-  void _setSnapshotSuppressed(bool value) {
-    if (value == _snapshotSuppressed) return;
-    _snapshotSuppressed = value;
-    markNeedsPaint();
+  void beginSnapshotSuppression() {
+    _snapshotSuppressionDepth += 1;
+    if (_snapshotSuppressionDepth == 1) markNeedsPaint();
+  }
+
+  void endSnapshotSuppression() {
+    assert(
+      _snapshotSuppressionDepth > 0,
+      'A Morph endpoint snapshot suppression must begin before it can end.',
+    );
+    _snapshotSuppressionDepth -= 1;
+    if (_snapshotSuppressionDepth == 0) markNeedsPaint();
   }
 
   _MorphVisibilityHandle get visibility => _visibility;
@@ -53,7 +61,7 @@ class _RenderMorphEndpoint extends RenderProxyBox {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (_visibility.hidden || _snapshotSuppressed) return;
+    if (_visibility.hidden || _snapshotSuppressionDepth > 0) return;
     // An ancestor can change this endpoint's paint transform without laying
     // it out. Sampling only on an actual visible paint preserves the last
     // geometry shown to the user while retained, unpainted subtrees do no work.

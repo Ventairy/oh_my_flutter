@@ -10,7 +10,7 @@ class _MorphDescendantBoundary extends SingleChildRenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) {
-    final renderObject = _RenderMorphDescendant();
+    final renderObject = _RenderMorphDescendant(onRenderObjectReady);
     onRenderObjectReady(renderObject);
     return renderObject;
   }

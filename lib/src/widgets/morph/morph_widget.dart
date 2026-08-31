@@ -95,12 +95,15 @@ class Morph extends StatefulWidget {
   final Curve? curve;
 
   /// Whether a flight departing from this Morph follows changes to its
-  /// destination's position or size.
+  /// destination's geometry and snapshotted descendants.
   ///
   /// Set this to true when the matching endpoint can move or resize while a
   /// flight travels from this Morph toward it. The flight then continues
   /// toward the destination's updated geometry instead of its initial
-  /// geometry.
+  /// geometry. Descendants using
+  /// [MorphDescendantFlightBehavior.snapshot] also refresh their destination
+  /// image and size when they change, without mounting another copy of their
+  /// subtree.
   ///
   /// This setting has no effect on flights arriving at this Morph. Set it on
   /// both matching Morphs when each direction's destination can move while the

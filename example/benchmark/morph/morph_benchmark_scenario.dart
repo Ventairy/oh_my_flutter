@@ -45,6 +45,22 @@ enum MorphBenchmarkScenario {
   /// The stationary Text workload without destination watching.
   watchStationaryControl('watch_stationary_control'),
 
+  /// Twenty-four static snapshots inside a watched destination.
+  watchSnapshotDense('watch_snapshot_dense'),
+
+  /// Fixed snapshot pixels inside a destination whose geometry keeps changing.
+  watchSnapshotGeometryOnly('watch_snapshot_geometry_only'),
+
+  /// Twenty-four watched snapshots with coalesced in-flight pixel changes.
+  watchSnapshotDynamic('watch_snapshot_dynamic'),
+
+  /// A near-full-surface snapshot changing size and pixels on consecutive
+  /// frames.
+  watchSnapshotFullSurface('watch_snapshot_full_surface'),
+
+  /// Nested snapshot boundaries using conservative automatic refreshes.
+  watchSnapshotNestedFallback('watch_snapshot_nested_fallback'),
+
   /// Many unmatched resting endpoints moving under one animated ancestor.
   restingScroll('resting_scroll'),
 
@@ -93,6 +109,62 @@ enum MorphBenchmarkScenario {
   /// Stable identifier accepted by `MORPH_SCENARIO` and emitted in benchmark
   /// JSON.
   final String id;
+
+  /// Whether steady results must prove watched snapshot refresh invariants.
+  bool get gatesWatchedSnapshotRefresh {
+    return switch (this) {
+      watchSnapshotDense ||
+      watchSnapshotGeometryOnly ||
+      watchSnapshotDynamic ||
+      watchSnapshotFullSurface ||
+      watchSnapshotNestedFallback => true,
+      _ => false,
+    };
+  }
+
+  /// Number of post-start snapshot mutation batches requested per transition.
+  int get snapshotMutationBatches {
+    return switch (this) {
+      watchSnapshotGeometryOnly || watchSnapshotDynamic => 4,
+      watchSnapshotFullSurface => 12,
+      watchSnapshotNestedFallback => 8,
+      _ => 0,
+    };
+  }
+
+  /// Number of synchronous changes requested in each mutation batch.
+  int get snapshotMutationsPerBatch {
+    return switch (this) {
+      watchSnapshotGeometryOnly || watchSnapshotDynamic => 3,
+      watchSnapshotFullSurface || watchSnapshotNestedFallback => 1,
+      _ => 0,
+    };
+  }
+
+  /// Whether benchmark mutation batches change captured descendant pixels.
+  bool get mutatesSnapshotPixels {
+    return switch (this) {
+      watchSnapshotDynamic => true,
+      watchSnapshotFullSurface => true,
+      watchSnapshotNestedFallback => true,
+      _ => false,
+    };
+  }
+
+  /// Whether benchmark mutation batches change destination geometry.
+  bool get mutatesSnapshotGeometry {
+    return switch (this) {
+      watchSnapshotGeometryOnly => true,
+      watchSnapshotDynamic => true,
+      watchSnapshotFullSurface => true,
+      _ => false,
+    };
+  }
+
+  /// Whether nested boundaries require a conservative refresh each tick.
+  bool get usesConservativeSnapshotFallback {
+    return this == watchSnapshotNestedFallback;
+  }
 
   /// Returns the stable child identity for one endpoint state.
   String endpointIdentity({

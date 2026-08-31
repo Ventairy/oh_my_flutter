@@ -3,6 +3,9 @@
 - **Breaking:** Replace `MorphForeground` with tagged `MorphSibling` controls
   that coordinate widgets outside a Morph subtree through matching visual
   progress and configurable above-Morph paint ordering.
+- Keep watched Morph destination snapshots aligned with geometry and content
+  changes during active forward and reverse flights while reusing unchanged
+  images whenever changes are directly observable.
 - Add `Device` for grouping device features and `DeviceDisplay` for reading
   exact display corner radii with an optional approximate phone fallback.
 

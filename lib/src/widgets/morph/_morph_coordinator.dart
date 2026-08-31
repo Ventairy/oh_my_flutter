@@ -243,21 +243,6 @@ class _MorphCoordinator extends ChangeNotifier {
     if (animation != null) sibling.attachFlight(flight, animation);
   }
 
-  void geometryChanged(
-    _MorphEndpointHandle endpoint,
-    _MorphEndpointGeometry geometry,
-  ) {
-    final flight = _flights[endpoint.tag];
-    if (flight == null || !flight.watchDestination) return;
-    if (identical(flight.destinationHandle, endpoint)) {
-      if (flight.completesAtSource) {
-        flight.updateSourceGeometry(geometry);
-      } else {
-        flight.updateDestinationGeometry(geometry);
-      }
-    }
-  }
-
   void endpointPresented(_MorphEndpointHandle endpoint) {
     final flight = _flights[endpoint.tag];
     if (flight == null) return;
@@ -985,6 +970,8 @@ class _MorphCoordinator extends ChangeNotifier {
       reversibleOriginIdentity: current.reversibleOriginIdentity,
       completesAtSource: true,
       controllerLease: controllerLease,
+      sourceDescendants: current._sourceDescendants,
+      destinationDescendants: current._destinationDescendants,
     );
     _installFlight(flight);
     _ensureOverlay();

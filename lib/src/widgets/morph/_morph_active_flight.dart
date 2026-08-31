@@ -21,10 +21,18 @@ class _MorphActiveFlight {
     this.reversibleOriginIdentity,
     this.completesAtSource = false,
     this.controllerLease,
+    List<_MorphDescendantFlightRecord>? sourceDescendants,
+    List<_MorphDescendantFlightRecord>? destinationDescendants,
   }) : morphAnimation = CurvedAnimation(
          parent: flightAnimation,
          curve: curve,
        ) {
+    _sourceDescendants = List<_MorphDescendantFlightRecord>.of(
+      sourceDescendants ?? _MorphDescendantSnapshots.of(source),
+    );
+    _destinationDescendants = List<_MorphDescendantFlightRecord>.of(
+      destinationDescendants ?? _MorphDescendantSnapshots.of(destination),
+    );
     flight = MorphFlight<Object?>(
       source: source,
       destination: destination,
@@ -39,9 +47,12 @@ class _MorphActiveFlight {
     for (final record in _destinationDescendants) {
       record.retain();
     }
-    _watchesDestinationGeometry = watchDestination;
-    if (_watchesDestinationGeometry) {
-      flightAnimation.addListener(_scheduleGeometryWatch);
+    _watchesDestination = watchDestination;
+    if (_watchesDestination) {
+      _watchedView = View.of(destinationHandle.owner.context);
+      _watchedDescendantRevision = destinationHandle.descendantRevision;
+      _watchedPixelRatio = _watchedView.devicePixelRatio;
+      flightAnimation.addListener(_scheduleDestinationWatch);
     }
   }
 
@@ -67,8 +78,8 @@ class _MorphActiveFlight {
   final CurvedAnimation morphAnimation;
   late final MorphFlight<Object?> flight;
   final _MorphFlightPaintHandle _paintHandle = _MorphFlightPaintHandle();
-  late final List<_MorphDescendantFlightRecord> _sourceDescendants = _MorphDescendantSnapshots.of(source);
-  late final List<_MorphDescendantFlightRecord> _destinationDescendants = _MorphDescendantSnapshots.of(destination);
+  late final List<_MorphDescendantFlightRecord> _sourceDescendants;
+  late final List<_MorphDescendantFlightRecord> _destinationDescendants;
   late final _MorphDescendantFlightResolver? _descendantFlightResolver =
       _sourceDescendants.isEmpty && _destinationDescendants.isEmpty
       ? null
@@ -81,7 +92,7 @@ class _MorphActiveFlight {
           source: _sourceDescendants,
           destination: _destinationDescendants,
         );
-  late final bool _watchesDestinationGeometry;
+  late final bool _watchesDestination;
   late final _MorphFlightGeometry? geometry = watchDestination
       ? _MorphFlightGeometry(
           source: source,
@@ -92,8 +103,13 @@ class _MorphActiveFlight {
   Widget? _fallbackFlight;
   TextDirection? _retainedFlightTextDirection;
   bool _retainedFlightResolved = false;
-  bool _geometryWatchScheduled = false;
-  late final FrameCallback _geometryWatchCallback = _updateWatchedGeometry;
+  bool _destinationWatchScheduled = false;
+  late final ui.FlutterView _watchedView;
+  int _watchedDescendantRevision = 0;
+  double _watchedPixelRatio = 1;
+  int? _deferredCaptureSignature;
+  int? _reportedCaptureFailureSignature;
+  late final FrameCallback _destinationWatchCallback = _updateWatchedDestination;
   List<_MorphVisibilityHandle> _heldAncestorVisibilities = const [];
   bool _heldAtEndpoint = false;
   bool _heldArrived = false;
@@ -187,16 +203,29 @@ class _MorphActiveFlight {
     );
   }
 
-  void updateDestinationGeometry(_MorphEndpointGeometry value) {
-    final geometry = this.geometry;
-    if (geometry == null) return;
-    geometry.updateDestination(value);
-  }
-
-  void updateSourceGeometry(_MorphEndpointGeometry value) {
-    final geometry = this.geometry;
-    if (geometry == null) return;
-    geometry.updateSource(value);
+  void _publishWatchedDestination({
+    required _MorphEndpointGeometry value,
+    List<_MorphDescendantFlightRecord>? descendants,
+  }) {
+    final flightGeometry = geometry;
+    if (flightGeometry == null) return;
+    if (completesAtSource) {
+      flightGeometry.updateSource(value);
+    } else {
+      flightGeometry.updateDestination(value);
+    }
+    if (descendants == null) return;
+    final destinationRecords = completesAtSource ? _sourceDescendants : _destinationDescendants;
+    for (final record in descendants) {
+      record.retain();
+    }
+    for (final record in destinationRecords) {
+      record.release();
+    }
+    destinationRecords
+      ..clear()
+      ..addAll(descendants);
+    _descendantFlightResolver?.recordsChanged();
   }
 
   Widget build(BuildContext context) {
@@ -360,7 +389,7 @@ class _MorphActiveFlight {
           geometry: geometry,
         );
       }
-      if (typedDelegate.switchTransition != null || _watchesDestinationGeometry) {
+      if (typedDelegate.switchTransition != null || _watchesDestination) {
         return _retainedFlight = null;
       }
       final hybridPlan = _MorphHybridContainerFlightPlan.tryCreate(
@@ -462,8 +491,8 @@ class _MorphActiveFlight {
     coordinator._flightEnded(this);
     _clearHeldAncestorListeners();
     _paintHandle.hide();
-    if (_watchesDestinationGeometry) {
-      flightAnimation.removeListener(_scheduleGeometryWatch);
+    if (_watchesDestination) {
+      flightAnimation.removeListener(_scheduleDestinationWatch);
     }
     flightAnimation.removeStatusListener(_handleStatusChanged);
     for (final record in _sourceDescendants) {
@@ -515,8 +544,8 @@ class _MorphActiveFlight {
     for (final visibility in ancestorVisibilities) {
       visibility.addListener(_handleHeldAncestorVisibilityChanged);
     }
-    if (_watchesDestinationGeometry) {
-      _scheduleGeometryWatch();
+    if (_watchesDestination) {
+      _scheduleDestinationWatch();
     }
     return true;
   }
@@ -563,25 +592,103 @@ class _MorphActiveFlight {
     _endpointHandoffWinner?.presentationRequested = false;
   }
 
-  void _scheduleGeometryWatch() {
-    if (_finished || _geometryWatchScheduled) return;
-    _geometryWatchScheduled = true;
+  void _scheduleDestinationWatch() {
+    if (_finished || _destinationWatchScheduled) return;
+    _destinationWatchScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback(
-      _geometryWatchCallback,
+      _destinationWatchCallback,
     );
   }
 
-  void _updateWatchedGeometry(Duration _) {
-    _geometryWatchScheduled = false;
+  void _updateWatchedDestination(Duration _) {
+    _destinationWatchScheduled = false;
     if (_finished || destinationHandle.disposed || !destinationHandle.active || !watchDestination) {
       return;
     }
-    final watchedGeometry = destinationHandle.owner._readLiveGeometry();
-    if (watchedGeometry != null) {
-      coordinator.geometryChanged(destinationHandle, watchedGeometry);
+    int? captureFailureSignature;
+    try {
+      final watchedGeometry = destinationHandle.owner._readLiveGeometry();
+      if (watchedGeometry != null) {
+        final destinationRecords = completesAtSource ? _sourceDescendants : _destinationDescendants;
+        final pixelRatio = _watchedView.devicePixelRatio;
+        final recordsChanged = _watchedDescendantsChanged(
+          destinationRecords,
+          pixelRatio,
+        );
+        if (recordsChanged && _descendantFlightResolver != null) {
+          captureFailureSignature = _captureFailureSignature(
+            destinationRecords,
+            pixelRatio,
+          );
+          if (captureFailureSignature != _deferredCaptureSignature) {
+            final refreshedRecords = destinationHandle._refreshDescendants(
+              previousRecords: destinationRecords,
+              pixelRatioChanged: pixelRatio != _watchedPixelRatio,
+            );
+            if (refreshedRecords == null) {
+              _deferredCaptureSignature = captureFailureSignature;
+            } else {
+              _publishWatchedDestination(
+                value: watchedGeometry,
+                descendants: refreshedRecords,
+              );
+              _watchedDescendantRevision = destinationHandle.descendantRevision;
+              _watchedPixelRatio = pixelRatio;
+              _deferredCaptureSignature = null;
+              _reportedCaptureFailureSignature = null;
+            }
+          }
+        } else {
+          _publishWatchedDestination(value: watchedGeometry);
+        }
+      }
+    } on Object catch (exception, stack) {
+      if (captureFailureSignature == null || captureFailureSignature != _reportedCaptureFailureSignature) {
+        _reportedCaptureFailureSignature = captureFailureSignature;
+        coordinator._reportCaptureError(
+          destinationHandle,
+          exception,
+          stack,
+        );
+      }
     }
-    if (_heldAtEndpoint) {
-      _scheduleGeometryWatch();
+    if (_heldAtEndpoint || _heldForCohort) {
+      _scheduleDestinationWatch();
     }
+  }
+
+  int _captureFailureSignature(
+    List<_MorphDescendantFlightRecord> records,
+    double pixelRatio,
+  ) {
+    var signature = Object.hash(
+      destinationHandle.descendantRevision,
+      pixelRatio,
+    );
+    for (final record in records) {
+      signature = Object.hash(
+        signature,
+        identityHashCode(record.handle),
+        record.handle.snapshotRevision,
+      );
+    }
+    return signature;
+  }
+
+  bool _watchedDescendantsChanged(
+    List<_MorphDescendantFlightRecord> records,
+    double pixelRatio,
+  ) {
+    if (destinationHandle.descendantRevision != _watchedDescendantRevision || pixelRatio != _watchedPixelRatio) {
+      return true;
+    }
+    for (final record in records) {
+      if ((record.capturesContinuously && (!record.snapshotCaptureCompleted || record.snapshot != null)) ||
+          record.handle.snapshotDirty ||
+          record.snapshotRevision != record.handle.snapshotRevision) {
+        return true;
+      }
+    }
+    return false;
   }
 }

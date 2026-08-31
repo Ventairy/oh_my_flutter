@@ -17,6 +17,7 @@ import 'morph_benchmark_multi_foreground_workload.dart';
 import 'morph_benchmark_record_buffer.dart';
 import 'morph_benchmark_resting_flow_delegate.dart';
 import 'morph_benchmark_scenario.dart';
+import 'morph_benchmark_snapshot_paint_probe.dart';
 import 'morph_benchmark_status.dart';
 import 'morph_benchmark_workloads.dart';
 
@@ -100,6 +101,9 @@ class _MorphState extends State<MorphBenchmark>
   int _flightImageCreations = 0;
   int _flightImagePixels = 0;
   int _largestFlightImagePixels = 0;
+  int _liveFlightImagePixels = 0;
+  int _peakLiveFlightImagePixels = 0;
+  late Expando<int> _flightImagePixelsByImage;
   bool _collectWindow = false;
   bool _collectTransitionImages = false;
   bool _scenarioIsRunning = false;
@@ -110,7 +114,20 @@ class _MorphState extends State<MorphBenchmark>
   late final AnimationController _restingScrollController;
   late final AnimationController _foregroundPaintController;
   late final MorphBenchmarkLiveCaretPainter _foregroundLiveCaretPainter;
+  late final MorphBenchmarkSnapshotPaintProbe _dirtyProbe;
+  late final MorphBenchmarkSnapshotPaintProbe _cleanProbe;
+  late final ValueNotifier<int> _geometryChanges;
   MorphBenchmarkScenario _scenario = MorphBenchmarkScenario.text;
+  int _snapshotMutationToken = 0;
+  int _snapshotMutationBatches = 0;
+  int _dirtyPaintStart = 0;
+  int _dirtyPaintEnd = 0;
+  int _cleanPaintStart = 0;
+  int _cleanPaintEnd = 0;
+  int _temporalImagesStart = 0;
+  int _temporalImagesEnd = 0;
+  int _mutationGenerationStart = 0;
+  bool _snapshotRefreshProbeCompleted = false;
   String _status = 'Preparing Morph benchmark…';
   double _refreshRate = 60;
   int _frameBudgetMicros = 16666;
@@ -151,6 +168,12 @@ class _MorphState extends State<MorphBenchmark>
     );
     _foregroundLiveCaretPainter = MorphBenchmarkLiveCaretPainter(
       _foregroundPaintController,
+    );
+    _dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
+    _cleanProbe = MorphBenchmarkSnapshotPaintProbe();
+    _geometryChanges = ValueNotifier<int>(0);
+    _flightImagePixelsByImage = Expando<int>(
+      'Morph benchmark temporal flight image pixels',
     );
     if (_steadyFramesPerTrial < 1) {
       throw ArgumentError.value(
@@ -206,6 +229,9 @@ class _MorphState extends State<MorphBenchmark>
     }
     _restingScrollController.dispose();
     _foregroundPaintController.dispose();
+    _dirtyProbe.dispose();
+    _cleanProbe.dispose();
+    _geometryChanges.dispose();
     super.dispose();
   }
 
@@ -319,6 +345,11 @@ class _MorphState extends State<MorphBenchmark>
     _flightImageCreations = 0;
     _flightImagePixels = 0;
     _largestFlightImagePixels = 0;
+    _liveFlightImagePixels = 0;
+    _peakLiveFlightImagePixels = 0;
+    _flightImagePixelsByImage = Expando<int>(
+      'Morph benchmark temporal flight image pixels for $scenarioId',
+    );
     _restingScrollController.value = 0;
     setState(() {
       _scenario = scenario;
@@ -344,6 +375,9 @@ class _MorphState extends State<MorphBenchmark>
       gate: false,
       attempt: cold.attempt,
       transitionFrameCounts: <int>[cold.forward.length],
+      snapshotRefreshes: <Map<String, Object>>[
+        ?cold.forwardSnapshotRefresh,
+      ],
       sampleSemantics: 'initial_forward',
     );
     _printResult(
@@ -357,6 +391,9 @@ class _MorphState extends State<MorphBenchmark>
       gate: false,
       attempt: cold.attempt,
       transitionFrameCounts: <int>[cold.reverse.length],
+      snapshotRefreshes: <Map<String, Object>>[
+        ?cold.reverseSnapshotRefresh,
+      ],
       sampleSemantics: 'first_reverse_after_forward',
     );
 
@@ -393,6 +430,7 @@ class _MorphState extends State<MorphBenchmark>
         gate: true,
         attempt: steady.attempt,
         transitionFrameCounts: steady.forwardBatchFrames,
+        snapshotRefreshes: steady.forwardSnapshotRefreshes,
       );
       _printResult(
         scenario: scenarioId,
@@ -405,6 +443,7 @@ class _MorphState extends State<MorphBenchmark>
         gate: true,
         attempt: steady.attempt,
         transitionFrameCounts: steady.reverseBatchFrames,
+        snapshotRefreshes: steady.reverseSnapshotRefreshes,
       );
       await _flushReportedTimings();
     }
@@ -433,13 +472,15 @@ class _MorphState extends State<MorphBenchmark>
     );
     _scenarioIsRunning = false;
     _print(<String, Object>{
-      'path': '$scenarioId.raster_cache_images',
+      'path': '$scenarioId.temporal_ui_images',
       'scenario': scenarioId,
-      'created_during_scenario': _scenarioImageCreations,
-      'disposed_during_scenario': _scenarioImageDisposals,
-      'created_during_flights': _flightImageCreations,
-      'flight_image_pixels': _flightImagePixels,
-      'largest_flight_image_pixels': _largestFlightImagePixels,
+      'temporal_created_during_scenario': _scenarioImageCreations,
+      'temporal_disposed_during_scenario': _scenarioImageDisposals,
+      'temporal_created_during_flights': _flightImageCreations,
+      'temporal_flight_image_pixels': _flightImagePixels,
+      'temporal_largest_flight_image_pixels': _largestFlightImagePixels,
+      'temporal_peak_live_flight_image_pixels': _peakLiveFlightImagePixels,
+      'temporal_live_pixels_at_scenario_end': _liveFlightImagePixels,
       'attribution': 'temporal process-wide ui.Image callbacks',
     });
     _setForegroundPaintActive(false);
@@ -467,10 +508,24 @@ class _MorphState extends State<MorphBenchmark>
     _flightImageCreations += 1;
     _flightImagePixels += pixels;
     _largestFlightImagePixels = math.max(_largestFlightImagePixels, pixels);
+    _flightImagePixelsByImage[image] = pixels;
+    _liveFlightImagePixels += pixels;
+    _peakLiveFlightImagePixels = math.max(
+      _peakLiveFlightImagePixels,
+      _liveFlightImagePixels,
+    );
   }
 
   void _handleImageDisposed(ui.Image image) {
     _previousImageDisposedCallback?.call(image);
+    final trackedPixels = _flightImagePixelsByImage[image];
+    if (trackedPixels != null) {
+      _flightImagePixelsByImage[image] = null;
+      _liveFlightImagePixels = math.max(
+        0,
+        _liveFlightImagePixels - trackedPixels,
+      );
+    }
     if (_scenarioIsRunning) _scenarioImageDisposals += 1;
   }
 
@@ -480,6 +535,8 @@ class _MorphState extends State<MorphBenchmark>
       List<FrameTiming> reverse,
       int forwardStartLatencyMicros,
       int reverseStartLatencyMicros,
+      Map<String, Object>? forwardSnapshotRefresh,
+      Map<String, Object>? reverseSnapshotRefresh,
       int attempt,
     })
   >
@@ -528,6 +585,8 @@ class _MorphState extends State<MorphBenchmark>
         reverse: reverse.frames,
         forwardStartLatencyMicros: forward.startLatencyMicros,
         reverseStartLatencyMicros: reverse.startLatencyMicros,
+        forwardSnapshotRefresh: forward.snapshotRefresh,
+        reverseSnapshotRefresh: reverse.snapshotRefresh,
         attempt: attempt,
       );
     }
@@ -547,6 +606,8 @@ class _MorphState extends State<MorphBenchmark>
       List<int> reverseBatchFrames,
       List<int> forwardStartLatenciesMicros,
       List<int> reverseStartLatenciesMicros,
+      List<Map<String, Object>> forwardSnapshotRefreshes,
+      List<Map<String, Object>> reverseSnapshotRefreshes,
       int attempt,
     })
   >
@@ -562,6 +623,8 @@ class _MorphState extends State<MorphBenchmark>
       final reverseBatchFrames = <int>[];
       final forwardStartLatenciesMicros = <int>[];
       final reverseStartLatenciesMicros = <int>[];
+      final forwardSnapshotRefreshes = <Map<String, Object>>[];
+      final reverseSnapshotRefreshes = <Map<String, Object>>[];
       var forwardTransitions = 0;
       var reverseTransitions = 0;
       var invalid = false;
@@ -615,9 +678,15 @@ class _MorphState extends State<MorphBenchmark>
         if (direction == 'forward') {
           forwardBatchFrames.add(measuredFrames.length);
           forwardStartLatenciesMicros.add(measurement.startLatencyMicros);
+          if (measurement.snapshotRefresh case final snapshotRefresh?) {
+            forwardSnapshotRefreshes.add(snapshotRefresh);
+          }
         } else {
           reverseBatchFrames.add(measuredFrames.length);
           reverseStartLatenciesMicros.add(measurement.startLatencyMicros);
+          if (measurement.snapshotRefresh case final snapshotRefresh?) {
+            reverseSnapshotRefreshes.add(snapshotRefresh);
+          }
         }
       }
       if (invalid) {
@@ -633,6 +702,8 @@ class _MorphState extends State<MorphBenchmark>
         reverseBatchFrames: reverseBatchFrames,
         forwardStartLatenciesMicros: forwardStartLatenciesMicros,
         reverseStartLatenciesMicros: reverseStartLatenciesMicros,
+        forwardSnapshotRefreshes: forwardSnapshotRefreshes,
+        reverseSnapshotRefreshes: reverseSnapshotRefreshes,
         attempt: attempt,
       );
     }
@@ -710,6 +781,7 @@ class _MorphState extends State<MorphBenchmark>
         await _runTransition(direction: 'forward', collect: false);
         await _runTransition(direction: 'reverse', collect: false);
       }
+      await _pumpQuiescentFrames(2);
     } finally {
       _scenarioIsRunning = false;
       _setForegroundPaintActive(false);
@@ -723,8 +795,9 @@ class _MorphState extends State<MorphBenchmark>
       'cycles': _soakCycles,
       'transitions': _soakCycles * 2,
       'elapsed_ms': stopwatch.elapsedMilliseconds,
-      'created_during_soak': soakImageCreations,
-      'disposed_during_soak': soakImageDisposals,
+      'temporal_created_during_soak': soakImageCreations,
+      'temporal_disposed_during_soak': soakImageDisposals,
+      'attribution': 'temporal process-wide ui.Image callbacks',
     });
     await _pauseForHeapSnapshot(
       scenario: scenarioId,
@@ -753,6 +826,7 @@ class _MorphState extends State<MorphBenchmark>
       List<FrameTiming> frames,
       List<String> invalidReasons,
       int startLatencyMicros,
+      Map<String, Object>? snapshotRefresh,
     })
   >
   _runTransition({
@@ -818,8 +892,10 @@ class _MorphState extends State<MorphBenchmark>
         frames: frames,
         invalidReasons: invalidReasons,
         startLatencyMicros: startLatencyMicros,
+        snapshotRefresh: _snapshotRefreshMeasurement(),
       );
     } finally {
+      _snapshotMutationToken += 1;
       _interruptionTracker.endWindow();
       _flightStarted = null;
       _flightEnded = null;
@@ -845,7 +921,137 @@ class _MorphState extends State<MorphBenchmark>
     final scheduler = SchedulerBinding.instance;
     _windowStartMicros = scheduler.currentSystemFrameTimeStamp.inMicroseconds;
     _interruptionTracker.startWindow(collectFrames: _collectWindow);
+    _startSnapshotRefreshProbe();
     completer.complete();
+  }
+
+  void _startSnapshotRefreshProbe() {
+    if (!_scenario.gatesWatchedSnapshotRefresh) return;
+    _snapshotMutationBatches = 0;
+    _dirtyPaintStart = _dirtyProbe.paintEventCount;
+    _dirtyPaintEnd = _dirtyPaintStart;
+    _cleanPaintStart = _cleanProbe.paintEventCount;
+    _cleanPaintEnd = _cleanPaintStart;
+    _temporalImagesStart = _flightImageCreations;
+    _temporalImagesEnd = _temporalImagesStart;
+    _mutationGenerationStart = _currentSnapshotMutationGeneration();
+    _snapshotRefreshProbeCompleted = false;
+    final token = ++_snapshotMutationToken;
+    if (_scenario.snapshotMutationBatches == 0) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _requestSnapshotMutationBatch(token);
+    });
+  }
+
+  void _requestSnapshotMutationBatch(int token) {
+    if (token != _snapshotMutationToken) return;
+    final ended = _flightEnded;
+    if (ended == null || ended.isCompleted) return;
+    final expectedBatches = _scenario.snapshotMutationBatches;
+    if (_snapshotMutationBatches >= expectedBatches) return;
+    final mutations = _scenario.snapshotMutationsPerBatch;
+    if (_scenario.mutatesSnapshotPixels) {
+      _dirtyProbe.requestMutationBatch(mutations: mutations);
+    } else if (_scenario.mutatesSnapshotGeometry) {
+      for (var mutation = 0; mutation < mutations; mutation += 1) {
+        _geometryChanges.value += 1;
+      }
+    }
+    _snapshotMutationBatches += 1;
+    if (_snapshotMutationBatches >= expectedBatches) return;
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _requestSnapshotMutationBatch(token);
+    });
+  }
+
+  int _currentSnapshotMutationGeneration() {
+    if (_scenario == MorphBenchmarkScenario.watchSnapshotGeometryOnly) {
+      return _geometryChanges.value;
+    }
+    return _dirtyProbe.requestedGeneration;
+  }
+
+  void _completeSnapshotRefreshProbe() {
+    if (_snapshotRefreshProbeCompleted) return;
+    _dirtyPaintEnd = _dirtyProbe.paintEventCount;
+    _cleanPaintEnd = _cleanProbe.paintEventCount;
+    _temporalImagesEnd = _flightImageCreations;
+    _snapshotRefreshProbeCompleted = true;
+  }
+
+  Map<String, Object>? _snapshotRefreshMeasurement() {
+    if (!_scenario.gatesWatchedSnapshotRefresh) return null;
+    final dirty = _dirtyProbe.measureSince(
+      _dirtyPaintStart,
+      lastEvent: _dirtyPaintEnd,
+    );
+    final clean = _cleanProbe.measureSince(
+      _cleanPaintStart,
+      lastEvent: _cleanPaintEnd,
+    );
+    final expectedBatches = _scenario.snapshotMutationBatches;
+    final expectedMutations = _scenario.snapshotMutationsPerBatch;
+    final requestedGeneration = _currentSnapshotMutationGeneration();
+    final temporalImageCreations = _temporalImagesEnd - _temporalImagesStart;
+    final generationDelta = requestedGeneration - _mutationGenerationStart;
+    final expectedDelta = expectedBatches * expectedMutations;
+    final generationPass = generationDelta == expectedDelta;
+    final expectedGenerations = <int>[];
+    if (_scenario.mutatesSnapshotPixels) {
+      for (var batch = 1; batch <= expectedBatches; batch += 1) {
+        expectedGenerations.add(
+          _mutationGenerationStart + batch * expectedMutations,
+        );
+      }
+    }
+    final isConservativeFallback = _scenario.usesConservativeSnapshotFallback;
+    var captureExpectation = 'exact';
+    if (isConservativeFallback) {
+      captureExpectation = 'continuous_fallback';
+    }
+    final dirtyGenerations = dirty.capturedGenerations;
+    final cleanGenerations = clean.capturedGenerations;
+    final generationSequencePass = listEquals(
+      dirtyGenerations,
+      expectedGenerations,
+    );
+    var expectedFinal = -1;
+    if (expectedGenerations.isNotEmpty) {
+      expectedFinal = expectedGenerations.last;
+    }
+    final dirtyPaintsPass = dirty.capturePaints == expectedGenerations.length;
+    final unchangedPaintsPass = clean.capturePaints == 0;
+    final expectedDirtyRate = expectedGenerations.isEmpty ? 0 : 1;
+    final dirtyMax = dirty.maxCapturePaintsPerFrame;
+    final cleanMax = clean.maxCapturePaintsPerFrame;
+    final paintRatePass = dirtyMax == expectedDirtyRate && cleanMax == 0;
+    final invariantsPassed =
+        _snapshotMutationBatches == expectedBatches &&
+        generationPass &&
+        generationSequencePass &&
+        dirtyPaintsPass &&
+        unchangedPaintsPass &&
+        paintRatePass &&
+        dirty.finalCapturedGeneration == expectedFinal;
+    return <String, Object>{
+      'mutation_batches': _snapshotMutationBatches,
+      'mutations_per_batch': expectedMutations,
+      'requested_generation_start': _mutationGenerationStart,
+      'requested_generation': requestedGeneration,
+      'capture_expectation': captureExpectation,
+      'expected_captured_generations': expectedGenerations,
+      'dirty_capture_paints': dirty.capturePaints,
+      'dirty_captured_generations': dirtyGenerations,
+      'dirty_final_captured_generation': dirty.finalCapturedGeneration,
+      'dirty_max_capture_paints_per_frame': dirtyMax,
+      'unchanged_capture_paints': clean.capturePaints,
+      'unchanged_captured_generations': cleanGenerations,
+      'unchanged_max_capture_paints_per_frame': cleanMax,
+      'temporal_ui_images_created': temporalImageCreations,
+      'generation_sequence_passed': generationSequencePass,
+      'unchanged_probe_passed': unchangedPaintsPass,
+      'invariants_passed': invariantsPassed,
+    };
   }
 
   void _startRestingScrollTransition() {
@@ -877,6 +1083,9 @@ class _MorphState extends State<MorphBenchmark>
   void _handleFlightEnded() {
     final completer = _flightEnded;
     if (completer == null || completer.isCompleted) return;
+    if (_scenario.gatesWatchedSnapshotRefresh) {
+      _completeSnapshotRefreshProbe();
+    }
     final scheduler = SchedulerBinding.instance;
     _windowEndMicros = scheduler.currentSystemFrameTimeStamp.inMicroseconds;
     _interruptionTracker.endWindow();
@@ -930,6 +1139,13 @@ class _MorphState extends State<MorphBenchmark>
     SchedulerBinding.instance.scheduleFrame();
     await SchedulerBinding.instance.endOfFrame;
     await Future<void>.delayed(const Duration(milliseconds: 32));
+  }
+
+  Future<void> _pumpQuiescentFrames(int count) async {
+    for (var frame = 0; frame < count; frame += 1) {
+      SchedulerBinding.instance.scheduleFrame();
+      await SchedulerBinding.instance.endOfFrame;
+    }
   }
 
   Future<void> _awaitFlightSignal(
@@ -1024,6 +1240,7 @@ class _MorphState extends State<MorphBenchmark>
     List<int> startLatenciesMicros = const <int>[],
     int attempt = 1,
     List<int> transitionFrameCounts = const <int>[],
+    List<Map<String, Object>> snapshotRefreshes = const <Map<String, Object>>[],
     String? sampleSemantics,
   }) {
     final build = <int>[];
@@ -1096,7 +1313,18 @@ class _MorphState extends State<MorphBenchmark>
     final workFitsBudget = buildFitsBudget && rasterFitsBudget;
     final trialSuffix = trial == 0 ? '' : '.trial_$trial';
     final path = '$scenario.$phase.$direction$trialSuffix';
-    if (gate && !workFitsBudget) _failedSteadyPaths.add(path);
+    final scenarioConfiguration = MorphBenchmarkScenario.fromId(scenario);
+    final gatesSnapshots = scenarioConfiguration.gatesWatchedSnapshotRefresh;
+    final reportsSnapshotRefreshes = gatesSnapshots && transitions > 0;
+    final snapshotsPass =
+        !reportsSnapshotRefreshes ||
+        (snapshotRefreshes.length == transitions &&
+            snapshotRefreshes.every(
+              (refresh) => refresh['invariants_passed'] == true,
+            ));
+    if (gate && (!workFitsBudget || !snapshotsPass)) {
+      _failedSteadyPaths.add(path);
+    }
     _print(<String, Object>{
       'path': path,
       'scenario': scenario,
@@ -1122,6 +1350,8 @@ class _MorphState extends State<MorphBenchmark>
       'any_over_budget': anyOverBudget,
       'longest_consecutive_misses': longestConsecutiveMisses,
       'work_p99_within_budget': workFitsBudget,
+      if (reportsSnapshotRefreshes) 'snapshot_refreshes': snapshotRefreshes,
+      if (reportsSnapshotRefreshes) 'snapshot_invariants_passed': snapshotsPass,
       'frame_budget_us': _frameBudgetMicros,
       'gate': gate,
     });
@@ -1196,6 +1426,22 @@ class _MorphState extends State<MorphBenchmark>
       MorphBenchmarkScenario.watchCustom => _buildWatchCustomScenario(),
       MorphBenchmarkScenario.watchStationary => _buildStationaryWatch(),
       MorphBenchmarkScenario.watchStationaryControl => _buildStationaryWatch(),
+      MorphBenchmarkScenario.watchSnapshotDense => _buildDense(
+        watchDestination: true,
+      ),
+      MorphBenchmarkScenario.watchSnapshotGeometryOnly => _buildDense(
+        watchDestination: true,
+        geometryOnlyWatchedSnapshot: true,
+      ),
+      MorphBenchmarkScenario.watchSnapshotDynamic => _buildDense(
+        watchDestination: true,
+        dynamicWatchedSnapshot: true,
+      ),
+      MorphBenchmarkScenario.watchSnapshotFullSurface => _buildFullSnapshot(),
+      MorphBenchmarkScenario.watchSnapshotNestedFallback => _buildDense(
+        watchDestination: true,
+        nestedSnapshotFallback: true,
+      ),
       MorphBenchmarkScenario.restingScroll => _buildRestingScrollScenario(),
       MorphBenchmarkScenario.rawDescendants => _buildRawDescendantsScenario(
         fade: false,
@@ -1506,9 +1752,39 @@ class _MorphState extends State<MorphBenchmark>
     );
   }
 
-  Widget _buildDense() {
+  Widget _buildDense({
+    bool watchDestination = false,
+    bool dynamicWatchedSnapshot = false,
+    bool geometryOnlyWatchedSnapshot = false,
+    bool nestedSnapshotFallback = false,
+  }) {
+    ValueListenable<int>? surfaceChanges;
+    if (dynamicWatchedSnapshot) {
+      surfaceChanges = _dirtyProbe.changes;
+    }
+    if (geometryOnlyWatchedSnapshot) {
+      surfaceChanges = _geometryChanges;
+    }
     return MorphBenchmarkWorkloads.descendantSnapshotDense(
       expanded: _expanded,
+      watchDestination: watchDestination,
+      dynamicWatchedSnapshot: dynamicWatchedSnapshot,
+      geometryOnlyWatchedSnapshot: geometryOnlyWatchedSnapshot,
+      nestedSnapshotFallback: nestedSnapshotFallback,
+      surfaceChanges: surfaceChanges,
+      dirtySnapshotPainter: watchDestination ? _dirtyProbe : null,
+      unchangedSnapshotPainter: watchDestination ? _cleanProbe : null,
+      onStart: _handleFlightStarted,
+      onEnd: _handleFlightEnded,
+    );
+  }
+
+  Widget _buildFullSnapshot() {
+    return MorphBenchmarkWorkloads.watchedSnapshotFullSurface(
+      expanded: _expanded,
+      surfaceChanges: _dirtyProbe.changes,
+      dirtySnapshotPainter: _dirtyProbe,
+      unchangedSnapshotPainter: _cleanProbe,
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
     );

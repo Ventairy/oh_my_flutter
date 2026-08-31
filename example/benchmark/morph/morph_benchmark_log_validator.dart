@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'morph_benchmark_scenario.dart';
+
 /// Validates the machine-readable records emitted by the Morph benchmark.
 final class MorphBenchmarkLogValidator {
   /// Creates a validator for one exact benchmark workload.
@@ -396,6 +398,12 @@ final class MorphBenchmarkLogValidator {
               'attempt and retried fields.',
             );
           }
+          _validateSnapshotRefreshGate(
+            scenario: MorphBenchmarkScenario.fromId(scenario),
+            result: result,
+            path: path,
+            issues: issues,
+          );
         }
       }
     }
@@ -415,6 +423,158 @@ final class MorphBenchmarkLogValidator {
         );
       }
     }
+  }
+
+  void _validateSnapshotRefreshGate({
+    required MorphBenchmarkScenario scenario,
+    required Map<String, Object?> result,
+    required String path,
+    required List<String> issues,
+  }) {
+    if (!scenario.gatesWatchedSnapshotRefresh) {
+      final reportsRefreshes = result.containsKey('snapshot_refreshes');
+      final reportsPass = result.containsKey('snapshot_invariants_passed');
+      if (reportsRefreshes || reportsPass) {
+        issues.add(
+          'Steady result $path must not report watched snapshot gates.',
+        );
+      }
+      return;
+    }
+
+    final transitionCount = result['transitions'];
+    final refreshes = result['snapshot_refreshes'];
+    if (transitionCount is! int || transitionCount < 1) {
+      issues.add(
+        'Steady result $path must report a positive transition count.',
+      );
+      return;
+    }
+    if (refreshes is! List<Object?> || refreshes.length != transitionCount) {
+      final count = refreshes is List<Object?> ? refreshes.length : 'invalid';
+      issues.add(
+        'Steady result $path must contain one watched snapshot gate per '
+        'transition; got $count for $transitionCount transitions.',
+      );
+      return;
+    }
+
+    var allRefreshesPass = true;
+    for (var index = 0; index < refreshes.length; index += 1) {
+      final refresh = refreshes[index];
+      if (refresh is! Map<String, Object?>) {
+        issues.add(
+          'Steady result $path snapshot refresh $index must be a JSON object.',
+        );
+        allRefreshesPass = false;
+        continue;
+      }
+      final expectedBatches = scenario.snapshotMutationBatches;
+      final expectedMutations = scenario.snapshotMutationsPerBatch;
+      final start = refresh['requested_generation_start'];
+      final end = refresh['requested_generation'];
+      final expectedRequestedDelta = expectedBatches * expectedMutations;
+      final requestedDelta = end is int && start is int ? end - start : null;
+      final requestedGenerationPass = requestedDelta == expectedRequestedDelta;
+      final expectedGenerations = <int>[];
+      if (scenario.mutatesSnapshotPixels && start is int) {
+        for (var batch = 1; batch <= expectedBatches; batch += 1) {
+          expectedGenerations.add(start + batch * expectedMutations);
+        }
+      }
+      final reportedGenerations = _intList(
+        refresh['expected_captured_generations'],
+      );
+      final capturedGenerations = _intList(
+        refresh['dirty_captured_generations'],
+      );
+      final dirtyCapturePaints = refresh['dirty_capture_paints'];
+      final cleanCapturePaints = refresh['unchanged_capture_paints'];
+      final dirtyMax = refresh['dirty_max_capture_paints_per_frame'];
+      final cleanMax = refresh['unchanged_max_capture_paints_per_frame'];
+      final finalGeneration = refresh['dirty_final_captured_generation'];
+      var expectedFinal = -1;
+      if (expectedGenerations.isNotEmpty) {
+        expectedFinal = expectedGenerations.last;
+      }
+      final conservativeFallback = scenario.usesConservativeSnapshotFallback;
+      var expectedMode = 'exact';
+      if (conservativeFallback) {
+        expectedMode = 'continuous_fallback';
+      }
+      var generationSequencePass = false;
+      if (capturedGenerations != null) {
+        generationSequencePass = _sameIntLists(
+          capturedGenerations,
+          expectedGenerations,
+        );
+      }
+      final expectedCapturePaints = expectedGenerations.length;
+      var dirtyCapturePass = false;
+      if (dirtyCapturePaints is int) {
+        dirtyCapturePass = dirtyCapturePaints == expectedCapturePaints;
+      }
+      final cleanCapturePass = cleanCapturePaints == 0;
+      final expectedDirtyRate = expectedGenerations.isEmpty ? 0 : 1;
+      final dirtyRatePass = dirtyMax == expectedDirtyRate;
+      final cleanRatePass = cleanMax == 0;
+      final temporalImages = refresh['temporal_ui_images_created'];
+      final temporalDiagnostic = temporalImages is int && temporalImages >= 0;
+      final measuredPass =
+          refresh['mutation_batches'] == expectedBatches &&
+          refresh['mutations_per_batch'] == expectedMutations &&
+          requestedGenerationPass &&
+          _sameIntLists(reportedGenerations, expectedGenerations) &&
+          refresh['capture_expectation'] == expectedMode &&
+          generationSequencePass &&
+          dirtyCapturePass &&
+          cleanCapturePass &&
+          dirtyRatePass &&
+          cleanRatePass &&
+          temporalDiagnostic &&
+          finalGeneration == expectedFinal &&
+          refresh['generation_sequence_passed'] == generationSequencePass &&
+          refresh['unchanged_probe_passed'] == cleanCapturePass;
+      if (refresh['invariants_passed'] != measuredPass) {
+        issues.add(
+          'Steady result $path snapshot refresh $index has inconsistent '
+          'invariants_passed.',
+        );
+      }
+      if (!measuredPass) {
+        issues.add(
+          'Steady result $path snapshot refresh $index must report '
+          'the expected dirty-generation sequence, unchanged-probe behavior, '
+          'and exact per-probe paint rate. Temporal ui.Image '
+          'counts are diagnostic only.',
+        );
+      }
+      allRefreshesPass = allRefreshesPass && measuredPass;
+    }
+
+    if (result['snapshot_invariants_passed'] != allRefreshesPass) {
+      issues.add(
+        'Steady result $path has inconsistent snapshot_invariants_passed.',
+      );
+    }
+    if (!allRefreshesPass) {
+      issues.add('Steady result $path did not pass its watched snapshot gate.');
+    }
+  }
+
+  List<int>? _intList(Object? value) {
+    if (value is! List<Object?> || value.any((item) => item is! int)) {
+      return null;
+    }
+    return value.cast<int>();
+  }
+
+  bool _sameIntLists(List<int>? first, List<int> second) {
+    if (first == null || first.length != second.length) return false;
+    for (var index = 0; index < first.length; index += 1) {
+      if (first[index] != second[index]) return false;
+    }
+    return true;
   }
 
   void _validateAcceptance(

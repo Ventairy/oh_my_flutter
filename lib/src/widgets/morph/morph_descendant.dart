@@ -42,6 +42,7 @@ class _MorphDescendantState extends State<MorphDescendant> {
   _MorphDescendantFlightResolver? _flightResolver;
   _MorphDescendantFlightRecord? _flightRecord;
   bool? _flightShowsSource;
+  int? _flightRecordsRevision;
   bool _inFlight = false;
 
   void _detachEndpoint() {
@@ -59,6 +60,7 @@ class _MorphDescendantState extends State<MorphDescendant> {
     final resolver = _flightResolver;
     if (resolver == null || widget.flightBehavior.isLive) return;
     _flightShowsSource = resolver.showsSource;
+    _flightRecordsRevision = resolver.recordsRevision;
     _flightRecord = resolver.claim(
       key: widget.key,
       childType: widget.child.runtimeType,
@@ -104,8 +106,12 @@ class _MorphDescendantState extends State<MorphDescendant> {
   @override
   void didUpdateWidget(MorphDescendant oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.flightBehavior != widget.flightBehavior) {
+      _handle.markSnapshotDirty();
+    }
     if (_flightResolver != null &&
         (_flightResolver!.showsSource != _flightShowsSource ||
+            _flightResolver!.recordsRevision != _flightRecordsRevision ||
             oldWidget.flightBehavior != widget.flightBehavior ||
             oldWidget.child.runtimeType != widget.child.runtimeType)) {
       _resolveFlightRecord();
@@ -120,6 +126,7 @@ class _MorphDescendantState extends State<MorphDescendant> {
     _detachEndpoint();
     _flightResolver?.removeListener(_handleFlightEndpointChanged);
     _releaseFlightRecord();
+    _handle.dispose();
     super.dispose();
   }
 
@@ -127,7 +134,8 @@ class _MorphDescendantState extends State<MorphDescendant> {
   Widget build(BuildContext context) {
     if (widget.flightBehavior.isLive) return widget.child;
     if (_inFlight) {
-      if (_flightResolver?.showsSource != _flightShowsSource) {
+      if (_flightResolver?.showsSource != _flightShowsSource ||
+          _flightResolver?.recordsRevision != _flightRecordsRevision) {
         _resolveFlightRecord();
       }
       final record = _flightRecord;
@@ -138,7 +146,7 @@ class _MorphDescendantState extends State<MorphDescendant> {
       );
     }
     return _MorphDescendantBoundary(
-      onRenderObjectReady: (renderObject) => _handle.renderObject = renderObject,
+      onRenderObjectReady: _handle.attachRenderObject,
       child: widget.child,
     );
   }
