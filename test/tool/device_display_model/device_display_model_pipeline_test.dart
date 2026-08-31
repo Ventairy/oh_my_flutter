@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../tool/device_display_model/device_display_model.dart';
+import 'device_display_model_test_process.dart';
 
 void main() {
   group('device display model pipeline', () {
@@ -188,7 +189,7 @@ void main() {
           '${temporaryDirectory.path}/manifest.json',
         )..writeAsStringSync(jsonEncode(manifest));
         final artifact = File('${temporaryDirectory.path}/model.g.dart');
-        final generateResult = await Process.run('fvm', <String>[
+        final generateResult = await DeviceDisplayModelTestProcess.run(<String>[
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -257,7 +258,7 @@ void main() {
   stdout.write(jsonEncode(result));
 }
 ''');
-        final harnessResult = await Process.run('fvm', <String>[
+        final harnessResult = await DeviceDisplayModelTestProcess.run(<String>[
           'dart',
           'run',
           harness.path,

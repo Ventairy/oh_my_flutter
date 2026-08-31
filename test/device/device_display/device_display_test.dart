@@ -413,6 +413,45 @@ void main() {
     );
 
     testWidgets(
+      'when estimating on iOS, it should not read Android cache identity',
+      (tester) async {
+        configurePhoneView(tester);
+        final view = _CornerRadiiTestFlutterView(
+          tester.view,
+          cornerRadii: null,
+        );
+        late BuildContext context;
+        await tester.pumpWidget(
+          RawView(
+            view: view,
+            child: Builder(
+              builder: (builderContext) {
+                context = builderContext;
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+          wrapWithView: false,
+        );
+        view.failOnViewIdRead = true;
+
+        debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+        final BorderRadius? result;
+        try {
+          result = await const DeviceDisplay().cornerRadii(
+            context,
+            estimate: true,
+          );
+        } finally {
+          view.failOnViewIdRead = false;
+          debugDefaultTargetPlatformOverride = null;
+        }
+
+        expect(result, isNotNull);
+      },
+    );
+
+    testWidgets(
       'when MediaQuery padding is modified, it should use raw view evidence',
       (tester) async {
         configurePhoneView(tester);
@@ -923,8 +962,17 @@ final class _CornerRadiiTestFlutterView extends TestFlutterView {
          display: view.display as TestDisplay,
        );
 
-  final ui.DisplayCornerRadii cornerRadii;
+  final ui.DisplayCornerRadii? cornerRadii;
+  bool failOnViewIdRead = false;
 
   @override
-  ui.DisplayCornerRadii get displayCornerRadii => cornerRadii;
+  ui.DisplayCornerRadii? get displayCornerRadii => cornerRadii;
+
+  @override
+  int get viewId {
+    if (failOnViewIdRead) {
+      throw StateError('Android cache identity was read on iOS.');
+    }
+    return super.viewId;
+  }
 }

@@ -1,4 +1,4 @@
-## Unreleased
+## 0.16.0
 
 - **Breaking:** Replace `MorphForeground` with tagged `MorphSibling` controls
   that coordinate widgets outside a Morph subtree through matching visual

@@ -1,9 +1,9 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 
 set -euo pipefail
 
-script_directory="${0:A:h}"
-package_root="${script_directory:h:h}"
+script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+package_root="$(cd "$script_directory/../.." && pwd)"
 
 cd "$package_root"
 fvm dart run tool/device_display_model/device_display_model.dart \

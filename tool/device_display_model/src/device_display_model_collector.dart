@@ -687,8 +687,8 @@ final class _DeviceDisplayModelCollector {
     final apk = File(
       '${collectorDirectory.path}/app/build/outputs/apk/debug/app-debug.apk',
     );
-    final wrapper = File('${Directory.current.path}/example/android/gradlew');
-    if (!wrapper.existsSync()) {
+    final wrapper = await _androidGradleWrapper();
+    if (wrapper == null) {
       return null;
     }
     final sourceHash = _androidCollectorSourceHash(collectorDirectory);
@@ -703,6 +703,7 @@ final class _DeviceDisplayModelCollector {
         '--console=plain',
       ],
       timeout: const Duration(minutes: 5),
+      runInShell: Platform.isWindows,
     );
     if (build == null || build.exitCode != 0) {
       return null;
@@ -713,6 +714,30 @@ final class _DeviceDisplayModelCollector {
     return await _apkContainsAndroidCollectorSource(apk.path, sourceHash)
         ? (path: apk.path, sourceHash: sourceHash)
         : null;
+  }
+
+  Future<File?> _androidGradleWrapper() async {
+    final exampleDirectory = Directory(
+      '${Directory.current.path}/example',
+    );
+    final wrapper = File(
+      '${exampleDirectory.path}/android/${Platform.isWindows ? 'gradlew.bat' : 'gradlew'}',
+    );
+    if (wrapper.existsSync()) return wrapper;
+
+    final configuration = await _runBounded(
+      'fvm',
+      const <String>[
+        'flutter',
+        'build',
+        'apk',
+        '--config-only',
+      ],
+      workingDirectory: exampleDirectory.path,
+      timeout: const Duration(minutes: 5),
+      runInShell: Platform.isWindows,
+    );
+    return configuration?.exitCode == 0 && wrapper.existsSync() ? wrapper : null;
   }
 
   String _androidCollectorSourceHash(Directory collectorDirectory) {
@@ -1050,9 +1075,16 @@ final class _DeviceDisplayModelCollector {
     String executable,
     List<String> arguments, {
     Duration? timeout,
+    String? workingDirectory,
+    bool runInShell = false,
   }) async {
     try {
-      final process = await Process.start(executable, arguments);
+      final process = await Process.start(
+        executable,
+        arguments,
+        workingDirectory: workingDirectory,
+        runInShell: runInShell,
+      );
       final stdoutBuffer = StringBuffer();
       final stderrBuffer = StringBuffer();
       final stdoutDone = Completer<void>();
@@ -1450,7 +1482,7 @@ final class _DeviceDisplayModelCollector {
         final platform = (hardware['platform'] as String?)?.toLowerCase();
         final reality = (hardware['reality'] as String?)?.toLowerCase();
         final productType = hardware['productType'] as String?;
-        if (platform == 'ios' && reality == 'physical' && productType?.startsWith('iPhone') == true) {
+        if (platform == 'ios' && reality == 'physical' && (productType?.startsWith('iPhone') ?? false)) {
           devices.add(value);
         }
       }

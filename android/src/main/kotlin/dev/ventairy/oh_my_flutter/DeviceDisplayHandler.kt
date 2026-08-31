@@ -53,7 +53,10 @@ internal class DeviceDisplayHandler(
             if (!matchesGeometry(currentActivity, geometry)) return null
             if (windowedStateOperation(currentActivity)) return null
             if (supportsExactCornerRadii()) {
-                exactCornerRadii(currentActivity)
+                exactCornerRadii(
+                    currentActivity,
+                    hasFullDisplayCoverage(geometry),
+                )
                     ?: legacyCornerRadii(currentActivity)
             } else {
                 legacyCornerRadii(currentActivity)
@@ -79,19 +82,31 @@ internal class DeviceDisplayHandler(
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    private fun exactCornerRadii(activity: Activity): AndroidDeviceDisplayCornerRadii? {
+    private fun exactCornerRadii(
+        activity: Activity,
+        hasFullDisplayCoverage: Boolean,
+    ): AndroidDeviceDisplayCornerRadii? {
         val insets = rootWindowInsetsOperation(activity) ?: return null
+        val topLeft = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT)
+        val topRight = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT)
+        val bottomRight = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT)
+        val bottomLeft = insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT)
+        if (!hasFullDisplayCoverage &&
+            listOf(topLeft, topRight, bottomRight, bottomLeft).any { it == null }
+        ) {
+            return null
+        }
         return AndroidDeviceDisplayCornerRadii(
-            topLeft = insets.cornerRadius(RoundedCorner.POSITION_TOP_LEFT),
-            topRight = insets.cornerRadius(RoundedCorner.POSITION_TOP_RIGHT),
-            bottomRight = insets.cornerRadius(RoundedCorner.POSITION_BOTTOM_RIGHT),
-            bottomLeft = insets.cornerRadius(RoundedCorner.POSITION_BOTTOM_LEFT),
+            topLeft = topLeft.radiusOrZero(),
+            topRight = topRight.radiusOrZero(),
+            bottomRight = bottomRight.radiusOrZero(),
+            bottomLeft = bottomLeft.radiusOrZero(),
         )
     }
 
     @RequiresApi(Build.VERSION_CODES.S)
-    private fun WindowInsets.cornerRadius(position: Int): Double {
-        return getRoundedCorner(position)?.radius?.toDouble() ?: 0.0
+    private fun RoundedCorner?.radiusOrZero(): Double {
+        return this?.radius?.toDouble() ?: 0.0
     }
 
     private fun legacyCornerRadii(activity: Activity): AndroidDeviceDisplayCornerRadii? {
@@ -157,6 +172,13 @@ internal class DeviceDisplayHandler(
     ): Boolean {
         return abs(expectedWidth - actual.width) <= GEOMETRY_TOLERANCE_PIXELS &&
             abs(expectedHeight - actual.height) <= GEOMETRY_TOLERANCE_PIXELS
+    }
+
+    private fun hasFullDisplayCoverage(
+        geometry: AndroidDeviceDisplayGeometry,
+    ): Boolean {
+        return abs(geometry.displayWidth - geometry.viewWidth) <= GEOMETRY_TOLERANCE_PIXELS &&
+            abs(geometry.displayHeight - geometry.viewHeight) <= GEOMETRY_TOLERANCE_PIXELS
     }
 
     private fun scaleRadius(radius: Int, scale: Double): Double {

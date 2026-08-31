@@ -128,10 +128,12 @@ final class _DeviceDisplayModelCommand {
     final publishedPaths = _publishedPaths(listing);
     final publishDryRunSucceeded = publishDryRunExitCode == null || publishDryRunExitCode == 0;
     final listingIsComplete = listing.contains('Total compressed archive size:') && publishedPaths.isNotEmpty;
-    final excludedModelToolingIncluded = publishedPaths.any(
+    final excludedMaintainerToolingIncluded = publishedPaths.any(
       (path) =>
-          path == 'tool/device_display_model' ||
-          path.startsWith('tool/device_display_model/') ||
+          path == 'pigeons' ||
+          path.startsWith('pigeons/') ||
+          path == 'tool' ||
+          path.startsWith('tool/') ||
           path == 'test/tool/device_display_model' ||
           path.startsWith('test/tool/device_display_model/'),
     );
@@ -167,12 +169,15 @@ final class _DeviceDisplayModelCommand {
             .length,
         'publishDryRunExitCode': publishDryRunExitCode,
         'publishDryRunSucceeded': publishDryRunSucceeded,
-        'archiveIncludesExcludedModelTooling': excludedModelToolingIncluded,
+        'archiveIncludesExcludedMaintainerTooling': excludedMaintainerToolingIncluded,
         'shippingSourceHasPrivateCollectorMaterial': forbiddenSourcePaths.isNotEmpty,
         'forbiddenShippingSourcePaths': forbiddenSourcePaths,
       }),
     );
-    return publishDryRunSucceeded && listingIsComplete && !excludedModelToolingIncluded && forbiddenSourcePaths.isEmpty
+    return publishDryRunSucceeded &&
+            listingIsComplete &&
+            !excludedMaintainerToolingIncluded &&
+            forbiddenSourcePaths.isEmpty
         ? 0
         : 1;
   }

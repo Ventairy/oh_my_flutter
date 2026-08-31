@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../tool/device_display_model/device_display_model.dart';
+import 'device_display_model_test_process.dart';
 
 void main() {
   group('device display model collector', () {
@@ -14,7 +15,7 @@ void main() {
       addTearDown(() => temporaryDirectory.deleteSync(recursive: true));
       final output = File('${temporaryDirectory.path}/corpus.json');
 
-      final result = await Process.run('fvm', [
+      final result = await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         'tool/device_display_model/device_display_model.dart',
@@ -77,7 +78,7 @@ void main() {
           );
         final output = File('${temporaryDirectory.path}/corpus.json');
 
-        final result = await Process.run('fvm', [
+        final result = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -146,7 +147,7 @@ void main() {
           );
         final output = File('${temporaryDirectory.path}/corpus.json');
 
-        final result = await Process.run('fvm', <String>[
+        final result = await DeviceDisplayModelTestProcess.run(<String>[
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -232,8 +233,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
               'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
           'OMF_FAKE_ANDROID_SOURCE_HASH': 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
         };
-        final api31Result = await Process.run(
-          'fvm',
+        final api31Result = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -257,8 +257,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
               (record) => record['sourceKind'] == 'android_sdk_skin_avd_join',
             );
         final secondOutput = File('${temporaryDirectory.path}/api30.json');
-        final api30Result = await Process.run(
-          'fvm',
+        final api30Result = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -277,8 +276,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
         final emulatorOutput = File(
           '${temporaryDirectory.path}/emulator.json',
         );
-        final emulatorResult = await Process.run(
-          'fvm',
+        final emulatorResult = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -299,8 +297,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
         final failedProbeOutput = File(
           '${temporaryDirectory.path}/failed-probe.json',
         );
-        final failedProbeResult = await Process.run(
-          'fvm',
+        final failedProbeResult = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -321,8 +318,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
         final foldedOutput = File(
           '${temporaryDirectory.path}/folded.json',
         );
-        final foldedResult = await Process.run(
-          'fvm',
+        final foldedResult = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -348,8 +344,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
         final mismatchedAvdOutput = File(
           '${temporaryDirectory.path}/mismatched-avd.json',
         );
-        final mismatchedAvdResult = await Process.run(
-          'fvm',
+        final mismatchedAvdResult = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -484,8 +479,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
           ..writeAsStringSync('$staleHash\nunrelated=$expectedHash\n');
         final output = File('${temporaryDirectory.path}/corpus.json');
 
-        final result = await Process.run(
-          'fvm',
+        final result = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -559,8 +553,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
           );
         final output = File('${temporaryDirectory.path}/corpus.json');
 
-        final result = await Process.run(
-          'fvm',
+        final result = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -711,8 +704,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
         });
         final stopwatch = Stopwatch()..start();
 
-        final result = await Process.run(
-          'fvm',
+        final result = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -726,6 +718,9 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
             'ANDROID_HOME': sdk.path,
             'ANDROID_SDK_ROOT': sdk.path,
             'OMF_DEVICE_DISPLAY_ALLOW_TEST_COLLECTOR': '1',
+            'OMF_DEVICE_DISPLAY_XCRUN': File(
+              'test/tool/device_display_model/fixtures/fake_xcrun.sh',
+            ).absolute.path,
             'OMF_DEVICE_DISPLAY_PROCESS_TIMEOUT_MS': '500',
             'OMF_FAKE_ANDROID_QEMU_PROBE_HANG': '1',
             'OMF_FAKE_ANDROID_HANG_CHILD_PID_PATH': childPidFile.path,
@@ -790,8 +785,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
           );
         final output = File('${temporaryDirectory.path}/corpus.json');
 
-        final result = await Process.run(
-          'fvm',
+        final result = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -858,8 +852,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
           );
         final output = File('${temporaryDirectory.path}/corpus.json');
 
-        final result = await Process.run(
-          'fvm',
+        final result = await DeviceDisplayModelTestProcess.run(
           <String>[
             'dart',
             'run',
@@ -970,8 +963,7 @@ image.sysdir.1=system-images;android-35;default;arm64-v8a
           Map<String, String> environment = const <String, String>{},
         }) async {
           final output = File('${temporaryDirectory.path}/$name.json');
-          final result = await Process.run(
-            'fvm',
+          final result = await DeviceDisplayModelTestProcess.run(
             <String>[
               'dart',
               'run',

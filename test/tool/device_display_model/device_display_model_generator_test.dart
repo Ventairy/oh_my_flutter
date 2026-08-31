@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../tool/device_display_model/device_display_model.dart';
+import 'device_display_model_test_process.dart';
 
 void main() {
   group('device display model generator', () {
@@ -18,7 +19,7 @@ void main() {
       final secondArtifact = File('${temporaryDirectory.path}/second.g.dart');
       const executable = 'tool/device_display_model/device_display_model.dart';
 
-      await Process.run('fvm', [
+      await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -28,7 +29,7 @@ void main() {
         '--output',
         manifest,
       ]);
-      final firstResult = await Process.run('fvm', [
+      final firstResult = await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -38,7 +39,7 @@ void main() {
         '--output',
         firstArtifact.path,
       ]);
-      final secondResult = await Process.run('fvm', [
+      final secondResult = await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -73,7 +74,7 @@ void main() {
         final manifest = '${temporaryDirectory.path}/manifest.json';
         final artifact = File('${temporaryDirectory.path}/model.g.dart');
         const executable = 'tool/device_display_model/device_display_model.dart';
-        await Process.run('fvm', [
+        await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           executable,
@@ -83,7 +84,7 @@ void main() {
           '--output',
           manifest,
         ]);
-        await Process.run('fvm', [
+        await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           executable,
@@ -177,7 +178,7 @@ void main(List<String> arguments) {
   ]));
 }
 ''');
-        final equivalentResult = await Process.run('fvm', [
+        final equivalentResult = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           harness.path,
@@ -189,7 +190,7 @@ void main(List<String> arguments) {
         final actual = (jsonDecode((equivalentResult.stdout as String).trim()) as List<Object?>)
             .map((value) => (value! as num).toDouble())
             .toList();
-        final unknownResult = await Process.run('fvm', [
+        final unknownResult = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           harness.path,
@@ -218,6 +219,58 @@ void main(List<String> arguments) {
             false,
             contains('Unknown generated display-radius model kind'),
           ],
+        );
+      },
+      timeout: const Timeout(Duration(minutes: 2)),
+    );
+
+    test(
+      'when a safety pipeline has zero model support, it should emit only its direct prior path',
+      () async {
+        final temporaryDirectory = Directory.systemTemp.createTempSync(
+          'omf-display-generator-direct-prior-test-',
+        );
+        addTearDown(() => temporaryDirectory.deleteSync(recursive: true));
+        final artifact = File('${temporaryDirectory.path}/model.g.dart');
+        const executable = 'tool/device_display_model/device_display_model.dart';
+
+        final result = await DeviceDisplayModelTestProcess.run([
+          'dart',
+          'run',
+          executable,
+          'generate',
+          '--manifest',
+          'tool/device_display_model/model_manifest.json',
+          '--output',
+          artifact.path,
+        ]);
+        final source = artifact.readAsStringSync();
+
+        expect(
+          (
+            exitCode: result.exitCode,
+            hasDirectPrior: source.contains('_directPriorNormalizedDiameter'),
+            hasTopHead: source.contains('_androidTopHead'),
+            hasBottomHead: source.contains('_androidBottomHead'),
+            hasTopChallenger: source.contains('_androidTopChallenger'),
+            hasBottomChallenger: source.contains('_androidBottomChallenger'),
+            hasTopGate: source.contains('_androidTopGate'),
+            hasBottomGate: source.contains('_androidBottomGate'),
+            hasFeatureSchema: source.contains('_androidFeatureSchema'),
+            hasModelBlendWeight: source.contains('androidModelBlendWeight'),
+          ),
+          (
+            exitCode: 0,
+            hasDirectPrior: true,
+            hasTopHead: false,
+            hasBottomHead: false,
+            hasTopChallenger: false,
+            hasBottomChallenger: false,
+            hasTopGate: false,
+            hasBottomGate: false,
+            hasFeatureSchema: false,
+            hasModelBlendWeight: false,
+          ),
         );
       },
       timeout: const Timeout(Duration(minutes: 2)),

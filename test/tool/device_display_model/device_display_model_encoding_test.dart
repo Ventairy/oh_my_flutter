@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../tool/device_display_model/device_display_model.dart';
+import 'device_display_model_test_process.dart';
 
 void main() {
   group('device display model encoding', () {
@@ -73,7 +74,7 @@ void main() {
 Future<ProcessResult> _train({
   required String corpus,
   required String manifest,
-}) => Process.run('fvm', <String>[
+}) => DeviceDisplayModelTestProcess.run(<String>[
   'dart',
   'run',
   'tool/device_display_model/device_display_model.dart',
