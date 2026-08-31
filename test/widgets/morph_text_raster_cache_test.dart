@@ -550,7 +550,10 @@ Future<({MorphTextProperties source, MorphTextProperties destination})> _capture
   );
 }
 
-Future<ui.Image> _waitForRaster(WidgetTester tester) async {
+Future<ui.Image> _waitForRaster(
+  WidgetTester tester, {
+  bool pumpAfterReady = true,
+}) async {
   for (var attempt = 0; attempt < 100; attempt += 1) {
     final flights = find.byWidgetPredicate(
       (widget) => widget.runtimeType.toString() == '_MorphTextFlight',
@@ -558,7 +561,7 @@ Future<ui.Image> _waitForRaster(WidgetTester tester) async {
     if (flights.evaluate().length == 1) {
       final raster = _diagnostic<ui.Image>(tester, 'retainedTextRaster');
       if (raster != null) {
-        await tester.pump();
+        if (pumpAfterReady) await tester.pump();
         return raster;
       }
     }
@@ -588,13 +591,17 @@ Future<ui.Image> _waitForRaster(WidgetTester tester) async {
 
 Future<ui.Image> _toggleAndWaitForRaster(
   WidgetTester tester,
-  _CrossFlightRasterAppState state,
-) async {
+  _CrossFlightRasterAppState state, {
+  bool pumpAfterReady = true,
+}) async {
   state.toggle();
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 1));
   await tester.pump(const Duration(milliseconds: 60));
-  return _waitForRaster(tester);
+  return _waitForRaster(
+    tester,
+    pumpAfterReady: pumpAfterReady,
+  );
 }
 
 Future<ui.Image> _popAndWaitForRaster(
@@ -2737,6 +2744,7 @@ void main() {
         final repeated = await _toggleAndWaitForRaster(
           tester,
           appKey.currentState!,
+          pumpAfterReady: false,
         );
         final repeatedStats = await _waitForPoolEntries(
           tester,

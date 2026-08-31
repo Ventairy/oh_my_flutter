@@ -9,6 +9,59 @@ import 'device_display_model_test_process.dart';
 void main() {
   group('device display model pipeline', () {
     test(
+      'when orientation features are built, it should derive them from the full display',
+      () {
+        final runtimeSource = File(
+          'lib/src/device/device_display/estimator/device_display_estimator.dart',
+        ).readAsStringSync();
+
+        expect(
+          <Object?>[
+            RegExp(
+              r'metrics\.displaySize\.width > metrics\.displaySize\.height',
+            ).allMatches(runtimeSource).length,
+            runtimeSource.contains(
+              'metrics.viewSize.width > metrics.viewSize.height',
+            ),
+          ],
+          <Object?>[1, false],
+        );
+      },
+    );
+
+    test(
+      'when iOS lacks Flutter gesture and cutout evidence, it should align runtime missing features with training',
+      () {
+        final runtimeSource = File(
+          'lib/src/device/device_display/estimator/device_display_estimator.dart',
+        ).readAsStringSync();
+        final trainingSource = File(
+          'tool/device_display_model/src/device_display_model_models.dart',
+        ).readAsStringSync();
+
+        expect(
+          <bool>[
+            RegExp(
+              r"'displayCutoutMissing',\s*\]",
+            ).hasMatch(trainingSource),
+            RegExp(
+              r'2 \* _maximumEdge\(isIos \? EdgeInsets\.zero : '
+              r'metrics\.systemGestureInsets\)',
+            ).hasMatch(runtimeSource),
+            runtimeSource.contains(
+              '(isIos ? 0.0 : metrics.displayCutoutCount / 4).clamp(0, 1)',
+            ),
+            RegExp(
+              r'if \(isIos\) 1\.0 else 0\.0,\s*'
+              r'if \(isIos\) 1\.0 else 0\.0,\s*\]',
+            ).hasMatch(runtimeSource),
+          ],
+          <bool>[true, true, true, true],
+        );
+      },
+    );
+
+    test(
       'when calibrated support is zero, it should reproduce the per-input robust prior including square output',
       () {
         final schema = <String, Object?>{
