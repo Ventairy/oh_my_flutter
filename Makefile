@@ -1,11 +1,13 @@
 SHELL := /bin/bash
 
-.PHONY: setup generate-device-location-pigeon check-device-location-pigeon generate-device-display-pigeon check-device-display-pigeon collect-device-display-model generate-device-display-model validate-device-display-model validate-device-display-collectors check-device-display-publish-archive format check-format analyze test update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-native-code dry-run-publish analyze-package check clean
+.PHONY: setup generate-pigeons generate-device-location-pigeon generate-device-display-pigeon check-pigeons check-device-location-pigeon check-device-display-pigeon collect-device-display-model generate-device-display-model validate-device-display-model validate-device-display-collectors check-device-display-publish-archive format check-format analyze test update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-native-code dry-run-publish analyze-package check clean
 
 setup:
 	fvm install
 	fvm flutter pub upgrade
 	cd example && fvm flutter pub get --enforce-lockfile
+
+generate-pigeons: generate-device-location-pigeon generate-device-display-pigeon
 
 generate-device-location-pigeon:
 	./tool/generate_device_location_pigeon.sh
@@ -18,6 +20,8 @@ generate-device-display-pigeon:
 
 check-device-display-pigeon:
 	./tool/check_device_display_pigeon.sh
+
+check-pigeons: check-device-location-pigeon check-device-display-pigeon
 
 collect-device-display-model:
 	./tool/device_display_model/collect_device_display_model.sh
@@ -81,7 +85,7 @@ analyze-package:
 	fvm dart pub global activate pana
 	fvm dart pub global run pana .
 
-check: check-device-location-pigeon check-device-display-pigeon validate-device-display-model validate-device-display-collectors check-format analyze test generate-api-docs check-example validate-native-code dry-run-publish check-device-display-publish-archive
+check: check-pigeons validate-device-display-model validate-device-display-collectors check-format analyze test generate-api-docs check-example validate-native-code dry-run-publish check-device-display-publish-archive
 
 clean:
 	fvm flutter clean

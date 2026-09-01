@@ -48,7 +48,7 @@ final class _DeviceDisplayModelTrainer {
   }) {
     final logicalScoringRecords = records
         .where(
-          (record) => (record['devicePixelRatio'] as num?)?.toDouble().isFinite == true,
+          (record) => (record['devicePixelRatio'] as num?)?.toDouble().isFinite ?? false,
         )
         .toList();
     final groups = _groups(records);

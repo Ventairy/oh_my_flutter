@@ -34,5 +34,5 @@ contract of the feature property being used.
 
 See the [device location](device_location.md) and
 [device display](device_display.md) guides for each feature's behavior and
-constraints. The [generated API reference](../api/oh_my_flutter/Device-class.html)
+constraints. The [generated API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/Device-class.html)
 lists the complete constructor and member contracts.

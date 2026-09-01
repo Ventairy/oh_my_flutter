@@ -1,4 +1,4 @@
-## Unreleased
+## 0.16.0
 
 - Add `InteractiveSwipeDismiss` for translating any live content with a
   configurable, scroll-aware directional dismissal gesture, callback-owned

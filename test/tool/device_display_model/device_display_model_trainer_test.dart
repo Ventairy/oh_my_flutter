@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'device_display_model_test_process.dart';
+
 void main() {
   group('device display model trainer', () {
     test('when candidates can fit grouped folds, it should execute every declared model', () async {
@@ -12,7 +14,7 @@ void main() {
       addTearDown(() => temporaryDirectory.deleteSync(recursive: true));
       final manifestFile = File('${temporaryDirectory.path}/manifest.json');
 
-      final result = await Process.run('fvm', [
+      final result = await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         'tool/device_display_model/device_display_model.dart',
@@ -139,7 +141,7 @@ void main() {
         final corpusFile = File('${temporaryDirectory.path}/corpus.json')..writeAsStringSync(jsonEncode(corpus));
         final manifestFile = File('${temporaryDirectory.path}/manifest.json');
 
-        final result = await Process.run('fvm', [
+        final result = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -189,7 +191,7 @@ void main() {
         final corpusFile = File('${temporaryDirectory.path}/corpus.json')..writeAsStringSync(jsonEncode(corpus));
         final manifestFile = File('${temporaryDirectory.path}/manifest.json');
 
-        final result = await Process.run('fvm', [
+        final result = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -251,7 +253,7 @@ void main() {
           );
         final manifestFile = File('${temporaryDirectory.path}/manifest.json');
 
-        final result = await Process.run('fvm', <String>[
+        final result = await DeviceDisplayModelTestProcess.run(<String>[
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -307,7 +309,7 @@ void main() {
         final corpusFile = File('${temporaryDirectory.path}/corpus.json')..writeAsStringSync(jsonEncode(corpus));
         final manifestFile = File('${temporaryDirectory.path}/manifest.json');
 
-        final result = await Process.run('fvm', [
+        final result = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -357,7 +359,7 @@ void main() {
           '${temporaryDirectory.path}/manifest.json',
         );
 
-        final result = await Process.run('fvm', <String>[
+        final result = await DeviceDisplayModelTestProcess.run(<String>[
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -411,7 +413,7 @@ void main() {
           '${temporaryDirectory.path}/manifest.json',
         );
 
-        final result = await Process.run('fvm', <String>[
+        final result = await DeviceDisplayModelTestProcess.run(<String>[
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -586,7 +588,7 @@ void main() {
         final corpusFile = File('${temporaryDirectory.path}/corpus.json')..writeAsStringSync(jsonEncode(corpus));
         final manifestFile = File('${temporaryDirectory.path}/manifest.json');
 
-        final result = await Process.run('fvm', [
+        final result = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',

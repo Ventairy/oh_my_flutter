@@ -1,64 +1,9 @@
-import 'dart:io';
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/src/device/device_display/estimator/device_display_estimator.dart';
 
 void main() {
   group('DeviceDisplayEstimator', () {
-    test(
-      'when orientation features are built, it should derive them from the full display',
-      () {
-        final runtimeSource = File(
-          'lib/src/device/device_display/estimator/device_display_estimator.dart',
-        ).readAsStringSync();
-
-        expect(
-          <Object?>[
-            RegExp(
-              r'metrics\.displaySize\.width > metrics\.displaySize\.height',
-            ).allMatches(runtimeSource).length,
-            runtimeSource.contains(
-              'metrics.viewSize.width > metrics.viewSize.height',
-            ),
-          ],
-          <Object?>[1, false],
-        );
-      },
-    );
-
-    test(
-      'when iOS lacks Flutter gesture and cutout evidence, it should align runtime missing features with training',
-      () {
-        final runtimeSource = File(
-          'lib/src/device/device_display/estimator/device_display_estimator.dart',
-        ).readAsStringSync();
-        final trainingSource = File(
-          'tool/device_display_model/src/device_display_model_models.dart',
-        ).readAsStringSync();
-
-        expect(
-          <bool>[
-            RegExp(
-              r"'displayCutoutMissing',\s*\]",
-            ).hasMatch(trainingSource),
-            RegExp(
-              r'2 \* _maximumEdge\(isIos \? EdgeInsets\.zero : '
-              r'metrics\.systemGestureInsets\)',
-            ).hasMatch(runtimeSource),
-            runtimeSource.contains(
-              '(isIos ? 0.0 : metrics.displayCutoutCount / 4).clamp(0, 1)',
-            ),
-            RegExp(
-              r'if \(isIos\) 1\.0 else 0\.0,\s*'
-              r'if \(isIos\) 1\.0 else 0\.0,\s*\]',
-            ).hasMatch(runtimeSource),
-          ],
-          <bool>[true, true, true, true],
-        );
-      },
-    );
-
     test('when metrics are unchanged, it should be deterministic', () {
       const metrics = DeviceDisplayMetrics(
         platformKind: DeviceDisplayPlatformKind.android,
@@ -133,6 +78,34 @@ void main() {
         everyElement(closeTo(radius.topLeft.x, 0.000001)),
       );
     });
+
+    test(
+      'when iOS receives gesture and cutout geometry, it should ignore unsupported evidence',
+      () {
+        const withoutUnsupportedEvidence = DeviceDisplayMetrics(
+          platformKind: DeviceDisplayPlatformKind.ios,
+          displaySize: Size(402, 874),
+          viewSize: Size(402, 874),
+          devicePixelRatio: 3,
+          viewPadding: EdgeInsets.only(top: 62, bottom: 34),
+        );
+        const withUnsupportedEvidence = DeviceDisplayMetrics(
+          platformKind: DeviceDisplayPlatformKind.ios,
+          displaySize: Size(402, 874),
+          viewSize: Size(402, 874),
+          devicePixelRatio: 3,
+          viewPadding: EdgeInsets.only(top: 62, bottom: 34),
+          systemGestureInsets: EdgeInsets.all(96),
+          displayCutoutBounds: Rect.fromLTWH(120, 0, 162, 72),
+          displayCutoutCount: 4,
+        );
+
+        expect(
+          DeviceDisplayEstimator.estimate(withUnsupportedEvidence),
+          DeviceDisplayEstimator.estimate(withoutUnsupportedEvidence),
+        );
+      },
+    );
 
     test('when Android is estimated, it should keep each edge pair symmetric', () {
       const metrics = DeviceDisplayMetrics(

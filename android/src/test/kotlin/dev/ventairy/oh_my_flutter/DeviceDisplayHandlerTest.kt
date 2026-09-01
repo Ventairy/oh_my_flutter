@@ -70,6 +70,58 @@ class DeviceDisplayHandlerTest {
     }
 
     @Test
+    fun `when API 31 reports every corner for a partial app window, it should use exact evidence`() {
+        val insets = mock(WindowInsets::class.java)
+        val windowCorner = corner(10)
+        Mockito.`when`(insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT))
+            .thenReturn(windowCorner)
+        Mockito.`when`(insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT))
+            .thenReturn(windowCorner)
+        Mockito.`when`(insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT))
+            .thenReturn(windowCorner)
+        Mockito.`when`(insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_LEFT))
+            .thenReturn(windowCorner)
+        val cornerRadii = handler(
+            sdkInt = 31,
+            rootWindowInsets = insets,
+            resourcesByName = mapOf("rounded_corner_radius" to 20),
+            windowSize = DeviceDisplaySize(700, 1600),
+        ).getCornerRadii(
+            AndroidDeviceDisplayGeometry(780.0, 1688.0, 700.0, 1600.0),
+        )
+
+        assertEquals(
+            AndroidDeviceDisplayCornerRadii(10.0, 10.0, 10.0, 10.0),
+            cornerRadii,
+        )
+    }
+
+    @Test
+    fun `when API 31 omits a corner for a partial app window, it should use legacy evidence`() {
+        val insets = mock(WindowInsets::class.java)
+        val windowCorner = corner(10)
+        Mockito.`when`(insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT))
+            .thenReturn(windowCorner)
+        Mockito.`when`(insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT))
+            .thenReturn(windowCorner)
+        Mockito.`when`(insets.getRoundedCorner(RoundedCorner.POSITION_BOTTOM_RIGHT))
+            .thenReturn(windowCorner)
+        val cornerRadii = handler(
+            sdkInt = 31,
+            rootWindowInsets = insets,
+            resourcesByName = mapOf("rounded_corner_radius" to 20),
+            windowSize = DeviceDisplaySize(700, 1600),
+        ).getCornerRadii(
+            AndroidDeviceDisplayGeometry(780.0, 1688.0, 700.0, 1600.0),
+        )
+
+        assertEquals(
+            AndroidDeviceDisplayCornerRadii(20.0, 20.0, 20.0, 20.0),
+            cornerRadii,
+        )
+    }
+
+    @Test
     fun `when API 31 root insets are unavailable, it should use positive legacy evidence`() {
         val cornerRadii = handler(
             sdkInt = 31,
@@ -329,6 +381,7 @@ class DeviceDisplayHandlerTest {
         assertNull(cornerRadii)
     }
 
+    @Suppress("DEPRECATION")
     @Test
     fun `when display resolution is reduced, it should scale and round legacy radii`() {
         val currentMode = mode(width = 1440, height = 3200)
@@ -444,6 +497,7 @@ class DeviceDisplayHandlerTest {
         rotation: Int = Surface.ROTATION_0,
         windowed: Boolean = false,
         displayId: Int = Display.DEFAULT_DISPLAY,
+        windowSize: DeviceDisplaySize = DeviceDisplaySize(780, 1688),
     ): DeviceDisplayHandler {
         return DeviceDisplayHandler(
             sdkInt = sdkInt,
@@ -453,7 +507,7 @@ class DeviceDisplayHandlerTest {
             displayOperation = { display },
             displayIdOperation = { displayId },
             displaySizeOperation = { DeviceDisplaySize(780, 1688) },
-            windowSizeOperation = { DeviceDisplaySize(780, 1688) },
+            windowSizeOperation = { windowSize },
             resourceDimensionOperation = { _, name -> resourcesByName[name] ?: 0 },
             displayScaleOperation = { scale },
             displayRotationOperation = { rotation },
