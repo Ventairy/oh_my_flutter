@@ -28,6 +28,12 @@ export 'src/oklch/oklch.dart' show Oklch;
 export 'src/telephony.dart' show Telephony;
 export 'src/whatsapp.dart' show Whatsapp;
 export 'src/widgets/controlled_visibility/controlled_visibility.dart' show ControlledVisibility, VisibilityController;
+export 'src/widgets/interactive_swipe_dismiss/interactive_swipe_dismiss.dart'
+    show
+        InteractiveSwipeDismiss,
+        InteractiveSwipeDismissDirection,
+        InteractiveSwipeDismissDragConfig,
+        InteractiveSwipeDismissHandle;
 export 'src/widgets/marquee/marquee.dart' show Marquee;
 export 'src/widgets/marquee/marquee_direction.dart' show MarqueeDirection;
 export 'src/widgets/maybe_safe_area/maybe_safe_area.dart' show MaybeSafeArea, MaybeSafeAreaBehavior;

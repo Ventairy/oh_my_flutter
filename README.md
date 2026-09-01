@@ -78,6 +78,12 @@ distance, progress, and interaction policy to the application.
 `ControlledVisibility` lets parent-owned state show or hide a child with
 optional directional transitions and optional unmounting.
 
+### InteractiveSwipeDismiss
+
+`InteractiveSwipeDismiss` translates any live widget with a scroll-aware,
+directional dismissal gesture, callback-owned removal, and presentation-neutral
+drag-handle regions.
+
 ### Morph
 
 `Morph` animates matching widgets between layouts and routes, selecting a

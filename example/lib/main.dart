@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
 import 'package:oh_my_flutter_example/examples/device_display_example.dart';
 import 'package:oh_my_flutter_example/examples/device_location_example.dart';
+import 'package:oh_my_flutter_example/examples/interactive_swipe_dismiss_example.dart';
 import 'package:oh_my_flutter_example/examples/marquee_example.dart';
 import 'package:oh_my_flutter_example/examples/maybe_safe_area_example.dart';
 import 'package:oh_my_flutter_example/examples/morph_example.dart';
@@ -67,6 +68,10 @@ class UtilityExample extends StatelessWidget {
                         Text('ControlledVisibility', style: _sectionStyle),
                         SizedBox(height: 12),
                         ControlledVisibilityExample(),
+                        SizedBox(height: 32),
+                        Text('InteractiveSwipeDismiss', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        InteractiveSwipeDismissExample(),
                         SizedBox(height: 32),
                         Text('Morph', style: _sectionStyle),
                         SizedBox(height: 12),

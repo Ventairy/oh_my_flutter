@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Add `InteractiveSwipeDismiss` for translating any live content with a
+  configurable, scroll-aware directional dismissal gesture, callback-owned
+  removal, and presentation-neutral drag-handle regions.
 - **Breaking:** Replace `MorphForeground` with tagged `MorphSibling` controls
   that coordinate widgets outside a Morph subtree through matching visual
   progress and configurable above-Morph paint ordering.
