@@ -2058,6 +2058,51 @@ void main() {
     );
 
     testWidgets(
+      'when one-line retained text reflows at its reserved width and reverses early, it should keep matching paint metrics',
+      (tester) async {
+        const title = 'Auxiliar de cozinha para evento';
+        await tester.pumpWidget(
+          _ColumnMorphTestApp(
+            sourceWidth: 700,
+            destinationWidth: 240,
+            switchThreshold: 0.9,
+            builder: ({required destination}) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  maxLines: destination ? 4 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: destination ? 30 : 22,
+                    height: 1.2,
+                    letterSpacing: -2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 240));
+        await tester.tap(find.byKey(_ColumnMorphTestApp.toggleKey));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 180));
+
+        expect(
+          (
+            hasException: tester.takeException() != null,
+            paintedLineCount: _retainedTextLayouts(tester).single['paintedLineCount'],
+          ),
+          (hasException: false, paintedLineCount: 2),
+        );
+      },
+    );
+
+    testWidgets(
       'when non-wrapping Column text is clipped, it should retain one line without painting outside its rect',
       (tester) async {
         tester.view.physicalSize = const Size(300, 300);

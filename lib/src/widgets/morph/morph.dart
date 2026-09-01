@@ -64,6 +64,7 @@ part '_morph_raster_snapshot_admission.dart';
 part '_morph_raster_snapshot_retry.dart';
 part '_morph_raster_snapshot_scheduler.dart';
 part '_morph_text_flight.dart';
+part '_morph_text_paragraph_metrics_cache.dart';
 part '_morph_text_raster_cache.dart';
 part '_morph_text_raster_pool.dart';
 part '_morph_text_raster_pool_entry.dart';

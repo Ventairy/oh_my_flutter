@@ -5,10 +5,15 @@
   removal, and presentation-neutral drag-handle regions.
 - **Breaking:** Replace `MorphForeground` with tagged `MorphSibling` controls
   that coordinate widgets outside a Morph subtree through matching visual
-  progress and configurable above-Morph paint ordering.
+  progress, rebuild-stable custom transitions, and configurable above-Morph
+  paint ordering.
 - Keep watched Morph destination snapshots aligned with geometry and content
   changes during active forward and reverse flights while reusing unchanged
   images whenever changes are directly observable.
+- Keep retained Morph text and Column layout aligned with the paragraph's
+  actual wrapping when a flight reverses before settling.
+- Prevent translucent Morph content from darkening while completed flights
+  hand off to their live endpoints.
 - Add `Device` for grouping device features and `DeviceDisplay` for reading
   exact display corner radii with an optional approximate phone fallback.
 

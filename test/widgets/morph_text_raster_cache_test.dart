@@ -412,6 +412,71 @@ class _StaggeredRasterLeaseAppState extends State<_StaggeredRasterLeaseApp> {
   }
 }
 
+class _WrappingColumnRasterApp extends StatefulWidget {
+  const _WrappingColumnRasterApp({super.key});
+
+  @override
+  State<_WrappingColumnRasterApp> createState() => _WrappingColumnRasterAppState();
+}
+
+class _WrappingColumnRasterAppState extends State<_WrappingColumnRasterApp> {
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+
+  void push() {
+    _navigatorKey.currentState!.push(
+      PageRouteBuilder<void>(
+        transitionDuration: const Duration(milliseconds: 400),
+        reverseTransitionDuration: const Duration(milliseconds: 400),
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) => _page(destination: true),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
+      ),
+    );
+  }
+
+  void pop() => _navigatorKey.currentState!.pop();
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      navigatorKey: _navigatorKey,
+      home: _page(destination: false),
+    );
+  }
+
+  Widget _page({required bool destination}) {
+    return Scaffold(
+      body: Align(
+        alignment: Alignment.topLeft,
+        child: SizedBox(
+          width: destination ? 240 : 700,
+          child: Morph(
+            tag: 'wrapping-column-raster',
+            switchThreshold: 0.9,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Auxiliar de cozinha para evento',
+                  maxLines: destination ? 4 : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: destination ? Colors.blue : Colors.red,
+                    fontSize: destination ? 30 : 22,
+                    height: 1.2,
+                    letterSpacing: -2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 RenderBox _flightRenderObject(WidgetTester tester) {
   return tester.renderObject<RenderBox>(
     find.byWidgetPredicate(
@@ -720,6 +785,44 @@ void main() {
   );
 
   group('Morph text raster cache', () {
+    testWidgets(
+      'when one-line retained Column text wraps at raster width and reverses early, it should keep matching metrics',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 600);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        _binding.rasterLoader = (picture, width, height) => picture.toImage(width, height);
+        addTearDown(_binding.resetRasterLoader);
+        final appKey = GlobalKey<_WrappingColumnRasterAppState>();
+        await tester.pumpWidget(_WrappingColumnRasterApp(key: appKey));
+        await tester.pumpAndSettle();
+
+        appKey.currentState!.push();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 240));
+        appKey.currentState!.pop();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 180));
+        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+        await tester.pump();
+
+        expect(
+          (
+            hasException: tester.takeException() != null,
+            paintedLineCount: _compoundTextLayoutDiagnostic<int>(
+              tester,
+              text: 'Auxiliar de cozinha para evento',
+              name: 'paintedLineCount',
+            ),
+            rasterStarted: _binding.rasterStarts > 0,
+          ),
+          (hasException: false, paintedLineCount: 2, rasterStarted: true),
+        );
+      },
+    );
+
     testWidgets(
       'when active raster leases fill the pixel budget, it should share a full-budget key',
       (tester) async {

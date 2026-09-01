@@ -1707,6 +1707,165 @@ void main() {
     );
 
     testWidgets(
+      'when an inline transition builder is recreated during a flight, it should keep the sibling visible',
+      (tester) async {
+        tester.view.physicalSize = const Size(400, 300);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const boundaryKey = ValueKey('inline-transition-boundary');
+        var expanded = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: MaterialApp(
+              home: Scaffold(
+                body: StatefulBuilder(
+                  builder: (context, setState) {
+                    update = setState;
+                    return Stack(
+                      children: [
+                        Morph(
+                          tag: 'inline-transition-surface',
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.linear,
+                          child: SizedBox(
+                            key: ValueKey(expanded),
+                            width: expanded ? 400 : 40,
+                            height: expanded ? 300 : 40,
+                            child: const ColoredBox(color: Colors.blue),
+                          ),
+                        ),
+                        Positioned(
+                          left: 150,
+                          top: 100,
+                          child: MorphSibling(
+                            tag: 'inline-transition-surface',
+                            transitionBuilder: (child, animation) {
+                              return FadeTransition(
+                                opacity: animation,
+                                child: child,
+                              );
+                            },
+                            child: const ColoredBox(
+                              color: Colors.red,
+                              child: SizedBox(width: 100, height: 50),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => expanded = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        update(() {});
+        await tester.pump();
+
+        expect(
+          await _pixelColor(
+            tester,
+            boundaryKey: boundaryKey,
+            position: const Offset(200, 125),
+          ),
+          isNot(const Color(0xFF2196F3)),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a non-null transition builder changes during a flight, it should use the replacement at the same progress',
+      (tester) async {
+        var expanded = false;
+        var useReplacement = false;
+        Animation<double>? originalAnimation;
+        Animation<double>? replacementAnimation;
+        double? originalProgress;
+        double? replacementProgress;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Stack(
+                    children: [
+                      Morph(
+                        tag: 'replacement-transition-surface',
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.linear,
+                        child: SizedBox(
+                          key: ValueKey(expanded),
+                          width: expanded ? 400 : 40,
+                          height: expanded ? 300 : 40,
+                        ),
+                      ),
+                      MorphSibling(
+                        tag: 'replacement-transition-surface',
+                        transitionBuilder: useReplacement
+                            ? (child, animation) {
+                                replacementAnimation = animation;
+                                return AnimatedBuilder(
+                                  animation: animation,
+                                  child: child,
+                                  builder: (context, child) {
+                                    replacementProgress = animation.value;
+                                    return child!;
+                                  },
+                                );
+                              }
+                            : (child, animation) {
+                                originalAnimation = animation;
+                                return AnimatedBuilder(
+                                  animation: animation,
+                                  child: child,
+                                  builder: (context, child) {
+                                    originalProgress = animation.value;
+                                    return child!;
+                                  },
+                                );
+                              },
+                        child: const SizedBox(width: 100, height: 50),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => expanded = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        final progressBeforeReplacement = originalProgress!;
+        update(() => useReplacement = true);
+        await tester.pump();
+
+        expect(
+          (
+            identical(originalAnimation, replacementAnimation),
+            progressBeforeReplacement,
+            replacementProgress,
+          ),
+          (true, progressBeforeReplacement, progressBeforeReplacement),
+        );
+      },
+    );
+
+    testWidgets(
       'when a transition builder reads progress, it should receive the Morph visual progress',
       (tester) async {
         var expanded = false;

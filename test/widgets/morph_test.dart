@@ -5632,11 +5632,12 @@ void main() {
                     tag: 'short-handoff-flight',
                     duration: const Duration(milliseconds: 100),
                     curve: Curves.linear,
-                    child: SizedBox.square(
+                    child: Container(
                       key: ValueKey('short-handoff-child-$destination'),
-                      dimension: 40,
-                      child: Builder(
-                        builder: (context) => const ColoredBox(color: Colors.black),
+                      width: 40,
+                      height: 40,
+                      decoration: const BoxDecoration(
+                        color: Color(0x33000000),
                       ),
                     ),
                   ),
@@ -5647,11 +5648,11 @@ void main() {
         }
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Scaffold(
-              body: RepaintBoundary(
-                key: boundaryKey,
-                child: ColoredBox(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: MaterialApp(
+              home: Scaffold(
+                body: ColoredBox(
                   color: Colors.white,
                   child: Sequence(
                     controller: sequenceController,
@@ -5702,6 +5703,25 @@ void main() {
         await tester.pump();
         final boundariesAfterHandoff = _morphOverlay().evaluate().length;
         await tester.pumpAndSettle();
+        final settledPixel = await tester.runAsync(() async {
+          final image = await boundary.toImage();
+          try {
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.rawRgba,
+            );
+            const x = 20;
+            const y = 20;
+            final offset = ((y * image.width) + x) * 4;
+            return Color.fromARGB(
+              bytes!.getUint8(offset + 3),
+              bytes.getUint8(offset),
+              bytes.getUint8(offset + 1),
+              bytes.getUint8(offset + 2),
+            );
+          } finally {
+            image.dispose();
+          }
+        });
 
         sequenceController.previous();
         await tester.pump();
@@ -5734,21 +5754,55 @@ void main() {
         await tester.pump();
         final reverseBoundariesAfterHandoff = _morphOverlay().evaluate().length;
         await tester.pumpAndSettle();
+        final reverseSettledPixel = await tester.runAsync(() async {
+          final image = await boundary.toImage();
+          try {
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.rawRgba,
+            );
+            const x = 280;
+            const y = 20;
+            final offset = ((y * image.width) + x) * 4;
+            return Color.fromARGB(
+              bytes!.getUint8(offset + 3),
+              bytes.getUint8(offset),
+              bytes.getUint8(offset + 1),
+              bytes.getUint8(offset + 2),
+            );
+          } finally {
+            image.dispose();
+          }
+        });
 
         expect(
           (
             pixel,
+            settledPixel,
             flightBoundaries,
             boundariesWhileLongFlightContinues,
             boundariesAtCohortHandoff,
             boundariesAfterHandoff,
             reversePixel,
+            reverseSettledPixel,
             reverseFlightBoundaries,
             reverseBoundariesWhileLongFlightContinues,
             reverseBoundariesAtCohortHandoff,
             reverseBoundariesAfterHandoff,
           ),
-          (Colors.black, 2, 2, 2, 0, Colors.black, 2, 2, 2, 0),
+          (
+            settledPixel,
+            settledPixel,
+            2,
+            2,
+            2,
+            0,
+            reverseSettledPixel,
+            reverseSettledPixel,
+            2,
+            2,
+            2,
+            0,
+          ),
         );
       },
     );

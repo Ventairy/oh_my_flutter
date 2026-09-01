@@ -126,6 +126,7 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
   final bool _foregroundDecorationIsStatic;
   final String? _textEndpointStyleBlocker;
   final double _textMaximumScale;
+  final _MorphTextParagraphMetricsCache _textParagraphMetricsCache = _MorphTextParagraphMetricsCache();
 
   _MorphTextRasterCache? _textRasterCache;
   double? _devicePixelRatio;
@@ -397,6 +398,7 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
       source,
       destination,
       progress,
+      _textParagraphMetricsCache,
     );
   }
 
