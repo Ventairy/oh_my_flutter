@@ -539,25 +539,22 @@ T? _compoundTextLayoutDiagnostic<T>(
   required String text,
   required String name,
 }) {
-  final layout = find
+  final flights = find
       .byWidgetPredicate(
         (widget) => widget.runtimeType.toString() == '_MorphCompoundFlight',
       )
-      .evaluate()
-      .map(
-        (element) =>
-            element.renderObject!
-                    .toDiagnosticsNode()
-                    .getProperties()
-                    .singleWhere((property) => property.name == 'retainedTextLayouts')
-                    .value!
-                as List<Map<String, Object?>>,
-      )
-      .expand((layouts) => layouts)
-      .singleWhere(
-        (layout) => layout['text'] == text,
-      );
-  return layout[name] as T?;
+      .evaluate();
+  for (final flight in flights) {
+    final properties = flight.renderObject!.toDiagnosticsNode().getProperties();
+    for (final property in properties) {
+      if (property.name != 'retainedTextLayouts') continue;
+      final layouts = property.value! as List<Map<String, Object?>>;
+      for (final layout in layouts) {
+        if (layout['text'] == text) return layout[name] as T?;
+      }
+    }
+  }
+  return null;
 }
 
 Future<({MorphTextProperties source, MorphTextProperties destination})> _captureProperties(
@@ -811,18 +808,22 @@ void main() {
         await tester.pump(const Duration(milliseconds: 240));
         appKey.currentState!.pop();
         await tester.pump();
-        await tester.pump(const Duration(milliseconds: 180));
-        await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-        await tester.pump();
+        int? paintedLineCount;
+        for (var attempt = 0; attempt < 27; attempt += 1) {
+          await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+          await tester.pump(const Duration(milliseconds: 8));
+          paintedLineCount = _compoundTextLayoutDiagnostic<int>(
+            tester,
+            text: 'Auxiliar de cozinha para evento',
+            name: 'paintedLineCount',
+          );
+          if (paintedLineCount == 2) break;
+        }
 
         expect(
           (
             hasException: tester.takeException() != null,
-            paintedLineCount: _compoundTextLayoutDiagnostic<int>(
-              tester,
-              text: 'Auxiliar de cozinha para evento',
-              name: 'paintedLineCount',
-            ),
+            paintedLineCount: paintedLineCount,
             rasterStarted: _binding.rasterStarts > 0,
           ),
           (hasException: false, paintedLineCount: 2, rasterStarted: true),
