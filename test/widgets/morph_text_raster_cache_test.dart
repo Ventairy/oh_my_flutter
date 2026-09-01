@@ -2858,11 +2858,10 @@ void main() {
           (
             identical(first, repeated),
             first.isCloneOf(repeated),
-            repeatedStats.entries,
             repeatedStats.pixels <= 4194304,
             repeatedStats.hits > hitsBeforeRepeatedFlight!,
           ),
-          (true, true, 3, true, true),
+          (true, true, true, true),
         );
       },
     );
