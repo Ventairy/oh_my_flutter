@@ -819,13 +819,15 @@ void main() {
           }
           await tester.pump(const Duration(milliseconds: 8));
         }
-        var reverseFlightStarted = false;
+        var reverseFlightPainted = false;
         for (var attempt = 0; attempt < 100; attempt += 1) {
-          final flight = find.byWidgetPredicate(
-            (widget) => widget.runtimeType.toString() == '_MorphCompoundFlight',
+          final lineCount = _compoundTextLayoutDiagnostic<int>(
+            tester,
+            text: 'Auxiliar de cozinha para evento',
+            name: 'paintedLineCount',
           );
-          if (flight.evaluate().isNotEmpty) {
-            reverseFlightStarted = true;
+          if (lineCount != null) {
+            reverseFlightPainted = true;
             break;
           }
           await tester.runAsync(
@@ -849,14 +851,14 @@ void main() {
           (
             hasException: tester.takeException() != null,
             reverseStarted: reverseStarted,
-            reverseFlightStarted: reverseFlightStarted,
+            reverseFlightPainted: reverseFlightPainted,
             paintedLineCount: paintedLineCount,
             rasterStarted: _binding.rasterStarts > 0,
           ),
           (
             hasException: false,
             reverseStarted: true,
-            reverseFlightStarted: true,
+            reverseFlightPainted: true,
             paintedLineCount: 2,
             rasterStarted: true,
           ),
