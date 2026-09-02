@@ -799,7 +799,7 @@ void main() {
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
-        _binding.rasterLoader = (picture, width, height) => picture.toImage(width, height);
+        _binding.rasterLoader = (picture, width, height) async => picture.toImageSync(width, height);
         addTearDown(_binding.resetRasterLoader);
         final appKey = GlobalKey<_WrappingColumnRasterAppState>();
         await tester.pumpWidget(_WrappingColumnRasterApp(key: appKey));
@@ -819,6 +819,20 @@ void main() {
           }
           await tester.pump(const Duration(milliseconds: 8));
         }
+        var reverseFlightStarted = false;
+        for (var attempt = 0; attempt < 100; attempt += 1) {
+          final flight = find.byWidgetPredicate(
+            (widget) => widget.runtimeType.toString() == '_MorphCompoundFlight',
+          );
+          if (flight.evaluate().isNotEmpty) {
+            reverseFlightStarted = true;
+            break;
+          }
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 5)),
+          );
+          await tester.pump();
+        }
         int? paintedLineCount;
         for (var attempt = 0; attempt < 27; attempt += 1) {
           await tester.runAsync(() => Future<void>.delayed(Duration.zero));
@@ -835,10 +849,17 @@ void main() {
           (
             hasException: tester.takeException() != null,
             reverseStarted: reverseStarted,
+            reverseFlightStarted: reverseFlightStarted,
             paintedLineCount: paintedLineCount,
             rasterStarted: _binding.rasterStarts > 0,
           ),
-          (hasException: false, reverseStarted: true, paintedLineCount: 2, rasterStarted: true),
+          (
+            hasException: false,
+            reverseStarted: true,
+            reverseFlightStarted: true,
+            paintedLineCount: 2,
+            rasterStarted: true,
+          ),
         );
       },
     );
