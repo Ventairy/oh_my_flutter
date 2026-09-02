@@ -421,17 +421,20 @@ class _WrappingColumnRasterApp extends StatefulWidget {
 
 class _WrappingColumnRasterAppState extends State<_WrappingColumnRasterApp> {
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
+  PageRouteBuilder<void>? _route;
+
+  AnimationStatus? get routeAnimationStatus => _route?.animation?.status;
 
   void push() {
-    _navigatorKey.currentState!.push(
-      PageRouteBuilder<void>(
-        transitionDuration: const Duration(milliseconds: 400),
-        reverseTransitionDuration: const Duration(milliseconds: 400),
-        opaque: false,
-        pageBuilder: (context, animation, secondaryAnimation) => _page(destination: true),
-        transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
-      ),
+    final route = PageRouteBuilder<void>(
+      transitionDuration: const Duration(milliseconds: 400),
+      reverseTransitionDuration: const Duration(milliseconds: 400),
+      opaque: false,
+      pageBuilder: (context, animation, secondaryAnimation) => _page(destination: true),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
     );
+    _route = route;
+    _navigatorKey.currentState!.push(route);
   }
 
   void pop() => _navigatorKey.currentState!.pop();
@@ -808,6 +811,14 @@ void main() {
         await tester.pump(const Duration(milliseconds: 240));
         appKey.currentState!.pop();
         await tester.pump();
+        var reverseStarted = false;
+        for (var attempt = 0; attempt < 80; attempt += 1) {
+          if (appKey.currentState!.routeAnimationStatus == AnimationStatus.reverse) {
+            reverseStarted = true;
+            break;
+          }
+          await tester.pump(const Duration(milliseconds: 8));
+        }
         int? paintedLineCount;
         for (var attempt = 0; attempt < 27; attempt += 1) {
           await tester.runAsync(() => Future<void>.delayed(Duration.zero));
@@ -823,10 +834,11 @@ void main() {
         expect(
           (
             hasException: tester.takeException() != null,
+            reverseStarted: reverseStarted,
             paintedLineCount: paintedLineCount,
             rasterStarted: _binding.rasterStarts > 0,
           ),
-          (hasException: false, paintedLineCount: 2, rasterStarted: true),
+          (hasException: false, reverseStarted: true, paintedLineCount: 2, rasterStarted: true),
         );
       },
     );
