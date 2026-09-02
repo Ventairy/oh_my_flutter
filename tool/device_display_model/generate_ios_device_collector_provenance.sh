@@ -20,7 +20,7 @@ if [[ ! -f "$source_manifest" ]] ||
     ! LC_ALL=C sort -c "$source_manifest" 2>/dev/null ||
     [[ "$(LC_ALL=C sort -u "$source_manifest" | wc -l | tr -d ' ')" != \
       "$(wc -l < "$source_manifest" | tr -d ' ')" ]] ||
-    rg -n '(^/|^\.\.?/|/\.\.?/|^\.\.?$|//|\\)' "$source_manifest" >/dev/null; then
+    grep -En '(^/|^\.\.?/|/\.\.?/|^\.\.?$|//|\\)' "$source_manifest" >/dev/null; then
   print -u2 "The connected-iOS source manifest is invalid."
   exit 1
 fi

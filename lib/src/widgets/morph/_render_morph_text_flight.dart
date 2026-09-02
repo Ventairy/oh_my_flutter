@@ -14,6 +14,7 @@ class _RenderMorphTextFlight extends RenderBox {
   }
 
   final _MorphTextRasterCache _rasterCache = _MorphTextRasterCache();
+  final _MorphTextParagraphMetricsCache _paragraphMetricsCache = _MorphTextParagraphMetricsCache();
   MorphTextFlightDelegate _delegate;
   MorphFlight<MorphTextProperties> _flight;
   double _devicePixelRatio;
@@ -71,6 +72,7 @@ class _RenderMorphTextFlight extends RenderBox {
     if (identical(value, _delegate)) return;
     _delegate = value;
     _clearPaintProperties();
+    _paragraphMetricsCache.clear();
     _rasterCache.clear();
     markNeedsPaint();
   }
@@ -82,6 +84,7 @@ class _RenderMorphTextFlight extends RenderBox {
     }
     _flight = value;
     _clearPaintProperties();
+    _paragraphMetricsCache.clear();
     _rasterCache.clear();
     _updateFlightConstants();
     if (attached) _flight.animation.addListener(markNeedsPaint);
@@ -610,6 +613,7 @@ class _RenderMorphTextFlight extends RenderBox {
       _flight._sourceProperties,
       _flight._destinationProperties,
       progress,
+      _paragraphMetricsCache,
     );
     _paintPropertiesProgress = progress;
     _paintProperties = properties;

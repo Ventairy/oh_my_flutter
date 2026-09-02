@@ -15,6 +15,7 @@ class _RenderMorphFlightBoundary extends RenderProxyBox {
   Rect? _ancestorSourceBounds;
   Rect? _ancestorDestinationBounds;
   final LayerHandle<ClipRectLayer> _clipRectLayer = LayerHandle<ClipRectLayer>();
+  final LayerHandle<OpacityLayer> _handoffOpacityLayer = LayerHandle<OpacityLayer>();
 
   _MorphFlightPaintHandle get paintHandle => _paintHandle;
 
@@ -28,17 +29,19 @@ class _RenderMorphFlightBoundary extends RenderProxyBox {
 
   @override
   Rect get paintBounds {
-    if (!_paintHandle.visible) return Rect.zero;
+    if (!_paintHandle.visible && !_paintHandle.handoffPrepared) {
+      return Rect.zero;
+    }
     final clipBounds = _ancestorClipBounds;
     return clipBounds == null ? super.paintBounds : super.paintBounds.intersect(clipBounds);
   }
 
   set paintHandle(_MorphFlightPaintHandle value) {
     if (identical(value, _paintHandle)) return;
-    if (attached) _paintHandle.removeListener(markNeedsPaint);
+    if (attached) _paintHandle.removeListener(_handlePaintHandleChanged);
     _paintHandle = value;
-    if (attached) _paintHandle.addListener(markNeedsPaint);
-    markNeedsPaint();
+    if (attached) _paintHandle.addListener(_handlePaintHandleChanged);
+    _handlePaintHandleChanged();
   }
 
   set ancestorAnimation(Animation<double>? value) {
@@ -72,14 +75,14 @@ class _RenderMorphFlightBoundary extends RenderProxyBox {
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _paintHandle.addListener(markNeedsPaint);
+    _paintHandle.addListener(_handlePaintHandleChanged);
     _ancestorAnimation?.addListener(markNeedsPaint);
     _ancestorGeometry?.addListener(markNeedsPaint);
   }
 
   @override
   void detach() {
-    _paintHandle.removeListener(markNeedsPaint);
+    _paintHandle.removeListener(_handlePaintHandleChanged);
     _ancestorAnimation?.removeListener(markNeedsPaint);
     _ancestorGeometry?.removeListener(markNeedsPaint);
     super.detach();
@@ -87,10 +90,24 @@ class _RenderMorphFlightBoundary extends RenderProxyBox {
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    if (_paintHandle.handoffPrepared) {
+      _handoffOpacityLayer.layer = context.pushOpacity(
+        offset,
+        _paintHandle.visible ? 255 : 0,
+        _paintFlight,
+        oldLayer: _handoffOpacityLayer.layer,
+      );
+      return;
+    }
+    _handoffOpacityLayer.layer = null;
     if (!_paintHandle.visible) {
       _clipRectLayer.layer = null;
       return;
     }
+    _paintFlight(context, offset);
+  }
+
+  void _paintFlight(PaintingContext context, Offset offset) {
     final clipBounds = _ancestorClipBounds;
     if (clipBounds == null) {
       _clipRectLayer.layer = null;
@@ -110,7 +127,13 @@ class _RenderMorphFlightBoundary extends RenderProxyBox {
   @override
   void dispose() {
     _clipRectLayer.layer = null;
+    _handoffOpacityLayer.layer = null;
     super.dispose();
+  }
+
+  void _handlePaintHandleChanged() {
+    markNeedsCompositingBitsUpdate();
+    markNeedsPaint();
   }
 
   Rect? get _ancestorClipBounds {

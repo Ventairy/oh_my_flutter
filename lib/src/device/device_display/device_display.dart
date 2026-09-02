@@ -58,13 +58,18 @@ interface class DeviceDisplay {
 
   static Future<BorderRadius?> _estimatedCornerRadii(
     DeviceDisplayMetrics metrics, {
-    required int displayId,
-    required int viewId,
-    required int metricsEpoch,
-    required String displayFeaturesKey,
+    required int? displayId,
+    required int? viewId,
+    required int? metricsEpoch,
+    required String? displayFeaturesKey,
     required bool hasSinglePlatformView,
   }) async {
-    if (metrics.platformKind == DeviceDisplayPlatformKind.android && hasSinglePlatformView) {
+    if (metrics.platformKind == DeviceDisplayPlatformKind.android &&
+        hasSinglePlatformView &&
+        displayId != null &&
+        viewId != null &&
+        metricsEpoch != null &&
+        displayFeaturesKey != null) {
       final platformRadii = await _androidCornerRadii(
         metrics,
         displayId: displayId,
@@ -100,15 +105,16 @@ interface class DeviceDisplay {
 
   static ({
     DeviceDisplayMetrics metrics,
-    int displayId,
-    int viewId,
-    int metricsEpoch,
-    String displayFeaturesKey,
+    int? displayId,
+    int? viewId,
+    int? metricsEpoch,
+    String? displayFeaturesKey,
     bool hasSinglePlatformView,
   })?
   _captureSnapshot(ui.FlutterView? view) {
     final platformKind = _platformKind;
     if (view == null || platformKind == null) return null;
+    final isAndroid = platformKind == DeviceDisplayPlatformKind.android;
 
     final devicePixelRatio = view.devicePixelRatio;
     final displayPhysicalSize = view.display.size;
@@ -126,21 +132,23 @@ interface class DeviceDisplay {
     Rect? displayCutoutBounds;
     var displayCutoutCount = 0;
     var hasFoldOrHinge = false;
-    final displayFeaturesKey = StringBuffer();
+    final displayFeaturesKey = isAndroid ? StringBuffer() : null;
     for (final feature in view.displayFeatures) {
-      displayFeaturesKey
-        ..write(feature.type.index)
-        ..write(':')
-        ..write(feature.state.index)
-        ..write(':')
-        ..write(feature.bounds.left)
-        ..write(',')
-        ..write(feature.bounds.top)
-        ..write(',')
-        ..write(feature.bounds.right)
-        ..write(',')
-        ..write(feature.bounds.bottom)
-        ..write(';');
+      if (displayFeaturesKey != null) {
+        displayFeaturesKey
+          ..write(feature.type.index)
+          ..write(':')
+          ..write(feature.state.index)
+          ..write(':')
+          ..write(feature.bounds.left)
+          ..write(',')
+          ..write(feature.bounds.top)
+          ..write(',')
+          ..write(feature.bounds.right)
+          ..write(',')
+          ..write(feature.bounds.bottom)
+          ..write(';');
+      }
       if (feature.type == ui.DisplayFeatureType.fold || feature.type == ui.DisplayFeatureType.hinge) {
         hasFoldOrHinge = true;
         continue;
@@ -171,11 +179,11 @@ interface class DeviceDisplay {
         displayCutoutCount: displayCutoutCount,
         hasFoldOrHinge: hasFoldOrHinge,
       ),
-      displayId: view.display.id,
-      viewId: view.viewId,
-      metricsEpoch: _DeviceDisplayMetricsEpoch.current,
-      displayFeaturesKey: displayFeaturesKey.toString(),
-      hasSinglePlatformView: view.platformDispatcher.views.length == 1,
+      displayId: isAndroid ? view.display.id : null,
+      viewId: isAndroid ? view.viewId : null,
+      metricsEpoch: isAndroid ? _DeviceDisplayMetricsEpoch.current : null,
+      displayFeaturesKey: displayFeaturesKey?.toString(),
+      hasSinglePlatformView: isAndroid && view.platformDispatcher.views.length == 1,
     );
   }
 

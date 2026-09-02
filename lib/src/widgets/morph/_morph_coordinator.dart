@@ -562,7 +562,6 @@ class _MorphCoordinator extends ChangeNotifier {
           arrived: arrived,
           returned: returned,
         )) {
-      _claimOwnership(winner);
       _invokeCompletionCallbacks(
         flight,
         winner,
@@ -578,7 +577,6 @@ class _MorphCoordinator extends ChangeNotifier {
         arrived: arrived,
         returned: returned,
       );
-      _claimOwnership(winner);
       _invokeCompletionCallbacks(
         flight,
         winner,

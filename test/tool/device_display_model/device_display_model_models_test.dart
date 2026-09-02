@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'device_display_model_test_process.dart';
+
 void main() {
   group('device display model formulas', () {
     test(
@@ -113,7 +115,7 @@ void main() {
         final corpus = File('${temporaryDirectory.path}/corpus.json')
           ..writeAsStringSync(jsonEncode(<String, Object?>{'records': records}));
         final manifest = File('${temporaryDirectory.path}/manifest.json');
-        final result = await Process.run('fvm', <String>[
+        final result = await DeviceDisplayModelTestProcess.run(<String>[
           'dart',
           'run',
           'tool/device_display_model/device_display_model.dart',
@@ -197,7 +199,7 @@ Future<Map<String, Object?>> _train(
   final corpus = File('${directory.path}/$name-corpus.json')
     ..writeAsStringSync(jsonEncode(<String, Object?>{'records': records}));
   final manifest = File('${directory.path}/$name-manifest.json');
-  final result = await Process.run('fvm', <String>[
+  final result = await DeviceDisplayModelTestProcess.run(<String>[
     'dart',
     'run',
     'tool/device_display_model/device_display_model.dart',

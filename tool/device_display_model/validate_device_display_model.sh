@@ -1,8 +1,8 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 
 set -euo pipefail
 
-repository_root="${0:A:h:h:h}"
+repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repository_root"
 
 fvm dart run tool/device_display_model/device_display_model.dart check \

@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'device_display_model_test_process.dart';
+
 void main() {
   group('device display model validator', () {
     test('when evidence is sparse, it should report executed models without an accuracy claim', () async {
@@ -14,7 +16,7 @@ void main() {
       const executable = 'tool/device_display_model/device_display_model.dart';
       const corpus = 'test/tool/device_display_model/fixtures/corpus.json';
 
-      await Process.run('fvm', [
+      await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -24,7 +26,7 @@ void main() {
         '--output',
         manifest,
       ]);
-      final result = await Process.run('fvm', [
+      final result = await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,

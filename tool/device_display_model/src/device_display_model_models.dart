@@ -428,7 +428,7 @@ final class _DeviceDisplayModelAlgorithms {
   }) {
     final logicalRows = rows
         .where(
-          (row) => (row['logicalRadiusScale'] as double?)?.isFinite == true,
+          (row) => (row['logicalRadiusScale'] as double?)?.isFinite ?? false,
         )
         .toList();
     if (logicalRows.isEmpty) {

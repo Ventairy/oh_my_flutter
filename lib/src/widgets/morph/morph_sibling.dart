@@ -157,9 +157,11 @@ class _MorphSiblingState extends State<MorphSibling> {
   @override
   void didUpdateWidget(covariant MorphSibling oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final hadTransition = oldWidget.transitionBuilder != null;
+    final hasTransition = widget.transitionBuilder != null;
     if (oldWidget.tag == widget.tag &&
         oldWidget.paintAboveMorph == widget.paintAboveMorph &&
-        identical(oldWidget.transitionBuilder, widget.transitionBuilder)) {
+        hadTransition == hasTransition) {
       return;
     }
     _detach();

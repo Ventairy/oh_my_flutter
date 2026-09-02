@@ -67,5 +67,5 @@ logical-pixel values belong to the view represented by `context` at the time
 of the call.
 
 See the
-[generated API reference](../api/oh_my_flutter/DeviceDisplay-class.html) for
+[generated API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/DeviceDisplay-class.html) for
 the complete member contract.

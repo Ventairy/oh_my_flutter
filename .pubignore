@@ -22,7 +22,8 @@ doc/api/
 **/ios/*/.swiftpm/
 /pubspec.lock
 !example/pubspec.lock
-/tool/device_display_model/
+/pigeons/
+/tool/
 /test/tool/device_display_model/
 pubspec_overrides.yaml
 skills-lock.json

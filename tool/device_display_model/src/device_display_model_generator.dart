@@ -54,57 +54,50 @@ final class _DeviceDisplayModelGenerator {
         : null;
     final iosFeatureSchema = iosUsesSafetyPipeline ? (ios['featureSchema'] as Map<String, Object?>?) : null;
     final androidFeatureSchema = androidUsesSafetyPipeline ? (android['featureSchema'] as Map<String, Object?>?) : null;
+    final iosModelBlendWeight = (iosSupport?['modelBlendWeight'] as num?)?.toDouble() ?? 1;
+    final androidModelBlendWeight = (androidSupport?['modelBlendWeight'] as num?)?.toDouble() ?? 1;
+    final iosUsesDirectPrior = iosUsesSafetyPipeline && iosModelBlendWeight == 0;
+    final androidUsesDirectPrior = androidUsesSafetyPipeline && androidModelBlendWeight == 0;
 
-    final source =
-        '''
-// GENERATED CODE - DO NOT MODIFY BY HAND.
-// Source: tool/device_display_model/model_manifest.json
-// Fingerprint: $fingerprint
-
-part of 'device_display_estimator.dart';
-
-final class _DeviceDisplayEstimatorModel {
-  static const safeInsetMultiplier = ${_doubleLiteral(baseline['multiplier']!)};
-  static const iosCandidateKind = ${_dartLiteral(ios['selectedCandidate'])};
-  static const androidCandidateKind = ${_dartLiteral(android['selectedCandidate'])};
+    final iosModelDeclarations = iosUsesDirectPrior
+        ? ''
+        : '''
   static const _iosUsesSafetyPipeline = $iosUsesSafetyPipeline;
-  static const _androidUsesSafetyPipeline = $androidUsesSafetyPipeline;
   static const Map<String, Object?> _iosHead = ${_dartLiteral(iosHead)};
-  static const Map<String, Object?> _androidTopHead = ${_dartLiteral(androidTop)};
-  static const Map<String, Object?> _androidBottomHead = ${_dartLiteral(androidBottom)};
   static const _iosHasChallenger = ${iosChallenger != null};
-  static const _androidTopHasChallenger = ${androidTopChallenger != null};
-  static const _androidBottomHasChallenger = ${androidBottomChallenger != null};
   static const Map<String, Object?> _iosChallenger = ${_dartLiteral(iosChallenger ?? zero)};
-  static const Map<String, Object?> _androidTopChallenger = ${_dartLiteral(androidTopChallenger ?? zero)};
-  static const Map<String, Object?> _androidBottomChallenger = ${_dartLiteral(androidBottomChallenger ?? zero)};
-  static const Map<String, Object?> _iosPrior = ${_dartLiteral(iosPriorHead)};
-  static const Map<String, Object?> _androidTopPrior = ${_dartLiteral(androidTopPrior)};
-  static const Map<String, Object?> _androidBottomPrior = ${_dartLiteral(androidBottomPrior)};
   static const Map<String, Object?> _iosGate = ${_dartLiteral(iosGate)};
-  static const Map<String, Object?> _androidTopGate = ${_dartLiteral(androidTopGate)};
-  static const Map<String, Object?> _androidBottomGate = ${_dartLiteral(androidBottomGate)};
-  static const iosGateThreshold = ${_doubleLiteral(iosGate['threshold'] ?? 0.5)};
-  static const androidTopGateThreshold = ${_doubleLiteral(androidTopGate['threshold'] ?? 0.5)};
-  static const androidBottomGateThreshold = ${_doubleLiteral(androidBottomGate['threshold'] ?? 0.5)};
-  static const iosModelBlendWeight = ${_doubleLiteral(iosSupport?['modelBlendWeight'] ?? 1)};
-  static const androidModelBlendWeight = ${_doubleLiteral(androidSupport?['modelBlendWeight'] ?? 1)};
+  static const iosModelBlendWeight = ${_doubleLiteral(iosModelBlendWeight)};
   static const iosDistanceTransitionScale = ${_doubleLiteral(iosSupport?['distanceTransitionScale'] ?? 1)};
-  static const androidDistanceTransitionScale = ${_doubleLiteral(androidSupport?['distanceTransitionScale'] ?? 1)};
   static const iosDisagreementTransitionScale = ${_doubleLiteral(iosSupport?['disagreementTransitionScale'] ?? 1)};
-  static const androidDisagreementTransitionScale = ${_doubleLiteral(androidSupport?['disagreementTransitionScale'] ?? 1)};
   static const _iosHasFeatureSchema = ${iosFeatureSchema != null};
-  static const _androidHasFeatureSchema = ${androidFeatureSchema != null};
   static const Map<String, Object?> _iosFeatureSchema = ${_dartLiteral(iosFeatureSchema ?? const <String, Object?>{})};
-  static const Map<String, Object?> _androidFeatureSchema = ${_dartLiteral(androidFeatureSchema ?? const <String, Object?>{})};
   static const iosDisagreementInnerLogicalPixels = ${_doubleLiteral(iosDisagreement['logicalPixelP50'] ?? 0)};
   static const iosDisagreementOuterLogicalPixels = ${_doubleLiteral(iosDisagreement['logicalPixelP95'] ?? 0)};
+''';
+    final androidModelDeclarations = androidUsesDirectPrior
+        ? ''
+        : '''
+  static const _androidUsesSafetyPipeline = $androidUsesSafetyPipeline;
+  static const Map<String, Object?> _androidTopHead = ${_dartLiteral(androidTop)};
+  static const Map<String, Object?> _androidBottomHead = ${_dartLiteral(androidBottom)};
+  static const _androidTopHasChallenger = ${androidTopChallenger != null};
+  static const _androidBottomHasChallenger = ${androidBottomChallenger != null};
+  static const Map<String, Object?> _androidTopChallenger = ${_dartLiteral(androidTopChallenger ?? zero)};
+  static const Map<String, Object?> _androidBottomChallenger = ${_dartLiteral(androidBottomChallenger ?? zero)};
+  static const Map<String, Object?> _androidTopGate = ${_dartLiteral(androidTopGate)};
+  static const Map<String, Object?> _androidBottomGate = ${_dartLiteral(androidBottomGate)};
+  static const androidModelBlendWeight = ${_doubleLiteral(androidModelBlendWeight)};
+  static const androidDistanceTransitionScale = ${_doubleLiteral(androidSupport?['distanceTransitionScale'] ?? 1)};
+  static const androidDisagreementTransitionScale = ${_doubleLiteral(androidSupport?['disagreementTransitionScale'] ?? 1)};
+  static const _androidHasFeatureSchema = ${androidFeatureSchema != null};
+  static const Map<String, Object?> _androidFeatureSchema = ${_dartLiteral(androidFeatureSchema ?? const <String, Object?>{})};
   static const androidDisagreementInnerLogicalPixels = ${_doubleLiteral(androidDisagreement['logicalPixelP50'] ?? 0)};
   static const androidDisagreementOuterLogicalPixels = ${_doubleLiteral(androidDisagreement['logicalPixelP95'] ?? 0)};
-
-  static bool get hasCandidateKinds =>
-      iosCandidateKind.isNotEmpty && androidCandidateKind.isNotEmpty;
-
+''';
+    final iosModelMethods = iosUsesDirectPrior
+        ? ''
+        : '''
   static double iosNormalizedDiameter(
     List<double> features, {
     required double safeInsetDiameter,
@@ -117,11 +110,21 @@ final class _DeviceDisplayEstimatorModel {
       ? null
       : _predict(_iosChallenger, features, safeInsetDiameter);
 
-  static double iosPriorNormalizedDiameter(
-    List<double> features, {
-    required double safeInsetDiameter,
-  }) => _predict(_iosPrior, features, safeInsetDiameter);
+  static double iosRoundedProbability(List<double> features) =>
+      _gateProbability(_iosGate, features);
 
+  static double iosSupportWeight(List<double> features) =>
+      _iosHasFeatureSchema
+          ? _distanceSupportWeight(
+              _iosFeatureSchema,
+              features,
+              iosDistanceTransitionScale,
+            )
+          : 0;
+''';
+    final androidModelMethods = androidUsesDirectPrior
+        ? ''
+        : '''
   static double androidTopNormalizedDiameter(
     List<double> features, {
     required double safeInsetDiameter,
@@ -146,33 +149,11 @@ final class _DeviceDisplayEstimatorModel {
       ? null
       : _predict(_androidBottomChallenger, features, safeInsetDiameter);
 
-  static double androidTopPriorNormalizedDiameter(
-    List<double> features, {
-    required double safeInsetDiameter,
-  }) => _predict(_androidTopPrior, features, safeInsetDiameter);
-
-  static double androidBottomPriorNormalizedDiameter(
-    List<double> features, {
-    required double safeInsetDiameter,
-  }) => _predict(_androidBottomPrior, features, safeInsetDiameter);
-
-  static double iosRoundedProbability(List<double> features) =>
-      _gateProbability(_iosGate, features);
-
   static double androidTopRoundedProbability(List<double> features) =>
       _gateProbability(_androidTopGate, features);
 
   static double androidBottomRoundedProbability(List<double> features) =>
       _gateProbability(_androidBottomGate, features);
-
-  static double iosSupportWeight(List<double> features) =>
-      _iosHasFeatureSchema
-          ? _distanceSupportWeight(
-              _iosFeatureSchema,
-              features,
-              iosDistanceTransitionScale,
-            )
-          : 0;
 
   static double androidSupportWeight(List<double> features) =>
       _androidHasFeatureSchema
@@ -182,7 +163,22 @@ final class _DeviceDisplayEstimatorModel {
               androidDistanceTransitionScale,
             )
           : 0;
-
+''';
+    final iosPipelineMethod = iosUsesDirectPrior
+        ? '''
+  static double iosPipelineNormalizedDiameter(
+    List<double> features, {
+    required double safeInsetDiameter,
+    required double shortestLogicalSide,
+  }) => _directPriorNormalizedDiameter(
+    priorDiameter: iosPriorNormalizedDiameter(
+      features,
+      safeInsetDiameter: safeInsetDiameter,
+    ),
+    gateThreshold: iosGateThreshold,
+  );
+'''
+        : '''
   static double iosPipelineNormalizedDiameter(
     List<double> features, {
     required double safeInsetDiameter,
@@ -218,7 +214,34 @@ final class _DeviceDisplayEstimatorModel {
           iosDisagreementTransitionScale,
     );
   }
+''';
+    final androidPipelineMethods = androidUsesDirectPrior
+        ? '''
+  static double androidTopPipelineNormalizedDiameter(
+    List<double> features, {
+    required double safeInsetDiameter,
+    required double shortestLogicalSide,
+  }) => _directPriorNormalizedDiameter(
+    priorDiameter: androidTopPriorNormalizedDiameter(
+      features,
+      safeInsetDiameter: safeInsetDiameter,
+    ),
+    gateThreshold: androidTopGateThreshold,
+  );
 
+  static double androidBottomPipelineNormalizedDiameter(
+    List<double> features, {
+    required double safeInsetDiameter,
+    required double shortestLogicalSide,
+  }) => _directPriorNormalizedDiameter(
+    priorDiameter: androidBottomPriorNormalizedDiameter(
+      features,
+      safeInsetDiameter: safeInsetDiameter,
+    ),
+    gateThreshold: androidBottomGateThreshold,
+  );
+'''
+        : '''
   static double androidTopPipelineNormalizedDiameter(
     List<double> features, {
     required double safeInsetDiameter,
@@ -290,6 +313,68 @@ final class _DeviceDisplayEstimatorModel {
           androidDisagreementTransitionScale,
     );
   }
+''';
+    final directPriorMethod = iosUsesDirectPrior || androidUsesDirectPrior
+        ? '''
+  static double _directPriorNormalizedDiameter({
+    required double priorDiameter,
+    required double gateThreshold,
+  }) {
+    final roundedProbability = priorDiameter > 0 ? 1.0 : 0.0;
+    if (roundedProbability < gateThreshold) {
+      return 0;
+    }
+    return priorDiameter.clamp(0, 1);
+  }
+'''
+        : '';
+
+    final source =
+        '''
+// GENERATED CODE - DO NOT MODIFY BY HAND.
+// Source: tool/device_display_model/model_manifest.json
+// Fingerprint: $fingerprint
+
+part of 'device_display_estimator.dart';
+
+final class _DeviceDisplayEstimatorModel {
+  static const safeInsetMultiplier = ${_doubleLiteral(baseline['multiplier']!)};
+  static const iosCandidateKind = ${_dartLiteral(ios['selectedCandidate'])};
+  static const androidCandidateKind = ${_dartLiteral(android['selectedCandidate'])};
+$iosModelDeclarations
+$androidModelDeclarations
+  static const Map<String, Object?> _iosPrior = ${_dartLiteral(iosPriorHead)};
+  static const Map<String, Object?> _androidTopPrior = ${_dartLiteral(androidTopPrior)};
+  static const Map<String, Object?> _androidBottomPrior = ${_dartLiteral(androidBottomPrior)};
+  static const iosGateThreshold = ${_doubleLiteral(iosGate['threshold'] ?? 0.5)};
+  static const androidTopGateThreshold = ${_doubleLiteral(androidTopGate['threshold'] ?? 0.5)};
+  static const androidBottomGateThreshold = ${_doubleLiteral(androidBottomGate['threshold'] ?? 0.5)};
+
+  static bool get hasCandidateKinds =>
+      iosCandidateKind.isNotEmpty && androidCandidateKind.isNotEmpty;
+
+$iosModelMethods
+
+  static double iosPriorNormalizedDiameter(
+    List<double> features, {
+    required double safeInsetDiameter,
+  }) => _predict(_iosPrior, features, safeInsetDiameter);
+
+$androidModelMethods
+
+  static double androidTopPriorNormalizedDiameter(
+    List<double> features, {
+    required double safeInsetDiameter,
+  }) => _predict(_androidTopPrior, features, safeInsetDiameter);
+
+  static double androidBottomPriorNormalizedDiameter(
+    List<double> features, {
+    required double safeInsetDiameter,
+  }) => _predict(_androidBottomPrior, features, safeInsetDiameter);
+
+$iosPipelineMethod
+$androidPipelineMethods
+$directPriorMethod
 
   static double _pipelineNormalizedDiameter({
     required double selectedDiameter,

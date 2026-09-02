@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'device_display_model_test_process.dart';
+
 void main() {
   group('device display model command', () {
     test('when generated files match their corpus, it should reject stale or catalog material', () async {
@@ -15,7 +17,7 @@ void main() {
       const executable = 'tool/device_display_model/device_display_model.dart';
       const corpus = 'test/tool/device_display_model/fixtures/corpus.json';
 
-      await Process.run('fvm', [
+      await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -25,7 +27,7 @@ void main() {
         '--output',
         manifest,
       ]);
-      await Process.run('fvm', [
+      await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -35,7 +37,7 @@ void main() {
         '--output',
         artifact,
       ]);
-      await Process.run('fvm', [
+      await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -47,7 +49,7 @@ void main() {
         '--output',
         report,
       ]);
-      final cleanResult = await Process.run('fvm', [
+      final cleanResult = await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -65,7 +67,7 @@ void main() {
         '// sourceObservationHash must never ship\n',
         mode: FileMode.append,
       );
-      final forbiddenResult = await Process.run('fvm', [
+      final forbiddenResult = await DeviceDisplayModelTestProcess.run([
         'dart',
         'run',
         executable,
@@ -130,7 +132,7 @@ Publishing fixture 1.0.0 to https://pub.dev:
 Total compressed archive size: 1 KB.
 ''');
         const executable = 'tool/device_display_model/device_display_model.dart';
-        final cleanResult = await Process.run('fvm', [
+        final cleanResult = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           executable,
@@ -158,7 +160,7 @@ Publishing fixture 1.0.0 to https://pub.dev:
 
 Total compressed archive size: 1 KB.
 ''');
-        final excludedResult = await Process.run('fvm', [
+        final excludedResult = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           executable,
@@ -179,7 +181,7 @@ Publishing fixture 1.0.0 to https://pub.dev:
 
 Total compressed archive size: 1 KB.
 ''');
-        final privateResult = await Process.run('fvm', [
+        final privateResult = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           executable,
@@ -202,7 +204,7 @@ Publishing fixture 1.0.0 to https://pub.dev:
 
 Total compressed archive size: 1 KB.
 ''');
-        final binaryResult = await Process.run('fvm', [
+        final binaryResult = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           executable,
@@ -215,7 +217,7 @@ Total compressed archive size: 1 KB.
         File('${assetDirectory.path}/payload.bin').writeAsBytesSync(
           <int>[0, ...'CornerRadiusCollectorActivity'.codeUnits, 0xff],
         );
-        final relocatedAndroidResult = await Process.run('fvm', [
+        final relocatedAndroidResult = await DeviceDisplayModelTestProcess.run([
           'dart',
           'run',
           executable,
@@ -241,7 +243,7 @@ Total compressed archive size: 1 KB.
           <Object?>[
             0,
             1,
-            contains('"archiveIncludesExcludedModelTooling": true'),
+            contains('"archiveIncludesExcludedMaintainerTooling": true'),
             1,
             contains('"shippingSourceHasPrivateCollectorMaterial": true'),
             1,

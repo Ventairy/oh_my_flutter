@@ -166,6 +166,7 @@ class _MorphActiveFlight {
     _endpointHandoffPending = true;
     _endpointHandoffWinner = winner;
     _requiredPresentationGeneration = winner.presentationGeneration + 1;
+    _paintHandle.prepareHandoff();
     winner.presentationRequested = true;
     winner.owner._requestPresentation();
     SchedulerBinding.instance.ensureVisualUpdate();
@@ -180,6 +181,7 @@ class _MorphActiveFlight {
         endpoint.presentationGeneration < _requiredPresentationGeneration) {
       return;
     }
+    _paintHandle.hideDuringPreparedPaint();
     _endpointHandoffReleaseScheduled = true;
     SchedulerBinding.instance.addPostFrameCallback(
       _endpointHandoffCallback,
@@ -585,6 +587,7 @@ class _MorphActiveFlight {
     _endpointHandoffCompleted = true;
     _clearPresentationRequest();
     _endpointHandoffWinner = null;
+    winner.owner._requestPresentation();
     coordinator._releaseEndpointHandoff(this);
   }
 

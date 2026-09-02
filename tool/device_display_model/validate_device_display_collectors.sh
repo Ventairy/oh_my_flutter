@@ -1,8 +1,8 @@
-#!/bin/zsh
+#!/usr/bin/env bash
 
 set -euo pipefail
 
-repository_root="${0:A:h:h:h}"
+repository_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$repository_root"
 
 if [[ "$(uname -s)" == Darwin ]]; then
@@ -16,7 +16,6 @@ if [[ "$(uname -s)" == Darwin ]]; then
     -isysroot "$ios_sdk" \
     -miphoneos-version-min=26.0 \
     -target arm64-apple-ios26.0 \
-    -framework UIKit \
     -I tool/device_display_model/ios_device_collector \
     tool/device_display_model/ios_device_collector/main.m \
     tool/device_display_model/ios_device_collector/public_corner_radius_collector_app_delegate.m

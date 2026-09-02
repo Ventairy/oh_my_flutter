@@ -180,11 +180,13 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
     MorphTextProperties source,
     MorphTextProperties destination,
     double progress,
+    _MorphTextParagraphMetricsCache paragraphMetricsCache,
   ) => _lerp(
     source,
     destination,
     progress,
     estimateHeight: false,
+    paragraphMetricsCache: paragraphMetricsCache,
   );
 
   MorphTextProperties _lerp(
@@ -192,6 +194,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
     MorphTextProperties destination,
     double progress, {
     required bool estimateHeight,
+    _MorphTextParagraphMetricsCache? paragraphMetricsCache,
   }) {
     if (progress <= 0) return source;
     if (progress >= 1) return destination;
@@ -253,18 +256,26 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
         height: destination.style.height,
       );
       paintScaleX *= interpolatedFontSize / destinationFontSize;
-      if (selected.strutStyle != null) {
-        paintMetrics = _measurePaintMetrics(
-          selected: selected,
+      if (!estimateHeight || selected.strutStyle != null) {
+        paintMetrics = (paragraphMetricsCache ?? _MorphTextParagraphMetricsCache()).measure(
+          properties: selected,
           paintStyle: paintStyle,
           layoutWidth: reservedLayoutWidth ?? layoutWidth,
-          maxLines: selected.maxLines,
+          sourceSegment: showSource,
         );
       }
       final anchorLineHeight = paintMetrics?.lineHeight ?? destination.lineHeight;
       final anchorBaseline = paintMetrics?.baseline ?? destination.baseline;
       paintScaleY = lineHeight / anchorLineHeight;
       baselineOffset = baseline - anchorBaseline * paintScaleY;
+    }
+    if (!estimateHeight) {
+      paintMetrics ??= paragraphMetricsCache!.measure(
+        properties: selected,
+        paintStyle: paintStyle,
+        layoutWidth: reservedLayoutWidth ?? layoutWidth,
+        sourceSegment: showSource,
+      );
     }
     final estimatedHeight = paintMetrics != null
         ? paintMetrics.height * paintScaleY
@@ -378,41 +389,6 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
             : double.infinity,
       );
       return painter.height * paintScaleY;
-    } finally {
-      painter.dispose();
-    }
-  }
-
-  ({double baseline, double height, double lineHeight}) _measurePaintMetrics({
-    required MorphTextProperties selected,
-    required TextStyle paintStyle,
-    required double layoutWidth,
-    required int? maxLines,
-  }) {
-    final painter = TextPainter(
-      text: TextSpan(text: selected.text, style: paintStyle),
-      textAlign: selected.textAlign ?? TextAlign.start,
-      textDirection: selected.textDirection,
-      textScaler: selected.textScaler,
-      locale: selected.locale,
-      textWidthBasis: selected.textWidthBasis ?? TextWidthBasis.parent,
-      textHeightBehavior: selected.textHeightBehavior,
-      strutStyle: selected.strutStyle,
-      maxLines: maxLines,
-      ellipsis: selected.overflow == TextOverflow.ellipsis ? '…' : null,
-    );
-    try {
-      painter.layout(
-        maxWidth: (selected.softWrap ?? true) || selected.overflow == TextOverflow.ellipsis
-            ? layoutWidth
-            : double.infinity,
-      );
-      final firstLine = painter.computeLineMetrics().firstOrNull;
-      return (
-        baseline: firstLine?.baseline ?? 0,
-        height: painter.height,
-        lineHeight: firstLine?.height ?? painter.preferredLineHeight,
-      );
     } finally {
       painter.dispose();
     }

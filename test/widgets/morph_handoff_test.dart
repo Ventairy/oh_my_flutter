@@ -321,6 +321,93 @@ void main() {
     );
 
     testWidgets(
+      'when a route pop hands off a translucent shadow, '
+      'it should match the settled single-layer pixels',
+      (tester) async {
+        const boundaryKey = ValueKey('translucent-pop-handoff-boundary');
+        const sourceSurfaceKey = ValueKey('translucent-pop-source');
+        final navigatorKey = GlobalKey<NavigatorState>();
+        final sourceOffstage = ValueNotifier<bool>(false);
+        final destinationOffstage = ValueNotifier<bool>(false);
+        addTearDown(sourceOffstage.dispose);
+        addTearDown(destinationOffstage.dispose);
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: _HandoffTestApp(
+              navigatorKey: navigatorKey,
+              sourceOffstage: sourceOffstage,
+              destinationOffstage: destinationOffstage,
+              sourceChild: Container(
+                key: sourceSurfaceKey,
+                width: 100,
+                height: 100,
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x33000000),
+                      blurRadius: 0,
+                      spreadRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+              destinationChild: const SizedBox.square(
+                dimension: 100,
+                child: ColoredBox(color: Colors.green),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('open-destination')));
+        await tester.pumpAndSettle();
+
+        navigatorKey.currentState!.pop();
+        await tester.pump();
+        final boundary = tester.renderObject<RenderRepaintBoundary>(
+          find.byKey(boundaryKey),
+        );
+        final sourceRect = tester.getRect(find.byKey(sourceSurfaceKey));
+        final samplePosition = Offset(
+          sourceRect.right + 5,
+          sourceRect.center.dy,
+        );
+        final handoffImage = Completer<ui.Image>();
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          handoffImage.complete(await boundary.toImage());
+        });
+        await tester.pump(const Duration(milliseconds: 240));
+        final handoffPixel = await tester.runAsync(() async {
+          final image = await handoffImage.future;
+          try {
+            final bytes = await image.toByteData(
+              format: ui.ImageByteFormat.rawRgba,
+            );
+            final offset = ((samplePosition.dy.toInt() * image.width) + samplePosition.dx.toInt()) * 4;
+            return Color.fromARGB(
+              bytes!.getUint8(offset + 3),
+              bytes.getUint8(offset),
+              bytes.getUint8(offset + 1),
+              bytes.getUint8(offset + 2),
+            );
+          } finally {
+            image.dispose();
+          }
+        });
+        await tester.pumpAndSettle();
+        final settledPixel = await centerPixel(
+          tester,
+          boundaryKey,
+          samplePosition,
+        );
+
+        expect(handoffPixel, settledPixel);
+      },
+    );
+
+    testWidgets(
       'when a route reverses during a pending presentation, '
       'it should cancel the stale handoff and return normally',
       (tester) async {
