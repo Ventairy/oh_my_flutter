@@ -4,7 +4,8 @@
 [![License: MIT][license-badge]][license]
 [![pub package][pub-badge]][pub]
 
-Small, strongly typed utilities for common Flutter application tasks.
+Reusable Flutter tools for animations, gestures, loading states, device
+features, networking, and other common application tasks.
 
 ## Installation
 
@@ -18,7 +19,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.13.0
+  oh_my_flutter: ^0.17.0
 ```
 
 Import the public library wherever you need it:
@@ -36,8 +37,8 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 ## Quick start
 
-Extensions make common transformations concise while preserving Flutter and
-Dart types:
+This example starts with an accent color, makes it lighter, produces a hex
+color value, and converts it to the OKLCH color model:
 
 ```dart
 import 'package:flutter/material.dart';
@@ -49,139 +50,179 @@ final hex = lighterAccent.toHex();
 final oklch = lighterAccent.toOklch();
 ```
 
-## [Extensions][extension-guides]
+## Extensions
+
+See the [extension guides][extension-guides] for usage examples, available
+options, and constraints.
 
 ### DateTime relative time
 
-`DateTime.timeAgo` maps elapsed time to application-owned callbacks, so callers
-control localization and the result type.
+`DateTime.timeAgo` turns a date and time into a relative value such as “now” or
+“5 minutes ago.” The application supplies the wording, so it can localize the
+result for its users.
 
 ### Color transformations
 
-`ColorExtension` lightens, darkens, converts Flutter colors to hexadecimal, and
-starts OKLCH conversion.
+`ColorExtension` adds convenient operations to Flutter colors. It can make a
+color lighter or darker, produce a hexadecimal color value, and begin an OKLCH
+conversion.
 
 ### OKLCH colors
 
-`Oklch` provides perceptually uniform lightness, chroma, and hue values with
-conversion to and from Flutter colors.
+OKLCH is a color model designed to make visual color adjustments more
+predictable. `Oklch` describes a color by its perceived lightness, intensity,
+and hue, and converts between OKLCH and Flutter colors.
 
 ### Velocity classification
 
-`VelocityExtension` classifies directional swipe velocity while leaving
-distance, progress, and interaction policy to the application.
+`VelocityExtension` detects whether a completed drag was a fast swipe and
+identifies its direction. Applications can use that result to decide whether
+to dismiss, navigate, or complete another gesture.
 
-## [Widgets][widget-guides]
+## Widgets
+
+See the [widget guides][widget-guides] for usage examples, available options,
+and constraints.
 
 ### ControlledVisibility
 
-`ControlledVisibility` lets parent-owned state show or hide a child with
-optional directional transitions and optional unmounting.
+`ControlledVisibility` shows or hides a user-interface element on command. The
+change can happen immediately or with an animation, and hidden content can
+either stay loaded or be removed.
 
 ### InteractiveSwipeDismiss
 
-`InteractiveSwipeDismiss` translates any live widget with a scroll-aware,
-directional dismissal gesture, callback-owned removal, and presentation-neutral
-drag-handle regions.
+`InteractiveSwipeDismiss` lets a user drag a widget, such as a page or card,
+away to dismiss it. The application decides whether to accept the dismissal or
+restore the widget, and can choose the drag direction and active handle area.
 
 ### Morph
 
-`Morph` animates matching widgets between layouts and routes, selecting a
-specialized transition for supported content and a generic transition for
-other widgets. `MorphDescendant` configures how a selected descendant subtree
-participates in its nearest ancestor Morph, currently including live,
-snapshotted, or hidden transition behavior. Discrete content switches and
-moving destinations remain configurable without replacing the automatic
-transition. `MorphSibling` coordinates tagged widgets outside a Morph subtree,
-letting them animate from that Morph's visual progress and optionally remain in
-their natural paint order instead of painting above the matching flight.
+A morphing transition makes the same visual appear to move and reshape smoothly
+between two positions, layouts, or screens.
+
+#### Morph
+
+`Morph` creates that transition between matching widgets. It automatically
+adapts supported content and can also animate other widgets, content changes,
+and destinations that continue moving during the transition.
+
+#### MorphDescendant
+
+`MorphDescendant` controls how one selected part inside a `Morph` participates
+in the transition. That part can remain live, appear as a captured image, or
+stay hidden while the transition runs.
+
+#### MorphSibling
+
+`MorphSibling` lets a separate widget outside a `Morph` follow the same
+transition. It can move in sync while remaining in its normal visual layer or
+appearing above the transition.
 
 ### Motion
 
-`Motion` applies reusable one-shot or looping effects, including shakes, to any
-widget with configurable startup and controller-driven playback.
+`Motion` adds reusable visual effects, such as fading, scaling, moving, floating, shaking, etc. to any widget. Effects can run once, repeat, start automatically,
+or be controlled by the application.
 
 ### TextMotion
 
-`TextMotion` applies the same motion effects to each visible grapheme in short
-display text with configurable startup and controller-driven playback.
+`TextMotion` animates each visible character in a short piece of text. It uses
+the same effects as `Motion` and can stagger them so neighboring characters
+start at different times.
 
 ### Marquee
 
-`Marquee` repeatedly moves an ordered strip through a clipped viewport, with
-gapless or single-strip cycle layouts.
+A marquee is a continuously scrolling row of content shown through a limited
+visible area. `Marquee` moves an ordered set of widgets in a chosen direction
+and can repeat it as one strip or as a gapless loop.
 
 ### PauseAnimations
 
-`PauseAnimations` temporarily mutes ticker callbacks for a widget subtree.
+`PauseAnimations` temporarily pauses animations in one section of the user
+interface. It is useful when that content is hidden, inactive, or should wait
+before it starts moving.
 
 ### MaybeSafeArea
 
-`MaybeSafeArea` keeps a child's layout bounds out of enabled unsafe view edges
-as it moves or scrolls, without changing its layout footprint.
+`MaybeSafeArea` keeps moving, floating, or scrolling content away from unsafe
+screen edges, such as notches, rounded corners, and system interface areas. It
+adds protection only when the content reaches an enabled edge.
 
 ### Sequence
 
-`Sequence` presents one child at a time with controller-owned navigation and
-optional directional transitions.
+`Sequence` presents one step at a time in an ordered flow, such as onboarding
+or a multi-step form. The application can move forward, backward, or directly
+to a step, with optional transition animations.
 
 ### RouteSettled
 
-`RouteSettled` shows route chrome or controls only while the enclosing route is
-settled and no navigator gesture is active.
+`RouteSettled` shows controls only when the current screen has finished entering
+and is not being covered or moved by navigation. This can keep buttons and
+headers out of view during page transitions or back-swipe gestures.
 
 ### Skeleton
 
-`Skeleton` preserves a widget subtree's layout while replacing the first
-painted descendant on each branch with neutral loading bones, with optional
-descendant overrides and fade or shimmer effects.
+A skeleton is a temporary loading placeholder that shows the shape of the
+expected interface while real content is still loading. `Skeleton` creates
+those neutral shapes from an existing widget layout and can display them as a
+static placeholder or with fade and shimmer effects.
 
-## [Networking][networking-guides]
+## Networking
+
+See the [networking guides][networking-guides] for setup instructions, usage
+examples, and failure behavior.
 
 ### Offline Dio errors
 
-`OfflineErrorDioInterceptor` turns conservatively classified offline Dio
-failures into a typed error that callers can detect without repeating
-connectivity probes.
+`OfflineErrorDioInterceptor` helps applications distinguish a likely loss of
+internet access from other HTTP request failures produced by Dio. Callers can
+detect the resulting offline error and show an appropriate message or recovery
+action.
 
-## [Utilities][utility-guides]
+## Utilities
+
+See the [utility guides][utility-guides] for usage examples, platform behavior,
+and configuration.
 
 ### Device
 
-`Device` groups device feature objects behind one reusable entry point for
-applications that need several capabilities.
+`Device` provides one place to access several device-related features. Use it
+when the same part of an application needs both display and location tools.
 
 #### Display
 
-`DeviceDisplay` provides information about and interaction with the device
-display. Its initial capability reads exact corner radii when Flutter exposes
-them and can optionally provide an approximate phone fallback.
+`DeviceDisplay` reads information about the physical screen. It can report the
+screen's rounded-corner sizes so an interface can align with or avoid them, and
+can optionally estimate those sizes when exact values are unavailable.
 
 #### Location
 
-`DeviceLocation` manages foreground location permission and retrieves fresh
-coordinates or a device-formatted current address on Android or iOS.
+`DeviceLocation` requests permission to use the device's location while the app
+is open. It can then retrieve current coordinates or a formatted address on
+Android and iOS.
 
 ### Debouncer
 
-`Debouncer<T>` delays repeated value-producing callbacks until calls stop,
-while sharing the latest callback's result across the pending burst.
+A debouncer waits for rapid repeated actions to stop before running work. For
+example, `Debouncer<T>` can wait until a user pauses typing before requesting
+search suggestions, ensuring the latest request supplies the pending result.
 
 ### Telephony
 
-`Telephony` sanitizes an international phone number and asks the platform to
-start a call.
+`Telephony` cleans the formatting from an international phone number and asks
+the operating system to open its phone interface for that number.
 
 ### WhatsApp
 
-`Whatsapp` opens a chat with an optional message through the native application
-or web fallback.
+`Whatsapp` opens a chat for a phone number with an optional pre-filled message.
+It tries the native WhatsApp application when available and otherwise uses the
+web version.
 
 ## Scope
 
-`oh_my_flutter` provides portable utility APIs. It intentionally does not own
-application state, routing, localization, design components, or
-application-specific domain logic.
+`oh_my_flutter` supplies reusable building blocks rather than a complete
+application framework. The application remains responsible for its state,
+navigation, translated text, visual design, and business rules.
 
 [api]: https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/
 [ci]: https://github.com/Ventairy/oh_my_flutter/actions/workflows/ci.yml

@@ -1,3 +1,9 @@
+## 0.17.0
+
+- Add `ScaleOutMotionEffect` for scaling widgets and text from their normal
+  size to a configurable final scale with standard Motion timing, playback,
+  and lifecycle controls.
+
 ## 0.16.0
 
 - Add `InteractiveSwipeDismiss` for translating any live content with a
