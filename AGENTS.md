@@ -134,13 +134,26 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 
 ## Documentation and releases
 
+- Before creating or modifying `README.md`, load and follow the `create-readme`
+  skill. Review the current project and public API so the README remains an
+  accurate, concise, and complete feature catalog.
+- Write the README for a first-time reader with no prior package context and
+  minimal coding experience. Define unfamiliar concepts in plain language
+  before introducing their APIs, and explain what each feature is, when it is
+  useful, and what visible result it produces.
+- Follow README best practices: use clear GitHub-Flavored Markdown, keep the
+  structure concise and easy to scan, avoid unnecessary decorative content,
+  and do not duplicate dedicated license, contributing, or changelog files as
+  README sections. Add project branding only when a suitable project-specific
+  logo or icon exists.
 - Give every independently usable exported feature a dedicated consumer guide
   in the matching category folder under `doc/`, using a snake_case filename.
   Keep detailed usage, configuration, examples, and constraints in that guide.
 - Treat the README as the authoritative public feature catalog because pub.dev
-  presents it to consumers. Keep each entry brief and link once from each
-  category heading to its documentation folder; do not maintain per-feature
-  guide links or duplicate the feature inventory in another index.
+  presents it to consumers. Keep each entry brief and place a clearly labeled
+  link to each category's documentation folder directly beneath its heading;
+  do not rely on a linked heading as the only navigation, maintain per-feature
+  guide links, or duplicate the feature inventory in another index.
 - List a feature anywhere else only when that list is necessary for the reader's
   task, not merely as navigation or a second catalog that must stay synchronized.
 - Keep feature guides limited to public imports and consumer-observable

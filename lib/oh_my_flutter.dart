@@ -54,6 +54,7 @@ export 'src/widgets/motion/motion.dart'
         MotionStartup,
         MoveMotionEffect,
         ScaleInMotionEffect,
+        ScaleOutMotionEffect,
         ShakeMotionEffect,
         TextMotion;
 export 'src/widgets/pause_animations/pause_animations.dart' show PauseAnimations;

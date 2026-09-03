@@ -54,6 +54,17 @@ class _MotionExampleState extends State<MotionExample> {
               child: const Icon(Icons.check_circle_outline, size: 32),
             ),
             const SizedBox(width: 24),
+            Motion(
+              controller: _controller,
+              effect: ScaleOutMotionEffect(
+                scale: 0.4,
+                delay: const Duration(milliseconds: 100),
+                onStart: _handleStarted,
+                onEnd: _handleCompleted,
+              ),
+              child: const Icon(Icons.cancel_outlined, size: 32),
+            ),
+            const SizedBox(width: 24),
             const Motion(
               startup: MotionStartup.skip,
               effect: MoveMotionEffect(

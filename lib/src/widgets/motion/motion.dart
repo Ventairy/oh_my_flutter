@@ -11,6 +11,7 @@ part 'effects/fade_in_motion_effect.dart';
 part 'effects/floating_motion_effect.dart';
 part 'effects/move_motion_effect.dart';
 part 'effects/scale_in_motion_effect.dart';
+part 'effects/scale_out_motion_effect.dart';
 part 'effects/shake_motion_effect.dart';
 part 'internals/motion_animation.dart';
 part 'internals/motion_animation_group.dart';

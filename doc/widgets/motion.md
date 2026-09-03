@@ -32,6 +32,11 @@ const Motion(
 )
 
 const Motion(
+  effect: ScaleOutMotionEffect(scale: 0.6),
+  child: Icon(Icons.close),
+)
+
+const Motion(
   effect: MoveMotionEffect(
     begin: Offset(-24, 0),
     end: Offset.zero,
@@ -50,6 +55,10 @@ const Motion(
   child: Icon(Icons.warning_amber),
 )
 ```
+
+`ScaleInMotionEffect.scale` is the starting size before the child reaches its
+normal size. `ScaleOutMotionEffect.scale` is the ending size after the child
+leaves its normal size. Both effects preserve the child's layout dimensions.
 
 `ShakeMotionEffect.offset` sets both direction and strength. Use a horizontal,
 vertical, or diagonal offset, and reverse its coordinates to reverse the first
