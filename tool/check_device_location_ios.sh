@@ -34,9 +34,11 @@ xcrun clang \
 
 cd "$example_directory"
 
-fvm flutter clean
+if [[ "${GITHUB_ACTIONS:-}" != true ]]; then
+  fvm flutter clean
+fi
 fvm flutter pub get --enforce-lockfile
-fvm flutter build ios --release --no-codesign --target=lib/main.dart
+fvm flutter build ios --release --no-codesign --target=lib/main.dart --no-pub
 
 test -f "$framework_binary"
 xcrun vtool -show-build "$framework_binary" | grep -Eq 'minos 15(\.0+)?$'
@@ -61,6 +63,7 @@ fvm flutter pub get --enforce-lockfile
 fvm flutter build ios \
   --release \
   --no-codesign \
+  --no-pub \
   --target=../tool/fixtures/device_location_unused.dart
 
 if test -e "$framework_directory"; then

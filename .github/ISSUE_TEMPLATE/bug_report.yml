@@ -33,21 +33,21 @@ body:
     id: package_version
     attributes:
       label: oh_my_flutter package version
-      placeholder: "0.11.0"
+      placeholder: "e.g. 0.18.0"
     validations:
       required: true
   - type: input
     id: flutter_version
     attributes:
       label: Flutter version
-      placeholder: "3.47.1"
+      placeholder: "e.g. 3.47.1"
     validations:
       required: true
   - type: input
     id: dart_version
     attributes:
       label: Dart version
-      placeholder: "3.13.0"
+      placeholder: "e.g. 3.13.1"
     validations:
       required: true
   - type: checkboxes

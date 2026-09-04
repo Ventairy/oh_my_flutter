@@ -26,7 +26,7 @@ fi
 cleanup() {
   xcrun simctl location "$device_id" clear >/dev/null 2>&1 || true
   xcrun simctl privacy "$device_id" reset location "$bundle_identifier" >/dev/null 2>&1 || true
-  if test "$booted_by_script" = true; then
+  if test "$booted_by_script" = true && [[ "${GITHUB_ACTIONS:-}" != true ]]; then
     xcrun simctl shutdown "$device_id" >/dev/null 2>&1 || true
   fi
 }
@@ -35,12 +35,14 @@ trap cleanup EXIT
 if test "$booted_by_script" = true; then
   xcrun simctl boot "$device_id"
 fi
-xcrun simctl bootstatus "$device_id" -b
 
 cd "$example_directory"
-fvm flutter clean
+if [[ "${GITHUB_ACTIONS:-}" != true ]]; then
+  fvm flutter clean
+fi
 fvm flutter pub get --enforce-lockfile
-fvm flutter build ios --simulator --target=lib/main.dart
+fvm flutter build ios --simulator --target=lib/main.dart --no-pub
+xcrun simctl bootstatus "$device_id" -b
 application_path='build/ios/iphonesimulator/Runner.app'
 purpose_string="$({
   plutil -extract NSLocationWhenInUseUsageDescription raw \

@@ -1,9 +1,13 @@
 version: 2
 updates:
   - package-ecosystem: pub
-    directory: /
+    directories:
+      - /
+      - /example
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       dart-dependencies:
         patterns:
@@ -12,6 +16,8 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     groups:
       github-actions:
         patterns:

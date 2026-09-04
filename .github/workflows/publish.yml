@@ -5,17 +5,26 @@ on:
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
 
+concurrency:
+  group: publish-pub-dev
+  queue: max
+
+permissions: {}
+
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    name: Publish
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
-      checks: read
-      contents: read
-      id-token: write
+      actions: read # Verify the exact CI workflow run.
+      contents: read # Check out and verify the release commit.
+      id-token: write # Authenticate to pub.dev with OIDC.
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Verify release ref
         env:
           GH_TOKEN: ${{ github.token }}
@@ -24,25 +33,33 @@ jobs:
           test -n "$package_version"
           test "$GITHUB_REF_NAME" = "v$package_version"
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
-          required_check_count="$(
-            gh api \
-              "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/check-runs?per_page=100" \
-              --jq '[.check_runs[] | select(.name == "Required" and .conclusion == "success")] | length'
+
+          ci_run_id="$(
+            gh api --method GET \
+              "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+              -f branch=main \
+              -f event=push \
+              -f head_sha="$GITHUB_SHA" \
+              -f per_page=1 \
+              --jq '.workflow_runs[0] | select(.status == "completed" and .conclusion == "success") | .id'
           )"
-          test "$required_check_count" -gt 0
-      - uses: dart-lang/setup-dart@v1
-      - uses: subosito/flutter-action@v2
+          test -n "$ci_run_id"
+
+          required_job_count="$(
+            gh api \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$ci_run_id/jobs?per_page=100" \
+              --jq '[.jobs[] | select(.name == "Required" and .status == "completed" and .conclusion == "success")] | length'
+          )"
+          test "$required_job_count" -eq 1
+      - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: stable
           flutter-version-file: .fvmrc
           cache: true
-      - run: dart pub global activate fvm
-      - run: fvm install
-      - run: fvm flutter pub upgrade
-      - run: fvm flutter pub get --enforce-lockfile
-        working-directory: example
-      - run: ./tool/check_device_location_pigeon.sh
-      - run: ./tool/check_device_display_pigeon.sh
-      - run: ./tool/check_native_selectable_text_pigeon.sh
-      - run: fvm flutter pub publish --dry-run
-      - run: fvm flutter pub publish --force
+      - name: Set up FVM
+        run: ./tool/setup_ci_fvm.sh
+        shell: bash
+      - name: Validate and publish
+        run: |
+          fvm flutter pub publish --dry-run
+          fvm flutter pub publish --force
