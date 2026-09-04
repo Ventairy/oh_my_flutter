@@ -123,7 +123,7 @@ jobs:
         shell: bash
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
-      - run: fvm flutter build apk --release --no-pub
+      - run: fvm flutter build apk --release
         working-directory: example
       - run: ./gradlew :oh_my_flutter:testDebugUnitTest :oh_my_flutter:lintDebug
         working-directory: example/android
