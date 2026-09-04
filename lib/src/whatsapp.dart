@@ -1,119 +1,203 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:meta/meta.dart';
+import 'package:oh_my_flutter/src/extensions/string_extension.dart';
+import 'package:oh_my_flutter/src/phone_number.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Interact with WhatsApp.
+/// Provides a consistent way to interact with a WhatsApp recipient.
 ///
 /// ```dart
-/// final whatsapp = Whatsapp();
+/// final whatsapp = Whatsapp('@Ventairy');
 ///
-/// await whatsapp.launchChat(
-///   number: '+55 11 98888-7777',
-///   message: 'Hello! I would like more information.',
-/// );
+/// Text(whatsapp.toDisplayString());
+/// await whatsapp.chat(message: 'Hello!');
 /// ```
 ///
-/// The default constructor wires [launchUrl] from `url_launcher`. Use
-/// [Whatsapp.test] to inject a controllable launcher in tests.
-///
-/// The utility sanitizes URI syntax but does not validate whether a number
-/// exists or infer a missing country code.
+/// The identifier may be a WhatsApp username or a phone number with a country
+/// calling code. Construction throws a [FormatException] when the identifier
+/// cannot be resolved to either supported form.
 ///
 /// See the [WhatsApp guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/whatsapp.md)
-/// for fallback behavior and input handling.
+/// for identifier, message, and fallback behavior.
 class Whatsapp {
-  /// Creates an [Whatsapp] that delegates to the platform's deeplink
-  /// launcher ([launchUrl] via `url_launcher`).
-  factory Whatsapp() {
-    return Whatsapp._(launchUrl, isWeb: kIsWeb);
+  /// Creates a WhatsApp recipient from [identifier].
+  ///
+  /// Usernames may include or omit their leading `@`. Phone numbers may use
+  /// common visual formatting but must include a country calling code.
+  ///
+  /// Throws a [FormatException] when [identifier] is neither a valid username
+  /// nor a valid phone number.
+  factory Whatsapp(String identifier) {
+    return Whatsapp._parse(
+      identifier: identifier,
+      launcher: launchUrl,
+      isWeb: kIsWeb,
+    );
   }
 
-  Whatsapp._(this._launcher, {this._isWeb = false});
+  Whatsapp._({
+    required this._identifier,
+    required this._launcher,
+    required this._isWeb,
+  });
 
-  /// Creates an [Whatsapp] with a controllable params for testing.
+  factory Whatsapp._parse({
+    required String identifier,
+    required Future<bool> Function(Uri uri) launcher,
+    required bool isWeb,
+  }) {
+    final trimmedIdentifier = identifier.trim();
+
+    if (trimmedIdentifier.startsWith('@')) {
+      return Whatsapp._fromUsername(
+        username: trimmedIdentifier.substring(1),
+        source: identifier,
+        launcher: launcher,
+        isWeb: isWeb,
+      );
+    }
+
+    try {
+      final phoneNumber = PhoneNumber(trimmedIdentifier);
+
+      return Whatsapp._(
+        identifier: phoneNumber,
+        launcher: launcher,
+        isWeb: isWeb,
+      );
+    } on FormatException {
+      return Whatsapp._fromUsername(
+        username: trimmedIdentifier,
+        source: identifier,
+        launcher: launcher,
+        isWeb: isWeb,
+      );
+    }
+  }
+
+  factory Whatsapp._fromUsername({
+    required String username,
+    required String source,
+    required Future<bool> Function(Uri uri) launcher,
+    required bool isWeb,
+  }) {
+    final normalizedUsername = username.toLowerCase();
+    if (!_usernamePattern.hasMatch(normalizedUsername) || normalizedUsername.isDigitsOnly) {
+      throw FormatException(
+        'A WhatsApp identifier must be a valid phone number with a country '
+        'calling code or a username containing 3 to 35 letters, numbers, '
+        'periods, or underscores.',
+        source,
+      );
+    }
+
+    return Whatsapp._(
+      identifier: normalizedUsername,
+      launcher: launcher,
+      isWeb: isWeb,
+    );
+  }
+
+  /// Creates a WhatsApp recipient with a controllable [launcher] for testing.
   ///
-  /// The [launcher] callback receives the computed WhatsApp URI and must
-  /// return `true` when the OS accepted the launch.
+  /// Set [isWeb] to `true` to use the web launch path. The [launcher] receives
+  /// each computed WhatsApp URI and returns whether the platform accepted it.
   ///
-  /// Set [isWeb] to `true` to simulate the web platform path
+  /// Throws a [FormatException] under the same conditions as [Whatsapp].
   @visibleForTesting
-  factory Whatsapp.test({
+  factory Whatsapp.test(
+    String identifier, {
     required Future<bool> Function(Uri uri) launcher,
     bool isWeb = false,
   }) {
-    return Whatsapp._(launcher, isWeb: isWeb);
+    return Whatsapp._parse(
+      identifier: identifier,
+      launcher: launcher,
+      isWeb: isWeb,
+    );
   }
 
-  final Future<bool> Function(Uri uri) _launcher;
+  static final _usernamePattern = RegExp(r'^[a-z0-9._]{3,35}$');
 
+  final Object _identifier;
+  final Future<bool> Function(Uri uri) _launcher;
   final bool _isWeb;
 
-  /// Opens a WhatsApp chat with [number] and an optional pre-filled
-  /// [message].
-  ///
-  /// On **mobile** this first attempts the native `whatsapp://` scheme to
-  /// open WhatsApp directly. If WhatsApp is not installed, it falls back to
-  /// `https://wa.me/<number>` (which opens the browser and redirects to
-  /// WhatsApp). On **web** it always uses `https://wa.me/<number>`.
-  ///
-  /// [number] must be in international format, including the country code
-  /// (e.g. `+55` for Brazil, `+1` for the US). Any non-digit characters
-  /// are stripped before composing the deeplink, so common human formats
-  /// are accepted:
-  ///
-  /// - `"+55 (11) 96923-0546"` -> `https://wa.me/5511969230546`
-  /// - `"5511969230546"`       -> `https://wa.me/5511969230546`
-  /// - `"+1 (415) 555-2671"`   -> `https://wa.me/14155552671`
-  ///
-  /// Passing a local-format number (no country code) yields a misrouted
-  /// link — always include the country code.
-  ///
-  /// Throws [ArgumentError] when the result contains no digits.
-  ///
-  /// Returns `true` when WhatsApp was successfully launched.
-  Future<bool> launchChat({required String number, String? message}) {
-    final digits = number.replaceAll(RegExp(r'\D'), '');
+  bool get _isPhoneNumber => _identifier is PhoneNumber;
 
-    if (digits.isEmpty) {
-      throw ArgumentError.value(
-        number,
-        'number',
-        'WhatsApp phone number must contain at least one digit. '
-            'Received: "$number".',
-      );
-    }
+  String get _identifierForUri {
+    final identifier = _identifier;
+    if (identifier is PhoneNumber) return identifier.e164.substring(1);
 
-    if (_isWeb) {
-      return _launcher(_buildWaMeUri(digits: digits, message: message));
-    }
-    return _launchMobileChat(digits: digits, message: message);
+    return identifier as String;
   }
 
-  Future<bool> _launchMobileChat({
-    required String digits,
-    String? message,
-  }) async {
-    final params = <String, String>{'phone': digits};
-    if (message != null && message.isNotEmpty) params['text'] = message;
+  /// Returns the recipient identifier formatted for display in an interface.
+  ///
+  /// Usernames include their leading `@`. Phone numbers follow their country's
+  /// international grouping conventions and include the country calling code.
+  String toDisplayString() {
+    final identifier = _identifier;
+    if (identifier is PhoneNumber) return identifier.toDisplayString();
+
+    return '@${identifier as String}';
+  }
+
+  /// Opens a WhatsApp chat with this recipient.
+  ///
+  /// On mobile, this first tries the native WhatsApp URI and falls back to a
+  /// `wa.me` link when the native launch returns `false` or throws. On web, it
+  /// launches the `wa.me` link directly.
+  ///
+  /// A non-empty [message] is pre-filled in the chat composer. The returned
+  /// Boolean reports whether a destination accepted the launch; it does not
+  /// guarantee that the recipient exists or that a message was sent.
+  Future<bool> chat({String? message}) {
+    if (_isWeb) return _launcher(_buildWebUri(message: message));
+
+    return _launchMobileChat(message: message);
+  }
+
+  Future<bool> _launchMobileChat({String? message}) async {
+    final queryParameters = <String, String>{
+      _isPhoneNumber ? 'phone' : 'username': _identifierForUri,
+    };
+    if (message != null && message.isNotEmpty) {
+      queryParameters['text'] = message;
+    }
 
     try {
       final launched = await _launcher(
-        Uri(scheme: 'whatsapp', host: 'send', queryParameters: params),
+        Uri(scheme: 'whatsapp', host: 'send', queryParameters: queryParameters),
       );
       if (launched) return true;
     } catch (_) {
-      // No activity found to handle the whatsapp:// intent.
+      // The platform could not handle the native WhatsApp URI.
     }
 
-    return _launcher(_buildWaMeUri(digits: digits, message: message));
+    return _launcher(_buildWebUri(message: message));
   }
 
-  Uri _buildWaMeUri({required String digits, String? message}) {
+  Uri _buildWebUri({String? message}) {
+    final hasMessage = message != null && message.isNotEmpty;
+
+    if (_isPhoneNumber) {
+      return Uri(
+        scheme: 'https',
+        host: 'wa.me',
+        path: '/$_identifierForUri',
+        queryParameters: hasMessage ? <String, String>{'text': message} : null,
+      );
+    }
+
     return Uri(
       scheme: 'https',
       host: 'wa.me',
-      path: '/$digits',
-      queryParameters: (message != null && message.isNotEmpty) ? <String, String>{'text': message} : null,
+      path: '/',
+      queryParameters: <String, String>{
+        'username': _identifierForUri,
+        if (hasMessage) 'text': message,
+      },
     );
   }
 }

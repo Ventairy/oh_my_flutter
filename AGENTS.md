@@ -49,8 +49,16 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 - Keep Dartdoc for extensible containers, such as libraries, classes,
   extensions, and mixins, generic enough to remain accurate when new
   capabilities are added. Do not define a container solely by the first or
-  only feature it currently exposes; document feature-specific behavior on the
-  member that provides it.
+  only feature it currently exposes. Do not describe an extensible container
+  by listing its current operations, even as examples of what it can do; that
+  turns every new operation into a documentation update and leaves the
+  container description incomplete. State its stable domain or role instead,
+  then document feature-specific behavior on the member or section that
+  provides it. Generic must not mean vague, passive, or tautological: never
+  summarize a type by merely restating its name or stored value, such as
+  "represents an X." State the durable consumer capability or value clearly;
+  for a domain object that enables interaction with its domain, say that
+  directly without enumerating its current operations.
 - Write Dartdoc exclusively from the consumer's perspective: explain how to use
   the API, what it visibly or observably does, and any constraints the consumer
   must act on. Do not mention internal structure, coordination, or mechanics
@@ -97,6 +105,9 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   failures under `lib/src/exceptions`.
 - Prefer explicit, readable code, immutable values, named parameters for
   multi-argument APIs, early returns, and exhaustive enum switches.
+- Keep values and expressions inline when they are used in only one place and
+  doing so remains clear. Extract them only when reuse, naming, or surrounding
+  complexity makes the code easier to understand.
 - Name constructors annotated with `@visibleForTesting` `.test` and call them
   only from tests. Production constructors must initialize through production
   or private constructors instead.
@@ -147,6 +158,11 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   minimal coding experience. Define unfamiliar concepts in plain language
   before introducing their APIs, and explain what each feature is, when it is
   useful, and what visible result it produces.
+- Give every README feature entry a plain-language written example of its most
+  important capability; do not use a code example merely to satisfy this
+  requirement. Frame the example as non-exhaustive with wording such as "It
+  can do things such as X," so it demonstrates the feature's value without
+  implying that the feature only does X.
 - Follow README best practices: use clear GitHub-Flavored Markdown, keep the
   structure concise and easy to scan, avoid unnecessary decorative content,
   and do not duplicate dedicated license, contributing, or changelog files as

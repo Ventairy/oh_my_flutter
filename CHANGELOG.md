@@ -1,5 +1,12 @@
 ## 0.19.0
 
+- **Breaking:** Replace `Telephony` with a validated `PhoneNumber` value that
+  provides display and canonical E.164 forms and calls its constructor number.
+- **Breaking:** Reshape `Whatsapp` into a validated recipient value that owns a
+  phone number or username, formats it for display, and opens chats through
+  `chat` instead of `launchChat`.
+- Add `StringExtension.isDigitsOnly` for identifying non-empty strings that
+  contain only ASCII digits.
 - **Breaking:** Remove the `estimate` option from
   `DeviceDisplay.cornerRadii()`. Display corners now come only from Flutter,
   Android platform information, or public iOS 26 UIKit information and return

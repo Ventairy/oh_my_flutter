@@ -820,31 +820,19 @@ void main() {
           await tester.pump(const Duration(milliseconds: 8));
         }
         var reverseFlightPainted = false;
-        for (var attempt = 0; attempt < 100; attempt += 1) {
-          final lineCount = _compoundTextLayoutDiagnostic<int>(
-            tester,
-            text: 'Auxiliar de cozinha para evento',
-            name: 'paintedLineCount',
-          );
-          if (lineCount != null) {
-            reverseFlightPainted = true;
-            break;
-          }
-          await tester.runAsync(
-            () => Future<void>.delayed(const Duration(milliseconds: 5)),
-          );
-          await tester.pump();
-        }
         int? paintedLineCount;
-        for (var attempt = 0; attempt < 27; attempt += 1) {
-          await tester.runAsync(() => Future<void>.delayed(Duration.zero));
-          await tester.pump(const Duration(milliseconds: 8));
+        for (var attempt = 0; attempt < 100; attempt += 1) {
           paintedLineCount = _compoundTextLayoutDiagnostic<int>(
             tester,
             text: 'Auxiliar de cozinha para evento',
             name: 'paintedLineCount',
           );
+          reverseFlightPainted |= paintedLineCount != null;
           if (paintedLineCount == 2) break;
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 5)),
+          );
+          await tester.pump();
         }
 
         expect(

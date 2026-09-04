@@ -6,19 +6,29 @@ flutter_version="$(jq -er '.flutter | select(type == "string" and length > 0)' .
 fvm_version=4.3.0
 version_directory="$PWD/.fvm/versions/$flutter_version"
 
-if [[ "$(fvm --version 2>/dev/null || true)" != "$fvm_version" ]]; then
-  dart pub global activate fvm "$fvm_version"
-fi
+dart pub global activate fvm "$fvm_version"
 
 if [[ "${RUNNER_OS:-}" == Windows ]]; then
   pub_cache_bin="$(cygpath -u "$PUB_CACHE")/bin"
+  flutter_executable="$(cygpath -u "$FLUTTER_ROOT")/bin/flutter.bat"
 else
   pub_cache_bin="${PUB_CACHE:-$HOME/.pub-cache}/bin"
+  flutter_executable="$FLUTTER_ROOT/bin/flutter"
 fi
 export PATH="$pub_cache_bin:$PATH"
 
-if [[ "$(fvm --version)" != "$fvm_version" ]]; then
-  echo "Expected FVM $fvm_version, found $(fvm --version)." >&2
+if [[ -n "${GITHUB_PATH:-}" ]]; then
+  if [[ "${RUNNER_OS:-}" == Windows ]]; then
+    github_path_file="$(cygpath -u "$GITHUB_PATH")"
+    cygpath -w "$pub_cache_bin" >> "$github_path_file"
+  else
+    echo "$pub_cache_bin" >> "$GITHUB_PATH"
+  fi
+fi
+
+installed_fvm_version="$(dart pub global list | awk '$1 == "fvm" { print $2 }')"
+if [[ "$installed_fvm_version" != "$fvm_version" ]]; then
+  echo "Expected FVM $fvm_version, found $installed_fvm_version." >&2
   exit 1
 fi
 
@@ -27,13 +37,15 @@ mkdir -p "$PWD/.fvm/versions"
 if [[ ! -e "$version_directory" ]]; then
   if [[ "${RUNNER_OS:-}" == Windows ]]; then
     windows_version_directory="$(cygpath -w "$version_directory")"
-    cmd //c "mklink /J \"$windows_version_directory\" \"$FLUTTER_ROOT\""
+    powershell.exe -NoProfile -NonInteractive -Command \
+      "\$ErrorActionPreference = 'Stop'; New-Item -ItemType Junction -Path '$windows_version_directory' -Target '$FLUTTER_ROOT' | Out-Null"
   else
     ln -s "$FLUTTER_ROOT" "$version_directory"
   fi
 fi
 
-installed_version="$(fvm flutter --version --machine | jq -er '.frameworkVersion')"
+flutter_version_output="$("$flutter_executable" --version --machine)"
+installed_version="$(awk 'found || /^\{/ { found = 1; print }' <<<"$flutter_version_output" | jq -er '.frameworkVersion')"
 if [[ "$installed_version" != "$flutter_version" ]]; then
   echo "Expected Flutter $flutter_version, found $installed_version." >&2
   exit 1
