@@ -26,7 +26,7 @@ if [[ -n "${GITHUB_PATH:-}" ]]; then
   fi
 fi
 
-installed_fvm_version="$(dart pub global run fvm:main --version)"
+installed_fvm_version="$(dart pub global list | awk '$1 == "fvm" { print $2 }')"
 if [[ "$installed_fvm_version" != "$fvm_version" ]]; then
   echo "Expected FVM $fvm_version, found $installed_fvm_version." >&2
   exit 1
