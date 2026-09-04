@@ -28,6 +28,7 @@ jobs:
       - run: ./tool/check_device_location_pigeon.sh
       - run: ./tool/check_device_display_pigeon.sh
       - run: ./tool/device_display_model/validate_device_display_model.sh
+      - run: ./tool/check_native_selectable_text_pigeon.sh
       - run: fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
       - run: fvm flutter analyze --fatal-infos
       - run: fvm flutter test
@@ -46,6 +47,7 @@ jobs:
           test/widgets/morph_text_test.dart
           test/widgets/morph_container_test.dart
           test/widgets/morph_column_test.dart
+          test/widgets/native_selectable_text_web_test.dart
       - run: fvm dart doc --validate-links
       - run: fvm flutter analyze --fatal-infos
         working-directory: example
@@ -126,11 +128,101 @@ jobs:
       - run: ./tool/device_display_model/validate_device_display_collectors.sh
       - run: ./tool/check_device_location_ios_integration.sh
       - run: ./tool/check_device_location_ios.sh
+      - run: fvm flutter build ios --simulator --target=lib/main.dart
+        working-directory: example
+      - name: Test NativeSelectableText on iOS
+        run: |
+          device_line="$(xcrun simctl list devices available | grep 'iPhone.*(Booted)' | head -n 1 || true)"
+          if test -z "$device_line"; then
+            device_line="$(xcrun simctl list devices available | grep 'iPhone.*(Shutdown)' | tail -n 1)"
+          fi
+          device_id="$(sed -E 's/.*\(([0-9A-F-]{36})\) \((Booted|Shutdown)\).*/\1/' <<<"$device_line")"
+          if ! [[ "$device_id" =~ ^[0-9A-F-]{36}$ ]]; then
+            echo 'No available iPhone simulator was found.' >&2
+            exit 1
+          fi
+          flutter_framework_directory="$PWD/example/build/ios/Debug-iphonesimulator"
+          xcodebuild test \
+            -quiet \
+            -workspace example/ios/Runner.xcworkspace \
+            -scheme oh_my_flutterTests \
+            -destination "platform=iOS Simulator,id=$device_id" \
+            CODE_SIGNING_ALLOWED=NO \
+            FRAMEWORK_SEARCH_PATHS="$flutter_framework_directory" \
+            LD_RUNPATH_SEARCH_PATHS="$flutter_framework_directory"
+
+  macos-native:
+    name: macOS native
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: dart pub global activate fvm
+      - run: fvm flutter pub upgrade
+      - run: fvm flutter pub get --enforce-lockfile
+        working-directory: example
+      - run: fvm flutter build macos --debug --target=lib/main.dart
+        working-directory: example
+      - name: Test NativeSelectableText on macOS
+        run: |
+          flutter_framework_directory="$PWD/example/build/macos/Build/Products/Debug"
+          xcodebuild test \
+            -quiet \
+            -workspace example/macos/Runner.xcworkspace \
+            -scheme oh_my_flutterTests \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            FRAMEWORK_SEARCH_PATHS="$flutter_framework_directory" \
+            LD_RUNPATH_SEARCH_PATHS="$flutter_framework_directory"
+
+  linux-native:
+    name: Linux native
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: dart pub global activate fvm
+      - run: sudo apt-get update
+      - run: sudo apt-get install --yes clang cmake libgtk-3-dev ninja-build pkg-config xvfb
+      - run: fvm flutter pub upgrade
+      - run: fvm flutter pub get --enforce-lockfile
+        working-directory: example
+      - run: fvm flutter build linux --debug --target=lib/main.dart
+        working-directory: example
+      - run: cmake --build example/build/linux/x64/debug --target oh_my_flutter_test
+      - run: xvfb-run --auto-servernum ctest --test-dir example/build/linux/x64/debug/plugins/oh_my_flutter --output-on-failure
+
+  windows-native:
+    name: Windows native
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: .fvmrc
+          cache: true
+      - run: dart pub global activate fvm
+      - run: fvm flutter pub upgrade
+      - run: fvm flutter pub get --enforce-lockfile
+        working-directory: example
+      - run: fvm flutter build windows --debug --target=lib/main.dart
+        working-directory: example
+      - run: cmake --build example/build/windows/x64 --config Debug --target oh_my_flutter_test
+      - run: ctest --test-dir example/build/windows/x64/plugins/oh_my_flutter -C Debug --output-on-failure
 
   required:
     name: Required
     if: always()
-    needs: [quality, cross-platform, minimum-dependencies, android-native, ios-native]
+    needs: [quality, cross-platform, minimum-dependencies, android-native, ios-native, macos-native, linux-native, windows-native]
     runs-on: ubuntu-latest
     steps:
       - name: Require every CI job
@@ -140,9 +232,15 @@ jobs:
           MINIMUM_DEPENDENCIES_RESULT: ${{ needs.minimum-dependencies.result }}
           ANDROID_NATIVE_RESULT: ${{ needs.android-native.result }}
           IOS_NATIVE_RESULT: ${{ needs.ios-native.result }}
+          MACOS_NATIVE_RESULT: ${{ needs.macos-native.result }}
+          LINUX_NATIVE_RESULT: ${{ needs.linux-native.result }}
+          WINDOWS_NATIVE_RESULT: ${{ needs.windows-native.result }}
         run: |
           test "$QUALITY_RESULT" = "success"
           test "$CROSS_PLATFORM_RESULT" = "success"
           test "$MINIMUM_DEPENDENCIES_RESULT" = "success"
           test "$ANDROID_NATIVE_RESULT" = "success"
           test "$IOS_NATIVE_RESULT" = "success"
+          test "$MACOS_NATIVE_RESULT" = "success"
+          test "$LINUX_NATIVE_RESULT" = "success"
+          test "$WINDOWS_NATIVE_RESULT" = "success"

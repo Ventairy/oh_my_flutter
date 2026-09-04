@@ -1,3 +1,9 @@
+## 0.18.0
+
+- Add `NativeSelectableText` for selectable plain or styled Flutter text with
+  native selection menus on Android, iOS, macOS, Windows, and Linux, plus an
+  adaptive Flutter fallback when native presentation is unavailable.
+
 ## 0.17.0
 
 - Add `ScaleOutMotionEffect` for scaling widgets and text from their normal

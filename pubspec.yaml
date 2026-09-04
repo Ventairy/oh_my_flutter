@@ -1,6 +1,6 @@
 name: oh_my_flutter
 description: Empower Flutter with utilities that make development 10x faster.
-version: 0.17.0
+version: 0.18.0
 homepage: https://github.com/Ventairy/oh_my_flutter
 repository: https://github.com/Ventairy/oh_my_flutter
 issue_tracker: https://github.com/Ventairy/oh_my_flutter/issues
@@ -53,4 +53,10 @@ flutter:
         pluginClass: OhMyFlutterPlugin
       ios:
         pluginClass: OhMyFlutterPlugin
+      linux:
+        pluginClass: OhMyFlutterPlugin
+      macos:
+        pluginClass: OhMyFlutterPlugin
+      windows:
+        pluginClass: OhMyFlutterPluginCApi
   uses-material-design: true

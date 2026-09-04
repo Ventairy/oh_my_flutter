@@ -1,0 +1,62 @@
+# The Flutter tooling requires CMake 3.10 or later.
+cmake_minimum_required(VERSION 3.10)
+
+set(PROJECT_NAME "oh_my_flutter")
+project(${PROJECT_NAME} LANGUAGES CXX)
+
+set(PLUGIN_NAME "oh_my_flutter_plugin")
+
+list(APPEND PLUGIN_SOURCES
+  "native_selectable_text.g.cc"
+  "native_selectable_text_menu_host.cc"
+  "native_selectable_text_menu_host.h"
+  "oh_my_flutter_plugin.cc"
+)
+
+add_library(${PLUGIN_NAME} SHARED ${PLUGIN_SOURCES})
+apply_standard_settings(${PLUGIN_NAME})
+set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
+target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL)
+target_include_directories(${PLUGIN_NAME} INTERFACE
+  "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_link_libraries(${PLUGIN_NAME} PRIVATE flutter)
+target_link_libraries(${PLUGIN_NAME} PRIVATE PkgConfig::GTK)
+
+set(oh_my_flutter_bundled_libraries
+  ""
+  PARENT_SCOPE
+)
+
+if (${include_${PROJECT_NAME}_tests})
+  if(${CMAKE_VERSION} VERSION_LESS "3.11.0")
+    message("Unit tests require CMake 3.11.0 or later")
+  else()
+    set(TEST_RUNNER "${PROJECT_NAME}_test")
+    enable_testing()
+
+    include(FetchContent)
+    FetchContent_Declare(
+      googletest
+      URL https://github.com/google/googletest/archive/v1.18.0.zip
+    )
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+    set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
+    FetchContent_MakeAvailable(googletest)
+
+    add_executable(${TEST_RUNNER}
+      "test/native_selectable_text_menu_host_test.cc"
+      "native_selectable_text.g.cc"
+      "native_selectable_text_menu_host.cc"
+      "native_selectable_text_menu_host.h"
+    )
+    apply_standard_settings(${TEST_RUNNER})
+    target_include_directories(${TEST_RUNNER} PRIVATE
+      "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(${TEST_RUNNER} PRIVATE flutter)
+    target_link_libraries(${TEST_RUNNER} PRIVATE PkgConfig::GTK)
+    target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
+
+    include(GoogleTest)
+    gtest_discover_tests(${TEST_RUNNER})
+  endif()
+endif()

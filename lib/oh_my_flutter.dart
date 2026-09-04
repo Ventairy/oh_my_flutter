@@ -57,6 +57,7 @@ export 'src/widgets/motion/motion.dart'
         ScaleOutMotionEffect,
         ShakeMotionEffect,
         TextMotion;
+export 'src/widgets/native_selectable_text/native_selectable_text.dart' show NativeSelectableText;
 export 'src/widgets/pause_animations/pause_animations.dart' show PauseAnimations;
 export 'src/widgets/route_settled/route_settled.dart' show RouteSettled;
 export 'src/widgets/sequence/sequence.dart' show Sequence, SequenceController, SequenceTransitionBuilder;
