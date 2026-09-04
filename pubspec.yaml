@@ -53,4 +53,10 @@ flutter:
         pluginClass: OhMyFlutterPlugin
       ios:
         pluginClass: OhMyFlutterPlugin
+      linux:
+        pluginClass: OhMyFlutterPlugin
+      macos:
+        pluginClass: OhMyFlutterPlugin
+      windows:
+        pluginClass: OhMyFlutterPluginCApi
   uses-material-design: true

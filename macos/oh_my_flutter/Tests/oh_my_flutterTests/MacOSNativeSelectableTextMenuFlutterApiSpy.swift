@@ -1,0 +1,63 @@
+import Foundation
+
+@testable import oh_my_flutter
+
+internal final class MacOSNativeSelectableTextMenuFlutterApiSpy:
+  NativeSelectableTextMenuFlutterApiProtocol
+{
+  internal private(set) var actions: [(sessionIdentifier: Int64, actionIdentifier: Int64)] = []
+  internal private(set) var dismissals: [(sessionIdentifier: Int64, actionInvoked: Bool)] = []
+  internal private(set) var events: [String] = []
+  internal private(set) var actionDeliveriesWereOnMainThread: [Bool] = []
+  internal private(set) var dismissalDeliveriesWereOnMainThread: [Bool] = []
+  internal var suspendsActionDelivery = false
+  internal var suspendsDismissalDelivery = false
+  internal var onDismissalDelivery: (() -> Void)?
+  private var actionDeliveryCompletion: (() -> Void)?
+  private var dismissalDeliveryCompletion: (() -> Void)?
+
+  internal func onAction(
+    sessionIdentifier: Int64,
+    actionIdentifier: Int64,
+    completion: @escaping (Result<Void, PigeonError>) -> Void
+  ) {
+    actionDeliveriesWereOnMainThread.append(Thread.isMainThread)
+    actions.append((sessionIdentifier, actionIdentifier))
+    events.append("action:\(sessionIdentifier):\(actionIdentifier)")
+    if suspendsActionDelivery {
+      actionDeliveryCompletion = {
+        completion(.success(()))
+      }
+    } else {
+      completion(.success(()))
+    }
+  }
+
+  internal func onDismissed(
+    sessionIdentifier: Int64,
+    actionInvoked: Bool,
+    completion: @escaping (Result<Void, PigeonError>) -> Void
+  ) {
+    dismissalDeliveriesWereOnMainThread.append(Thread.isMainThread)
+    dismissals.append((sessionIdentifier, actionInvoked))
+    events.append("dismissal:\(sessionIdentifier):\(actionInvoked)")
+    onDismissalDelivery?()
+    if suspendsDismissalDelivery {
+      dismissalDeliveryCompletion = {
+        completion(.success(()))
+      }
+    } else {
+      completion(.success(()))
+    }
+  }
+
+  internal func resumeActionDelivery() {
+    actionDeliveryCompletion?()
+    actionDeliveryCompletion = nil
+  }
+
+  internal func resumeDismissalDelivery() {
+    dismissalDeliveryCompletion?()
+    dismissalDeliveryCompletion = nil
+  }
+}

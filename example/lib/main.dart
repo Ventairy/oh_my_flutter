@@ -8,6 +8,7 @@ import 'package:oh_my_flutter_example/examples/marquee_example.dart';
 import 'package:oh_my_flutter_example/examples/maybe_safe_area_example.dart';
 import 'package:oh_my_flutter_example/examples/morph_example.dart';
 import 'package:oh_my_flutter_example/examples/motion_example.dart';
+import 'package:oh_my_flutter_example/examples/native_selectable_text_example.dart';
 import 'package:oh_my_flutter_example/examples/relative_time_example.dart';
 import 'package:oh_my_flutter_example/examples/route_settled_example.dart';
 import 'package:oh_my_flutter_example/examples/sequence_example.dart';
@@ -64,6 +65,10 @@ class UtilityExample extends StatelessWidget {
                         Text('Skeleton', style: _sectionStyle),
                         SizedBox(height: 12),
                         SkeletonExample(),
+                        SizedBox(height: 32),
+                        Text('NativeSelectableText', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        NativeSelectableTextExample(),
                         SizedBox(height: 32),
                         Text('ControlledVisibility', style: _sectionStyle),
                         SizedBox(height: 12),

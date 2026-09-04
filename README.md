@@ -148,6 +148,12 @@ before it starts moving.
 screen edges, such as notches, rounded corners, and system interface areas. It
 adds protection only when the content reaches an enabled edge.
 
+### NativeSelectableText
+
+`NativeSelectableText` keeps text rendering and selection in Flutter while
+showing native selection menus on Android, iOS, macOS, Windows, and Linux, with
+an adaptive Flutter fallback elsewhere.
+
 ### Sequence
 
 `Sequence` presents one step at a time in an ordered flow, such as onboarding

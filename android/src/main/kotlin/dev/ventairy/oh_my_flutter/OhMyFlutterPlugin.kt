@@ -14,6 +14,7 @@ class OhMyFlutterPlugin :
     private var activityBinding: ActivityPluginBinding? = null
     private var deviceDisplayHandler: DeviceDisplayHandler? = null
     private var deviceLocationHandler: DeviceLocationHandler? = null
+    private var nativeSelectableTextMenuHandler: NativeSelectableTextMenuHandler? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         val displayHandler = DeviceDisplayHandler()
@@ -22,12 +23,17 @@ class OhMyFlutterPlugin :
         deviceLocationHandler = locationHandler
         AndroidDeviceDisplayApi.setUp(binding.binaryMessenger, displayHandler)
         AndroidDeviceLocationApi.setUp(binding.binaryMessenger, locationHandler)
+
+        val selectionMenuHandler = NativeSelectableTextMenuHandler(binding.binaryMessenger)
+        nativeSelectableTextMenuHandler = selectionMenuHandler
+        NativeSelectableTextMenuHostApi.setUp(binding.binaryMessenger, selectionMenuHandler)
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activityBinding = binding
         deviceDisplayHandler?.attachActivity(binding.activity)
         deviceLocationHandler?.attachActivity(binding.activity)
+        nativeSelectableTextMenuHandler?.attachActivity(binding.activity)
         binding.addRequestPermissionsResultListener(this)
     }
 
@@ -36,6 +42,7 @@ class OhMyFlutterPlugin :
         activityBinding = null
         deviceDisplayHandler?.detachActivity()
         deviceLocationHandler?.detachActivityForConfigChanges()
+        nativeSelectableTextMenuHandler?.detachActivity()
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
@@ -47,6 +54,7 @@ class OhMyFlutterPlugin :
         activityBinding = null
         deviceDisplayHandler?.detachActivity()
         deviceLocationHandler?.detachActivity()
+        nativeSelectableTextMenuHandler?.detachActivity()
     }
 
     override fun onRequestPermissionsResult(
@@ -70,5 +78,8 @@ class OhMyFlutterPlugin :
         deviceLocationHandler = null
         AndroidDeviceDisplayApi.setUp(binding.binaryMessenger, null)
         AndroidDeviceLocationApi.setUp(binding.binaryMessenger, null)
+        nativeSelectableTextMenuHandler?.dispose()
+        nativeSelectableTextMenuHandler = null
+        NativeSelectableTextMenuHostApi.setUp(binding.binaryMessenger, null)
     }
 }

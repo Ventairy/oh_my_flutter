@@ -22,6 +22,10 @@ let package = Package(
       resources: [
         .process("Resources")
       ]
-    )
+    ),
+    .testTarget(
+      name: "oh_my_flutterTests",
+      dependencies: ["oh_my_flutter"]
+    ),
   ]
 )
