@@ -1,4 +1,4 @@
-## Unreleased
+## 0.18.0
 
 - Add `NativeSelectableText` for selectable plain or styled Flutter text with
   native selection menus on Android, iOS, macOS, Windows, and Linux, plus an
