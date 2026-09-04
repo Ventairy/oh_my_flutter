@@ -37,7 +37,8 @@ mkdir -p "$PWD/.fvm/versions"
 if [[ ! -e "$version_directory" ]]; then
   if [[ "${RUNNER_OS:-}" == Windows ]]; then
     windows_version_directory="$(cygpath -w "$version_directory")"
-    cmd //c "mklink /J \"$windows_version_directory\" \"$FLUTTER_ROOT\""
+    powershell.exe -NoProfile -NonInteractive -Command \
+      "\$ErrorActionPreference = 'Stop'; New-Item -ItemType Junction -Path '$windows_version_directory' -Target '$FLUTTER_ROOT' | Out-Null"
   else
     ln -s "$FLUTTER_ROOT" "$version_directory"
   fi
