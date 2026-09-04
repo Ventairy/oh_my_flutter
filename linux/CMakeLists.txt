@@ -37,7 +37,7 @@ if (${include_${PROJECT_NAME}_tests})
     include(FetchContent)
     FetchContent_Declare(
       googletest
-      URL https://github.com/google/googletest/archive/release-1.11.0.zip
+      URL https://github.com/google/googletest/archive/v1.18.0.zip
     )
     set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
     set(INSTALL_GTEST OFF CACHE BOOL "Disable installation of googletest" FORCE)
