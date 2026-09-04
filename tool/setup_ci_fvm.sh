@@ -19,7 +19,8 @@ export PATH="$pub_cache_bin:$PATH"
 
 if [[ -n "${GITHUB_PATH:-}" ]]; then
   if [[ "${RUNNER_OS:-}" == Windows ]]; then
-    cygpath -w "$pub_cache_bin" >> "$GITHUB_PATH"
+    github_path_file="$(cygpath -u "$GITHUB_PATH")"
+    cygpath -w "$pub_cache_bin" >> "$github_path_file"
   else
     echo "$pub_cache_bin" >> "$GITHUB_PATH"
   fi
