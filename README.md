@@ -19,7 +19,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.17.0
+  oh_my_flutter: ^0.19.0
 ```
 
 Import the public library wherever you need it:
@@ -66,6 +66,10 @@ result for its users.
 `ColorExtension` adds convenient operations to Flutter colors. It can make a
 color lighter or darker, produce a hexadecimal color value, and begin an OKLCH
 conversion.
+
+### Double validation
+
+`DoubleExtension` adds convenient operations to Flutter doubles.
 
 ### OKLCH colors
 
@@ -199,7 +203,8 @@ when the same part of an application needs both display and location tools.
 
 `DeviceDisplay` reads information about the physical screen. It can report the
 screen's rounded-corner sizes so an interface can align with or avoid them, and
-can optionally estimate those sizes when exact values are unavailable.
+returns null when Flutter or the current mobile platform cannot provide
+trustworthy values.
 
 #### Location
 

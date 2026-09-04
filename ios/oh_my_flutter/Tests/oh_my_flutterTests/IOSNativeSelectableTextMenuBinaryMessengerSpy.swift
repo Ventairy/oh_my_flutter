@@ -6,6 +6,7 @@ internal final class IOSNativeSelectableTextMenuBinaryMessengerSpy: NSObject,
   FlutterBinaryMessenger
 {
   internal private(set) var sendsWereOnMainThread: [Bool] = []
+  internal private(set) var messageHandlers: [String: FlutterBinaryMessageHandler] = [:]
 
   internal func send(onChannel _: String, message _: Data?) {
     sendsWereOnMainThread.append(Thread.isMainThread)
@@ -21,10 +22,15 @@ internal final class IOSNativeSelectableTextMenuBinaryMessengerSpy: NSObject,
   }
 
   internal func setMessageHandlerOnChannel(
-    _: String,
-    binaryMessageHandler _: FlutterBinaryMessageHandler? = nil
+    _ channel: String,
+    binaryMessageHandler handler: FlutterBinaryMessageHandler? = nil
   ) -> FlutterBinaryMessengerConnection {
-    0
+    if let handler {
+      messageHandlers[channel] = handler
+    } else {
+      messageHandlers.removeValue(forKey: channel)
+    }
+    return 0
   }
 
   internal func cleanUpConnection(_: FlutterBinaryMessengerConnection) {}

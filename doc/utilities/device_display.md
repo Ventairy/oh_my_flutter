@@ -27,39 +27,24 @@ const device = Device();
 final radii = await device.display.cornerRadii(context);
 ```
 
-By default, `cornerRadii()` returns only exact corner data exposed to Flutter
-for the current view. It returns null when Flutter does not provide that data.
-An exact zero radius is a valid result and is never treated as missing.
+`cornerRadii()` first returns corner data exposed by Flutter for the current
+view. When Flutter does not provide it, the package asks supported mobile
+platforms for trustworthy display information:
 
-### Allow an estimate
+- Android 12 (API 31) and newer can provide the current rounded corners
+  directly.
+- Older Android versions can use corner sizes declared by the device
+  manufacturer when the app occupies an unambiguous default display.
+- iOS 26 and newer can provide the display shape through public UIKit APIs.
+- iOS 15 through 25 return null when Flutter has no value because those
+  versions do not expose a public display-corner measurement.
+- Web, desktop platforms, and unsupported display configurations return null
+  when Flutter has no value.
 
-Set `estimate: true` when an approximate result is preferable to no result:
-
-```dart
-final radii = await const DeviceDisplay().cornerRadii(
-  context,
-  estimate: true,
-);
-```
-
-Exact Flutter data always wins, even when estimation is allowed. When exact
-data is unavailable, Android may consult display information supplied by the
-operating system or device manufacturer before using the approximate phone
-fallback. The package does not install a native display-corner probe on iOS;
-on iOS, a missing Flutter value can only use the approximate phone fallback.
-
-An estimate is intended for visual alignment, such as making a surface near a
-screen edge feel concentric with the display. It is not a physical
-measurement, and future or unusual devices can differ from the returned
-value. Do not use it for safety-critical placement, hardware identification,
-or avoiding camera housings and other display cutouts. Continue to use
-Flutter's safe-area and display-feature APIs for content avoidance.
-
-The approximate fallback is limited to phones. Tablets, desktop platforms,
-web, and other form factors return null unless Flutter or a supported platform
-signal provides usable corner data. A fallback-enabled call also returns null
-when the current view does not provide enough valid display geometry to form a
-responsible estimate.
+A zero radius is a valid result and is never treated as missing. The package
+does not infer a radius from the safe area, device dimensions, model name, or
+another approximate signal. Continue to use Flutter's safe-area and
+display-feature APIs for avoiding system interfaces and display cutouts.
 
 Call the method again after moving the view to another display or when the
 application needs a value for a new layout configuration. The returned

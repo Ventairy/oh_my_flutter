@@ -2,18 +2,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:oh_my_flutter/src/device/device_display/device_display_platform_corner_radii.dart';
-import 'package:oh_my_flutter/src/device/device_display/pigeon/android_device_display.g.dart';
+import 'package:oh_my_flutter/src/device/device_display/pigeon/device_display.g.dart';
 import 'package:oh_my_flutter/src/device/device_display/pigeon_device_display.dart';
 
-part '_mock_android_device_display_api.dart';
+part '_mock_device_display_host_api.dart';
 
 void main() {
-  late AndroidDeviceDisplayApi api;
+  late DeviceDisplayHostApi api;
   late PigeonDeviceDisplayPlatform platform;
 
   setUpAll(() {
     registerFallbackValue(
-      AndroidDeviceDisplayGeometry(
+      DeviceDisplayGeometryMessage(
         displayWidth: 0,
         displayHeight: 0,
         viewWidth: 0,
@@ -23,7 +23,7 @@ void main() {
   });
 
   setUp(() {
-    api = _MockAndroidDeviceDisplayApi();
+    api = _MockDeviceDisplayHostApi();
     platform = PigeonDeviceDisplayPlatform.test(api);
   });
 
@@ -40,10 +40,10 @@ void main() {
   }
 
   test(
-    'when Android returns corner radii, it should preserve every physical value',
+    'when the host returns corner radii, it should preserve every physical value',
     () async {
       when(() => api.getCornerRadii(any())).thenAnswer(
-        (_) async => AndroidDeviceDisplayCornerRadii(
+        (_) async => DeviceDisplayCornerRadiiMessage(
           topLeft: 10,
           topRight: 20,
           bottomRight: 30,
@@ -66,7 +66,7 @@ void main() {
   );
 
   test(
-    'when Android returns no corner radii, it should return null',
+    'when the host returns no corner radii, it should return null',
     () async {
       when(() => api.getCornerRadii(any())).thenAnswer((_) async => null);
 
@@ -75,7 +75,7 @@ void main() {
   );
 
   test(
-    'when Android evidence is requested, it should send the Flutter view geometry',
+    'when platform evidence is requested, it should send the Flutter view geometry',
     () async {
       when(() => api.getCornerRadii(any())).thenAnswer((_) async => null);
 
@@ -84,7 +84,7 @@ void main() {
           verify(
                 () => api.getCornerRadii(captureAny()),
               ).captured.single
-              as AndroidDeviceDisplayGeometry;
+              as DeviceDisplayGeometryMessage;
 
       expect(
         (
@@ -99,7 +99,7 @@ void main() {
   );
 
   test(
-    'when multiple Flutter views exist, it should not query the Android window',
+    'when multiple Flutter views exist, it should not query the platform window',
     () async {
       await readCornerRadii(hasSinglePlatformView: false);
 
@@ -108,10 +108,10 @@ void main() {
   );
 
   test(
-    'when Android returns zero corner radii, it should preserve every zero',
+    'when the host returns zero corner radii, it should preserve every zero',
     () async {
       when(() => api.getCornerRadii(any())).thenAnswer(
-        (_) async => AndroidDeviceDisplayCornerRadii(
+        (_) async => DeviceDisplayCornerRadiiMessage(
           topLeft: 0,
           topRight: 0,
           bottomRight: 0,
@@ -133,20 +133,20 @@ void main() {
     },
   );
 
-  for (final entry in <String, AndroidDeviceDisplayCornerRadii>{
-    'a non-finite top-left radius': AndroidDeviceDisplayCornerRadii(
+  for (final entry in <String, DeviceDisplayCornerRadiiMessage>{
+    'a non-finite top-left radius': DeviceDisplayCornerRadiiMessage(
       topLeft: double.nan,
       topRight: 0,
       bottomRight: 0,
       bottomLeft: 0,
     ),
-    'a non-finite top-right radius': AndroidDeviceDisplayCornerRadii(
+    'a non-finite top-right radius': DeviceDisplayCornerRadiiMessage(
       topLeft: 0,
       topRight: double.infinity,
       bottomRight: 0,
       bottomLeft: 0,
     ),
-    'a negative bottom-right radius': AndroidDeviceDisplayCornerRadii(
+    'a negative bottom-right radius': DeviceDisplayCornerRadiiMessage(
       topLeft: 0,
       topRight: 0,
       bottomRight: -1,
@@ -154,7 +154,7 @@ void main() {
     ),
   }.entries) {
     test(
-      'when Android returns ${entry.key}, it should return null',
+      'when the host returns ${entry.key}, it should return null',
       () async {
         when(() => api.getCornerRadii(any())).thenAnswer(
           (_) async => entry.value,
@@ -166,7 +166,7 @@ void main() {
   }
 
   test(
-    'when the Android channel fails, it should return null',
+    'when the platform channel fails, it should return null',
     () async {
       when(() => api.getCornerRadii(any())).thenAnswer(
         (_) async => throw PlatformException(code: 'channel-error'),

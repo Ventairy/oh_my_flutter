@@ -1,3 +1,12 @@
+## 0.19.0
+
+- **Breaking:** Remove the `estimate` option from
+  `DeviceDisplay.cornerRadii()`. Display corners now come only from Flutter,
+  Android platform information, or public iOS 26 UIKit information and return
+  null when trustworthy values are unavailable.
+- Add `DoubleExtension.isPositiveFinite` for identifying finite `double`
+  values that are strictly greater than zero.
+
 ## 0.18.0
 
 - Add `NativeSelectableText` for selectable plain or styled Flutter text with

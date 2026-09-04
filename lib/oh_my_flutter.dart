@@ -21,6 +21,7 @@ export 'src/exceptions/device_location_exception_reason.dart' show DeviceLocatio
 export 'src/exceptions/offline_connection_dio_exception.dart' show OfflineConnectionDioException;
 export 'src/extensions/color_extension.dart' show ColorExtension;
 export 'src/extensions/date_time_extension/date_time_extension.dart' show DateTimeExtension, TimeAgoFallback;
+export 'src/extensions/double_extension.dart' show DoubleExtension;
 export 'src/extensions/object_extension.dart' show ObjectExtension;
 export 'src/extensions/oklch_extension.dart' show OklchExtension;
 export 'src/extensions/velocity_extension.dart' show VelocityExtension;

@@ -4,30 +4,32 @@ import 'package:pigeon/pigeon.dart';
 // intentionally keeps its related declarations together.
 @ConfigurePigeon(
   PigeonOptions(
-    dartOut: 'lib/src/device/device_display/pigeon/android_device_display.g.dart',
+    dartOut: 'lib/src/device/device_display/pigeon/device_display.g.dart',
     dartOptions: DartOptions(),
-    kotlinOut: 'android/src/main/kotlin/dev/ventairy/oh_my_flutter/device_display/AndroidDeviceDisplay.g.kt',
+    kotlinOut: 'android/src/main/kotlin/dev/ventairy/oh_my_flutter/device_display/DeviceDisplay.g.kt',
     kotlinOptions: KotlinOptions(
       package: 'dev.ventairy.oh_my_flutter.device_display',
     ),
+    swiftOut: 'ios/oh_my_flutter/Sources/oh_my_flutter/DeviceDisplay.g.swift',
+    swiftOptions: SwiftOptions(),
     dartPackageName: 'oh_my_flutter',
   ),
 )
-/// Defines the Android host operations used by the display implementation.
+/// Defines the host operations used by the display implementation.
 @HostApi()
 // Pigeon host APIs must be abstract even when they expose a single operation.
 // ignore: one_member_abstracts
-abstract class AndroidDeviceDisplayApi {
+abstract class DeviceDisplayHostApi {
   /// Returns the current display corner radii in physical pixels.
-  AndroidDeviceDisplayCornerRadii? getCornerRadii(
-    AndroidDeviceDisplayGeometry geometry,
+  DeviceDisplayCornerRadiiMessage? getCornerRadii(
+    DeviceDisplayGeometryMessage geometry,
   );
 }
 
-/// Identifies the Flutter view geometry requesting Android display evidence.
-class AndroidDeviceDisplayGeometry {
+/// Identifies the Flutter view geometry requesting platform display evidence.
+class DeviceDisplayGeometryMessage {
   /// Creates a physical-pixel geometry snapshot.
-  AndroidDeviceDisplayGeometry({
+  DeviceDisplayGeometryMessage({
     required this.displayWidth,
     required this.displayHeight,
     required this.viewWidth,
@@ -47,10 +49,10 @@ class AndroidDeviceDisplayGeometry {
   final double viewHeight;
 }
 
-/// Carries Android display corner radii across the platform channel.
-class AndroidDeviceDisplayCornerRadii {
+/// Carries platform display corner radii across the platform channel.
+class DeviceDisplayCornerRadiiMessage {
   /// Creates a message with current-orientation physical-pixel radii.
-  AndroidDeviceDisplayCornerRadii({
+  DeviceDisplayCornerRadiiMessage({
     required this.topLeft,
     required this.topRight,
     required this.bottomRight,

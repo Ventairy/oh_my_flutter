@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: setup generate-pigeons generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon check-pigeons check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon collect-device-display-model generate-device-display-model validate-device-display-model validate-device-display-collectors check-device-display-publish-archive format check-format analyze test update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-macos-native-code validate-linux-native-code validate-windows-native-code validate-native-code dry-run-publish analyze-package check clean
+.PHONY: setup generate-pigeons generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon check-pigeons check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon format check-format analyze test update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-macos-native-code validate-linux-native-code validate-windows-native-code validate-native-code dry-run-publish analyze-package check clean
 
 setup:
 	fvm install
@@ -25,21 +25,6 @@ check-device-display-pigeon:
 	./tool/check_device_display_pigeon.sh
 
 check-pigeons: check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon
-
-collect-device-display-model:
-	./tool/device_display_model/collect_device_display_model.sh
-
-generate-device-display-model:
-	./tool/device_display_model/generate_device_display_model.sh
-
-validate-device-display-model:
-	./tool/device_display_model/validate_device_display_model.sh
-
-validate-device-display-collectors:
-	if [ "$$(uname -s)" = "Darwin" ]; then ./tool/device_display_model/validate_device_display_collectors.sh; else fvm dart run tool/device_display_model/device_display_model.dart check-collectors; fi
-
-check-device-display-publish-archive:
-	./tool/device_display_model/check_device_display_publish_archive.sh
 
 check-native-selectable-text-pigeon:
 	./tool/check_native_selectable_text_pigeon.sh
@@ -140,7 +125,7 @@ analyze-package:
 	fvm dart pub global activate pana
 	fvm dart pub global run pana .
 
-check: check-pigeons validate-device-display-model validate-device-display-collectors check-format analyze test generate-api-docs check-example validate-native-code dry-run-publish check-device-display-publish-archive
+check: check-pigeons check-format analyze test generate-api-docs check-example validate-native-code dry-run-publish
 
 clean:
 	fvm flutter clean

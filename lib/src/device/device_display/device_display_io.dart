@@ -5,7 +5,7 @@ import 'device_display_platform_corner_radii.dart';
 import 'device_display_unsupported.dart' as unsupported;
 import 'pigeon_device_display.dart';
 
-/// Selects the Android device-display implementation for this process.
+/// Selects the mobile device-display implementation for this process.
 final class DeviceDisplayPlatformImplementation extends DeviceDisplayPlatform {
   /// Creates the implementation for the current operating system.
   DeviceDisplayPlatformImplementation() : _platform = _createPlatform();
@@ -13,7 +13,9 @@ final class DeviceDisplayPlatformImplementation extends DeviceDisplayPlatform {
   final DeviceDisplayPlatform _platform;
 
   static DeviceDisplayPlatform _createPlatform() {
-    if (Platform.isAndroid) return PigeonDeviceDisplayPlatform();
+    if (Platform.isAndroid || Platform.isIOS) {
+      return PigeonDeviceDisplayPlatform();
+    }
     return unsupported.DeviceDisplayPlatformImplementation();
   }
 

@@ -18,8 +18,9 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   start with a clear action verb such as `check`, `generate`, `test`, or
   `validate`; do not use platform-only or tool-only names that require reading
   the recipe to understand the operation.
-- Run `make check` before every pull request and `make analyze-package` for
-  publication changes.
+- Validate each task only with the focused tests, analysis, or other checks that
+  cover its changed scope. Do not routinely run `make check`,
+  `make analyze-package`, or other package-wide validation.
 
 ## Public API
 
@@ -28,6 +29,11 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   encode one app's business logic, styling, motion preferences, layout choices,
   content assumptions, or other product-specific decisions in this package.
   Expose product choices as explicit consumer configuration instead.
+- When an implementation needs new functionality, assess whether it is
+  implementation-independent and useful across unrelated applications. If it
+  is, expose it through an appropriately named public method, extension member,
+  class, enum, or other API and complete its documentation and tests. Keep
+  implementation-specific helpers private.
 - Add a default only when it represents neutral, broadly applicable behavior;
   never choose one merely because it suits the current consumer. Configurable
   animation curves default to `Curves.linear`; consumers must explicitly opt
@@ -176,7 +182,7 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   bug fix, or refinement. Use more granular entries only for changes made after
   the feature has appeared in a public release.
 - Keep the example runnable and limited to public imports.
-- Verify `make check`, `make analyze-package`, and an inspected zero-warning
-  publish dry run.
+- Immediately before publishing, verify `make check`, `make analyze-package`,
+  and an inspected zero-warning publish dry run.
 - Never run a real `pub publish` command without explicit release authorization.
 - Release tags are immutable and must match `pubspec.yaml` (`v0.1.0` for version `0.1.0`).

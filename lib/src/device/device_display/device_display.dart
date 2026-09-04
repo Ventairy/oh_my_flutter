@@ -4,9 +4,9 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
+import '../../extensions/double_extension.dart';
 import 'device_display_platform.dart';
 import 'device_display_platform_corner_radii.dart';
-import 'estimator/device_display_estimator.dart';
 
 part 'device_display_metrics_epoch.dart';
 
@@ -21,71 +21,25 @@ interface class DeviceDisplay {
   /// Creates a utility for working with device-display capabilities.
   const DeviceDisplay();
 
-  static const _maximumAndroidRequestCacheEntries = 8;
-  static final Map<Object, Future<DeviceDisplayPlatformCornerRadii?>> _pendingAndroidRequests = {};
-  static final Map<Object, DeviceDisplayPlatformCornerRadii> _completedAndroidRequests = {};
+  static const _maximumRequestCacheEntries = 8;
+  static final Map<Object, Future<DeviceDisplayPlatformCornerRadii?>> _pendingRequests = {};
+  static final Map<Object, DeviceDisplayPlatformCornerRadii> _completedRequests = {};
 
   /// Returns the current display corner radii in logical pixels.
   ///
-  /// The exact value supplied by Flutter is returned whenever it is available,
-  /// including [BorderRadius.zero]. When Flutter does not supply a value and
-  /// [estimate] is false, this method returns null.
-  ///
-  /// Set [estimate] to true to allow supported Android display evidence and an
-  /// approximate fallback for an iOS or Android phone. Estimation can differ
-  /// from the physical display contour. A non-phone display returns null unless
-  /// Flutter or Android supplies usable corner data.
-  Future<BorderRadius?> cornerRadii(
-    BuildContext context, {
-    bool estimate = false,
-  }) {
+  /// Flutter-provided values take priority, including [BorderRadius.zero].
+  /// When Flutter has no value, supported mobile platforms are queried for
+  /// trustworthy display information. This method returns null when no such
+  /// information is available.
+  Future<BorderRadius?> cornerRadii(BuildContext context) {
     final view = View.maybeOf(context);
     final exact = MediaQuery.maybeDisplayCornerRadiiOf(context) ?? _exactCornerRadiiFromView(view);
-    if (exact != null || !estimate) return Future<BorderRadius?>.value(exact);
+    if (exact != null) return Future<BorderRadius?>.value(exact);
 
     final snapshot = _captureSnapshot(view);
     if (snapshot == null) return Future<BorderRadius?>.value();
 
-    return _estimatedCornerRadii(
-      snapshot.metrics,
-      displayId: snapshot.displayId,
-      viewId: snapshot.viewId,
-      metricsEpoch: snapshot.metricsEpoch,
-      displayFeaturesKey: snapshot.displayFeaturesKey,
-      hasSinglePlatformView: snapshot.hasSinglePlatformView,
-    );
-  }
-
-  static Future<BorderRadius?> _estimatedCornerRadii(
-    DeviceDisplayMetrics metrics, {
-    required int? displayId,
-    required int? viewId,
-    required int? metricsEpoch,
-    required String? displayFeaturesKey,
-    required bool hasSinglePlatformView,
-  }) async {
-    if (metrics.platformKind == DeviceDisplayPlatformKind.android &&
-        hasSinglePlatformView &&
-        displayId != null &&
-        viewId != null &&
-        metricsEpoch != null &&
-        displayFeaturesKey != null) {
-      final platformRadii = await _androidCornerRadii(
-        metrics,
-        displayId: displayId,
-        viewId: viewId,
-        metricsEpoch: metricsEpoch,
-        displayFeaturesKey: displayFeaturesKey,
-      );
-      final logicalRadii = _logicalCornerRadii(
-        platformRadii,
-        metrics: metrics,
-      );
-      if (logicalRadii != null) return logicalRadii;
-    }
-
-    if (!_isPhone(metrics)) return null;
-    return DeviceDisplayEstimator.estimate(metrics);
+    return _platformCornerRadii(snapshot);
   }
 
   static BorderRadius? _exactCornerRadiiFromView(ui.FlutterView? view) {
@@ -93,7 +47,7 @@ interface class DeviceDisplay {
 
     final radii = view.displayCornerRadii;
     final devicePixelRatio = view.devicePixelRatio;
-    if (radii == null || !_isPositiveFinite(devicePixelRatio)) return null;
+    if (radii == null || !devicePixelRatio.isPositiveFinite) return null;
 
     return BorderRadius.only(
       topLeft: Radius.circular(radii.topLeft / devicePixelRatio),
@@ -104,199 +58,156 @@ interface class DeviceDisplay {
   }
 
   static ({
-    DeviceDisplayMetrics metrics,
-    int? displayId,
-    int? viewId,
-    int? metricsEpoch,
-    String? displayFeaturesKey,
+    TargetPlatform platform,
+    Size displayPhysicalSize,
+    Size viewPhysicalSize,
+    double devicePixelRatio,
+    int displayId,
+    int viewId,
+    int metricsEpoch,
     bool hasSinglePlatformView,
   })?
   _captureSnapshot(ui.FlutterView? view) {
-    final platformKind = _platformKind;
-    if (view == null || platformKind == null) return null;
-    final isAndroid = platformKind == DeviceDisplayPlatformKind.android;
+    final platform = defaultTargetPlatform;
+    if (view == null || !_supportsPlatformCornerRadii(platform)) return null;
 
     final devicePixelRatio = view.devicePixelRatio;
     final displayPhysicalSize = view.display.size;
     final viewPhysicalSize = view.physicalSize;
-    if (!_isPositiveFinite(devicePixelRatio) ||
-        !_isUsableSize(displayPhysicalSize) ||
-        !_isUsableSize(viewPhysicalSize)) {
+    if (!devicePixelRatio.isPositiveFinite ||
+        !displayPhysicalSize.width.isPositiveFinite ||
+        !displayPhysicalSize.height.isPositiveFinite ||
+        !viewPhysicalSize.width.isPositiveFinite ||
+        !viewPhysicalSize.height.isPositiveFinite) {
       return null;
-    }
-    if (viewPhysicalSize.width > displayPhysicalSize.width + 1 ||
-        viewPhysicalSize.height > displayPhysicalSize.height + 1) {
-      return null;
-    }
-
-    Rect? displayCutoutBounds;
-    var displayCutoutCount = 0;
-    var hasFoldOrHinge = false;
-    final displayFeaturesKey = isAndroid ? StringBuffer() : null;
-    for (final feature in view.displayFeatures) {
-      if (displayFeaturesKey != null) {
-        displayFeaturesKey
-          ..write(feature.type.index)
-          ..write(':')
-          ..write(feature.state.index)
-          ..write(':')
-          ..write(feature.bounds.left)
-          ..write(',')
-          ..write(feature.bounds.top)
-          ..write(',')
-          ..write(feature.bounds.right)
-          ..write(',')
-          ..write(feature.bounds.bottom)
-          ..write(';');
-      }
-      if (feature.type == ui.DisplayFeatureType.fold || feature.type == ui.DisplayFeatureType.hinge) {
-        hasFoldOrHinge = true;
-        continue;
-      }
-      if (feature.type != ui.DisplayFeatureType.cutout) continue;
-
-      displayCutoutCount += 1;
-      displayCutoutBounds = displayCutoutBounds == null
-          ? feature.bounds
-          : displayCutoutBounds.expandToInclude(feature.bounds);
     }
 
     return (
-      metrics: DeviceDisplayMetrics(
-        platformKind: platformKind,
-        displaySize: displayPhysicalSize / devicePixelRatio,
-        viewSize: viewPhysicalSize / devicePixelRatio,
-        devicePixelRatio: devicePixelRatio,
-        viewPadding: EdgeInsets.fromViewPadding(
-          view.viewPadding,
-          devicePixelRatio,
-        ),
-        systemGestureInsets: EdgeInsets.fromViewPadding(
-          view.systemGestureInsets,
-          devicePixelRatio,
-        ),
-        displayCutoutBounds: displayCutoutBounds,
-        displayCutoutCount: displayCutoutCount,
-        hasFoldOrHinge: hasFoldOrHinge,
-      ),
-      displayId: isAndroid ? view.display.id : null,
-      viewId: isAndroid ? view.viewId : null,
-      metricsEpoch: isAndroid ? _DeviceDisplayMetricsEpoch.current : null,
-      displayFeaturesKey: displayFeaturesKey?.toString(),
-      hasSinglePlatformView: isAndroid && view.platformDispatcher.views.length == 1,
+      platform: platform,
+      displayPhysicalSize: displayPhysicalSize,
+      viewPhysicalSize: viewPhysicalSize,
+      devicePixelRatio: devicePixelRatio,
+      displayId: view.display.id,
+      viewId: view.viewId,
+      metricsEpoch: _DeviceDisplayMetricsEpoch.current,
+      hasSinglePlatformView: view.platformDispatcher.views.length == 1,
     );
   }
 
-  static DeviceDisplayPlatformKind? get _platformKind {
-    if (kIsWeb) return null;
+  static bool _supportsPlatformCornerRadii(TargetPlatform platform) {
+    if (kIsWeb) return false;
 
-    return switch (defaultTargetPlatform) {
-      TargetPlatform.android => DeviceDisplayPlatformKind.android,
-      TargetPlatform.iOS => DeviceDisplayPlatformKind.ios,
-      TargetPlatform.fuchsia || TargetPlatform.linux || TargetPlatform.macOS || TargetPlatform.windows => null,
-    };
+    return platform == TargetPlatform.android || platform == TargetPlatform.iOS;
   }
 
-  static bool _isPhone(DeviceDisplayMetrics metrics) {
-    final shortSide = metrics.displaySize.shortestSide;
-    final longSide = metrics.displaySize.longestSide;
-    final aspectRatio = longSide / shortSide;
-    return !metrics.hasFoldOrHinge && shortSide >= 240 && shortSide < 600 && aspectRatio >= 4 / 3 && aspectRatio <= 3;
-  }
-
-  static Future<DeviceDisplayPlatformCornerRadii?> _androidCornerRadii(
-    DeviceDisplayMetrics metrics, {
-    required int displayId,
-    required int viewId,
-    required int metricsEpoch,
-    required String displayFeaturesKey,
-  }) {
+  static Future<BorderRadius?> _platformCornerRadii(
+    ({
+      TargetPlatform platform,
+      Size displayPhysicalSize,
+      Size viewPhysicalSize,
+      double devicePixelRatio,
+      int displayId,
+      int viewId,
+      int metricsEpoch,
+      bool hasSinglePlatformView,
+    })
+    snapshot,
+  ) async {
+    final platformImplementation = DeviceDisplayPlatform.instance;
     final key = (
-      platform: DeviceDisplayPlatform.instance,
-      displayId: displayId,
-      viewId: viewId,
-      metricsEpoch: metricsEpoch,
-      displaySize: metrics.displaySize,
-      viewSize: metrics.viewSize,
-      devicePixelRatio: metrics.devicePixelRatio,
-      viewPadding: metrics.viewPadding,
-      systemGestureInsets: metrics.systemGestureInsets,
-      displayCutoutBounds: metrics.displayCutoutBounds,
-      displayCutoutCount: metrics.displayCutoutCount,
-      hasFoldOrHinge: metrics.hasFoldOrHinge,
-      displayFeaturesKey: displayFeaturesKey,
+      implementation: platformImplementation,
+      platform: snapshot.platform,
+      displayId: snapshot.displayId,
+      viewId: snapshot.viewId,
+      metricsEpoch: snapshot.metricsEpoch,
+      displayPhysicalSize: snapshot.displayPhysicalSize,
+      viewPhysicalSize: snapshot.viewPhysicalSize,
+      devicePixelRatio: snapshot.devicePixelRatio,
+      hasSinglePlatformView: snapshot.hasSinglePlatformView,
     );
-    final completed = _completedAndroidRequests[key];
+    final completed = _completedRequests[key];
     if (completed != null) {
-      return Future<DeviceDisplayPlatformCornerRadii?>.value(completed);
+      return _logicalCornerRadii(
+        completed,
+        displayPhysicalSize: snapshot.displayPhysicalSize,
+        devicePixelRatio: snapshot.devicePixelRatio,
+      );
     }
-    final pending = _pendingAndroidRequests[key];
-    if (pending != null) return pending;
 
-    final request = _performAndCacheAndroidCornerRadiiRequest(
-      key,
-      metrics: metrics,
+    final pending = _pendingRequests[key];
+    final physicalRadii =
+        pending ??
+        _startPlatformRequest(
+          key,
+          platformImplementation: platformImplementation,
+          displayPhysicalSize: snapshot.displayPhysicalSize,
+          viewPhysicalSize: snapshot.viewPhysicalSize,
+          hasSinglePlatformView: snapshot.hasSinglePlatformView,
+        );
+    return _logicalCornerRadii(
+      await physicalRadii,
+      displayPhysicalSize: snapshot.displayPhysicalSize,
+      devicePixelRatio: snapshot.devicePixelRatio,
     );
-    _pendingAndroidRequests[key] = request;
+  }
+
+  static Future<DeviceDisplayPlatformCornerRadii?> _startPlatformRequest(
+    Object key, {
+    required DeviceDisplayPlatform platformImplementation,
+    required Size displayPhysicalSize,
+    required Size viewPhysicalSize,
+    required bool hasSinglePlatformView,
+  }) {
+    final request = _performAndCachePlatformRequest(
+      key,
+      platformImplementation: platformImplementation,
+      displayPhysicalSize: displayPhysicalSize,
+      viewPhysicalSize: viewPhysicalSize,
+      hasSinglePlatformView: hasSinglePlatformView,
+    );
+    _pendingRequests[key] = request;
     return request;
   }
 
-  static Future<DeviceDisplayPlatformCornerRadii?> _performAndCacheAndroidCornerRadiiRequest(
+  static Future<DeviceDisplayPlatformCornerRadii?> _performAndCachePlatformRequest(
     Object key, {
-    required DeviceDisplayMetrics metrics,
+    required DeviceDisplayPlatform platformImplementation,
+    required Size displayPhysicalSize,
+    required Size viewPhysicalSize,
+    required bool hasSinglePlatformView,
   }) async {
     try {
-      final radii = await _performAndroidCornerRadiiRequest(metrics);
-      if (radii == null) return null;
-      if (_completedAndroidRequests.length >= _maximumAndroidRequestCacheEntries) {
-        _completedAndroidRequests.remove(
-          _completedAndroidRequests.keys.first,
-        );
-      }
-      _completedAndroidRequests[key] = radii;
-      return radii;
-    } finally {
-      unawaited(_pendingAndroidRequests.remove(key));
-    }
-  }
-
-  static Future<DeviceDisplayPlatformCornerRadii?> _performAndroidCornerRadiiRequest(
-    DeviceDisplayMetrics metrics,
-  ) async {
-    final devicePixelRatio = metrics.devicePixelRatio;
-    try {
-      return await DeviceDisplayPlatform.instance.getCornerRadii(
-        displayWidth: metrics.displaySize.width * devicePixelRatio,
-        displayHeight: metrics.displaySize.height * devicePixelRatio,
-        viewWidth: metrics.viewSize.width * devicePixelRatio,
-        viewHeight: metrics.viewSize.height * devicePixelRatio,
-        hasSinglePlatformView: true,
+      final radii = await platformImplementation.getCornerRadii(
+        displayWidth: displayPhysicalSize.width,
+        displayHeight: displayPhysicalSize.height,
+        viewWidth: viewPhysicalSize.width,
+        viewHeight: viewPhysicalSize.height,
+        hasSinglePlatformView: hasSinglePlatformView,
       );
+      if (radii == null || !_isValidPlatformRadii(radii, displayPhysicalSize)) {
+        return null;
+      }
+      if (_completedRequests.length >= _maximumRequestCacheEntries) {
+        _completedRequests.remove(_completedRequests.keys.first);
+      }
+      _completedRequests[key] = radii;
+      return radii;
     } on Object {
       return null;
+    } finally {
+      unawaited(_pendingRequests.remove(key));
     }
   }
 
   static BorderRadius? _logicalCornerRadii(
     DeviceDisplayPlatformCornerRadii? radii, {
-    required DeviceDisplayMetrics metrics,
+    required Size displayPhysicalSize,
+    required double devicePixelRatio,
   }) {
-    if (radii == null) return null;
-
-    final physicalLimit = metrics.displaySize.shortestSide * metrics.devicePixelRatio / 2;
-    final values = [
-      radii.topLeft,
-      radii.topRight,
-      radii.bottomRight,
-      radii.bottomLeft,
-    ];
-    if (values.any(
-      (value) => !value.isFinite || value < 0 || value > physicalLimit,
-    )) {
+    if (radii == null || !_isValidPlatformRadii(radii, displayPhysicalSize)) {
       return null;
     }
 
-    final devicePixelRatio = metrics.devicePixelRatio;
     return BorderRadius.only(
       topLeft: Radius.circular(radii.topLeft / devicePixelRatio),
       topRight: Radius.circular(radii.topRight / devicePixelRatio),
@@ -305,11 +216,19 @@ interface class DeviceDisplay {
     );
   }
 
-  static bool _isUsableSize(Size size) {
-    return _isPositiveFinite(size.width) && _isPositiveFinite(size.height);
-  }
-
-  static bool _isPositiveFinite(double value) {
-    return value.isFinite && value > 0;
+  static bool _isValidPlatformRadii(
+    DeviceDisplayPlatformCornerRadii radii,
+    Size displayPhysicalSize,
+  ) {
+    final physicalLimit = displayPhysicalSize.shortestSide / 2;
+    final values = [
+      radii.topLeft,
+      radii.topRight,
+      radii.bottomRight,
+      radii.bottomLeft,
+    ];
+    return values.every(
+      (value) => value.isFinite && value >= 0 && value <= physicalLimit,
+    );
   }
 }

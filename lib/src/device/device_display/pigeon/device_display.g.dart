@@ -94,9 +94,9 @@ int _deepHash(Object? value) {
   return value.hashCode;
 }
 
-/// Identifies the Flutter view geometry requesting Android display evidence.
-class AndroidDeviceDisplayGeometry {
-  AndroidDeviceDisplayGeometry({
+/// Identifies the Flutter view geometry requesting platform display evidence.
+class DeviceDisplayGeometryMessage {
+  DeviceDisplayGeometryMessage({
     required this.displayWidth,
     required this.displayHeight,
     required this.viewWidth,
@@ -128,9 +128,9 @@ class AndroidDeviceDisplayGeometry {
     return _toList();
   }
 
-  static AndroidDeviceDisplayGeometry decode(Object result) {
+  static DeviceDisplayGeometryMessage decode(Object result) {
     result as List<Object?>;
-    return AndroidDeviceDisplayGeometry(
+    return DeviceDisplayGeometryMessage(
       displayWidth: result[0]! as double,
       displayHeight: result[1]! as double,
       viewWidth: result[2]! as double,
@@ -141,7 +141,7 @@ class AndroidDeviceDisplayGeometry {
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) {
-    if (other is! AndroidDeviceDisplayGeometry || other.runtimeType != runtimeType) {
+    if (other is! DeviceDisplayGeometryMessage || other.runtimeType != runtimeType) {
       return false;
     }
     if (identical(this, other)) {
@@ -159,13 +159,13 @@ class AndroidDeviceDisplayGeometry {
 
   @override
   String toString() {
-    return 'AndroidDeviceDisplayGeometry(displayWidth: $displayWidth, displayHeight: $displayHeight, viewWidth: $viewWidth, viewHeight: $viewHeight)';
+    return 'DeviceDisplayGeometryMessage(displayWidth: $displayWidth, displayHeight: $displayHeight, viewWidth: $viewWidth, viewHeight: $viewHeight)';
   }
 }
 
-/// Carries Android display corner radii across the platform channel.
-class AndroidDeviceDisplayCornerRadii {
-  AndroidDeviceDisplayCornerRadii({
+/// Carries platform display corner radii across the platform channel.
+class DeviceDisplayCornerRadiiMessage {
+  DeviceDisplayCornerRadiiMessage({
     required this.topLeft,
     required this.topRight,
     required this.bottomRight,
@@ -197,9 +197,9 @@ class AndroidDeviceDisplayCornerRadii {
     return _toList();
   }
 
-  static AndroidDeviceDisplayCornerRadii decode(Object result) {
+  static DeviceDisplayCornerRadiiMessage decode(Object result) {
     result as List<Object?>;
-    return AndroidDeviceDisplayCornerRadii(
+    return DeviceDisplayCornerRadiiMessage(
       topLeft: result[0]! as double,
       topRight: result[1]! as double,
       bottomRight: result[2]! as double,
@@ -210,7 +210,7 @@ class AndroidDeviceDisplayCornerRadii {
   @override
   // ignore: avoid_equals_and_hash_code_on_mutable_classes
   bool operator ==(Object other) {
-    if (other is! AndroidDeviceDisplayCornerRadii || other.runtimeType != runtimeType) {
+    if (other is! DeviceDisplayCornerRadiiMessage || other.runtimeType != runtimeType) {
       return false;
     }
     if (identical(this, other)) {
@@ -228,7 +228,7 @@ class AndroidDeviceDisplayCornerRadii {
 
   @override
   String toString() {
-    return 'AndroidDeviceDisplayCornerRadii(topLeft: $topLeft, topRight: $topRight, bottomRight: $bottomRight, bottomLeft: $bottomLeft)';
+    return 'DeviceDisplayCornerRadiiMessage(topLeft: $topLeft, topRight: $topRight, bottomRight: $bottomRight, bottomLeft: $bottomLeft)';
   }
 }
 
@@ -239,10 +239,10 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    } else if (value is AndroidDeviceDisplayGeometry) {
+    } else if (value is DeviceDisplayGeometryMessage) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
-    } else if (value is AndroidDeviceDisplayCornerRadii) {
+    } else if (value is DeviceDisplayCornerRadiiMessage) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
     } else {
@@ -254,21 +254,21 @@ class _PigeonCodec extends StandardMessageCodec {
   Object? readValueOfType(int type, ReadBuffer buffer) {
     switch (type) {
       case 129:
-        return AndroidDeviceDisplayGeometry.decode(readValue(buffer)!);
+        return DeviceDisplayGeometryMessage.decode(readValue(buffer)!);
       case 130:
-        return AndroidDeviceDisplayCornerRadii.decode(readValue(buffer)!);
+        return DeviceDisplayCornerRadiiMessage.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
     }
   }
 }
 
-/// Defines the Android host operations used by the display implementation.
-class AndroidDeviceDisplayApi {
-  /// Constructor for [AndroidDeviceDisplayApi]. The [binaryMessenger] named argument is
+/// Defines the host operations used by the display implementation.
+class DeviceDisplayHostApi {
+  /// Constructor for [DeviceDisplayHostApi]. The [binaryMessenger] named argument is
   /// available for dependency injection. If it is left null, the default
   /// BinaryMessenger will be used which routes to the host platform.
-  AndroidDeviceDisplayApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+  DeviceDisplayHostApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
     : pigeonVar_binaryMessenger = binaryMessenger,
       pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
   final BinaryMessenger? pigeonVar_binaryMessenger;
@@ -278,9 +278,9 @@ class AndroidDeviceDisplayApi {
   final String pigeonVar_messageChannelSuffix;
 
   /// Returns the current display corner radii in physical pixels.
-  Future<AndroidDeviceDisplayCornerRadii?> getCornerRadii(AndroidDeviceDisplayGeometry geometry) async {
+  Future<DeviceDisplayCornerRadiiMessage?> getCornerRadii(DeviceDisplayGeometryMessage geometry) async {
     final pigeonVar_channelName =
-        'dev.flutter.pigeon.oh_my_flutter.AndroidDeviceDisplayApi.getCornerRadii$pigeonVar_messageChannelSuffix';
+        'dev.flutter.pigeon.oh_my_flutter.DeviceDisplayHostApi.getCornerRadii$pigeonVar_messageChannelSuffix';
     final pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -294,6 +294,6 @@ class AndroidDeviceDisplayApi {
       pigeonVar_channelName,
       isNullValid: true,
     );
-    return pigeonVar_replyValue as AndroidDeviceDisplayCornerRadii?;
+    return pigeonVar_replyValue as DeviceDisplayCornerRadiiMessage?;
   }
 }

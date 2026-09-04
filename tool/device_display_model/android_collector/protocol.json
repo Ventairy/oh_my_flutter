@@ -1,7 +1,0 @@
-{
-  "protocolVersion": 1,
-  "exactSourceKind": "android_api31_window_insets",
-  "legacySourceKind": "android_legacy_default_display_resource",
-  "orientation": "portrait_rotation_0",
-  "exactFeatures": "flutter_3_47_1_window_insets_semantics"
-}

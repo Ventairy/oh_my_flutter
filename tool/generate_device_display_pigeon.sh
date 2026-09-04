@@ -10,4 +10,4 @@ fvm dart run pigeon \
 fvm dart format \
   --page-width 120 \
   --trailing-commas preserve \
-  lib/src/device/device_display/pigeon/android_device_display.g.dart
+  lib/src/device/device_display/pigeon/device_display.g.dart

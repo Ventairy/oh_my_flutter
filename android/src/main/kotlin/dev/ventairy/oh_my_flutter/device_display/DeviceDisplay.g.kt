@@ -13,7 +13,7 @@ import io.flutter.plugin.common.StandardMethodCodec
 import io.flutter.plugin.common.StandardMessageCodec
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
-private object AndroidDeviceDisplayPigeonUtils {
+private object DeviceDisplayPigeonUtils {
 
   fun wrapResult(result: Any?): List<Any?> {
     return listOf(result)
@@ -193,11 +193,11 @@ class FlutterError (
 ) : RuntimeException()
 
 /**
- * Identifies the Flutter view geometry requesting Android display evidence.
+ * Identifies the Flutter view geometry requesting platform display evidence.
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
-data class AndroidDeviceDisplayGeometry (
+data class DeviceDisplayGeometryMessage (
   /** The full Flutter display width in physical pixels. */
   val displayWidth: Double,
   /** The full Flutter display height in physical pixels. */
@@ -209,12 +209,12 @@ data class AndroidDeviceDisplayGeometry (
 )
  {
   companion object {
-    fun fromList(pigeonVar_list: List<Any?>): AndroidDeviceDisplayGeometry {
+    fun fromList(pigeonVar_list: List<Any?>): DeviceDisplayGeometryMessage {
       val displayWidth = pigeonVar_list[0] as Double
       val displayHeight = pigeonVar_list[1] as Double
       val viewWidth = pigeonVar_list[2] as Double
       val viewHeight = pigeonVar_list[3] as Double
-      return AndroidDeviceDisplayGeometry(displayWidth, displayHeight, viewWidth, viewHeight)
+      return DeviceDisplayGeometryMessage(displayWidth, displayHeight, viewWidth, viewHeight)
     }
   }
   fun toList(): List<Any?> {
@@ -232,29 +232,29 @@ data class AndroidDeviceDisplayGeometry (
     if (this === other) {
       return true
     }
-    val other = other as AndroidDeviceDisplayGeometry
-    return AndroidDeviceDisplayPigeonUtils.deepEquals(this.displayWidth, other.displayWidth) && AndroidDeviceDisplayPigeonUtils.deepEquals(this.displayHeight, other.displayHeight) && AndroidDeviceDisplayPigeonUtils.deepEquals(this.viewWidth, other.viewWidth) && AndroidDeviceDisplayPigeonUtils.deepEquals(this.viewHeight, other.viewHeight)
+    val other = other as DeviceDisplayGeometryMessage
+    return DeviceDisplayPigeonUtils.deepEquals(this.displayWidth, other.displayWidth) && DeviceDisplayPigeonUtils.deepEquals(this.displayHeight, other.displayHeight) && DeviceDisplayPigeonUtils.deepEquals(this.viewWidth, other.viewWidth) && DeviceDisplayPigeonUtils.deepEquals(this.viewHeight, other.viewHeight)
   }
 
   override fun hashCode(): Int {
     var result = javaClass.hashCode()
-    result = 31 * result + AndroidDeviceDisplayPigeonUtils.deepHash(this.displayWidth)
-    result = 31 * result + AndroidDeviceDisplayPigeonUtils.deepHash(this.displayHeight)
-    result = 31 * result + AndroidDeviceDisplayPigeonUtils.deepHash(this.viewWidth)
-    result = 31 * result + AndroidDeviceDisplayPigeonUtils.deepHash(this.viewHeight)
+    result = 31 * result + DeviceDisplayPigeonUtils.deepHash(this.displayWidth)
+    result = 31 * result + DeviceDisplayPigeonUtils.deepHash(this.displayHeight)
+    result = 31 * result + DeviceDisplayPigeonUtils.deepHash(this.viewWidth)
+    result = 31 * result + DeviceDisplayPigeonUtils.deepHash(this.viewHeight)
     return result
   }
   override fun toString(): String {
-    return "AndroidDeviceDisplayGeometry(displayWidth=$displayWidth, displayHeight=$displayHeight, viewWidth=$viewWidth, viewHeight=$viewHeight)"
+    return "DeviceDisplayGeometryMessage(displayWidth=$displayWidth, displayHeight=$displayHeight, viewWidth=$viewWidth, viewHeight=$viewHeight)"
   }
 }
 
 /**
- * Carries Android display corner radii across the platform channel.
+ * Carries platform display corner radii across the platform channel.
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
-data class AndroidDeviceDisplayCornerRadii (
+data class DeviceDisplayCornerRadiiMessage (
   /** The top-left corner radius in physical pixels. */
   val topLeft: Double,
   /** The top-right corner radius in physical pixels. */
@@ -266,12 +266,12 @@ data class AndroidDeviceDisplayCornerRadii (
 )
  {
   companion object {
-    fun fromList(pigeonVar_list: List<Any?>): AndroidDeviceDisplayCornerRadii {
+    fun fromList(pigeonVar_list: List<Any?>): DeviceDisplayCornerRadiiMessage {
       val topLeft = pigeonVar_list[0] as Double
       val topRight = pigeonVar_list[1] as Double
       val bottomRight = pigeonVar_list[2] as Double
       val bottomLeft = pigeonVar_list[3] as Double
-      return AndroidDeviceDisplayCornerRadii(topLeft, topRight, bottomRight, bottomLeft)
+      return DeviceDisplayCornerRadiiMessage(topLeft, topRight, bottomRight, bottomLeft)
     }
   }
   fun toList(): List<Any?> {
@@ -289,33 +289,33 @@ data class AndroidDeviceDisplayCornerRadii (
     if (this === other) {
       return true
     }
-    val other = other as AndroidDeviceDisplayCornerRadii
-    return AndroidDeviceDisplayPigeonUtils.deepEquals(this.topLeft, other.topLeft) && AndroidDeviceDisplayPigeonUtils.deepEquals(this.topRight, other.topRight) && AndroidDeviceDisplayPigeonUtils.deepEquals(this.bottomRight, other.bottomRight) && AndroidDeviceDisplayPigeonUtils.deepEquals(this.bottomLeft, other.bottomLeft)
+    val other = other as DeviceDisplayCornerRadiiMessage
+    return DeviceDisplayPigeonUtils.deepEquals(this.topLeft, other.topLeft) && DeviceDisplayPigeonUtils.deepEquals(this.topRight, other.topRight) && DeviceDisplayPigeonUtils.deepEquals(this.bottomRight, other.bottomRight) && DeviceDisplayPigeonUtils.deepEquals(this.bottomLeft, other.bottomLeft)
   }
 
   override fun hashCode(): Int {
     var result = javaClass.hashCode()
-    result = 31 * result + AndroidDeviceDisplayPigeonUtils.deepHash(this.topLeft)
-    result = 31 * result + AndroidDeviceDisplayPigeonUtils.deepHash(this.topRight)
-    result = 31 * result + AndroidDeviceDisplayPigeonUtils.deepHash(this.bottomRight)
-    result = 31 * result + AndroidDeviceDisplayPigeonUtils.deepHash(this.bottomLeft)
+    result = 31 * result + DeviceDisplayPigeonUtils.deepHash(this.topLeft)
+    result = 31 * result + DeviceDisplayPigeonUtils.deepHash(this.topRight)
+    result = 31 * result + DeviceDisplayPigeonUtils.deepHash(this.bottomRight)
+    result = 31 * result + DeviceDisplayPigeonUtils.deepHash(this.bottomLeft)
     return result
   }
   override fun toString(): String {
-    return "AndroidDeviceDisplayCornerRadii(topLeft=$topLeft, topRight=$topRight, bottomRight=$bottomRight, bottomLeft=$bottomLeft)"
+    return "DeviceDisplayCornerRadiiMessage(topLeft=$topLeft, topRight=$topRight, bottomRight=$bottomRight, bottomLeft=$bottomLeft)"
   }
 }
-private open class AndroidDeviceDisplayPigeonCodec : StandardMessageCodec() {
+private open class DeviceDisplayPigeonCodec : StandardMessageCodec() {
   override fun readValueOfType(type: Byte, buffer: ByteBuffer): Any? {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          AndroidDeviceDisplayGeometry.fromList(it)
+          DeviceDisplayGeometryMessage.fromList(it)
         }
       }
       130.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          AndroidDeviceDisplayCornerRadii.fromList(it)
+          DeviceDisplayCornerRadiiMessage.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -323,11 +323,11 @@ private open class AndroidDeviceDisplayPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is AndroidDeviceDisplayGeometry -> {
+      is DeviceDisplayGeometryMessage -> {
         stream.write(129)
         writeValue(stream, value.toList())
       }
-      is AndroidDeviceDisplayCornerRadii -> {
+      is DeviceDisplayCornerRadiiMessage -> {
         stream.write(130)
         writeValue(stream, value.toList())
       }
@@ -337,33 +337,33 @@ private open class AndroidDeviceDisplayPigeonCodec : StandardMessageCodec() {
 }
 
 /**
- * Defines the Android host operations used by the display implementation.
+ * Defines the host operations used by the display implementation.
  *
  * Generated interface from Pigeon that represents a handler of messages from Flutter.
  */
-interface AndroidDeviceDisplayApi {
+interface DeviceDisplayHostApi {
   /** Returns the current display corner radii in physical pixels. */
-  fun getCornerRadii(geometry: AndroidDeviceDisplayGeometry): AndroidDeviceDisplayCornerRadii?
+  fun getCornerRadii(geometry: DeviceDisplayGeometryMessage): DeviceDisplayCornerRadiiMessage?
 
   companion object {
-    /** The codec used by AndroidDeviceDisplayApi. */
+    /** The codec used by DeviceDisplayHostApi. */
     val codec: MessageCodec<Any?> by lazy {
-      AndroidDeviceDisplayPigeonCodec()
+      DeviceDisplayPigeonCodec()
     }
-    /** Sets up an instance of `AndroidDeviceDisplayApi` to handle messages through the `binaryMessenger`. */
+    /** Sets up an instance of `DeviceDisplayHostApi` to handle messages through the `binaryMessenger`. */
     @JvmOverloads
-    fun setUp(binaryMessenger: BinaryMessenger, api: AndroidDeviceDisplayApi?, messageChannelSuffix: String = "") {
+    fun setUp(binaryMessenger: BinaryMessenger, api: DeviceDisplayHostApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.oh_my_flutter.AndroidDeviceDisplayApi.getCornerRadii$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.oh_my_flutter.DeviceDisplayHostApi.getCornerRadii$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { message, reply ->
             val args = message as List<Any?>
-            val geometryArg = args[0] as AndroidDeviceDisplayGeometry
+            val geometryArg = args[0] as DeviceDisplayGeometryMessage
             val wrapped: List<Any?> = try {
               listOf(api.getCornerRadii(geometryArg))
             } catch (exception: Throwable) {
-              AndroidDeviceDisplayPigeonUtils.wrapError(exception)
+              DeviceDisplayPigeonUtils.wrapError(exception)
             }
             reply.reply(wrapped)
           }

@@ -7,8 +7,8 @@ import android.view.Display
 import android.view.RoundedCorner
 import android.view.Surface
 import android.view.WindowInsets
-import dev.ventairy.oh_my_flutter.device_display.AndroidDeviceDisplayCornerRadii
-import dev.ventairy.oh_my_flutter.device_display.AndroidDeviceDisplayGeometry
+import dev.ventairy.oh_my_flutter.device_display.DeviceDisplayCornerRadiiMessage
+import dev.ventairy.oh_my_flutter.device_display.DeviceDisplayGeometryMessage
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -50,7 +50,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(10.0, 20.0, 30.0, 40.0),
+            DeviceDisplayCornerRadiiMessage(10.0, 20.0, 30.0, 40.0),
             cornerRadii,
         )
     }
@@ -64,7 +64,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(0.0, 0.0, 0.0, 0.0),
+            DeviceDisplayCornerRadiiMessage(0.0, 0.0, 0.0, 0.0),
             cornerRadii,
         )
     }
@@ -87,11 +87,11 @@ class DeviceDisplayHandlerTest {
             resourcesByName = mapOf("rounded_corner_radius" to 20),
             windowSize = DeviceDisplaySize(700, 1600),
         ).getCornerRadii(
-            AndroidDeviceDisplayGeometry(780.0, 1688.0, 700.0, 1600.0),
+            DeviceDisplayGeometryMessage(780.0, 1688.0, 700.0, 1600.0),
         )
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(10.0, 10.0, 10.0, 10.0),
+            DeviceDisplayCornerRadiiMessage(10.0, 10.0, 10.0, 10.0),
             cornerRadii,
         )
     }
@@ -112,11 +112,11 @@ class DeviceDisplayHandlerTest {
             resourcesByName = mapOf("rounded_corner_radius" to 20),
             windowSize = DeviceDisplaySize(700, 1600),
         ).getCornerRadii(
-            AndroidDeviceDisplayGeometry(780.0, 1688.0, 700.0, 1600.0),
+            DeviceDisplayGeometryMessage(780.0, 1688.0, 700.0, 1600.0),
         )
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(20.0, 20.0, 20.0, 20.0),
+            DeviceDisplayCornerRadiiMessage(20.0, 20.0, 20.0, 20.0),
             cornerRadii,
         )
     }
@@ -129,7 +129,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(20.0, 20.0, 20.0, 20.0),
+            DeviceDisplayCornerRadiiMessage(20.0, 20.0, 20.0, 20.0),
             cornerRadii,
         )
     }
@@ -184,7 +184,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(10.0, 0.0, 0.0, 0.0),
+            DeviceDisplayCornerRadiiMessage(10.0, 0.0, 0.0, 0.0),
             cornerRadii,
         )
     }
@@ -272,7 +272,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(20.0, 20.0, 20.0, 20.0),
+            DeviceDisplayCornerRadiiMessage(20.0, 20.0, 20.0, 20.0),
             cornerRadii,
         )
     }
@@ -289,7 +289,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(30.0, 30.0, 40.0, 40.0),
+            DeviceDisplayCornerRadiiMessage(30.0, 30.0, 40.0, 40.0),
             cornerRadii,
         )
     }
@@ -333,7 +333,7 @@ class DeviceDisplayHandlerTest {
         val cornerRadii = handler.getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(30.0, 30.0, 40.0, 40.0),
+            DeviceDisplayCornerRadiiMessage(30.0, 30.0, 40.0, 40.0),
             cornerRadii,
         )
     }
@@ -406,11 +406,11 @@ class DeviceDisplayHandlerTest {
         ).also { it.attachActivity(activity) }
 
         val cornerRadii = handler.getCornerRadii(
-            AndroidDeviceDisplayGeometry(720.0, 1600.0, 720.0, 1600.0),
+            DeviceDisplayGeometryMessage(720.0, 1600.0, 720.0, 1600.0),
         )
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(21.0, 21.0, 21.0, 21.0),
+            DeviceDisplayCornerRadiiMessage(21.0, 21.0, 21.0, 21.0),
             cornerRadii,
         )
     }
@@ -444,7 +444,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(30.0, 40.0, 40.0, 30.0),
+            DeviceDisplayCornerRadiiMessage(30.0, 40.0, 40.0, 30.0),
             cornerRadii,
         )
     }
@@ -458,7 +458,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(40.0, 40.0, 30.0, 30.0),
+            DeviceDisplayCornerRadiiMessage(40.0, 40.0, 30.0, 30.0),
             cornerRadii,
         )
     }
@@ -472,7 +472,7 @@ class DeviceDisplayHandlerTest {
         ).getCornerRadii()
 
         assertEquals(
-            AndroidDeviceDisplayCornerRadii(40.0, 30.0, 30.0, 40.0),
+            DeviceDisplayCornerRadiiMessage(40.0, 30.0, 30.0, 40.0),
             cornerRadii,
         )
     }
@@ -528,7 +528,7 @@ class DeviceDisplayHandlerTest {
     }
 
     private companion object {
-        val defaultGeometry = AndroidDeviceDisplayGeometry(
+        val defaultGeometry = DeviceDisplayGeometryMessage(
             780.0,
             1688.0,
             780.0,
@@ -541,7 +541,7 @@ class DeviceDisplayHandlerTest {
         )
     }
 
-    private fun DeviceDisplayHandler.getCornerRadii(): AndroidDeviceDisplayCornerRadii? {
+    private fun DeviceDisplayHandler.getCornerRadii(): DeviceDisplayCornerRadiiMessage? {
         return getCornerRadii(defaultGeometry)
     }
 }

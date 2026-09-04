@@ -24,7 +24,6 @@ doc/api/
 !example/pubspec.lock
 /pigeons/
 /tool/
-/test/tool/device_display_model/
 pubspec_overrides.yaml
 skills-lock.json
 **/goldens/failures/

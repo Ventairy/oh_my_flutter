@@ -44,8 +44,5 @@ jobs:
       - run: ./tool/check_device_location_pigeon.sh
       - run: ./tool/check_device_display_pigeon.sh
       - run: ./tool/check_native_selectable_text_pigeon.sh
-      - run: ./tool/device_display_model/validate_device_display_model.sh
-      - run: fvm dart run tool/device_display_model/device_display_model.dart check-collectors
       - run: fvm flutter pub publish --dry-run
-      - run: ./tool/device_display_model/check_device_display_publish_archive.sh
       - run: fvm flutter pub publish --force

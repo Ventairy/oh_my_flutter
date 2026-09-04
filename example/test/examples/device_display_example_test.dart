@@ -4,27 +4,25 @@ import 'package:oh_my_flutter_example/examples/device_display_example.dart';
 
 void main() {
   testWidgets(
-    'when estimation is allowed, it should display the returned logical radii',
+    'when corner radii are available, '
+    'it should display the returned logical values',
     (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
             body: DeviceDisplayExample(
-              cornerRadii: (_, {required estimate}) async {
-                if (!estimate) return null;
-                return const BorderRadius.only(
-                  topLeft: Radius.circular(42),
-                  topRight: Radius.circular(40),
-                  bottomRight: Radius.circular(38),
-                  bottomLeft: Radius.circular(36),
-                );
-              },
+              cornerRadii: (_) async => const BorderRadius.only(
+                topLeft: Radius.circular(42),
+                topRight: Radius.circular(40),
+                bottomRight: Radius.circular(38),
+                bottomLeft: Radius.circular(36),
+              ),
             ),
           ),
         ),
       );
 
-      await tester.tap(find.text('Allow estimate'));
+      await tester.tap(find.text('Read corner radii'));
       await tester.pump();
 
       expect(
@@ -44,13 +42,13 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: DeviceDisplayExample(
-              cornerRadii: (_, {required estimate}) async => null,
+              cornerRadii: (_) async => null,
             ),
           ),
         ),
       );
 
-      await tester.tap(find.text('Read exact data'));
+      await tester.tap(find.text('Read corner radii'));
       await tester.pump();
 
       expect(

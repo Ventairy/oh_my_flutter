@@ -11,9 +11,9 @@ import android.view.Surface
 import android.view.WindowInsets
 import androidx.annotation.ChecksSdkIntAtLeast
 import androidx.annotation.RequiresApi
-import dev.ventairy.oh_my_flutter.device_display.AndroidDeviceDisplayApi
-import dev.ventairy.oh_my_flutter.device_display.AndroidDeviceDisplayCornerRadii
-import dev.ventairy.oh_my_flutter.device_display.AndroidDeviceDisplayGeometry
+import dev.ventairy.oh_my_flutter.device_display.DeviceDisplayCornerRadiiMessage
+import dev.ventairy.oh_my_flutter.device_display.DeviceDisplayGeometryMessage
+import dev.ventairy.oh_my_flutter.device_display.DeviceDisplayHostApi
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -42,12 +42,12 @@ internal class DeviceDisplayHandler(
         Companion.displayScale(it, displaySizeOperation(it))
     },
     private val displayRotationOperation: (Display) -> Int = Display::getRotation,
-) : AndroidDeviceDisplayApi {
+) : DeviceDisplayHostApi {
     private var activity: Activity? = null
 
     override fun getCornerRadii(
-        geometry: AndroidDeviceDisplayGeometry,
-    ): AndroidDeviceDisplayCornerRadii? {
+        geometry: DeviceDisplayGeometryMessage,
+    ): DeviceDisplayCornerRadiiMessage? {
         val currentActivity = activity ?: return null
         return try {
             if (!matchesGeometry(currentActivity, geometry)) return null
@@ -85,7 +85,7 @@ internal class DeviceDisplayHandler(
     private fun exactCornerRadii(
         activity: Activity,
         hasFullDisplayCoverage: Boolean,
-    ): AndroidDeviceDisplayCornerRadii? {
+    ): DeviceDisplayCornerRadiiMessage? {
         val insets = rootWindowInsetsOperation(activity) ?: return null
         val topLeft = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_LEFT)
         val topRight = insets.getRoundedCorner(RoundedCorner.POSITION_TOP_RIGHT)
@@ -96,7 +96,7 @@ internal class DeviceDisplayHandler(
         ) {
             return null
         }
-        return AndroidDeviceDisplayCornerRadii(
+        return DeviceDisplayCornerRadiiMessage(
             topLeft = topLeft.radiusOrZero(),
             topRight = topRight.radiusOrZero(),
             bottomRight = bottomRight.radiusOrZero(),
@@ -109,7 +109,7 @@ internal class DeviceDisplayHandler(
         return this?.radius?.toDouble() ?: 0.0
     }
 
-    private fun legacyCornerRadii(activity: Activity): AndroidDeviceDisplayCornerRadii? {
+    private fun legacyCornerRadii(activity: Activity): DeviceDisplayCornerRadiiMessage? {
         if (windowedStateOperation(activity)) return null
 
         val display = displayOperation(activity) ?: return null
@@ -141,7 +141,7 @@ internal class DeviceDisplayHandler(
 
     private fun matchesGeometry(
         activity: Activity,
-        geometry: AndroidDeviceDisplayGeometry,
+        geometry: DeviceDisplayGeometryMessage,
     ): Boolean {
         val expectedValues = listOf(
             geometry.displayWidth,
@@ -175,7 +175,7 @@ internal class DeviceDisplayHandler(
     }
 
     private fun hasFullDisplayCoverage(
-        geometry: AndroidDeviceDisplayGeometry,
+        geometry: DeviceDisplayGeometryMessage,
     ): Boolean {
         return abs(geometry.displayWidth - geometry.viewWidth) <= GEOMETRY_TOLERANCE_PIXELS &&
             abs(geometry.displayHeight - geometry.viewHeight) <= GEOMETRY_TOLERANCE_PIXELS
@@ -190,30 +190,30 @@ internal class DeviceDisplayHandler(
         topRadius: Double,
         bottomRadius: Double,
         rotation: Int,
-    ): AndroidDeviceDisplayCornerRadii? {
+    ): DeviceDisplayCornerRadiiMessage? {
         return when (rotation) {
-            Surface.ROTATION_0 -> AndroidDeviceDisplayCornerRadii(
+            Surface.ROTATION_0 -> DeviceDisplayCornerRadiiMessage(
                 topRadius,
                 topRadius,
                 bottomRadius,
                 bottomRadius,
             )
 
-            Surface.ROTATION_90 -> AndroidDeviceDisplayCornerRadii(
+            Surface.ROTATION_90 -> DeviceDisplayCornerRadiiMessage(
                 topRadius,
                 bottomRadius,
                 bottomRadius,
                 topRadius,
             )
 
-            Surface.ROTATION_180 -> AndroidDeviceDisplayCornerRadii(
+            Surface.ROTATION_180 -> DeviceDisplayCornerRadiiMessage(
                 bottomRadius,
                 bottomRadius,
                 topRadius,
                 topRadius,
             )
 
-            Surface.ROTATION_270 -> AndroidDeviceDisplayCornerRadii(
+            Surface.ROTATION_270 -> DeviceDisplayCornerRadiiMessage(
                 bottomRadius,
                 topRadius,
                 topRadius,

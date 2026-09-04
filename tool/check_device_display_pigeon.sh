@@ -13,12 +13,13 @@ fvm dart run pigeon \
 fvm dart format \
   --page-width 120 \
   --trailing-commas preserve \
-  "$pigeon_check_directory/lib/src/device/device_display/pigeon/android_device_display.g.dart" \
+  "$pigeon_check_directory/lib/src/device/device_display/pigeon/device_display.g.dart" \
   >/dev/null
 
 generated_files=(
-  "lib/src/device/device_display/pigeon/android_device_display.g.dart"
-  "android/src/main/kotlin/dev/ventairy/oh_my_flutter/device_display/AndroidDeviceDisplay.g.kt"
+  "lib/src/device/device_display/pigeon/device_display.g.dart"
+  "android/src/main/kotlin/dev/ventairy/oh_my_flutter/device_display/DeviceDisplay.g.kt"
+  "ios/oh_my_flutter/Sources/oh_my_flutter/DeviceDisplay.g.swift"
 )
 is_current=true
 
