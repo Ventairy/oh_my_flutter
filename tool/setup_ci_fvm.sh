@@ -6,19 +6,28 @@ flutter_version="$(jq -er '.flutter | select(type == "string" and length > 0)' .
 fvm_version=4.3.0
 version_directory="$PWD/.fvm/versions/$flutter_version"
 
-if [[ "$(fvm --version 2>/dev/null || true)" != "$fvm_version" ]]; then
-  dart pub global activate fvm "$fvm_version"
-fi
+dart pub global activate fvm "$fvm_version"
 
 if [[ "${RUNNER_OS:-}" == Windows ]]; then
   pub_cache_bin="$(cygpath -u "$PUB_CACHE")/bin"
+  flutter_executable="$(cygpath -u "$FLUTTER_ROOT")/bin/flutter.bat"
 else
   pub_cache_bin="${PUB_CACHE:-$HOME/.pub-cache}/bin"
+  flutter_executable="$FLUTTER_ROOT/bin/flutter"
 fi
 export PATH="$pub_cache_bin:$PATH"
 
-if [[ "$(fvm --version)" != "$fvm_version" ]]; then
-  echo "Expected FVM $fvm_version, found $(fvm --version)." >&2
+if [[ -n "${GITHUB_PATH:-}" ]]; then
+  if [[ "${RUNNER_OS:-}" == Windows ]]; then
+    cygpath -w "$pub_cache_bin" >> "$GITHUB_PATH"
+  else
+    echo "$pub_cache_bin" >> "$GITHUB_PATH"
+  fi
+fi
+
+installed_fvm_version="$(dart pub global run fvm:main --version)"
+if [[ "$installed_fvm_version" != "$fvm_version" ]]; then
+  echo "Expected FVM $fvm_version, found $installed_fvm_version." >&2
   exit 1
 fi
 
@@ -33,7 +42,7 @@ if [[ ! -e "$version_directory" ]]; then
   fi
 fi
 
-installed_version="$(fvm flutter --version --machine | jq -er '.frameworkVersion')"
+installed_version="$("$flutter_executable" --version --machine | jq -er '.frameworkVersion')"
 if [[ "$installed_version" != "$flutter_version" ]]; then
   echo "Expected Flutter $flutter_version, found $installed_version." >&2
   exit 1

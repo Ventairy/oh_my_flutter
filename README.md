@@ -77,6 +77,11 @@ OKLCH is a color model designed to make visual color adjustments more
 predictable. `Oklch` describes a color by its perceived lightness, intensity,
 and hue, and converts between OKLCH and Flutter colors.
 
+### String classification
+
+`StringExtension` adds convenient operations to Dart strings. It can do things
+such as checking whether a value contains only digits.
+
 ### Velocity classification
 
 `VelocityExtension` detects whether a completed drag was a fast swipe and
@@ -218,16 +223,16 @@ A debouncer waits for rapid repeated actions to stop before running work. For
 example, `Debouncer<T>` can wait until a user pauses typing before requesting
 search suggestions, ensuring the latest request supplies the pending result.
 
-### Telephony
+### Phone number
 
-`Telephony` cleans the formatting from an international phone number and asks
-the operating system to open its phone interface for that number.
+Use `PhoneNumber` to interact with phone numbers throughout an application. It
+can do things such as formatting a number for display using its country's
+conventions.
 
 ### WhatsApp
 
-`Whatsapp` opens a chat for a phone number with an optional pre-filled message.
-It tries the native WhatsApp application when available and otherwise uses the
-web version.
+Use `Whatsapp` to interact with WhatsApp recipients throughout an application.
+It can do things such as opening a chat.
 
 ## Scope
 
