@@ -44,7 +44,8 @@ if [[ ! -e "$version_directory" ]]; then
   fi
 fi
 
-installed_version="$("$flutter_executable" --version --machine | jq -er '.frameworkVersion')"
+flutter_version_output="$("$flutter_executable" --version --machine)"
+installed_version="$(awk 'found || /^\{/ { found = 1; print }' <<<"$flutter_version_output" | jq -er '.frameworkVersion')"
 if [[ "$installed_version" != "$flutter_version" ]]; then
   echo "Expected Flutter $flutter_version, found $installed_version." >&2
   exit 1
