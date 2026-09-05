@@ -1,3 +1,8 @@
+## Unreleased
+
+- Keep `MaybeSafeArea` content correctly positioned and clipped in offscreen
+  snapshots, including Morph transitions.
+
 ## 0.19.0
 
 - **Breaking:** Replace `Telephony` with a validated `PhoneNumber` value that

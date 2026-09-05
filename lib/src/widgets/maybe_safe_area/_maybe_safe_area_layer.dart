@@ -1,6 +1,11 @@
 part of 'maybe_safe_area.dart';
 
 class _MaybeSafeAreaLayer extends ContainerLayer {
+  _MaybeSafeAreaLayer({required this.resolveOriginalTransform});
+
+  final Matrix4? Function() resolveOriginalTransform;
+  double devicePixelRatio = 1;
+
   MaybeSafeAreaBehavior behavior = MaybeSafeAreaBehavior.live;
   _MaybeSafeAreaEdges enabledEdges = const (
     left: true,
@@ -55,6 +60,7 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
 
   void configure({
     required MaybeSafeAreaBehavior behavior,
+    required double devicePixelRatio,
     required _MaybeSafeAreaEdges enabledEdges,
     required Offset unadjustedOffset,
     required double viewWidth,
@@ -78,6 +84,7 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
         this.widgetWidth != widgetWidth ||
         this.widgetHeight != widgetHeight;
     final offsetChanged = this.unadjustedOffset != unadjustedOffset;
+    this.devicePixelRatio = devicePixelRatio;
     this.behavior = behavior;
     this.enabledEdges = enabledEdges;
     this.unadjustedOffset = unadjustedOffset;
@@ -114,15 +121,30 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
       _addTransformedChildrenToScene(builder);
       return;
     }
-    _resolveParentToViewTransform();
-    _unadjustedTransform
-      ..setFrom(_parentToView)
-      ..translateByDouble(
-        unadjustedOffset.dx,
-        unadjustedOffset.dy,
-        0,
-        1,
-      );
+    if (attached) {
+      _resolveParentToViewTransform();
+      _unadjustedTransform
+        ..setFrom(_parentToView)
+        ..translateByDouble(unadjustedOffset.dx, unadjustedOffset.dy, 0, 1);
+    } else {
+      // A detached capture tree describes atlas coordinates, not the viewport.
+      // Resolve the original geometry without treating the capture's origin
+      // or raster scale as a new on-screen position.
+      final originalTransform = resolveOriginalTransform();
+      if (originalTransform == null) {
+        _applyPreservedCorrection();
+        _updateInteractionTransforms();
+        _addTransformedChildrenToScene(builder);
+        return;
+      }
+      _unadjustedTransform
+        ..setIdentity()
+        ..scaleByDouble(devicePixelRatio, devicePixelRatio, 1, 1)
+        ..multiply(originalTransform);
+      _parentToView
+        ..setFrom(_unadjustedTransform)
+        ..translateByDouble(-unadjustedOffset.dx, -unadjustedOffset.dy, 0, 1);
+    }
     _unadjustedBounds.setTransformed(
       _unadjustedTransform,
       width: widgetWidth,
@@ -164,8 +186,8 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
       }
     }
     _updateInteractionTransforms();
+    _preservedCorrection.setFrom(_lastTransform);
     if (!alwaysNeedsAddToScene) {
-      _preservedCorrection.setFrom(_lastTransform);
       _hasPreservedCorrection = true;
     }
     _addTransformedChildrenToScene(builder);

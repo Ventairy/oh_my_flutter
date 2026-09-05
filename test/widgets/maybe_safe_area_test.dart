@@ -5,6 +5,8 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
+import 'maybe_safe_area_test/snapshot_painting_context.dart';
+
 const _viewSize = Size(300, 600);
 const _viewPadding = EdgeInsets.fromLTRB(12, 40, 16, 20);
 
@@ -57,6 +59,198 @@ Finder _morphOverlay() {
 
 void main() {
   group('MaybeSafeArea', () {
+    for (final reverse in [false, true]) {
+      testWidgets(
+        'when a snapshot Morph ${reverse ? 'returns' : 'opens'} below the safe area, it should keep captured content at the surface top',
+        (tester) async {
+          tester.view.physicalSize = _viewSize * 3;
+          tester.view.devicePixelRatio = 3;
+          addTearDown(tester.view.reset);
+          final boundaryKey = GlobalKey();
+          late BuildContext routeContext;
+          Widget surface(double height) => Stack(
+            children: [
+              Positioned(
+                top: 300,
+                left: 20,
+                width: 200,
+                height: height,
+                child: Morph(
+                  tag: 'snapshot-safe-area',
+                  child: Container(
+                    decoration: const BoxDecoration(color: Colors.white),
+                    child: const MorphDescendant(
+                      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                      child: Align(
+                        alignment: Alignment.topLeft,
+                        child: MaybeSafeArea(
+                          left: false,
+                          right: false,
+                          bottom: false,
+                          child: ColoredBox(color: Color(0xFFFF0000), child: SizedBox(width: 30, height: 20)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          );
+          await tester.pumpWidget(
+            RepaintBoundary(
+              key: boundaryKey,
+              child: _testApp(
+                child: Builder(
+                  builder: (context) {
+                    routeContext = context;
+                    return surface(100);
+                  },
+                ),
+              ),
+            ),
+          );
+
+          Navigator.of(routeContext).push<void>(
+            PageRouteBuilder<void>(
+              opaque: false,
+              transitionDuration: const Duration(milliseconds: 400),
+              reverseTransitionDuration: const Duration(milliseconds: 400),
+              pageBuilder: (_, _, _) => surface(150),
+              transitionsBuilder: (_, _, _, child) => child,
+            ),
+          );
+          if (reverse) {
+            await tester.pumpAndSettle();
+            Navigator.of(routeContext).pop();
+          }
+          await tester.pump();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 150));
+          final boundary = boundaryKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
+          final pixel = await tester.runAsync(() async {
+            final image = await boundary.toImage();
+            try {
+              final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+              return bytes!.getUint32((305 * image.width + 25) * 4);
+            } finally {
+              image.dispose();
+            }
+          });
+          expect(pixel, 0xFF0000FF);
+          await tester.pumpAndSettle();
+        },
+      );
+    }
+
+    for (final scenario in [
+      (name: 'scaled top avoidance', top: 0.0, scale: 0.5, alignment: Alignment.topLeft, y: 85),
+      (name: 'bottom avoidance', top: 500.0, scale: 1.0, alignment: Alignment.bottomLeft, y: 65),
+      (name: 'scaled safe content', top: 300.0, scale: 1.5, alignment: Alignment.topLeft, y: 5),
+    ]) {
+      testWidgets(
+        'when detached capture contains ${scenario.name} and a nested repaint boundary, it should retain the original correction',
+        (tester) async {
+          _useTestView(tester);
+          const captureKey = ValueKey('transformed-capture');
+          await tester.pumpWidget(
+            _testApp(
+              child: Stack(
+                children: [
+                  Positioned(
+                    top: scenario.top,
+                    left: 30,
+                    width: 200,
+                    height: 100,
+                    child: Transform.scale(
+                      scale: scenario.scale,
+                      alignment: Alignment.topLeft,
+                      child: RepaintBoundary(
+                        key: captureKey,
+                        child: Align(
+                          alignment: scenario.alignment,
+                          child: const MaybeSafeArea(
+                            left: false,
+                            right: false,
+                            child: RepaintBoundary(
+                              child: ColoredBox(color: Color(0xFFFF0000), child: SizedBox(width: 30, height: 20)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+          final box = tester.renderObject<RenderBox>(find.byKey(captureKey));
+          final pixel = await tester.runAsync(() async {
+            final image = SnapshotPaintingContext.capture(box, const Offset(11, 17));
+            try {
+              final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+              return bytes!.getUint32(((17 + scenario.y) * image.width + 16) * 4);
+            } finally {
+              image.dispose();
+            }
+          });
+          expect(pixel, 0xFF0000FF);
+        },
+      );
+    }
+    for (final ratio in [1.0, 3.0]) {
+      for (final behavior in MaybeSafeAreaBehavior.values) {
+        for (final offset in [Offset.zero, const Offset(13, 71)]) {
+          testWidgets(
+            'when detached capture uses $ratio density, $behavior and $offset atlas placement, it should preserve viewport positioning',
+            (tester) async {
+              tester.view.physicalSize = _viewSize * ratio;
+              tester.view.devicePixelRatio = ratio;
+              addTearDown(tester.view.reset);
+              const captureKey = ValueKey('detached-capture');
+              await tester.pumpWidget(
+                _testApp(
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: 300,
+                        left: 0,
+                        width: 200,
+                        height: 100,
+                        child: RepaintBoundary(
+                          key: captureKey,
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: MaybeSafeArea(
+                              behavior: behavior,
+                              left: false,
+                              right: false,
+                              bottom: false,
+                              child: const ColoredBox(color: Color(0xFFFF0000), child: SizedBox(width: 30, height: 20)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+              final box = tester.renderObject<RenderBox>(find.byKey(captureKey));
+              final pixel = await tester.runAsync(() async {
+                final image = SnapshotPaintingContext.capture(box, offset);
+                try {
+                  final bytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+                  return bytes!.getUint32(((offset.dy.toInt() + 5) * image.width + offset.dx.toInt() + 5) * 4);
+                } finally {
+                  image.dispose();
+                }
+              });
+              expect(pixel, 0xFF0000FF);
+            },
+          );
+        }
+      }
+    }
+
     testWidgets(
       'when behavior is omitted, it should track the child position live',
       (tester) async {
