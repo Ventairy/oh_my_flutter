@@ -1,5 +1,8 @@
 ## Unreleased
 
+- Add `Country` for country and territory identifiers, including established
+  ISO extensions, primary calling codes, strict or nullable lookups, and
+  offline localized display names with broad locale support.
 - Keep `MaybeSafeArea` content correctly positioned and clipped in offscreen
   snapshots, including Morph transitions.
 

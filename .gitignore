@@ -1,6 +1,7 @@
 # Dart and Flutter
 .dart_tool/
 .build/
+.cxx/
 .gradle/
 .packages
 .flutter-plugins-dependencies

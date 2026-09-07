@@ -19,12 +19,15 @@ dependencies:
   clock: ^1.1.2
   code_assets: ^2.0.0
   dio: ^5.10.0
+  ffi: ^2.2.0
   flutter:
     sdk: flutter
   hooks: ^2.2.0
   internet_connection_checker_plus: ^3.1.0
+  jni: ^1.0.3
   meta: ^1.18.0
   native_toolchain_c: ^0.19.4
+  objective_c: ^9.6.0
   phone_numbers_parser: ^9.0.26
   platform: ^3.1.6
   record_use: ^1.1.1
@@ -34,6 +37,7 @@ dev_dependencies:
   alchemist: ^0.14.0
   flutter_test:
     sdk: flutter
+  lzma: ^1.0.1
   mocktail: ^1.0.5
   pigeon: 28.0.0
   very_good_analysis: ">=7.0.0 <11.0.0"

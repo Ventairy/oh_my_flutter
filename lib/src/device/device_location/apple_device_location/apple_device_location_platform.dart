@@ -12,6 +12,7 @@ import '../device_location_address.dart';
 import '../device_location_coordinates.dart';
 import '../device_location_permission_status.dart';
 import '../device_location_platform.dart';
+import 'apple_device_location_native_bindings.g.dart' as native_bindings;
 
 part 'apple_device_location_native_types.dart';
 
@@ -490,72 +491,50 @@ final class AppleDeviceLocationPlatform extends DeviceLocationPlatform {
   }
 
   @RecordUse()
-  @Native<Void Function(Pointer<NativeFunction<_AppleValueCallbackNative>>)>(
-    symbol: 'omf_device_location_is_service_enabled',
-  )
-  external static void _nativeIsServiceEnabled(
+  static void _nativeIsServiceEnabled(
     Pointer<NativeFunction<_AppleValueCallbackNative>> callback,
-  );
+  ) => native_bindings.omf_device_location_is_service_enabled(callback);
 
   @RecordUse()
-  @Native<Void Function(Pointer<NativeFunction<_AppleValueCallbackNative>>)>(
-    symbol: 'omf_device_location_check_permission',
-  )
-  external static void _nativeCheckPermission(
+  static void _nativeCheckPermission(
     Pointer<NativeFunction<_AppleValueCallbackNative>> callback,
-  );
+  ) => native_bindings.omf_device_location_check_permission(callback);
 
   @RecordUse()
-  @Native<Void Function(Pointer<NativeFunction<_AppleValueCallbackNative>>)>(
-    symbol: 'omf_device_location_request_permission',
-  )
-  external static void _nativeRequestPermission(
+  static void _nativeRequestPermission(
     Pointer<NativeFunction<_AppleValueCallbackNative>> callback,
-  );
+  ) => native_bindings.omf_device_location_request_permission(callback);
 
   @RecordUse()
-  @Native<Void Function(Pointer<NativeFunction<_AppleCoordinatesCallbackNative>>)>(
-    symbol: 'omf_device_location_request_coordinates',
-  )
-  external static void _nativeRequestCoordinates(
+  static void _nativeRequestCoordinates(
     Pointer<NativeFunction<_AppleCoordinatesCallbackNative>> callback,
-  );
+  ) => native_bindings.omf_device_location_request_coordinates(callback);
 
   @RecordUse()
-  @Native<
-    Void Function(
-      Double,
-      Double,
-      Pointer<Uint8>,
-      Int64,
-      Pointer<NativeFunction<_AppleAddressCallbackNative>>,
-    )
-  >(symbol: 'omf_device_location_request_address')
-  external static void _nativeRequestAddress(
+  static void _nativeRequestAddress(
     double latitude,
     double longitude,
     Pointer<Uint8> localeIdentifier,
     int timeoutMilliseconds,
     Pointer<NativeFunction<_AppleAddressCallbackNative>> callback,
+  ) => native_bindings.omf_device_location_request_address(
+    latitude,
+    longitude,
+    localeIdentifier.cast(),
+    timeoutMilliseconds,
+    callback.cast(),
   );
 
   @RecordUse()
-  @Native<Pointer<Void> Function(IntPtr)>(
-    symbol: 'omf_device_location_allocate',
-  )
-  external static Pointer<Void> _nativeAllocate(int size);
+  static Pointer<Void> _nativeAllocate(int size) => native_bindings.omf_device_location_allocate(size);
 
   @RecordUse()
-  @Native<Void Function(Pointer<Void>)>(symbol: 'omf_device_location_free')
-  external static void _nativeFree(Pointer<Void> pointer);
+  static void _nativeFree(Pointer<Void> pointer) => native_bindings.omf_device_location_free(pointer);
 
   @RecordUse()
-  @Native<Void Function(Pointer<NativeFunction<_AppleValueCallbackNative>>)>(
-    symbol: 'omf_device_location_open_settings',
-  )
-  external static void _nativeOpenSettings(
+  static void _nativeOpenSettings(
     Pointer<NativeFunction<_AppleValueCallbackNative>> callback,
-  );
+  ) => native_bindings.omf_device_location_open_settings(callback);
 
   static const _addressTimeoutMilliseconds = 30_000;
 }

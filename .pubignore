@@ -1,5 +1,6 @@
 .agents/
 .dart_tool/
+.cxx/
 .fvm/
 .gradle/
 .github/

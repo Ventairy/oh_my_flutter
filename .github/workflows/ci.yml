@@ -42,9 +42,6 @@ jobs:
           case "$CHECK" in
             source)
               fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
-              ./tool/check_device_location_pigeon.sh
-              ./tool/check_device_display_pigeon.sh
-              ./tool/check_native_selectable_text_pigeon.sh
               fvm flutter analyze --fatal-infos --no-pub
               fvm dart doc --validate-links
               ;;
@@ -127,7 +124,6 @@ jobs:
         working-directory: example
       - run: ./gradlew :oh_my_flutter:testDebugUnitTest :oh_my_flutter:lintDebug
         working-directory: example/android
-
   ios-native:
     name: iOS (${{ matrix.check }})
     runs-on: macos-latest
@@ -198,6 +194,8 @@ jobs:
       - name: Set up FVM
         run: ./tool/setup_ci_fvm.sh
         shell: bash
+      - name: Check generated files
+        run: make gen-check
       - name: Test package
         run: |
           fvm flutter pub upgrade

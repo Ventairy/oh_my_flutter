@@ -223,6 +223,14 @@ A debouncer waits for rapid repeated actions to stop before running work. For
 example, `Debouncer<T>` can wait until a user pauses typing before requesting
 search suggestions, ensuring the latest request supplies the pending result.
 
+### Country
+
+`Country` gives applications a consistent way to identify countries and
+territories using two- or three-letter identifiers such as `BR` and `BRA` for
+Brazil, including established extensions for additional territories. It can
+do things such as finding a country from a saved code and supplying its
+primary calling code for a phone input.
+
 ### Phone number
 
 Use `PhoneNumber` to interact with phone numbers throughout an application. It

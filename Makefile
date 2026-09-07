@@ -1,13 +1,53 @@
 SHELL := /bin/bash
 
-.PHONY: setup generate-pigeons generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon check-pigeons check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon format check-format analyze test update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-macos-native-code validate-linux-native-code validate-windows-native-code validate-native-code dry-run-publish analyze-package check clean
+.PHONY: setup gen gen-check generate-pigeons generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon generate-country-names check-country-names check-pigeons check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon generate-device-location-bindings check-device-location-bindings format check-format analyze test update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-macos-native-code validate-linux-native-code validate-windows-native-code validate-native-code dry-run-publish analyze-package check clean
 
 setup:
 	fvm install
 	fvm flutter pub upgrade
 	cd example && fvm flutter pub get --enforce-lockfile
 
+gen: generate-country-names generate-pigeons generate-country-bindings generate-device-location-bindings
+
+gen-check: check-country-names check-pigeons check-country-bindings check-device-location-bindings
+
 generate-pigeons: generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon
+
+generate-country-names:
+	fvm dart run tool/generate_country_names.dart
+
+.PHONY: generate-country-bindings check-country-bindings generate-country-apple-bindings generate-country-android-bindings generate-country-windows-bindings check-country-apple-bindings check-country-android-bindings check-country-windows-bindings
+
+generate-country-bindings: generate-country-apple-bindings generate-country-android-bindings generate-country-windows-bindings
+
+check-country-bindings: check-country-apple-bindings check-country-android-bindings check-country-windows-bindings
+
+generate-country-apple-bindings:
+	./tool/generate_country_bindings.sh apple
+
+generate-country-android-bindings:
+	./tool/generate_country_bindings.sh android
+
+generate-country-windows-bindings:
+	./tool/generate_country_bindings.sh windows
+
+check-country-apple-bindings:
+	./tool/generate_country_bindings.sh apple --check
+
+check-country-android-bindings:
+	./tool/generate_country_bindings.sh android --check
+
+check-country-windows-bindings:
+	./tool/generate_country_bindings.sh windows --check
+
+generate-device-location-bindings:
+	./tool/generate_device_location_bindings.sh
+
+check-device-location-bindings:
+	./tool/generate_device_location_bindings.sh --check
+
+check-country-names:
+	fvm dart run tool/generate_country_names.dart --check
 
 generate-device-location-pigeon:
 	./tool/generate_device_location_pigeon.sh
@@ -125,7 +165,7 @@ analyze-package:
 	fvm dart pub global activate pana
 	fvm dart pub global run pana .
 
-check: check-pigeons check-format analyze test generate-api-docs check-example validate-native-code dry-run-publish
+check: check-country-names check-pigeons check-format analyze test generate-api-docs check-example validate-native-code dry-run-publish
 
 clean:
 	fvm flutter clean

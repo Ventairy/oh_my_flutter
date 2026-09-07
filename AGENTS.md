@@ -89,14 +89,16 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 - Place libraries that use `part` or `part of`, and other closely related
   source files, in a dedicated folder. Keep the owning library and its related
   files together in that folder.
+- Place generated source and other generated content under `lib/src/gen/`.
+  Do not add generated files directly beside hand-written source files.
 - Keep each enum in its own file with no other declarations. Name the file
   after the enum in snake case, such as `MotionPlayback` in
   `motion_playback.dart`.
-- Name every enum with a semantic category suffix that makes its closed set of
-  choices clear, such as `Type`, `Status`, `Reason`, `Kind`, `Mode`,
-  `Direction`, or `Behavior`. Avoid names that could reasonably describe a
-  class or data object, such as a bare `Failure`; use `ExceptionReason` when
-  the values explain why an exception occurred.
+- Use semantic enum suffixes when they clarify what the values describe, such
+  as `Type`, `Status`, `Reason`, `Kind`, `Mode`, `Direction`, or `Behavior`.
+  Domain enums may use the domain's name directly when their values are
+  instances of that domain, such as `Country`. Use `ExceptionReason` when the
+  values explain why an exception occurred, rather than a bare `Failure`.
 - Do not declare typedefs or callback aliases used in only one place. Write the
   function type inline at the callback definition. When an alias is reused,
   declare it in a `*_types.dart` file that is part of the owning library.

@@ -7,6 +7,7 @@
 /// ```
 library;
 
+export 'src/country/country.dart' show Country;
 export 'src/debouncer.dart' show Debouncer;
 export 'src/device/device.dart' show Device;
 export 'src/device/device_display/device_display.dart' show DeviceDisplay;
