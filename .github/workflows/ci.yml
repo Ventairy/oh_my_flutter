@@ -38,6 +38,10 @@ jobs:
           CHECK: ${{ matrix.check }}
         run: |
           fvm flutter pub upgrade --no-example
+          (
+            cd example
+            fvm flutter pub get --enforce-lockfile
+          )
 
           case "$CHECK" in
             source)
@@ -112,6 +116,10 @@ jobs:
       - name: Test minimum dependencies
         run: |
           fvm flutter pub downgrade --no-example
+          (
+            cd example
+            fvm flutter pub get --enforce-lockfile
+          )
           fvm flutter analyze --fatal-infos --no-pub
           fvm flutter test --no-pub
 
