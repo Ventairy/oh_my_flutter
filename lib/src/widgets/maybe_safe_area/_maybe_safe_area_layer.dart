@@ -1,7 +1,9 @@
 part of 'maybe_safe_area.dart';
 
 class _MaybeSafeAreaLayer extends ContainerLayer {
-  _MaybeSafeAreaLayer({required this.resolveOriginalTransform});
+  _MaybeSafeAreaLayer({required this.resolveOriginalTransform, required this.onTransform});
+
+  final ValueChanged<Matrix4> onTransform;
 
   final Matrix4? Function() resolveOriginalTransform;
   double devicePixelRatio = 1;
@@ -313,6 +315,7 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
   }
 
   void _addTransformedChildrenToScene(ui.SceneBuilder builder) {
+    if (attached) onTransform(_lastTransform);
     engineLayer = builder.pushTransform(
       _lastRelativeTransform.storage,
       oldLayer: engineLayer as ui.TransformEngineLayer?,

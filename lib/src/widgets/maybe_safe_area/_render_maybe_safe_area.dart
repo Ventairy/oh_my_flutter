@@ -3,15 +3,38 @@ part of 'maybe_safe_area.dart';
 class _RenderMaybeSafeArea extends RenderProxyBox {
   _RenderMaybeSafeArea({
     required MaybeSafeAreaBehavior initialBehavior,
+    required MaybeSafeAreaHandle? initialHandle,
     required double initialDevicePixelRatio,
     required _MaybeSafeAreaEdges initialEnabledEdges,
     required EdgeInsets initialViewPadding,
     required Size initialViewSize,
-  }) : _behavior = initialBehavior,
+  }) : _handle = initialHandle,
+       _behavior = initialBehavior,
        _devicePixelRatio = initialDevicePixelRatio,
        _enabledEdges = initialEnabledEdges,
        _viewPadding = initialViewPadding,
        _viewSize = initialViewSize;
+
+  MaybeSafeAreaHandle? _handle;
+  MaybeSafeAreaHandle? get handle => _handle;
+  set handle(MaybeSafeAreaHandle? value) {
+    if (identical(value, _handle)) return;
+    if (attached) _handle?._detach(this);
+    _handle = value;
+    if (attached) _handle?._attach(this);
+    markNeedsPaint();
+  }
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _handle?._attach(this);
+  }
+
+  void _publishBounds(Matrix4 transform) {
+    if (_handle == null || !attached || !hasSize) return;
+    _handle!._publish(MatrixUtils.transformRect(transform, Offset.zero & size));
+  }
 
   MaybeSafeAreaBehavior get behavior => _behavior;
   MaybeSafeAreaBehavior _behavior;
@@ -175,6 +198,7 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
 
   @override
   void detach() {
+    _handle?._detach(this);
     _transformPath = null;
     layer = null;
     super.detach();
@@ -207,10 +231,11 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
     }
     if (!_hasEnabledPadding) {
       layer = null;
+      _publishBounds(_localCorrection..setIdentity());
       super.paint(context, offset);
       return;
     }
-    layer ??= _MaybeSafeAreaLayer(resolveOriginalTransform: _resolveUnadjustedToView);
+    layer ??= _MaybeSafeAreaLayer(resolveOriginalTransform: _resolveUnadjustedToView, onTransform: _publishBounds);
     layer!.configure(
       behavior: _behavior,
       devicePixelRatio: _devicePixelRatio,

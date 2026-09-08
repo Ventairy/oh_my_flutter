@@ -155,7 +155,9 @@ before it starts moving.
 
 `MaybeSafeArea` keeps moving, floating, or scrolling content away from unsafe
 screen edges, such as notches, rounded corners, and system interface areas. It
-adds protection only when the content reaches an enabled edge.
+adds protection only when the content reaches an enabled edge. A
+`MaybeSafeAreaHandle` lets other widgets observe its adjusted bounds, for
+example to refresh related content when the protected widget moves.
 
 ### NativeSelectableText
 

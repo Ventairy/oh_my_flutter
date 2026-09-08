@@ -44,6 +44,18 @@ jobs:
               fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
               fvm flutter analyze --fatal-infos --no-pub
               fvm dart doc --validate-links
+              (
+                cd tool/country_bindings
+                fvm dart pub get --enforce-lockfile
+                fvm dart analyze --fatal-infos
+                fvm dart test
+              )
+              (
+                cd tool/device_location_bindings
+                fvm dart pub get --enforce-lockfile
+                fvm dart analyze --fatal-infos
+                fvm dart test
+              )
               ;;
             test)
               fvm flutter test --no-pub
