@@ -215,6 +215,8 @@ jobs:
         run: ./tool/setup_ci_fvm.sh
         shell: bash
       - name: Check generated files
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           fvm flutter pub upgrade --no-example
           make gen-check
