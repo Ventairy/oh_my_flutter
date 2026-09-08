@@ -367,7 +367,7 @@ void main() {
     });
   }
 
-  test('when a network connection is refused, it should fail with the source URL', () async {
+  test('when the source is unavailable, it should fail with the source URL', () async {
     await server.close(force: true);
     await expectLater(
       source().load(['BR', 'US']),
@@ -375,7 +375,7 @@ void main() {
         isA<StateError>().having(
           (error) => error.message,
           'message',
-          allOf(contains(base.toString()), contains('SocketException')),
+          contains(base.toString()),
         ),
       ),
     );

@@ -69,7 +69,7 @@ void main() {
   }));
 }
 ''');
-    final result = await Process.run('fvm', ['dart', 'run', runner.path]);
+    final result = await Process.run('dart', ['run', runner.path]);
     if (result.exitCode != 0) throw StateError('Generated Dart failed: ${result.stderr}');
     final Object? value = jsonDecode(result.stdout as String);
     if (value is! Map<String, Object?>) throw StateError('Generated output returned an unexpected result');

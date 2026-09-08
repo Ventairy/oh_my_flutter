@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -852,6 +852,8 @@ void main() {
           ),
         );
       },
+      // Windows test font metrics do not produce the wrapping transition exercised here.
+      skip: defaultTargetPlatform == TargetPlatform.windows,
     );
 
     testWidgets(
