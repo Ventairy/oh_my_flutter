@@ -37,7 +37,7 @@ jobs:
         env:
           CHECK: ${{ matrix.check }}
         run: |
-          fvm flutter pub upgrade
+          fvm flutter pub upgrade --no-example
 
           case "$CHECK" in
             source)
@@ -111,7 +111,7 @@ jobs:
         shell: bash
       - name: Test minimum dependencies
         run: |
-          fvm flutter pub downgrade
+          fvm flutter pub downgrade --no-example
           fvm flutter analyze --fatal-infos --no-pub
           fvm flutter test --no-pub
 
@@ -207,10 +207,12 @@ jobs:
         run: ./tool/setup_ci_fvm.sh
         shell: bash
       - name: Check generated files
-        run: make gen-check
+        run: |
+          fvm flutter pub upgrade --no-example
+          make gen-check
       - name: Test package
         run: |
-          fvm flutter pub upgrade
+          fvm flutter pub upgrade --no-example
           fvm flutter test --no-pub
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
@@ -271,7 +273,7 @@ jobs:
         shell: bash
       - name: Test package
         run: |
-          fvm flutter pub upgrade
+          fvm flutter pub upgrade --no-example
           fvm flutter test --no-pub
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example

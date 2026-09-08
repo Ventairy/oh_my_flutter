@@ -4,7 +4,7 @@ SHELL := /bin/bash
 
 setup:
 	fvm install
-	fvm flutter pub upgrade
+	fvm flutter pub upgrade --no-example
 	cd example && fvm flutter pub get --enforce-lockfile
 
 gen: generate-country-names generate-pigeons generate-country-bindings generate-device-location-bindings
