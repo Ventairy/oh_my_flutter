@@ -19,6 +19,7 @@ class _MorphEndpointHandle {
 
   late Object tag;
   late MorphFlightDelegate<Object?> delegate;
+  late Duration? configuredDuration;
   late Duration duration;
   late Curve curve;
   late bool watchDestination;
@@ -255,9 +256,14 @@ class _MorphEndpointHandle {
 
   void configurationChanged() {
     final widget = owner.widget;
+    assert(
+      Morph._debugValidateDuration(widget.duration),
+      'Morph duration must be valid.',
+    );
     tag = widget.tag;
     delegate = owner._resolvedFlightDelegate;
-    duration = widget.duration ?? parentEndpoint?.duration ?? Morph._defaultDuration;
+    configuredDuration = widget.duration ?? parentEndpoint?.configuredDuration;
+    duration = configuredDuration ?? Morph._defaultDuration;
     curve = widget.curve ?? parentEndpoint?.curve ?? Morph._defaultCurve;
     watchDestination = widget.watchDestination;
     onStart = widget.onStart;

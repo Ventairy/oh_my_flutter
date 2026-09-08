@@ -121,6 +121,171 @@ class _RouteMorphTestApp extends StatelessWidget {
   }
 }
 
+class _ControllableMorphPageRoute extends PageRoute<void> {
+  _ControllableMorphPageRoute({
+    required this.pageBuilder,
+    required this.transitionDuration,
+    required this.reverseTransitionDuration,
+  });
+
+  final WidgetBuilder pageBuilder;
+
+  @override
+  final Duration transitionDuration;
+
+  @override
+  final Duration reverseTransitionDuration;
+
+  void startPopGesture() {
+    controller!.reverse();
+  }
+
+  void cancelPopGesture() {
+    controller!.forward();
+  }
+
+  @override
+  Color? get barrierColor => null;
+
+  @override
+  bool get barrierDismissible => false;
+
+  @override
+  String? get barrierLabel => null;
+
+  @override
+  bool get fullscreenDialog => false;
+
+  @override
+  bool get maintainState => true;
+
+  @override
+  bool get opaque => false;
+
+  @override
+  Widget buildPage(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+  ) {
+    return pageBuilder(context);
+  }
+
+  @override
+  Widget buildTransitions(
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return child;
+  }
+}
+
+class _TimedRouteMorphTestApp extends StatelessWidget {
+  const _TimedRouteMorphTestApp({
+    required this.animations,
+    required this.events,
+    this.sourceDuration,
+    this.destinationDuration,
+    this.sourceAncestorDuration,
+    this.destinationAncestorDuration,
+    this.routeDuration = const Duration(milliseconds: 400),
+    this.reverseRouteDuration = const Duration(milliseconds: 400),
+    this.onRouteCreated,
+  });
+
+  final List<Animation<double>> animations;
+  final List<String> events;
+  final Duration? sourceDuration;
+  final Duration? destinationDuration;
+  final Duration? sourceAncestorDuration;
+  final Duration? destinationAncestorDuration;
+  final Duration routeDuration;
+  final Duration reverseRouteDuration;
+  final ValueChanged<_ControllableMorphPageRoute>? onRouteCreated;
+
+  Widget _endpoint({
+    required bool source,
+    required Color color,
+  }) {
+    final captures = <_TestProperties>[];
+    final endpoint = Morph(
+      tag: 'timed-route-shared',
+      duration: source ? sourceDuration : destinationDuration,
+      curve: Curves.linear,
+      flightDelegate: _TestFlightDelegate(
+        color,
+        captures,
+        animations: animations,
+      ),
+      onStart: () => events.add(source ? 'source-start' : 'destination-start'),
+      onEnd: () => events.add(source ? 'source-end' : 'destination-end'),
+      onReceived: () => events.add(
+        source ? 'source-received' : 'destination-received',
+      ),
+      child: SizedBox.square(
+        key: ValueKey(source ? 'timed-route-source' : 'timed-route-destination'),
+        dimension: 48,
+      ),
+    );
+    final ancestorDuration = source ? sourceAncestorDuration : destinationAncestorDuration;
+    if (ancestorDuration == null) return endpoint;
+    return Morph(
+      tag: source ? 'timed-route-source-ancestor' : 'timed-route-destination-ancestor',
+      duration: ancestorDuration,
+      child: endpoint,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Builder(
+        builder: (context) {
+          return Scaffold(
+            body: Stack(
+              children: [
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: _endpoint(source: true, color: Colors.red),
+                ),
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: FilledButton(
+                    key: const ValueKey('push-timed-route'),
+                    onPressed: () async {
+                      final route = _ControllableMorphPageRoute(
+                        transitionDuration: routeDuration,
+                        reverseTransitionDuration: reverseRouteDuration,
+                        pageBuilder: (context) {
+                          return Material(
+                            type: MaterialType.transparency,
+                            child: Align(
+                              alignment: Alignment.bottomRight,
+                              child: _endpoint(
+                                source: false,
+                                color: Colors.blue,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                      onRouteCreated?.call(route);
+                      await Navigator.of(context).push<void>(route);
+                    },
+                    child: const Text('Push timed route'),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _TestProperties {
   const _TestProperties(this.color, this.axisScale);
 
@@ -1391,6 +1556,23 @@ class _DynamicReducedMotionRouteTestApp extends StatelessWidget {
 void main() {
   group('Morph', () {
     testWidgets(
+      'when duration is negative, it should reject mounting',
+      (tester) async {
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Morph(
+              tag: 'negative-duration',
+              duration: Duration(milliseconds: -1),
+              child: SizedBox(),
+            ),
+          ),
+        );
+
+        expect(tester.takeException(), isA<AssertionError>());
+      },
+    );
+
+    testWidgets(
       'when no Morph supplies a duration, it should use 300 milliseconds',
       (tester) async {
         final captures = <_TestProperties>[];
@@ -2323,6 +2505,469 @@ void main() {
     );
 
     testWidgets(
+      'when a route source supplies duration, it should complete the push on the Morph clock',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: const Duration(milliseconds: 200),
+            routeDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        final midpoint = animations.single.value;
+        await tester.pump(const Duration(milliseconds: 110));
+        await tester.pump();
+        final result = [
+          midpoint,
+          route.animation!.value < 1,
+          _morphOverlay().evaluate().isEmpty,
+          events.join(','),
+        ];
+        await tester.pumpAndSettle();
+
+        expect(
+          result,
+          [
+            closeTo(0.5, 0.001),
+            true,
+            true,
+            'source-start,destination-received,source-end',
+          ],
+        );
+      },
+    );
+
+    testWidgets(
+      'when a route source duration exceeds the route, it should continue the push after route settlement',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: const Duration(milliseconds: 800),
+            routeDuration: const Duration(milliseconds: 300),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        final whileContinuing = (
+          route.animation!.status,
+          (animations.last.value - 0.4375).abs() < 0.001,
+          _morphOverlay().evaluate().length,
+          events.join(','),
+        );
+        await tester.pump(const Duration(milliseconds: 460));
+        await tester.pump();
+        final afterCompletion = (
+          _morphOverlay().evaluate().length,
+          events.join(','),
+        );
+
+        expect(
+          (whileContinuing, afterCompletion),
+          (
+            (
+              AnimationStatus.completed,
+              true,
+              1,
+              'source-start',
+            ),
+            (0, 'source-start,destination-received,source-end'),
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a route Morph inherits duration, it should use the inherited Morph clock',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceAncestorDuration: const Duration(milliseconds: 200),
+            routeDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 210));
+        await tester.pump();
+        final result = (
+          route.animation!.value < 1,
+          _morphOverlay().evaluate().isEmpty,
+          events.join(','),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          result,
+          (
+            true,
+            true,
+            'source-start,destination-received,source-end',
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'when the departing route duration is longer, it should keep the pop flight after route disposal',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: const Duration(milliseconds: 150),
+            destinationAncestorDuration: const Duration(milliseconds: 800),
+            routeDuration: const Duration(milliseconds: 300),
+            reverseRouteDuration: const Duration(milliseconds: 300),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pumpAndSettle();
+        events.clear();
+        animations.clear();
+
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('timed-route-destination')),
+          ),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 350));
+        final whileContinuing = (
+          (animations.last.value - 0.4375).abs() < 0.001,
+          _morphOverlay().evaluate().length,
+          events.join(','),
+        );
+        await tester.pump(const Duration(milliseconds: 460));
+        await tester.pump();
+        final afterCompletion = (
+          _morphOverlay().evaluate().length,
+          events.join(','),
+        );
+
+        expect(
+          (whileContinuing, afterCompletion),
+          (
+            (true, 1, 'destination-start'),
+            (0, 'destination-start,source-received,destination-end'),
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'when an explicit Morph duration crosses a zero-duration route, it should still animate',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: const Duration(milliseconds: 300),
+            routeDuration: Duration.zero,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
+
+        expect(
+          [
+            animations.single.value,
+            _morphOverlay().evaluate().length,
+            events.join(','),
+          ],
+          [closeTo(0.5, 0.001), 1, 'source-start'],
+        );
+      },
+    );
+
+    testWidgets(
+      'when route duration is longer and Morph duration is zero, it should hand off immediately',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: Duration.zero,
+            routeDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
+        final result = (
+          route.animation!.value < 1,
+          _morphOverlay().evaluate().isEmpty,
+          events.join(','),
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          result,
+          (
+            true,
+            true,
+            'source-start,destination-received,source-end',
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a route reverses after a faster Morph completes, it should start a new return flight',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: const Duration(milliseconds: 100),
+            destinationDuration: Duration.zero,
+            routeDuration: const Duration(milliseconds: 800),
+            reverseRouteDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 110));
+        await tester.pump();
+        final afterPush = (
+          route.animation!.status,
+          _morphOverlay().evaluate().length,
+          events.join(','),
+        );
+        events.clear();
+        animations.clear();
+
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('timed-route-destination')),
+          ),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
+        final afterPop = (
+          route.animation!.value > 0,
+          _morphOverlay().evaluate().length,
+          events.join(','),
+          find.byKey(const ValueKey('timed-route-source')).evaluate().length,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          (afterPush, afterPop),
+          (
+            (
+              AnimationStatus.forward,
+              0,
+              'source-start,destination-received,source-end',
+            ),
+            (
+              true,
+              0,
+              'destination-start,source-received,destination-end',
+              1,
+            ),
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'when route pop duration is longer than Morph duration, it should hand off before the route settles',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: const Duration(milliseconds: 150),
+            destinationDuration: const Duration(milliseconds: 150),
+            reverseRouteDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pumpAndSettle();
+        events.clear();
+        animations.clear();
+
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('timed-route-destination')),
+          ),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 160));
+        await tester.pump();
+
+        expect(
+          (
+            route.animation!.value > 0,
+            _morphOverlay().evaluate().isEmpty,
+            events.join(','),
+          ),
+          (
+            true,
+            true,
+            'destination-start,source-received,destination-end',
+          ),
+        );
+      },
+    );
+
+    testWidgets(
+      'when an independently timed route push reverses, it should return over elapsed Morph time',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: const Duration(milliseconds: 800),
+            routeDuration: const Duration(milliseconds: 800),
+            reverseRouteDuration: const Duration(milliseconds: 800),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('timed-route-destination')),
+          ),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 210));
+        await tester.pumpAndSettle();
+
+        expect(
+          (
+            _morphOverlay().evaluate().length,
+            events.join(','),
+            find.byKey(const ValueKey('timed-route-source')).evaluate().length,
+          ),
+          (0, 'source-start', 1),
+        );
+      },
+    );
+
+    testWidgets(
+      'when an independently timed route pop is cancelled, it should return over elapsed Morph time',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            sourceDuration: const Duration(milliseconds: 150),
+            destinationDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pumpAndSettle();
+        events.clear();
+        animations.clear();
+
+        route.startPopGesture();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        route.cancelPopGesture();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 210));
+        await tester.pump();
+
+        expect(
+          (
+            _morphOverlay().evaluate().length,
+            events.join(','),
+            animations.last.status,
+            animations.last.value,
+            route.animation!.status,
+            route.animation!.value,
+            find.byKey(const ValueKey('timed-route-destination')).evaluate().length,
+          ),
+          (
+            0,
+            'destination-start',
+            AnimationStatus.dismissed,
+            0,
+            AnimationStatus.completed,
+            1,
+            1,
+          ),
+        );
+      },
+    );
+
+    testWidgets(
       'when a route push overlay first paints, it should retain progress from flight capture and settle at the destination',
       (tester) async {
         final captures = <_TestProperties>[];
@@ -2967,7 +3612,7 @@ void main() {
     );
 
     testWidgets(
-      'when a same-screen flight retargets onto a forward route, it should follow the remaining route animation without flashing',
+      'when an explicitly timed same-screen flight retargets onto a forward route, it should use a new Morph clock without flashing',
       (tester) async {
         final showSameScreenDestination = ValueNotifier<bool>(false);
         final sourcePaints = _PaintCounter();
@@ -3046,16 +3691,17 @@ void main() {
         final expectedInFlightBounds = Rect.lerp(
           sampledBounds,
           routeDestinationBounds,
-          normalizedRouteProgress,
+          retargetProgress,
         )!;
         final inFlightBounds = tester.getRect(overlayFlight);
         final expectedInFlightColor = Color.lerp(
           sampledColor,
           Colors.green,
-          normalizedRouteProgress,
+          retargetProgress,
         );
         final inFlightColor = tester.widget<ColoredBox>(overlayFlight).color;
         await tester.pump(const Duration(milliseconds: 150));
+        await tester.pump();
         final activeAfterSameScreenDuration = _morphOverlay().evaluate().length;
 
         await tester.pumpAndSettle();
@@ -3094,7 +3740,8 @@ void main() {
             routeAnimation.status,
             routeDestinationMountPaints,
             hiddenEndpointPaints,
-            (retargetProgress - normalizedRouteProgress).abs() < 0.000001,
+            (retargetProgress - normalizedRouteProgress).abs() > 0.1,
+            (retargetProgress - (2 / 3)).abs() < 0.000001,
             inFlightBoundsMatch,
             inFlightColor.toARGB32() == expectedInFlightColor?.toARGB32(),
             activeAfterSameScreenDuration,
@@ -3113,7 +3760,8 @@ void main() {
             true,
             true,
             true,
-            1,
+            true,
+            0,
             0,
             (0, 1),
           ),
@@ -3122,7 +3770,7 @@ void main() {
     );
 
     testWidgets(
-      'when a same-screen flight retargets onto a settled route, it should transfer ownership without a replacement flight',
+      'when an explicitly timed same-screen flight retargets onto a settled route, it should continue on a Morph clock',
       (tester) async {
         final showSameScreenDestination = ValueNotifier<bool>(false);
         final sourcePaints = _PaintCounter();
@@ -3174,22 +3822,31 @@ void main() {
         sameScreenDestinationPaints.requestPaint();
         routeDestinationPaints.requestPaint();
         await tester.pump();
+        final duringFlight = (
+          flightKinds.last,
+          _morphOverlay().evaluate().length,
+          sameScreenDestinationPaints.count,
+          routeDestinationPaints.count,
+        );
+        await tester.pump(const Duration(milliseconds: 310));
+        await tester.pump();
+        sameScreenDestinationPaints.reset();
+        routeDestinationPaints.reset();
+        sameScreenDestinationPaints.requestPaint();
+        routeDestinationPaints.requestPaint();
+        await tester.pump();
 
         expect(
           (
             routeStatus,
-            flightKinds.last,
-            flightKinds.every(
-              (kind) => kind == MorphFlightKind.sameScreen,
-            ),
+            duringFlight,
             _morphOverlay().evaluate().length,
             sameScreenDestinationPaints.count,
             routeDestinationPaints.count,
           ),
           (
             AnimationStatus.completed,
-            MorphFlightKind.sameScreen,
-            true,
+            (MorphFlightKind.routePush, 1, 0, 0),
             0,
             0,
             1,

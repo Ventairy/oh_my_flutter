@@ -37,13 +37,29 @@ jobs:
         env:
           CHECK: ${{ matrix.check }}
         run: |
-          fvm flutter pub upgrade
+          fvm flutter pub upgrade --no-example
+          (
+            cd example
+            fvm flutter pub get --enforce-lockfile
+          )
 
           case "$CHECK" in
             source)
               fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
               fvm flutter analyze --fatal-infos --no-pub
               fvm dart doc --validate-links
+              (
+                cd tool/country_bindings
+                fvm dart pub get --enforce-lockfile
+                fvm dart analyze --fatal-infos
+                fvm dart test
+              )
+              (
+                cd tool/device_location_bindings
+                fvm dart pub get --enforce-lockfile
+                fvm dart analyze --fatal-infos
+                fvm dart test
+              )
               ;;
             test)
               fvm flutter test --no-pub
@@ -99,7 +115,11 @@ jobs:
         shell: bash
       - name: Test minimum dependencies
         run: |
-          fvm flutter pub downgrade
+          fvm flutter pub downgrade --no-example
+          (
+            cd example
+            fvm flutter pub get --enforce-lockfile
+          )
           fvm flutter analyze --fatal-infos --no-pub
           fvm flutter test --no-pub
 
@@ -195,10 +215,14 @@ jobs:
         run: ./tool/setup_ci_fvm.sh
         shell: bash
       - name: Check generated files
-        run: make gen-check
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          fvm flutter pub upgrade --no-example
+          make gen-check
       - name: Test package
         run: |
-          fvm flutter pub upgrade
+          fvm flutter pub upgrade --no-example
           fvm flutter test --no-pub
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
@@ -259,7 +283,7 @@ jobs:
         shell: bash
       - name: Test package
         run: |
-          fvm flutter pub upgrade
+          fvm flutter pub upgrade --no-example
           fvm flutter test --no-pub
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example

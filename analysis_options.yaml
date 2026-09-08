@@ -4,6 +4,8 @@ analyzer:
   exclude:
     - build/**
     - lib/src/gen/**
+    - tool/country_bindings/**
+    - tool/device_location_bindings/**
     - example/build/**
     - android/**
     - ios/**

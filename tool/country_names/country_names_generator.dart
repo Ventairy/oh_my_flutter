@@ -92,7 +92,8 @@ final class CountryNamesGenerator {
   static String _english(CountryNamesSourceData source, List<String> countries) {
     final output = StringBuffer(_header)
       ..writeln('abstract final class CountryNamesEnglish {')
-      ..writeln('  static const codes = ${jsonEncode(countries.join())};');
+      ..writeln('  static const codes =')
+      ..writeln('      ${jsonEncode(countries.join())};');
     // Native snapshots save space with byte strings; web output favors Unicode.
     // The runtime platform constant selects one, pruning the other from builds.
     for (final field in ['names', 'namesUtf8']) {

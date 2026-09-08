@@ -14,6 +14,7 @@ final class CountryNamesSource {
     : _client = HttpClient(),
       _repositoryBase = Uri.parse(repositoryUrl),
       _treeUri = Uri.parse(treeUrl),
+      githubToken = Platform.environment['GITHUB_TOKEN'],
       _requestTimeout = const Duration(seconds: 30),
       _maxConcurrentFetches = 12;
 
@@ -23,6 +24,7 @@ final class CountryNamesSource {
     required this._client,
     required this._repositoryBase,
     required this._treeUri,
+    this.githubToken,
     Duration requestTimeout = const Duration(seconds: 30),
     int maxConcurrentFetches = 12,
   }) : assert(maxConcurrentFetches > 0, 'Concurrency must be positive'),
@@ -45,6 +47,9 @@ final class CountryNamesSource {
   final HttpClient _client;
   final Uri _repositoryBase;
   final Uri _treeUri;
+
+  /// Token used to authenticate the GitHub release-tree request when available.
+  final String? githubToken;
   final Duration _requestTimeout;
   final int _maxConcurrentFetches;
   bool _cancelled = false;
@@ -209,6 +214,12 @@ final class CountryNamesSource {
       final request = await _client.getUrl(uri).timeout(_requestTimeout);
       request.followRedirects = false;
       request.headers.set(HttpHeaders.userAgentHeader, 'oh_my_flutter-country-names/$version');
+      if (uri == _treeUri) {
+        final token = githubToken;
+        if (token != null && token.isNotEmpty) {
+          request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $token');
+        }
+      }
       final response = await request.close().timeout(_requestTimeout);
       if (response.statusCode != HttpStatus.ok) throw HttpException('HTTP ${response.statusCode}', uri: uri);
       final body = await response.transform(utf8.decoder).join().timeout(_requestTimeout);

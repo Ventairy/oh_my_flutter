@@ -113,3 +113,67 @@ edges, it moves only as much as needed to cover that safe span and clips the
 excess. A child that already covers the safe span, such as full-screen content,
 does not move. Use Flutter's `SafeArea` when content must reflow, siblings must
 reserve the avoided space, or a large child must receive smaller constraints.
+
+## Observing adjusted bounds
+
+Use `MaybeSafeAreaHandle` to coordinate another widget with content protected by
+`MaybeSafeArea`. It lets a renderer read the corrected bounds and lets listeners
+respond when those bounds change, including when an ancestor moves.
+
+### Connect and observe
+
+Create the handle in the owning widget's state and attach it to one
+`MaybeSafeArea`. Register listeners once and remove them when no longer needed.
+The owner disposes the handle. Import the API from
+`package:oh_my_flutter/oh_my_flutter.dart`.
+
+```dart
+final handle = MaybeSafeAreaHandle();
+
+// In the owning widget's build method:
+MaybeSafeArea(
+  handle: handle,
+  bottom: false,
+  child: header,
+)
+```
+
+A listener may read `handle.adjustedBounds` and request a refresh. Notifications
+arrive after the frame, combine changes within a frame, and stop repeating when
+bounds stay unchanged. Removing the attached widget reports unavailable bounds.
+
+```dart
+void handleBoundsChanged() {
+  final bounds = handle.adjustedBounds;
+  // Respond to the latest bounds, or null after disconnection.
+}
+
+// Register during setup:
+handle.addListener(handleBoundsChanged);
+
+// During cleanup:
+handle.removeListener(handleBoundsChanged);
+handle.dispose();
+```
+
+### Read bounds at the right time
+
+`adjustedBounds` returns a nullable `Rect` in the attached `MaybeSafeArea` box's
+local logical coordinates. For example, a 100 by 40 child moved down 24 logical
+pixels has bounds `Rect.fromLTWH(0, 24, 100, 40)`. These are not global screen
+coordinates. A transformed child may have an enclosing rectangle rather than
+an axis-aligned translation of its original bounds.
+
+Read bounds during painting, hit testing, semantics, or in the listener. Do not
+use the getter during build or layout: ancestor positions may not be finalized.
+Before attachment or usable layout, the result is null. A rendering-time read
+can resolve the current correction even before the protected child paints.
+
+A notification can update another widget on the next frame; it cannot reflow
+content already drawn in the current frame. Rapid movement may therefore leave
+listener-driven content one frame behind. Captured images do not reflow, and
+capturing protected content does not publish capture-specific bounds to live
+listeners.
+
+The handle follows the attached widget's [avoidance behavior](#choosing-how-avoidance-follows-movement).
+It does not control that behavior or add spacing for other widgets.

@@ -9,6 +9,7 @@ part '_maybe_safe_area_layer.dart';
 part '_maybe_safe_area_types.dart';
 part '_render_maybe_safe_area.dart';
 part 'maybe_safe_area_behavior.dart';
+part 'maybe_safe_area_handle.dart';
 
 /// Keeps a compact [child] away from device cutouts and system UI, but only
 /// when the child reaches an unsafe edge.
@@ -36,6 +37,7 @@ class MaybeSafeArea extends SingleChildRenderObjectWidget {
   const MaybeSafeArea({
     required super.child,
     this.behavior = MaybeSafeAreaBehavior.live,
+    this.handle,
     this.left = true,
     this.top = true,
     this.right = true,
@@ -50,6 +52,12 @@ class MaybeSafeArea extends SingleChildRenderObjectWidget {
   /// the initially avoided child without changing its position within that
   /// surface.
   final MaybeSafeAreaBehavior behavior;
+
+  /// Shares corrected bounds with rendering consumers and change listeners.
+  ///
+  /// A handle may be attached to only one widget at a time. Its owner disposes
+  /// it when no longer needed. Omit this when no other widget needs the bounds.
+  final MaybeSafeAreaHandle? handle;
 
   /// Whether [child] should avoid the left unsafe edge when it reaches it.
   final bool left;
@@ -71,6 +79,7 @@ class MaybeSafeArea extends SingleChildRenderObjectWidget {
     );
     return _RenderMaybeSafeArea(
       initialBehavior: behavior,
+      initialHandle: handle,
       initialDevicePixelRatio: _devicePixelRatioOf(context),
       initialEnabledEdges: (left: left, top: top, right: right, bottom: bottom),
       initialViewPadding: MediaQuery.paddingOf(context),
@@ -81,6 +90,7 @@ class MaybeSafeArea extends SingleChildRenderObjectWidget {
   @override
   void updateRenderObject(BuildContext context, RenderObject renderObject) {
     (renderObject as _RenderMaybeSafeArea)
+      ..handle = handle
       ..behavior = behavior
       ..devicePixelRatio = _devicePixelRatioOf(context)
       ..enabledEdges = (left: left, top: top, right: right, bottom: bottom)

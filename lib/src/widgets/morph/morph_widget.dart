@@ -55,6 +55,14 @@ class Morph extends StatefulWidget {
   static const Duration _defaultDuration = Duration(milliseconds: 300);
   static const Curve _defaultCurve = Curves.linear;
 
+  static bool _debugValidateDuration(Duration? duration) {
+    assert(
+      duration == null || !duration.isNegative,
+      'duration must not be negative.',
+    );
+    return true;
+  }
+
   /// Identifier shared by the source and destination widgets.
   ///
   /// Use a distinct tag for each logical shared element.
@@ -73,13 +81,17 @@ class Morph extends StatefulWidget {
   /// parameter. The departing endpoint's delegate controls the transition.
   final MorphFlightDelegate<Object?>? flightDelegate;
 
-  /// Duration of transitions within the same route.
+  /// Duration of transitions started by this Morph.
   ///
-  /// When omitted, the nearest ancestor Morph's effective duration is used.
-  /// If no Morph ancestor supplies one, 300 milliseconds is used.
+  /// When omitted, the nearest ancestor Morph's configured duration is used.
+  /// If no Morph ancestor supplies one, transitions within the same route use
+  /// 300 milliseconds and transitions between routes follow the route's
+  /// animation.
   ///
   /// When the two widgets use different durations, the source value is used.
-  /// Transitions between routes follow the route's duration instead.
+  /// The duration must not be negative. [Duration.zero] completes the visual
+  /// transition immediately.
+  ///
   /// When several Morph transitions start together, shorter transitions remain
   /// visually settled while the other transitions finish.
   final Duration? duration;
@@ -413,8 +425,11 @@ class _MorphState extends State<Morph> {
 
   void _handleRouteStatus(AnimationStatus status) {
     final endpoint = _endpoint;
-    if (endpoint == null || status != AnimationStatus.reverse) return;
-    _MorphCoordinator.of(endpoint.overlay).startRoutePop(endpoint);
+    if (endpoint == null) return;
+    _MorphCoordinator.of(endpoint.overlay).routeStatusChanged(
+      endpoint,
+      status,
+    );
   }
 
   @override
@@ -532,6 +547,7 @@ class _MorphState extends State<Morph> {
     if (endpoint == null) return endpointBoundary;
     return _MorphEndpointScope(
       endpoint: endpoint,
+      configuredDuration: endpoint.configuredDuration,
       duration: endpoint.duration,
       curve: endpoint.curve,
       child: endpointBoundary,

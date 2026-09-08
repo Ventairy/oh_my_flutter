@@ -121,6 +121,7 @@ class _MorphActiveFlight {
   bool _endpointHandoffReleaseScheduled = false;
   bool _cohortCompleted = false;
   bool _heldForCohort = false;
+  bool _returningToSource = false;
   bool _finished = false;
   _MorphEndpointHandle? _endpointHandoffWinner;
   int _requiredPresentationGeneration = 0;
@@ -136,6 +137,20 @@ class _MorphActiveFlight {
   bool get heldReturned => _heldReturned;
   bool get heldForCohort => _heldForCohort;
   bool get blocksCohortCompletion => !_cohortCompleted && !_finished;
+  bool get hasIndependentClock => controllerLease != null && kind.isRoute;
+  bool get isReturningToSource => _returningToSource;
+
+  void continueToDestination() {
+    if (!hasIndependentClock || !_returningToSource || _finished) return;
+    _returningToSource = false;
+    controllerLease!.forward();
+  }
+
+  void returnToSource() {
+    if (!hasIndependentClock || _returningToSource || _finished) return;
+    _returningToSource = true;
+    controllerLease!.reverse();
+  }
 
   void markCohortCompleted() {
     _cohortCompleted = true;
@@ -511,6 +526,14 @@ class _MorphActiveFlight {
 
   void _handleStatusChanged(AnimationStatus status) {
     if (_finished || _heldAtEndpoint || (!status.isCompleted && !status.isDismissed)) {
+      return;
+    }
+    if (hasIndependentClock) {
+      coordinator.finish(
+        this,
+        arrived: status.isCompleted,
+        returned: status.isDismissed && completesAtSource,
+      );
       return;
     }
     scheduleMicrotask(

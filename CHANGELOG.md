@@ -1,5 +1,10 @@
-## Unreleased
+## 0.20.0
 
+- Add `MaybeSafeAreaHandle` to read corrected bounds and observe changes,
+  including adjustments caused by moving ancestors.
+- **Breaking:** Make an explicit or inherited `Morph.duration` control route
+  flights, allowing shared visuals to finish before or after page transitions
+  while fully omitted route durations continue following the route animation.
 - Add `Country` for country and territory identifiers, including established
   ISO extensions, primary calling codes, strict or nullable lookups, and
   offline localized display names with broad locale support.

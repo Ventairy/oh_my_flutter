@@ -10,12 +10,14 @@ void main() {
   late Uri base;
   late Map<String, Object?> documents;
   late List<String> requests;
+  late List<String?> authorizationHeaders;
   late Future<void> Function(HttpRequest request)? intercept;
 
   setUp(() async {
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     base = Uri.parse('http://${server.address.address}:${server.port}/');
     requests = [];
+    authorizationHeaders = [];
     intercept = null;
     documents = {
       '/cldr-core/availableLocales.json': {
@@ -63,6 +65,7 @@ void main() {
     };
     server.listen((request) async {
       requests.add(request.uri.path);
+      authorizationHeaders.add(request.headers.value(HttpHeaders.authorizationHeader));
       if (intercept case final handler?) {
         await handler(request);
         return;
@@ -81,15 +84,27 @@ void main() {
     await server.close(force: true);
   });
 
-  CountryNamesSource source({Duration timeout = const Duration(seconds: 2), int concurrency = 3}) {
+  CountryNamesSource source({Duration timeout = const Duration(seconds: 2), int concurrency = 3, String? githubToken}) {
     return CountryNamesSource.test(
       client: HttpClient(),
       repositoryBase: base,
       treeUri: base.resolve('tree'),
+      githubToken: githubToken,
       requestTimeout: timeout,
       maxConcurrentFetches: concurrency,
     );
   }
+
+  test('when a GitHub token is available, it should authenticate only the release tree request', () async {
+    await source(githubToken: 'test-token').load(['BR', 'US']);
+    expect(
+      [
+        for (var index = 0; index < requests.length; index++)
+          if (authorizationHeaders[index] != null) (requests[index], authorizationHeaders[index]),
+      ],
+      [('/tree', 'Bearer test-token')],
+    );
+  });
 
   test('when catalogs inherit regional names, it should resolve explicit parent overrides', () async {
     expect((await source().load(['BR', 'US'])).catalogs['pt-AO'], {
@@ -352,7 +367,7 @@ void main() {
     });
   }
 
-  test('when a network connection is refused, it should fail with the source URL', () async {
+  test('when the source is unavailable, it should fail with the source URL', () async {
     await server.close(force: true);
     await expectLater(
       source().load(['BR', 'US']),
@@ -360,7 +375,7 @@ void main() {
         isA<StateError>().having(
           (error) => error.message,
           'message',
-          allOf(contains(base.toString()), contains('SocketException')),
+          contains(base.toString()),
         ),
       ),
     );
