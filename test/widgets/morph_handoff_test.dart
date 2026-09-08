@@ -43,7 +43,7 @@ void main() {
 
   group('Morph handoff', () {
     testWidgets(
-      'when a route reaches its terminal frame, '
+      'when an independently timed flight reaches its terminal frame, '
       'it should paint the live endpoint without an intermediate blank frame',
       (tester) async {
         const boundaryKey = ValueKey('terminal-frame-handoff-boundary');
@@ -57,6 +57,7 @@ void main() {
             child: _HandoffTestApp(
               sourceOffstage: sourceOffstage,
               destinationOffstage: destinationOffstage,
+              morphDuration: const Duration(milliseconds: 400),
               sourceChild: const MorphDescendant(
                 flightBehavior: MorphDescendantFlightBehavior.hide,
                 child: SizedBox.square(
@@ -78,6 +79,7 @@ void main() {
 
         await tester.tap(find.byKey(const ValueKey('open-destination')));
         await tester.pump();
+        await tester.pump();
         final boundary = tester.renderObject<RenderRepaintBoundary>(
           find.byKey(boundaryKey),
         );
@@ -85,7 +87,7 @@ void main() {
         WidgetsBinding.instance.addPostFrameCallback((_) async {
           terminalImage.complete(await boundary.toImage());
         });
-        await tester.pump(const Duration(milliseconds: 240));
+        await tester.pump(const Duration(milliseconds: 440));
         final pixel = await tester.runAsync(() async {
           final image = await terminalImage.future;
           try {
@@ -504,6 +506,7 @@ class _HandoffTestApp extends StatelessWidget {
     required this.sourceOffstage,
     required this.destinationOffstage,
     this.navigatorKey,
+    this.morphDuration,
     this.sourceChild = const SizedBox.square(
       dimension: 100,
       child: ColoredBox(color: Colors.red),
@@ -515,6 +518,7 @@ class _HandoffTestApp extends StatelessWidget {
   });
 
   final GlobalKey<NavigatorState>? navigatorKey;
+  final Duration? morphDuration;
   final ValueNotifier<bool> sourceOffstage;
   final ValueNotifier<bool> destinationOffstage;
   final Widget sourceChild;
@@ -542,6 +546,7 @@ class _HandoffTestApp extends StatelessWidget {
                     child: Morph(
                       key: const ValueKey('handoff-source'),
                       tag: 'paint-confirmed-handoff',
+                      duration: morphDuration,
                       child: sourceChild,
                     ),
                   ),
@@ -578,6 +583,7 @@ class _HandoffTestApp extends StatelessWidget {
                                     'handoff-destination',
                                   ),
                                   tag: 'paint-confirmed-handoff',
+                                  duration: morphDuration,
                                   child: destinationChild,
                                 ),
                               ),

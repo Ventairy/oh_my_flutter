@@ -116,10 +116,12 @@ class _RouteSiblingApp extends StatelessWidget {
   const _RouteSiblingApp({
     this.onSourceAnimation,
     this.onDestinationAnimation,
+    this.morphDuration,
   });
 
   final ValueChanged<double>? onSourceAnimation;
   final ValueChanged<double>? onDestinationAnimation;
+  final Duration? morphDuration;
 
   Widget _buildSourceSibling() {
     return Positioned(
@@ -157,6 +159,7 @@ class _RouteSiblingApp extends StatelessWidget {
               children: [
                 Morph(
                   tag: 'route-surface',
+                  duration: morphDuration,
                   child: Container(color: Colors.grey),
                 ),
                 _buildSourceSibling(),
@@ -179,6 +182,7 @@ class _RouteSiblingApp extends StatelessWidget {
                                 children: [
                                   Morph(
                                     tag: 'route-surface',
+                                    duration: morphDuration,
                                     child: Container(color: Colors.blue),
                                   ),
                                   Positioned(
@@ -2230,6 +2234,27 @@ void main() {
         await tester.pump();
 
         expect(values.first, 0);
+      },
+    );
+
+    testWidgets(
+      'when a route Morph supplies duration, its sibling should follow the independent Morph clock',
+      (tester) async {
+        final values = <double>[];
+        await tester.pumpWidget(
+          _RouteSiblingApp(
+            morphDuration: const Duration(milliseconds: 800),
+            onDestinationAnimation: values.add,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(values.last, closeTo(0.25, 0.05));
       },
     );
 

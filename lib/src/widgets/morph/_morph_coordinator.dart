@@ -18,7 +18,7 @@ class _MorphCoordinator extends ChangeNotifier {
   final Set<_MorphEndpointHandle> _scheduledIncomingEndpoints = {};
   final List<_MorphSiblingHandle> _siblings = [];
   final List<_MorphSiblingHandle> _visibleSiblings = [];
-  final Map<Duration, _MorphControllerLease> _sameFrameControllers = {};
+  final Map<(Duration, Object?), _MorphControllerLease> _sameFrameControllers = {};
   final _MorphTextRasterPool textRasterPool = _MorphTextRasterPool();
   OverlayEntry? _overlayEntry;
   Object? _sameFrameCohort;
@@ -323,7 +323,7 @@ class _MorphCoordinator extends ChangeNotifier {
       ..disposed = true
       ..retentionGeneration += 1;
     final flight = _flights[endpoint.tag];
-    if (flight != null && identical(flight.destinationHandle, endpoint)) {
+    if (flight != null && identical(flight.destinationHandle, endpoint) && !flight.isReturningToSource) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final current = _flights[endpoint.tag];
         if (!identical(current, flight) || endpoint.active) return;
@@ -505,7 +505,15 @@ class _MorphCoordinator extends ChangeNotifier {
 
   void startRoutePop(_MorphEndpointHandle endpoint) {
     final currentFlight = _flights[endpoint.tag];
-    if (currentFlight != null && currentFlight.kind.isRoute) return;
+    if (currentFlight != null && currentFlight.kind.isRoute) {
+      if (!currentFlight.hasIndependentClock) return;
+      if (currentFlight.kind == MorphFlightKind.routePush) {
+        currentFlight.returnToSource();
+      } else if (currentFlight.isReturningToSource) {
+        currentFlight.continueToDestination();
+      }
+      return;
+    }
 
     final destination = _candidateFor(
       endpoint,
@@ -519,16 +527,25 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
 
+    final configuredDuration = endpoint.configuredDuration;
     final routeAnimation = endpoint.route?.animation;
-    if (routeAnimation == null) {
+    if (configuredDuration == null && routeAnimation == null) {
       _transferOwnershipImmediately(destination);
       return;
     }
+    final controllerLease = configuredDuration == null
+        ? null
+        : _obtainSameFrameController(
+            configuredDuration,
+            group: endpoint.route,
+          );
+    final flightAnimation = controllerLease?.controller ?? ReverseAnimation(routeAnimation!);
     if (currentFlight != null) {
       _retargetToRoutePop(
         currentFlight,
         destination,
-        ReverseAnimation(routeAnimation),
+        flightAnimation,
+        controllerLease: controllerLease,
       );
       return;
     }
@@ -536,8 +553,29 @@ class _MorphCoordinator extends ChangeNotifier {
       sourceHandle: endpoint,
       destinationHandle: destination,
       kind: MorphFlightKind.routePop,
-      flightAnimation: ReverseAnimation(routeAnimation),
+      flightAnimation: flightAnimation,
+      controllerLease: controllerLease,
     );
+  }
+
+  void routeStatusChanged(
+    _MorphEndpointHandle endpoint,
+    AnimationStatus status,
+  ) {
+    if (status == AnimationStatus.reverse) {
+      startRoutePop(endpoint);
+      return;
+    }
+    if (status != AnimationStatus.forward) return;
+    final currentFlight = _flights[endpoint.tag];
+    if (currentFlight == null || !currentFlight.hasIndependentClock) {
+      return;
+    }
+    if (currentFlight.kind == MorphFlightKind.routePop) {
+      currentFlight.returnToSource();
+    } else if (currentFlight.isReturningToSource) {
+      currentFlight.continueToDestination();
+    }
   }
 
   void finish(
@@ -756,6 +794,21 @@ class _MorphCoordinator extends ChangeNotifier {
     final sourceRoute = source.route;
     if (!identical(destinationRoute, sourceRoute)) {
       final routeAnimation = destinationRoute?.animation;
+      final configuredDuration = source.configuredDuration;
+      if (configuredDuration != null && (routeAnimation == null || routeAnimation.status.isForwardOrCompleted)) {
+        final controllerLease = _obtainSameFrameController(
+          configuredDuration,
+          group: destinationRoute,
+        );
+        _startFlight(
+          sourceHandle: source,
+          destinationHandle: destination,
+          kind: MorphFlightKind.routePush,
+          flightAnimation: controllerLease.controller,
+          controllerLease: controllerLease,
+        );
+        return;
+      }
       if (routeAnimation == null ||
           (!routeAnimation.status.isForwardOrCompleted || routeAnimation.status.isCompleted)) {
         _claimOwnership(destination);
@@ -826,7 +879,11 @@ class _MorphCoordinator extends ChangeNotifier {
     final destinationRoute = destination.route;
     final crossesRoutes = !identical(sourceRoute, destinationRoute);
     final routeAnimation = crossesRoutes ? destinationRoute?.animation : null;
-    if (crossesRoutes && (routeAnimation == null || routeAnimation.status != AnimationStatus.forward)) {
+    final configuredRouteDuration = crossesRoutes ? current.destinationHandle.configuredDuration : null;
+    final canStartRouteFlight = configuredRouteDuration == null
+        ? routeAnimation?.status == AnimationStatus.forward
+        : routeAnimation == null || routeAnimation.status.isForwardOrCompleted;
+    if (crossesRoutes && !canStartRouteFlight) {
       _cancelFlightAndClaim(current, destination);
       return;
     }
@@ -871,10 +928,18 @@ class _MorphCoordinator extends ChangeNotifier {
     final _MorphControllerLease? controllerLease;
     final MorphFlightKind kind;
     final Animation<double> flightAnimation;
-    if (routeAnimation != null) {
-      controllerLease = null;
+    if (crossesRoutes) {
       kind = MorphFlightKind.routePush;
-      flightAnimation = _synchronizeRoutePushAnimation(routeAnimation);
+      if (configuredRouteDuration == null) {
+        controllerLease = null;
+        flightAnimation = _synchronizeRoutePushAnimation(routeAnimation!);
+      } else {
+        controllerLease = _obtainSameFrameController(
+          configuredRouteDuration,
+          group: destinationRoute,
+        );
+        flightAnimation = controllerLease.controller;
+      }
     } else {
       controllerLease = _obtainSameFrameController(
         configuration?.duration ?? current.destinationHandle.duration,
@@ -1098,9 +1163,11 @@ class _MorphCoordinator extends ChangeNotifier {
   void _retargetToRoutePop(
     _MorphActiveFlight current,
     _MorphEndpointHandle destination,
-    Animation<double> flightAnimation,
-  ) {
+    Animation<double> flightAnimation, {
+    _MorphControllerLease? controllerLease,
+  }) {
     if (!_delegatesAreCompatible(current.delegate, destination.delegate)) {
+      controllerLease?.release();
       _cancelFlightAndClaim(current, destination);
       _reportSkippedFlight(
         tag: destination.tag,
@@ -1114,6 +1181,7 @@ class _MorphCoordinator extends ChangeNotifier {
     current.cancelForRetarget();
     _removeFlight(current.tag);
     if (destinationProperties == null) {
+      controllerLease?.release();
       _claimOwnership(destination);
       _removeOverlayWhenIdle();
       notifyListeners();
@@ -1137,6 +1205,7 @@ class _MorphCoordinator extends ChangeNotifier {
       cohort: _obtainSameFrameCohort(),
       structuralOrder: current.structuralOrder,
       registrationOrder: current.registrationOrder,
+      controllerLease: controllerLease,
     );
     current.destinationHandle.visibility.hidden = true;
     destination.visibility.hidden = true;
@@ -1221,18 +1290,22 @@ class _MorphCoordinator extends ChangeNotifier {
     return child.key ?? child;
   }
 
-  _MorphControllerLease _obtainSameFrameController(Duration duration) {
-    final existing = _sameFrameControllers[duration];
+  _MorphControllerLease _obtainSameFrameController(
+    Duration duration, {
+    Object? group,
+  }) {
+    final key = (duration, group);
+    final existing = _sameFrameControllers[key];
     if (existing != null && !existing.isDisposed) {
       existing.retain();
       return existing;
     }
 
     final lease = _MorphControllerLease(vsync: overlay, duration: duration);
-    _sameFrameControllers[duration] = lease;
+    _sameFrameControllers[key] = lease;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (identical(_sameFrameControllers[duration], lease)) {
-        _sameFrameControllers.remove(duration);
+      if (identical(_sameFrameControllers[key], lease)) {
+        _sameFrameControllers.remove(key);
       }
     });
     lease.retain();

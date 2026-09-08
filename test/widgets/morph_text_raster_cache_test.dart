@@ -2873,10 +2873,7 @@ void main() {
           appKey.currentState!,
           pumpAfterReady: false,
         );
-        final repeatedStats = await _waitForPoolEntries(
-          tester,
-          minimumEntries: 3,
-        );
+        final repeatedStats = _poolStats(tester);
 
         expect(
           (

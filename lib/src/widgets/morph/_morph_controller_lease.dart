@@ -32,6 +32,18 @@ class _MorphControllerLease {
     );
   }
 
+  void forward() {
+    if (_disposed) return;
+    _started = true;
+    controller.forward();
+  }
+
+  void reverse() {
+    if (_disposed) return;
+    _started = true;
+    controller.reverse();
+  }
+
   void release() {
     if (_disposed) return;
     _users -= 1;

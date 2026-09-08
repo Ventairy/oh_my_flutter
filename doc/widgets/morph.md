@@ -101,7 +101,7 @@ a custom flight delegate defines its own interpolation instead.
 
 | Setting            | Default and ownership                                                                                                                                                                         |
 | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `duration`         | 300 ms for a root same-screen flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ. Route flights use the route animation instead. |
+| `duration`         | 300 ms for a root same-screen flight. An omitted value inherits the nearest configured Morph ancestor. A fully omitted route flight follows the route animation; an explicit or inherited value gives it an independent clock. The departing endpoint wins when endpoints differ. |
 | `curve`            | `Curves.linear` for a root flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ.                                                   |
 | `switchThreshold`  | `0.5`. The departing endpoint supplies it for automatic content changes.                                                                                                                      |
 | `switchTransition` | Omitted by default. The departing endpoint supplies it.                                                                                                                                       |
@@ -115,7 +115,8 @@ departing endpoint.
 
 Each endpoint first resolves an omitted duration or curve from its own nearest
 Morph ancestor. If the resolved endpoint values differ, the departing
-endpoint's effective value controls that direction.
+endpoint's effective value controls that direction. A duration must not be
+negative. Zero completes the visual transition immediately.
 
 Curves that overshoot can produce progress outside the 0 to 1 interval. Custom
 delegates should either support that extrapolation or clamp progress when their
@@ -280,7 +281,8 @@ Morph(
 
 The nested flights inherit 500 milliseconds and `Curves.easeOutCubic`. Supply
 either setting on a nested Morph only when that flight should intentionally use
-different timing.
+different timing. The inherited duration also gives a nested route flight its
+own 500-millisecond clock instead of the route's clock.
 
 ## Animate across routes
 
@@ -317,11 +319,21 @@ No particular `PageRoute` type, transparent background, or
 together. Use a transparent `PageRouteBuilder` that returns its child unchanged
 only when Morph should provide all visible route movement.
 
-The forward flight follows the route's push animation and duration. The return
-flight follows its pop animation and reverse duration. Morph applies the
-departing endpoint's curve to that route progress; the route supplies the clock,
-while Morph supplies the visual easing. The departing Morph also supplies
-`switchThreshold`, the transition builder, and the custom delegate.
+When the departing Morph and its Morph ancestors omit `duration`, the forward
+flight follows the route's push animation and the return flight follows its pop
+animation. Morph applies the departing endpoint's curve to that route progress;
+the route supplies the clock, while Morph supplies the visual easing.
+
+Set `duration` when the shared visual should use its own clock. It can finish
+and hand off to the destination while the page transition continues, or remain
+in the navigator overlay after the page transition settles. An inherited
+duration has the same effect. If navigation reverses before the Morph finishes,
+the Morph returns from its current progress over the proportional elapsed
+duration. A Morph that already handed off starts a new return flight.
+
+The departing Morph supplies the effective duration, `curve`,
+`switchThreshold`, transition builder, and custom delegate. Configure both
+endpoints when push and pop should use the same independent timing.
 
 ## Observe the lifecycle
 
