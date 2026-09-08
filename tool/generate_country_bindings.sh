@@ -20,6 +20,7 @@ if [[ "$platform" == android ]]; then
   (
     cd "$repository_root/example"
     fvm flutter pub get --enforce-lockfile
+    fvm flutter build apk --config-only --no-pub
     cd android
     ./gradlew :oh_my_flutter:compileReleaseKotlin --console=plain
   )
