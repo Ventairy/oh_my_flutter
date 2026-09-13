@@ -316,8 +316,8 @@ final class _MorphHybridColumnFlightPlan extends ChangeNotifier {
     if (child.text != null || child.container != null || child.column != null) {
       return false;
     }
-    if (child.alignment != null || child.widget.key is GlobalKey) return false;
-    return _supportsRawWidget(child.widget);
+    if (child.alignment != null || child._originalWidget.key is GlobalKey) return false;
+    return _supportsRawWidget(child._originalWidget);
   }
 
   static bool _supportsRawWidget(Widget widget) {

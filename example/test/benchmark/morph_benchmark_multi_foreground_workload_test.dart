@@ -11,13 +11,17 @@ void main() {
       'when the default-size static workload builds, '
       'it should create sixteen foregrounds',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         final painter = MorphBenchmarkLiveCaretPainter(
           const AlwaysStoppedAnimation<double>(0),
         );
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkMultiForegroundWorkload(
+                target: target,
                 count: 16,
                 mixed: false,
                 livePainter: painter,
@@ -34,13 +38,17 @@ void main() {
       'when the mixed workload builds, '
       'it should create one paint-only live control',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         final painter = MorphBenchmarkLiveCaretPainter(
           const AlwaysStoppedAnimation<double>(0),
         );
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkMultiForegroundWorkload(
+                target: target,
                 count: 16,
                 mixed: true,
                 livePainter: painter,

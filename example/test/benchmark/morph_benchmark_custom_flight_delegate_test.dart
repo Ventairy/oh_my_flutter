@@ -9,10 +9,13 @@ void main() {
     'when the custom benchmark endpoint changes, '
     'it should paint the interpolated flight color',
     (tester) async {
+      final target = MorphTarget(tag: 'custom-benchmark-test');
+      final observer = MorphNavigatorObserver();
       var destination = false;
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [observer],
           home: StatefulBuilder(
             builder: (context, setState) {
               update = setState;
@@ -21,9 +24,12 @@ void main() {
                   width: destination ? 200 : 100,
                   height: destination ? 140 : 70,
                   child: Morph(
-                    tag: 'custom-benchmark-test',
+                    animateChildChanges: true,
+                    target: target,
                     duration: const Duration(milliseconds: 100),
-                    flightDelegate: const BenchmarkCustomFlightDelegate(),
+                    flightConfig: const .custom(
+                      BenchmarkCustomFlightDelegate(),
+                    ),
                     child: ColoredBox(
                       color: destination ? Colors.blue : Colors.red,
                     ),

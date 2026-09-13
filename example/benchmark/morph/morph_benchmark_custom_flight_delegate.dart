@@ -20,7 +20,7 @@ final class BenchmarkCustomFlightDelegate extends MorphFlightDelegate<Color> {
   }
 
   @override
-  Color lerp(Color source, Color destination, double progress) {
+  Color lerpProperties(Color source, Color destination, double progress) {
     return Color.lerp(source, destination, progress)!;
   }
 
@@ -30,7 +30,7 @@ final class BenchmarkCustomFlightDelegate extends MorphFlightDelegate<Color> {
     MorphFlight<Color> flight,
   ) {
     return AnimatedBuilder(
-      animation: flight.animation,
+      animation: flight.curvedAnimation,
       builder: (context, child) => ColoredBox(color: flight.properties),
     );
   }

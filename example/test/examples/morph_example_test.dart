@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'package:oh_my_flutter_example/examples/morph_example.dart';
 
 void main() {
@@ -7,9 +8,11 @@ void main() {
     'when the Morph actions are used, it should transfer on screen and '
     'across a route',
     (tester) async {
+      final morphObserver = MorphNavigatorObserver();
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
+        MaterialApp(
+          navigatorObservers: [morphObserver],
+          home: const Scaffold(
             body: SingleChildScrollView(child: MorphExample()),
           ),
         ),

@@ -11,9 +11,10 @@ enum MorphDescendantFlightBehavior {
   /// Shows a fixed image of the selected endpoint without mounting another
   /// copy of the subtree.
   ///
-  /// The source image is shown before the nearest Morph's `switchThreshold` and
-  /// the destination image afterward. Each image keeps its endpoint dimensions
-  /// instead of laying out against the changing flight size. The resting
+  /// Automatic flights select the source image before `childSwitchAt` and the
+  /// destination image afterward. Each image keeps
+  /// its endpoint dimensions instead of laying out against the changing flight
+  /// size. The resting
   /// subtree keeps its mounted state, focus, selection, and scroll position.
   /// When the departing Morph watches its destination, the destination image
   /// and dimensions follow changes that occur during the flight.
@@ -25,9 +26,8 @@ enum MorphDescendantFlightBehavior {
 
   /// Keeps the selected endpoint's space empty during the flight.
   ///
-  /// The reserved size changes from the source size to the destination size at
-  /// the nearest Morph's `switchThreshold`. The resting subtree remains
-  /// mounted normally.
+  /// Automatic flights change the reserved size at `childSwitchAt`
+  /// . The resting subtree remains mounted normally.
   hide;
 
   /// Whether this behavior keeps a live copy in the flight.

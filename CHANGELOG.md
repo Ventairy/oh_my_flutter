@@ -1,3 +1,28 @@
+## 0.21.0
+
+- **Breaking:** Morph now uses stable `MorphTarget` instances and a
+  `MorphNavigatorObserver` on each owning Navigator. Replace `tag` on Morph and
+  MorphSibling with `target`; use separate targets with equal tags for each
+  appearance and share the exact target with its siblings. Mounting and removal
+  automatically transfer the shared visual, including returns and interrupted
+  transitions. Sibling progress follows its appearance in both directions and
+  stays visible during child-only replacement. Child updates are now immediate
+  by default; set `animateChildChanges: true` to enable in-place
+  child-replacement flights.
+  Move flight configuration to
+  `flightConfig: MorphFlightConfig.auto(...)` or `.custom(delegate)`;
+  use `childSwitchAt` and `childTransition` for automatic content changes.
+  Custom flights expose `curvedAnimation` and `uncurvedAnimation`; rename
+  delegate `lerp` to `lerpProperties`, register
+  endpoint content with `endpoint.registerDescendantWidget(...)`, and build the
+  returned widget. Snapshot content remains available during keyed endpoint
+  replacement, including in custom crossfades. Independently timed returns stay
+  visually settled above a closing modal barrier until it disappears, avoiding
+  a brief color flash at landing. Sibling builders receive child, curved, and
+  uncurved animations. Rename `MorphSibling.paintAboveMorph` to `paintOnTop`.
+- Add `SafeAreaObserver` and `SafeAreaObserverHandle` to measure local unsafe
+  edge overlap and observe changes without moving or padding content.
+
 ## 0.20.0
 
 - Add `MaybeSafeAreaHandle` to read corrected bounds and observe changes,

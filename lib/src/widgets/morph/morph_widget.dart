@@ -2,14 +2,19 @@ part of 'morph.dart';
 
 /// Animates a widget between two matching locations.
 ///
-/// Give the source and destination the same [tag]. When the visible location
-/// changes, Morph animates the shared content between their positions and
-/// sizes.
+/// Give each appearance a stable [MorphTarget] with the same tag. Mounting a
+/// new appearance moves the shared visual to it; removing it returns to the
+/// most recently mounted appearance that remains. Rebuilds do not reorder
+/// appearances. A covered appearance cannot start a child-replacement flight.
+///
+/// Register a stable [MorphNavigatorObserver] from the creation of each
+/// Navigator containing Morphs. Local transitions also work in a standalone
+/// Overlay. Without an Overlay, [child] renders normally without transitions.
 ///
 /// Eligible Widgets receive specialized transitions automatically.
-/// Other combinations move between their endpoint geometry and
-/// switch content at [switchThreshold]. Supply [flightDelegate]
-/// only for a custom transition.
+/// Other combinations move between their endpoint geometry and switch content
+/// halfway through. Configure [flightConfig] to change child replacement or
+/// supply a custom transition.
 ///
 /// Generic transitions preserve inherited themes and MediaQuery values. They
 /// do not preserve other inherited values introduced locally around an
@@ -20,8 +25,9 @@ part of 'morph.dart';
 /// endpoint, or use a custom delegate when it must have a different in-flight
 /// visual.
 ///
-/// Replacing [child] on the same [Morph] starts an in-place transition. Give
-/// the old and new children the same non-null key when a rebuild should update
+/// When [animateChildChanges] is true, replacing [child] on the same [Morph]
+/// starts an in-place transition. Give the old and new children the same
+/// non-null key when a rebuild should update
 /// the resting widget without animating. Replacing an unkeyed child starts a
 /// transition whenever its widget instance changes.
 ///
@@ -33,24 +39,20 @@ part of 'morph.dart';
 /// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md)
 /// for endpoint setup, automatic transitions, and customization.
 class Morph extends StatefulWidget {
-  /// Creates a widget that can transition to another [Morph] with the same tag.
+  /// Creates an appearance that can transition to another with an equal tag.
   const Morph({
-    required this.tag,
+    required this.target,
     required this.child,
-    this.flightDelegate,
+    this.flightConfig = const MorphFlightConfig.auto(),
     this.duration,
     this.curve,
     this.watchDestination = false,
-    this.switchThreshold = 0.5,
-    this.switchTransition,
+    this.animateChildChanges = false,
     this.onStart,
     this.onEnd,
     this.onReceived,
     super.key,
-  }) : assert(
-         switchThreshold >= 0 && switchThreshold <= 1,
-         'switchThreshold must be between 0 and 1.',
-       );
+  });
 
   static const Duration _defaultDuration = Duration(milliseconds: 300);
   static const Curve _defaultCurve = Curves.linear;
@@ -63,23 +65,38 @@ class Morph extends StatefulWidget {
     return true;
   }
 
-  /// Identifier shared by the source and destination widgets.
+  /// Identifier shared by the source, destination and sibling widgets.
   ///
-  /// Use a distinct tag for each logical shared element.
-  /// Tags match using `Object.==` and `Object.hashCode`. Keep the tag's equality
-  /// and hash code stable while this widget is mounted.
-  final Object tag;
+  /// Use a distinct target object for each logical shared element. At most one Morph
+  /// may use a target at a time. Keep the target's equality and hash code
+  /// stable while this widget is mounted.
+  final MorphTarget target;
 
   /// Widget shown at this location when no transition is running.
   final Widget child;
 
-  /// Optional custom definition of the in-flight visual.
+  /// Whether replacing [child] can start an in-place transition.
   ///
-  /// Leave this null to select the best built-in transition from the paired
-  /// endpoint children. Matching endpoints must either both omit this value or
-  /// use the same delegate runtime type with the same meaning for its type
-  /// parameter. The departing endpoint's delegate controls the transition.
-  final MorphFlightDelegate<Object?>? flightDelegate;
+  /// Defaults to false. When enabled, a different child instance starts a
+  /// transition unless both children have the same non-null key. Rebuilds within the existing
+  /// child subtree do not start a transition.
+  ///
+  /// Set this to false to update the child without a replacement transition.
+  /// Matching appearances still transition when mounted, removed, or replaced,
+  /// including during navigation. This does not cancel an existing flight.
+  /// The new value applies when this property and [child] change together.
+  final bool animateChildChanges;
+
+  /// How the shared element appears during its transition.
+  ///
+  /// Defaults to [MorphFlightConfig.auto], which selects an automatic
+  /// visual for the paired children. Configure that constructor to change when
+  /// child content switches and how it disappears and appears.
+  ///
+  /// Use [MorphFlightConfig.custom] for a custom visual. Matching
+  /// endpoints must both use automatic configuration or compatible custom
+  /// delegates. The departing endpoint's configuration controls the transition.
+  final MorphFlightConfig flightConfig;
 
   /// Duration of transitions started by this Morph.
   ///
@@ -122,21 +139,6 @@ class Morph extends StatefulWidget {
   /// flight is running.
   final bool watchDestination;
 
-  /// Progress at which automatic transitions switch discrete child values.
-  ///
-  /// The departing endpoint supplies this value.
-  final double switchThreshold;
-
-  /// Transition applied when automatic content changes at [switchThreshold].
-  ///
-  /// This includes changed Text values, generic widget pairs, and ordinary
-  /// content inside eligible widgets. The supplied animation moves from 1 to 0
-  /// for departing content and from 0 to 1 for arriving content. Without a
-  /// builder, discrete content changes immediately at [switchThreshold].
-  /// Nested Morph widgets animate independently. The departing endpoint
-  /// supplies this builder.
-  final AnimatedSwitcherTransitionBuilder? switchTransition;
-
   /// Called on the source when its transition starts.
   final VoidCallback? onStart;
 
@@ -153,6 +155,7 @@ class Morph extends StatefulWidget {
 class _MorphState extends State<Morph> {
   _MorphVisibilityHandle _visibility = _MorphVisibilityHandle();
   _MorphEndpointHandle? _endpoint;
+  MorphTarget? _attachedTarget;
   OverlayState? _overlay;
   ModalRoute<Object?>? _route;
   _RenderMorphEndpoint? _renderObject;
@@ -171,12 +174,13 @@ class _MorphState extends State<Morph> {
   }
 
   MorphFlightDelegate<Object?> _resolveFlightDelegate(Morph morph) {
-    final delegate = morph.flightDelegate;
-    if (delegate != null) return delegate;
-    return _MorphAutomaticFlightDelegate(
-      switchThreshold: morph.switchThreshold,
-      switchTransition: morph.switchTransition,
-    );
+    return switch (morph.flightConfig) {
+      _MorphAutoFlightConfiguration(:final childSwitchAt, :final childTransition) => _MorphAutomaticFlightDelegate(
+        switchThreshold: childSwitchAt,
+        switchTransition: childTransition,
+      ),
+      _MorphCustomFlightConfiguration(:final delegate) => delegate,
+    };
   }
 
   MorphEndpoint<Object?>? _capture({
@@ -208,12 +212,13 @@ class _MorphState extends State<Morph> {
       geometry: geometry,
       child: child,
       flightDelegate: flightDelegate,
+      allowDetachedDescendants: true,
     );
   }
 
   _MorphEndpointGeometry? _readLiveGeometry() {
     final renderObject = _renderObject;
-    final overlayRenderObject = _overlayRenderObject;
+    final overlayRenderObject = _overlayRenderObject ?? _overlay?.context.findRenderObject();
     if (renderObject is! _RenderMorphEndpoint ||
         overlayRenderObject is! RenderBox ||
         !renderObject.attached ||
@@ -222,6 +227,7 @@ class _MorphState extends State<Morph> {
         !overlayRenderObject.hasSize) {
       return null;
     }
+    _overlayRenderObject = overlayRenderObject;
 
     final childRenderObject = renderObject.child;
     if (childRenderObject == null || !childRenderObject.hasSize) return null;
@@ -334,8 +340,10 @@ class _MorphState extends State<Morph> {
     required _MorphEndpointGeometry geometry,
     required Widget child,
     required MorphFlightDelegate<Object?> flightDelegate,
+    bool allowDetachedDescendants = false,
   }) {
     final capturedTransform = Matrix4.copy(geometry.transform);
+    final descendantCapture = _MorphDescendantCapture();
     final endpointContext = MorphEndpointContext._(
       context: context,
       child: child,
@@ -344,23 +352,45 @@ class _MorphState extends State<Morph> {
       overlayBounds: geometry.overlayBounds,
       transform: capturedTransform,
       axisScale: geometry.axisScale,
+      descendantCapture: descendantCapture,
     );
 
+    final Object? properties;
+    try {
+      properties = flightDelegate.properties(endpointContext);
+    } finally {
+      descendantCapture.acceptsRegistrations = false;
+    }
     final endpoint = MorphEndpoint<Object?>(
-      properties: flightDelegate.properties(endpointContext),
+      properties: properties,
       bounds: geometry.overlayBounds,
       localSize: geometry.localSize,
       transform: capturedTransform,
       axisScale: geometry.axisScale,
     );
-    final endpointHandle = _endpoint;
-    if (endpointHandle != null) {
-      _MorphDescendantSnapshots.attach(
-        endpoint,
-        endpointHandle._captureDescendants(),
+    if (descendantCapture.hasRegistrations) {
+      descendantCapture.replaceRecords(
+        _endpoint?._captureDescendants(allowDetached: allowDetachedDescendants) ?? const [],
       );
+      _MorphDescendantSnapshots.attach(endpoint, capture: descendantCapture);
     }
     return endpoint;
+  }
+
+  void _attachTarget() {
+    if (_MorphFlightScope.contains(context)) {
+      _detachTarget();
+      return;
+    }
+    if (identical(_attachedTarget, widget.target)) return;
+    _detachTarget();
+    widget.target._attach(this);
+    _attachedTarget = widget.target;
+  }
+
+  void _detachTarget() {
+    _attachedTarget?._detach(this);
+    _attachedTarget = null;
   }
 
   void _attach() {
@@ -383,9 +413,11 @@ class _MorphState extends State<Morph> {
     _route = route;
     final endpoint = _MorphEndpointHandle(
       owner: this,
+      target: widget.target,
       visibility: _visibility,
       overlay: overlay,
       route: route,
+      observer: MorphNavigatorObserver._of(context),
       parentEndpoint: parentEndpoint,
     );
     _endpoint = endpoint;
@@ -399,11 +431,9 @@ class _MorphState extends State<Morph> {
       _rememberPaintedGeometry();
     });
     _MorphCoordinator.of(overlay).register(endpoint);
-    route?.animation?.addStatusListener(_handleRouteStatus);
   }
 
   void _detach() {
-    _route?.animation?.removeStatusListener(_handleRouteStatus);
     final endpoint = _endpoint;
     if (endpoint != null) {
       _MorphCoordinator.of(endpoint.overlay).unregister(endpoint);
@@ -423,31 +453,36 @@ class _MorphState extends State<Morph> {
     _lastPaintedFlightDelegate = null;
   }
 
-  void _handleRouteStatus(AnimationStatus status) {
-    final endpoint = _endpoint;
-    if (endpoint == null) return;
-    _MorphCoordinator.of(endpoint.overlay).routeStatusChanged(
-      endpoint,
-      status,
-    );
-  }
-
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_MorphFlightScope.contains(context)) {
+      _detachTarget();
       _detach();
       return;
     }
+    _attachTarget();
     _attach();
   }
 
   @override
   void didUpdateWidget(Morph oldWidget) {
     super.didUpdateWidget(oldWidget);
+    _attachTarget();
     final oldDelegate = _resolvedFlightDelegate;
     _resolvedFlightDelegate = _resolveFlightDelegate(widget);
-    if (oldWidget.tag == widget.tag && oldDelegate.runtimeType == _resolvedFlightDelegate.runtimeType) {
+    if (identical(oldWidget.target, widget.target) && oldDelegate.runtimeType != _resolvedFlightDelegate.runtimeType) {
+      final endpoint = _endpoint;
+      if (endpoint != null) {
+        endpoint.configurationChanged();
+        final coordinator = _MorphCoordinator.of(endpoint.overlay);
+        if (identical(coordinator._groups[endpoint.tag]?.selected?.target, endpoint.target)) {
+          coordinator._transferOwnershipImmediately(endpoint);
+        }
+      }
+      return;
+    }
+    if (identical(oldWidget.target, widget.target) && oldDelegate.runtimeType == _resolvedFlightDelegate.runtimeType) {
       final endpoint = _endpoint;
       final oldDuration = endpoint?.duration ?? oldWidget.duration ?? Morph._defaultDuration;
       final oldCurve = endpoint?.curve ?? oldWidget.curve ?? Morph._defaultCurve;
@@ -460,15 +495,15 @@ class _MorphState extends State<Morph> {
       final representsNewOwnership =
           !identical(oldWidget.child, widget.child) &&
           (oldChildKey == null || newChildKey == null || oldChildKey != newChildKey);
-      if (endpoint != null && representsNewOwnership) {
+      if (widget.animateChildChanges && endpoint != null && representsNewOwnership) {
         _MorphCoordinator.of(endpoint.overlay).replaceFromState(
           endpoint,
           sourceCapture: () => _capture(
             child: oldWidget.child,
             flightDelegate: oldDelegate,
           ),
-          sourceIdentity: oldChildKey ?? oldWidget.child,
-          destinationIdentity: newChildKey ?? widget.child,
+          sourceIdentity: (widget.target, oldChildKey ?? oldWidget.child),
+          destinationIdentity: (widget.target, newChildKey ?? widget.child),
           sourceDelegate: oldDelegate,
           duration: oldDuration,
           curve: oldCurve,
@@ -480,12 +515,17 @@ class _MorphState extends State<Morph> {
       return;
     }
 
+    final departing = _endpoint;
+    if (departing != null) {
+      _MorphCoordinator.of(departing.overlay)._captureDeparture(departing);
+    }
     _detach();
     _attach();
   }
 
   @override
   void deactivate() {
+    _attachedTarget?._detach(this);
     final endpoint = _endpoint;
     if (endpoint != null) {
       _MorphCoordinator.of(endpoint.overlay).deactivate(endpoint);
@@ -496,6 +536,7 @@ class _MorphState extends State<Morph> {
   @override
   void activate() {
     super.activate();
+    _attachedTarget?._attach(this);
     final endpoint = _endpoint;
     if (endpoint != null) {
       _MorphCoordinator.of(endpoint.overlay).activate(endpoint);
@@ -504,6 +545,7 @@ class _MorphState extends State<Morph> {
 
   @override
   void dispose() {
+    _detachTarget();
     _detach();
     _visibility.dispose();
     super.dispose();
@@ -513,11 +555,13 @@ class _MorphState extends State<Morph> {
   Widget build(BuildContext context) {
     final flightScope = _MorphFlightScope.scopeOf(context);
     if (flightScope != null) {
-      final hiddenByFlight = flightScope.hasFlight(widget.tag);
-      if (!hiddenByFlight) return widget.child;
-      return TickerMode(
-        enabled: false,
-        child: Opacity(opacity: 0, child: widget.child),
+      final hiddenByFlight = flightScope.hasFlight(widget.target.tag);
+      return _MorphDescendantFlightScope(
+        flightScope: flightScope,
+        resolver: null,
+        child: hiddenByFlight
+            ? TickerMode(enabled: false, child: Opacity(opacity: 0, child: widget.child))
+            : widget.child,
       );
     }
     final visibility = _visibility;

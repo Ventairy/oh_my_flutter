@@ -5,11 +5,15 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 final class MorphBenchmarkMultiForegroundWorkload extends StatelessWidget {
   /// Creates a static workload or one whose last control repaints live.
   const MorphBenchmarkMultiForegroundWorkload({
+    required this.target,
     required this.count,
     required this.mixed,
     required this.livePainter,
     super.key,
   }) : assert(count > 0, 'count must be at least one');
+
+  /// Appearance whose foreground controls accompany its flight.
+  final MorphTarget target;
 
   /// Number of independently projected controls.
   final int count;
@@ -30,7 +34,7 @@ final class MorphBenchmarkMultiForegroundWorkload extends StatelessWidget {
       children: <Widget>[
         for (var index = 0; index < count; index += 1)
           MorphSibling(
-            tag: 'benchmark-multi-foreground',
+            target: target,
             child: _buildControl(live: index == liveIndex),
           ),
       ],

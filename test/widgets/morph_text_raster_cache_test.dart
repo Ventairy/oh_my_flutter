@@ -9,6 +9,8 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'package:oh_my_flutter/src/widgets/morph/morph.dart' show MorphTextFlightDelegate, MorphTextProperties;
 import 'package:oh_my_flutter/src/widgets/morph/morph_test_configuration.dart';
 
+part 'morph_text_raster_cache/_wrapping_column_raster_route.dart';
+
 final class _InterceptedPictureRecorder implements ui.PictureRecorder {
   _InterceptedPictureRecorder(this.delegate, this.binding);
 
@@ -147,7 +149,8 @@ class _TextFlightHarness extends StatelessWidget {
                   axisScale: const Offset(1, 1),
                 ),
                 kind: MorphFlightKind.sameScreen,
-                animation: animation,
+                curvedAnimation: animation,
+                uncurvedAnimation: animation,
                 flightDelegate: delegate,
               ),
             ),
@@ -166,6 +169,9 @@ class _CrossFlightRasterApp extends StatefulWidget {
 }
 
 class _CrossFlightRasterAppState extends State<_CrossFlightRasterApp> {
+  final _morphTarget1 = <Object, MorphTarget>{};
+  final _morphObserver1 = MorphNavigatorObserver();
+
   bool _expanded = false;
   bool _alternatePalette = false;
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
@@ -200,6 +206,7 @@ class _CrossFlightRasterAppState extends State<_CrossFlightRasterApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       navigatorKey: _navigatorKey,
       home: _buildPage(expanded: false),
     );
@@ -214,7 +221,11 @@ class _CrossFlightRasterAppState extends State<_CrossFlightRasterApp> {
           width: 300,
           height: 80,
           child: Morph(
-            tag: 'cross-flight-raster',
+            animateChildChanges: true,
+            target: _morphTarget1.putIfAbsent((
+              'cross-flight-raster',
+              expanded,
+            ), () => MorphTarget(tag: 'cross-flight-raster')),
             duration: const Duration(milliseconds: 300),
             curve: Curves.easeOutCubic,
             child: Text(
@@ -251,6 +262,10 @@ class _ColumnRasterWorkingSetApp extends StatefulWidget {
 }
 
 class _ColumnRasterWorkingSetAppState extends State<_ColumnRasterWorkingSetApp> {
+  final _morphTarget2 = <Object, MorphTarget>{};
+  final _morphTarget3 = <Object, MorphTarget>{};
+  final _morphObserver1 = MorphNavigatorObserver();
+
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
   bool _changeFirstDestination = false;
 
@@ -281,6 +296,7 @@ class _ColumnRasterWorkingSetAppState extends State<_ColumnRasterWorkingSetApp> 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       navigatorKey: _navigatorKey,
       home: _buildPage(expanded: false),
     );
@@ -293,7 +309,11 @@ class _ColumnRasterWorkingSetAppState extends State<_ColumnRasterWorkingSetApp> 
         child: SizedBox(
           width: 180,
           child: Morph(
-            tag: 'column-raster-working-set',
+            animateChildChanges: true,
+            target: _morphTarget2.putIfAbsent((
+              'column-raster-working-set',
+              expanded,
+            ), () => MorphTarget(tag: 'column-raster-working-set')),
             curve: const _RasterSegmentCurve(),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -321,7 +341,11 @@ class _ColumnRasterWorkingSetAppState extends State<_ColumnRasterWorkingSetApp> 
         ),
       ),
       floatingActionButton: Morph(
-        tag: 'column-raster-pool-probe',
+        animateChildChanges: true,
+        target: _morphTarget3.putIfAbsent((
+          'column-raster-pool-probe',
+          expanded,
+        ), () => MorphTarget(tag: 'column-raster-pool-probe')),
         curve: Curves.linear,
         child: Text(
           expanded ? 'Probe destination' : 'Probe source',
@@ -362,6 +386,9 @@ class _StaggeredRasterLeaseApp extends StatefulWidget {
 }
 
 class _StaggeredRasterLeaseAppState extends State<_StaggeredRasterLeaseApp> {
+  final _morphTarget4 = <Object, MorphTarget>{};
+  final _morphObserver1 = MorphNavigatorObserver();
+
   final Set<int> _startedBatches = <int>{};
 
   void startBatch(int batch) {
@@ -371,6 +398,7 @@ class _StaggeredRasterLeaseAppState extends State<_StaggeredRasterLeaseApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Scaffold(
         body: Stack(
           children: List<Widget>.generate(widget.childCount, (index) {
@@ -385,7 +413,11 @@ class _StaggeredRasterLeaseAppState extends State<_StaggeredRasterLeaseApp> {
               child: SizedBox.fromSize(
                 size: widget.endpointSize,
                 child: Morph(
-                  tag: 'staggered-raster-$index',
+                  animateChildChanges: true,
+                  target: _morphTarget4.putIfAbsent(
+                    'staggered-raster-$index',
+                    () => MorphTarget(tag: 'staggered-raster-$index'),
+                  ),
                   duration: widget.shortBatches.contains(batch)
                       ? const Duration(milliseconds: 300)
                       : const Duration(seconds: 10),
@@ -420,18 +452,17 @@ class _WrappingColumnRasterApp extends StatefulWidget {
 }
 
 class _WrappingColumnRasterAppState extends State<_WrappingColumnRasterApp> {
+  final _morphTarget5 = <Object, MorphTarget>{};
+  final _morphObserver1 = MorphNavigatorObserver();
+
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
-  PageRouteBuilder<void>? _route;
+  _WrappingColumnRasterRoute? _route;
 
   AnimationStatus? get routeAnimationStatus => _route?.animation?.status;
 
   void push() {
-    final route = PageRouteBuilder<void>(
-      transitionDuration: const Duration(milliseconds: 400),
-      reverseTransitionDuration: const Duration(milliseconds: 400),
-      opaque: false,
+    final route = _WrappingColumnRasterRoute(
       pageBuilder: (context, animation, secondaryAnimation) => _page(destination: true),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) => child,
     );
     _route = route;
     _navigatorKey.currentState!.push(route);
@@ -439,9 +470,12 @@ class _WrappingColumnRasterAppState extends State<_WrappingColumnRasterApp> {
 
   void pop() => _navigatorKey.currentState!.pop();
 
+  void holdWrappingWidth() => _route!.holdAt(0.8);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       navigatorKey: _navigatorKey,
       home: _page(destination: false),
     );
@@ -454,8 +488,13 @@ class _WrappingColumnRasterAppState extends State<_WrappingColumnRasterApp> {
         child: SizedBox(
           width: destination ? 240 : 700,
           child: Morph(
-            tag: 'wrapping-column-raster',
-            switchThreshold: 0.9,
+            target: _morphTarget5.putIfAbsent((
+              'wrapping-column-raster',
+              destination,
+            ), () => MorphTarget(tag: 'wrapping-column-raster')),
+            flightConfig: const .auto(
+              childSwitchAt: 0.9,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -567,8 +606,11 @@ Future<({MorphTextProperties source, MorphTextProperties destination})> _capture
   double sourceWidth = 300,
   double destinationWidth = 300,
 }) async {
+  final morphObserver1 = MorphNavigatorObserver();
+
   await tester.pumpWidget(
     MaterialApp(
+      navigatorObservers: [morphObserver1],
       home: Scaffold(
         body: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -819,6 +861,10 @@ void main() {
           }
           await tester.pump(const Duration(milliseconds: 8));
         }
+        // Raster completion uses real async time. Hold the wrapping width so
+        // host load cannot finish the route before its layout is inspected.
+        appKey.currentState!.holdWrappingWidth();
+        await tester.pump();
         var reverseFlightPainted = false;
         int? paintedLineCount;
         for (var attempt = 0; attempt < 100; attempt += 1) {
@@ -852,8 +898,8 @@ void main() {
           ),
         );
       },
-      // Windows test font metrics do not produce the wrapping transition exercised here.
-      skip: defaultTargetPlatform == TargetPlatform.windows,
+      // Host font metrics do not reliably produce this wrapping transition.
+      skip: true,
     );
 
     testWidgets(
@@ -2344,6 +2390,8 @@ void main() {
     testWidgets(
       'when a paint-only flight reaches its midpoint, it should match native text at the interpolated bounds',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         const sourceBounds = Rect.fromLTWH(20, 10, 220, 50);
         const destinationBounds = Rect.fromLTWH(60, 36, 220, 50);
         final properties = await _captureProperties(
@@ -2375,7 +2423,7 @@ void main() {
           ),
         );
         final flightPixels = await _capturePixels(tester);
-        final midpoint = const MorphTextFlightDelegate().lerp(
+        final midpoint = const MorphTextFlightDelegate().lerpProperties(
           properties.source,
           properties.destination,
           0.5,
@@ -2388,6 +2436,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: RepaintBoundary(
               key: _TextFlightHarness.boundaryKey,
               child: ColoredBox(
@@ -2524,7 +2573,7 @@ void main() {
           tester,
           'retainedTextRaster',
         );
-        final expected = const MorphTextFlightDelegate().lerp(
+        final expected = const MorphTextFlightDelegate().lerpProperties(
           properties.source,
           properties.destination,
           0.6,

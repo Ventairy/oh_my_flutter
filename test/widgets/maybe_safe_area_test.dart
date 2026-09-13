@@ -30,7 +30,10 @@ Widget _testApp({
   required Widget child,
   EdgeInsets padding = _viewPadding,
 }) {
+  final morphObserver1 = MorphNavigatorObserver();
+
   return MaterialApp(
+    navigatorObservers: [morphObserver1],
     builder: (context, navigator) {
       return MediaQuery(
         data: MediaQuery.of(context).copyWith(
@@ -68,34 +71,39 @@ void main() {
           addTearDown(tester.view.reset);
           final boundaryKey = GlobalKey();
           late BuildContext routeContext;
-          Widget surface(double height) => Stack(
-            children: [
-              Positioned(
-                top: 300,
-                left: 20,
-                width: 200,
-                height: height,
-                child: Morph(
-                  tag: 'snapshot-safe-area',
-                  child: Container(
-                    decoration: const BoxDecoration(color: Colors.white),
-                    child: const MorphDescendant(
-                      flightBehavior: MorphDescendantFlightBehavior.snapshot,
-                      child: Align(
-                        alignment: Alignment.topLeft,
-                        child: MaybeSafeArea(
-                          left: false,
-                          right: false,
-                          bottom: false,
-                          child: ColoredBox(color: Color(0xFFFF0000), child: SizedBox(width: 30, height: 20)),
+          Widget surface(double height) {
+            final morphTarget1 = MorphTarget(tag: 'snapshot-safe-area');
+            return Stack(
+              children: [
+                Positioned(
+                  top: 300,
+                  left: 20,
+                  width: 200,
+                  height: height,
+                  child: Morph(
+                    animateChildChanges: true,
+                    target: morphTarget1,
+                    child: Container(
+                      decoration: const BoxDecoration(color: Colors.white),
+                      child: const MorphDescendant(
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: MaybeSafeArea(
+                            left: false,
+                            right: false,
+                            bottom: false,
+                            child: ColoredBox(color: Color(0xFFFF0000), child: SizedBox(width: 30, height: 20)),
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          );
+              ],
+            );
+          }
+
           await tester.pumpWidget(
             RepaintBoundary(
               key: boundaryKey,
@@ -1845,6 +1853,8 @@ void main() {
     testWidgets(
       'when a same-screen Morph moves and expands it, it should remain continuous and avoid unsafe edges in flight',
       (tester) async {
+        final morphTarget2 = MorphTarget(tag: 'same-screen-maybe-safe-area');
+
         _useTestView(tester);
         const sourceKey = ValueKey('same-screen-morph-source');
         const destinationKey = ValueKey('same-screen-morph-destination');
@@ -1863,7 +1873,8 @@ void main() {
                         width: 100,
                         height: expanded ? 600 : 520,
                         child: Morph(
-                          tag: 'same-screen-maybe-safe-area',
+                          animateChildChanges: true,
+                          target: morphTarget2,
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.linear,
                           child: MaybeSafeArea(
@@ -1943,6 +1954,9 @@ void main() {
     testWidgets(
       'when a route Morph moves and expands it, it should remain continuous and avoid unsafe edges in flight',
       (tester) async {
+        final morphTarget3 = MorphTarget(tag: 'route-maybe-safe-area');
+        final morphTarget4 = MorphTarget(tag: 'route-maybe-safe-area');
+
         _useTestView(tester);
         const sourceKey = ValueKey('route-morph-source');
         const destinationKey = ValueKey('route-morph-destination');
@@ -1953,15 +1967,16 @@ void main() {
                 return Scaffold(
                   body: Stack(
                     children: [
-                      const Positioned(
+                      Positioned(
                         left: 20,
                         top: 60,
                         width: 40,
                         height: 20,
                         child: Morph(
-                          tag: 'route-maybe-safe-area',
+                          animateChildChanges: true,
+                          target: morphTarget3,
                           curve: Curves.linear,
-                          child: MaybeSafeArea(
+                          child: const MaybeSafeArea(
                             child: ColoredBox(
                               key: sourceKey,
                               color: Colors.blue,
@@ -1980,7 +1995,7 @@ void main() {
                                 opaque: false,
                                 transitionDuration: const Duration(milliseconds: 400),
                                 pageBuilder: (context, animation, secondaryAnimation) {
-                                  return const Material(
+                                  return Material(
                                     type: MaterialType.transparency,
                                     child: Stack(
                                       children: [
@@ -1988,9 +2003,10 @@ void main() {
                                           width: 160,
                                           height: 100,
                                           child: Morph(
-                                            tag: 'route-maybe-safe-area',
+                                            animateChildChanges: true,
+                                            target: morphTarget4,
                                             curve: Curves.linear,
-                                            child: MaybeSafeArea(
+                                            child: const MaybeSafeArea(
                                               child: ColoredBox(
                                                 key: destinationKey,
                                                 color: Colors.blue,
@@ -2058,6 +2074,9 @@ void main() {
     testWidgets(
       'when a route Morph is inside it, it should include each correction throughout push and pop flights',
       (tester) async {
+        final morphTarget5 = MorphTarget(tag: 'ancestor-route-maybe-safe-area');
+        final morphTarget6 = MorphTarget(tag: 'ancestor-route-maybe-safe-area');
+
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -2074,7 +2093,7 @@ void main() {
                 return Scaffold(
                   body: Stack(
                     children: [
-                      const Positioned(
+                      Positioned(
                         left: 20,
                         top: 79.52,
                         child: MaybeSafeArea(
@@ -2082,11 +2101,12 @@ void main() {
                           right: false,
                           bottom: false,
                           child: Padding(
-                            padding: EdgeInsets.only(top: 12),
+                            padding: const EdgeInsets.only(top: 12),
                             child: Morph(
-                              tag: 'ancestor-route-maybe-safe-area',
+                              animateChildChanges: true,
+                              target: morphTarget5,
                               curve: Curves.easeOutCubic,
-                              child: SizedBox.square(
+                              child: const SizedBox.square(
                                 key: sourceKey,
                                 dimension: 50,
                               ),
@@ -2112,7 +2132,7 @@ void main() {
                                       animation,
                                       secondaryAnimation,
                                     ) {
-                                      return const Material(
+                                      return Material(
                                         child: Stack(
                                           children: [
                                             Positioned(
@@ -2122,11 +2142,12 @@ void main() {
                                                 right: false,
                                                 bottom: false,
                                                 child: Padding(
-                                                  padding: EdgeInsets.only(top: 12),
+                                                  padding: const EdgeInsets.only(top: 12),
                                                   child: Morph(
-                                                    tag: 'ancestor-route-maybe-safe-area',
+                                                    animateChildChanges: true,
+                                                    target: morphTarget6,
                                                     curve: Curves.easeOutCubic,
-                                                    child: SizedBox.square(
+                                                    child: const SizedBox.square(
                                                       key: destinationKey,
                                                       dimension: 50,
                                                     ),

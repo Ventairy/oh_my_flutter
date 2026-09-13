@@ -8,6 +8,11 @@ part '_maybe_safe_area_geometry.dart';
 part '_maybe_safe_area_layer.dart';
 part '_maybe_safe_area_types.dart';
 part '_render_maybe_safe_area.dart';
+part '_safe_area_transform.dart';
+part '_render_safe_area_observer.dart';
+part '_safe_area_observer_layer.dart';
+part 'safe_area_observer.dart';
+part 'safe_area_observer_handle.dart';
 part 'maybe_safe_area_behavior.dart';
 part 'maybe_safe_area_handle.dart';
 

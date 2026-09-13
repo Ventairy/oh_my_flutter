@@ -25,6 +25,11 @@ final class MorphChildProperties {
   /// Widget shown when no specialized transition is available.
   final Widget widget;
 
+  Widget get _originalWidget => switch (widget) {
+    _MorphRegisteredDescendant(:final child) => child,
+    _ => widget,
+  };
+
   /// Child bounds within its parent.
   final Rect rect;
 

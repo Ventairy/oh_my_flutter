@@ -3,12 +3,12 @@ part of 'morph.dart';
 class _MorphFlightScope extends InheritedNotifier<_MorphCoordinator> {
   const _MorphFlightScope({
     required this.coordinator,
-    required this.descendantResolver,
+    required this.registeredCaptures,
     required super.child,
   }) : super(notifier: coordinator);
 
   final _MorphCoordinator coordinator;
-  final _MorphDescendantFlightResolver? descendantResolver;
+  final Set<_MorphDescendantCapture> registeredCaptures;
 
   static _MorphFlightScope? scopeOf(BuildContext context) {
     return context.dependOnInheritedWidgetOfExactType<_MorphFlightScope>();
@@ -18,16 +18,12 @@ class _MorphFlightScope extends InheritedNotifier<_MorphCoordinator> {
     return scopeOf(context) != null;
   }
 
-  static _MorphDescendantFlightResolver? maybeOf(BuildContext context) {
-    return scopeOf(context)?.descendantResolver;
-  }
-
   bool hasFlight(Object tag) {
     return coordinator._flights.containsKey(tag);
   }
 
   @override
   bool updateShouldNotify(_MorphFlightScope oldWidget) {
-    return super.updateShouldNotify(oldWidget) || !identical(descendantResolver, oldWidget.descendantResolver);
+    return super.updateShouldNotify(oldWidget) || !identical(registeredCaptures, oldWidget.registeredCaptures);
   }
 }

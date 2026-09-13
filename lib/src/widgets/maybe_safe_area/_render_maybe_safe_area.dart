@@ -102,10 +102,9 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
   @override
   _MaybeSafeAreaLayer? get layer => super.layer as _MaybeSafeAreaLayer?;
 
-  final Matrix4 _unadjustedToView = Matrix4.identity();
+  final _SafeAreaTransform _viewTransform = _SafeAreaTransform();
   final Matrix4 _localCorrection = Matrix4.identity();
   final _MaybeSafeAreaBounds _unadjustedBounds = _MaybeSafeAreaBounds();
-  List<RenderObject>? _transformPath;
 
   Matrix4 get _currentTransform {
     if (!_hasEnabledPadding) return _localCorrection..setIdentity();
@@ -155,51 +154,12 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
     MaybeSafeAreaBehavior.preserve => true,
   };
 
-  Matrix4? _resolveUnadjustedToView() {
-    final path = _validatedTransformPath();
-    if (path == null) return null;
-    final result = _unadjustedToView..setIdentity();
-    for (var index = path.length - 2; index > 0; index -= 1) {
-      path[index].applyPaintTransform(path[index - 1], result);
-    }
-    return result;
-  }
-
-  List<RenderObject>? _validatedTransformPath() {
-    final rootNode = owner?.rootNode;
-    if (rootNode == null) return null;
-    final cachedPath = _transformPath;
-    if (cachedPath != null &&
-        cachedPath.isNotEmpty &&
-        identical(cachedPath.first, this) &&
-        identical(cachedPath.last, rootNode)) {
-      var valid = true;
-      for (var index = 0; index + 1 < cachedPath.length; index += 1) {
-        if (!identical(cachedPath[index].parent, cachedPath[index + 1])) {
-          valid = false;
-          break;
-        }
-      }
-      if (valid) return cachedPath;
-    }
-
-    final path = (cachedPath ?? <RenderObject>[])..clear();
-    RenderObject? node = this;
-    while (node != null) {
-      path.add(node);
-      if (identical(node, rootNode)) {
-        _transformPath = path;
-        return path;
-      }
-      node = node.parent;
-    }
-    return null;
-  }
+  Matrix4? _resolveUnadjustedToView() => _viewTransform.resolve(this);
 
   @override
   void detach() {
+    _viewTransform.reset();
     _handle?._detach(this);
-    _transformPath = null;
     layer = null;
     super.detach();
   }

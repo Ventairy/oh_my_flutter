@@ -64,6 +64,7 @@ The harness measures these Morph scenarios independently:
 | `watch_snapshot_dense` | Twenty-four static snapshots inside a watched destination |
 | `watch_snapshot_geometry_only` | Changing endpoint geometry with fixed descendant pixels and local sizes |
 | `watch_snapshot_dynamic` | Four coalesced geometry and pixel mutation batches with one unchanged control |
+| `registered_watch_snapshot_dynamic` | The same mutation batches through a custom delegate with registered descendant content |
 | `watch_snapshot_full_surface` | Twelve consecutive-frame resizes of one near-full-surface snapshot |
 | `watch_snapshot_nested_fallback` | Eight independent nested-boundary pixel changes |
 | `resting_scroll` | Forty unmatched resting solid endpoints moving under one paint-only ancestor |
@@ -73,6 +74,7 @@ The harness measures these Morph scenarios independently:
 | `descendant_snapshot` | One captured descendant in a resizing surface |
 | `descendant_hide` | One hidden descendant in a resizing surface |
 | `descendant_snapshot_dense` | Twenty-four sibling snapshot descendants in one surface |
+| `registered_snapshot_dense` | Twenty-four registered snapshots selected by a custom delegate |
 | `column_unmatched` | Unmatched ordinary departing and arriving `Column` children |
 | `column_matched_raw_resize` | Hybrid `Column` path with one keyed ordinary child resizing from 166×62 to 278×126 |
 | `nested_hold` | Four shorter nested `Text` flights held until their parent arrives |
@@ -131,13 +133,18 @@ temporal creation and disposal deltas after two quiescent frames.
 
 The watched-snapshot scenarios add benchmark paint probes to a changing
 descendant and an unchanged control, then baseline them in `onStart` after
-initial endpoint capture. Structural gates use these probes, not process-wide
-image callbacks:
+initial endpoint capture. The probes count post-frame snapshot paints and
+exclude ordinary screen paints during endpoint presentation. The dense
+workload gives each tile fixed local constraints so resizing its surrounding
+surface does not invalidate the unchanged control. Mutation batches run at
+frame start so their layout and pixels update together before capture.
+Structural gates use these probes, not process-wide image callbacks:
 
 - `watch_snapshot_dense` requires zero post-start paints from both probes.
 - `watch_snapshot_geometry_only` requests four geometry-only batches and
   requires zero probe paints.
-- `watch_snapshot_dynamic` requests four batches with three synchronous changes
+- `watch_snapshot_dynamic` and `registered_watch_snapshot_dynamic` request
+  four batches with three synchronous changes
   each. The dirty probe must capture generations 3, 6, 9, and 12 relative to its
   start, while the unchanged probe remains at zero.
 - `watch_snapshot_full_surface` changes the local size and pixels of a
@@ -198,6 +205,7 @@ Run only one scenario while investigating it:
 --dart-define=MORPH_SCENARIO=watch_snapshot_dense
 --dart-define=MORPH_SCENARIO=watch_snapshot_geometry_only
 --dart-define=MORPH_SCENARIO=watch_snapshot_dynamic
+--dart-define=MORPH_SCENARIO=registered_watch_snapshot_dynamic
 --dart-define=MORPH_SCENARIO=watch_snapshot_full_surface
 --dart-define=MORPH_SCENARIO=watch_snapshot_nested_fallback
 --dart-define=MORPH_SCENARIO=resting_scroll
@@ -207,6 +215,7 @@ Run only one scenario while investigating it:
 --dart-define=MORPH_SCENARIO=descendant_snapshot
 --dart-define=MORPH_SCENARIO=descendant_hide
 --dart-define=MORPH_SCENARIO=descendant_snapshot_dense
+--dart-define=MORPH_SCENARIO=registered_snapshot_dense
 --dart-define=MORPH_SCENARIO=column_unmatched
 --dart-define=MORPH_SCENARIO=column_matched_raw_resize
 --dart-define=MORPH_SCENARIO=nested_hold
@@ -214,6 +223,11 @@ Run only one scenario while investigating it:
 --dart-define=MORPH_SCENARIO=decorated_background
 --dart-define=MORPH_SCENARIO=decorated_foreground
 ```
+
+For repeated Android comparisons with one compiled APK, the engine's initial
+route can select a scenario at launch: pass `--es route /<scenario_id>` to
+`adb shell am start`. A non-root route overrides `MORPH_SCENARIO`; the
+benchmark itself keeps its application navigation at `/`.
 
 The multi-foreground scenarios use 16 controls by default. Override the count
 for focused scaling comparisons while keeping at least one control:

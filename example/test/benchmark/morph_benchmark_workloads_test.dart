@@ -7,15 +7,133 @@ import '../../benchmark/morph/morph_benchmark_workloads.dart';
 
 void main() {
   group('MorphBenchmarkWorkloads', () {
+    testWidgets(
+      'when the full-surface workload finishes its mutation batches, '
+      'it should stop capturing until the pixels change again',
+      (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
+        tester.view
+          ..devicePixelRatio = 3
+          ..physicalSize = const Size(1080, 2256);
+        addTearDown(tester.view.reset);
+        final expanded = ValueNotifier(false);
+        final dirty = MorphBenchmarkSnapshotPaintProbe(capturesOnly: true);
+        final clean = MorphBenchmarkSnapshotPaintProbe(capturesOnly: true);
+        addTearDown(expanded.dispose);
+        addTearDown(dirty.dispose);
+        addTearDown(clean.dispose);
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorObservers: [morphObserver],
+            home: Scaffold(
+              body: ValueListenableBuilder<bool>(
+                valueListenable: expanded,
+                builder: (context, value, child) {
+                  return MorphBenchmarkWorkloads.watchedSnapshotFullSurface(
+                    target: target,
+                    expanded: value,
+                    surfaceChanges: dirty.changes,
+                    dirtySnapshotPainter: dirty,
+                    unchangedSnapshotPainter: clean,
+                    duration: const Duration(seconds: 1),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expanded.value = true;
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        final firstEvent = dirty.paintEventCount;
+        for (var batch = 0; batch < 12; batch += 1) {
+          dirty.requestMutationBatch(mutations: 1);
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        await tester.pumpAndSettle();
+
+        expect(dirty.measureSince(firstEvent).capturePaints, 12);
+      },
+    );
+
+    for (final registered in [false, true]) {
+      testWidgets(
+        'when a dynamic watched workload changes '
+        'with registration $registered, '
+        'it should capture each dirty generation once and preserve the control',
+        (tester) async {
+          final morphObserver = MorphNavigatorObserver();
+          final target = MorphTarget(tag: 'benchmark');
+          final expanded = ValueNotifier(false);
+          final dirty = MorphBenchmarkSnapshotPaintProbe(capturesOnly: true);
+          final clean = MorphBenchmarkSnapshotPaintProbe(capturesOnly: true);
+          addTearDown(expanded.dispose);
+          addTearDown(dirty.dispose);
+          addTearDown(clean.dispose);
+          await tester.pumpWidget(
+            MaterialApp(
+              navigatorObservers: [morphObserver],
+              home: Scaffold(
+                body: ValueListenableBuilder<bool>(
+                  valueListenable: expanded,
+                  builder: (context, value, child) {
+                    return MorphBenchmarkWorkloads.descendantSnapshotDense(
+                      target: target,
+                      expanded: value,
+                      registeredContent: registered,
+                      watchDestination: true,
+                      dynamicWatchedSnapshot: true,
+                      surfaceChanges: dirty.changes,
+                      dirtySnapshotPainter: dirty,
+                      unchangedSnapshotPainter: clean,
+                      duration: const Duration(seconds: 1),
+                    );
+                  },
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          expanded.value = true;
+          await tester.pump();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 100));
+          final dirtyStart = dirty.paintEventCount;
+          final cleanStart = clean.paintEventCount;
+          for (var batch = 0; batch < 4; batch += 1) {
+            dirty.requestMutationBatch();
+            await tester.pump(const Duration(milliseconds: 16));
+          }
+          await tester.pump(const Duration(milliseconds: 16));
+          await tester.pumpAndSettle();
+
+          expect(
+            (
+              dirty.measureSince(dirtyStart).capturedGenerations.join(','),
+              clean.measureSince(cleanStart).capturePaints,
+            ),
+            ('3,6,9,12', 0),
+          );
+        },
+      );
+    }
+
     for (final behavior in MorphDescendantFlightBehavior.values) {
       testWidgets(
         'when the ${behavior.name} descendant workload is built, '
         'it should configure the requested flight behavior',
         (tester) async {
+          final morphObserver = MorphNavigatorObserver();
+          final target = MorphTarget(tag: 'benchmark');
           await tester.pumpWidget(
             MaterialApp(
+              navigatorObservers: [morphObserver],
               home: Scaffold(
                 body: MorphBenchmarkWorkloads.descendant(
+                  target: target,
                   expanded: false,
                   behavior: behavior,
                 ),
@@ -38,10 +156,14 @@ void main() {
       'when the dense snapshot workload is built, '
       'it should contain twenty-four sibling snapshot descendants',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                target: target,
                 expanded: false,
               ),
             ),
@@ -56,10 +178,14 @@ void main() {
       'when the dense snapshot workload watches its destination, '
       'it should enable destination watching',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                target: target,
                 expanded: false,
                 watchDestination: true,
               ),
@@ -78,14 +204,18 @@ void main() {
       'when the dynamic dense snapshot workload is built, '
       'it should track one dirty descendant and preserve one control',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         final dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
         final unchangedProbe = MorphBenchmarkSnapshotPaintProbe();
         addTearDown(dirtyProbe.dispose);
         addTearDown(unchangedProbe.dispose);
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                target: target,
                 expanded: false,
                 watchDestination: true,
                 dynamicWatchedSnapshot: true,
@@ -133,6 +263,8 @@ void main() {
       'when the geometry-only watched snapshot workload changes, '
       'it should move the surface without repainting descendant pixels',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         final geometryChanges = ValueNotifier<int>(0);
         final dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
         final unchangedProbe = MorphBenchmarkSnapshotPaintProbe();
@@ -141,8 +273,10 @@ void main() {
         addTearDown(unchangedProbe.dispose);
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                target: target,
                 expanded: false,
                 watchDestination: true,
                 geometryOnlyWatchedSnapshot: true,
@@ -185,14 +319,18 @@ void main() {
       'when the full-surface watched snapshot workload changes, '
       'it should resize one automatically tracked near-full descendant only',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         final dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
         final unchangedProbe = MorphBenchmarkSnapshotPaintProbe();
         addTearDown(dirtyProbe.dispose);
         addTearDown(unchangedProbe.dispose);
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkWorkloads.watchedSnapshotFullSurface(
+                target: target,
                 expanded: false,
                 surfaceChanges: dirtyProbe.changes,
                 dirtySnapshotPainter: dirtyProbe,
@@ -225,14 +363,18 @@ void main() {
       'when the nested fallback snapshot workload is built, '
       'it should independently repaint one nested boundary',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         final dirtyProbe = MorphBenchmarkSnapshotPaintProbe();
         final unchangedProbe = MorphBenchmarkSnapshotPaintProbe();
         addTearDown(dirtyProbe.dispose);
         addTearDown(unchangedProbe.dispose);
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkWorkloads.descendantSnapshotDense(
+                target: target,
                 expanded: false,
                 watchDestination: true,
                 nestedSnapshotFallback: true,
@@ -276,6 +418,8 @@ void main() {
       'when the matched raw Column workload flies, '
       'it should use the resizing hybrid slot',
       (tester) async {
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         Size largestSize(Size first, Size second) {
           if (first.width * first.height >= second.width * second.height) {
             return first;
@@ -287,11 +431,13 @@ void main() {
         final harnessKey = GlobalKey<_WorkloadHarnessState>();
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: _WorkloadHarness(
                 key: harnessKey,
                 builder: ({required expanded}) {
                   return MorphBenchmarkWorkloads.columnMatchedRawResize(
+                    target: target,
                     expanded: expanded,
                     duration: const Duration(milliseconds: 320),
                   );
@@ -370,10 +516,16 @@ void main() {
       'when the nested watch workload is built, '
       'it should configure the child and parent timing contract',
       (tester) async {
+        final childTarget = MorphTarget(tag: 'nested-child');
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: MorphBenchmarkWorkloads.nestedWatchHold(
+                childTarget: childTarget,
+                target: target,
                 expanded: false,
               ),
             ),
@@ -387,10 +539,10 @@ void main() {
             )
             .toList(growable: false);
         final child = morphs.singleWhere(
-          (morph) => morph.tag == 'benchmark-nested-watched-text',
+          (morph) => identical(morph.target, childTarget),
         );
         final parent = morphs.singleWhere(
-          (morph) => morph.tag == 'benchmark-nested-watch-parent',
+          (morph) => identical(morph.target, target),
         );
         final targetMotion = tester.widget<TweenAnimationBuilder<double>>(
           find.byKey(const ValueKey<String>('nested-watch-motion')),
@@ -417,15 +569,21 @@ void main() {
       'when the watched child has finished, '
       'it should remain held while its target continues moving',
       (tester) async {
+        final childTarget = MorphTarget(tag: 'nested-child');
+        final morphObserver = MorphNavigatorObserver();
+        final target = MorphTarget(tag: 'benchmark');
         final harnessKey = GlobalKey<_WorkloadHarnessState>();
         var parentEnded = false;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver],
             home: Scaffold(
               body: _WorkloadHarness(
                 key: harnessKey,
                 builder: ({required expanded}) {
                   return MorphBenchmarkWorkloads.nestedWatchHold(
+                    childTarget: childTarget,
+                    target: target,
                     expanded: expanded,
                     onEnd: () => parentEnded = true,
                   );
@@ -455,7 +613,7 @@ void main() {
           ),
           skipOffstage: false,
         );
-        final target = find.descendant(
+        final destinationFinder = find.descendant(
           of: destination,
           matching: find.byKey(
             const ValueKey<String>('nested-watch-target-geometry'),
@@ -463,9 +621,9 @@ void main() {
           ),
           skipOffstage: false,
         );
-        final heldRect = tester.getRect(target);
+        final heldRect = tester.getRect(destinationFinder);
         await tester.pump(const Duration(milliseconds: 100));
-        final movedRect = tester.getRect(target);
+        final movedRect = tester.getRect(destinationFinder);
 
         expect(
           (

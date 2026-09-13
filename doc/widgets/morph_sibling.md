@@ -1,22 +1,36 @@
 # MorphSibling
 
-Use `MorphSibling` to coordinate a control or other widget outside a `Morph`
-subtree with that Morph's active transition.
+`MorphSibling` lets other widget outside a Morph's subtree
+accompany that appearance. For example, a card header can fade out while a
+details header fades in as the shared surface moves between them.
+
+Follow the [Morph setup](morph.md#set-up-navigation-and-targets), including a
+stable `MorphNavigatorObserver` on each owning Navigator.
+
+## Associate an external widget
+
+Create one target per appearance in State. Give its Morph and siblings the
+exact same target instance:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
+// State fields, created once.
+final card = MorphTarget(tag: 'surface');
+final details = MorphTarget(tag: 'surface');
+
+// In build:
 Stack(
   children: [
     Morph(
-      tag: 'surface',
+      target: card,
       child: Container(color: Colors.white),
     ),
     Align(
       alignment: Alignment.bottomCenter,
       child: MorphSibling(
-        tag: 'surface',
+        target: card,
         child: FilledButton(
           onPressed: () {},
           child: const Text('Continue'),
@@ -27,60 +41,112 @@ Stack(
 )
 ```
 
-The sibling's `tag` must match the related `Morph`. While no matching flight is
-active, the child renders normally. By default, its live visual paints directly
-above the matching flight without moving between endpoints. Overflow such as
-shadows remains visible, while later flights with other tags stay above it.
+Equal tags allow different Morph appearances to match. A sibling's association
+is more specific: it must use the same instance as its Morph. Any number of
+siblings can accompany one target.
 
-Add `transitionBuilder` when the sibling should respond visually to the Morph:
+By default, the sibling's live visual paints directly above the matching flight
+without moving between endpoints. Overflow such as shadows stays visible.
+Later flights with other tags remain above it. Siblings of the arriving target
+paint above the departing target's siblings; siblings of one target keep their
+registration order.
+
+## Animate arrival and departure
+
+Add `transitionBuilder` to respond to the appearance's progress:
 
 ```dart
 MorphSibling(
-  tag: 'surface',
-  transitionBuilder: (child, animation) {
-    return FadeTransition(
-      opacity: CurvedAnimation(
-        parent: animation,
-        curve: const Interval(0.8, 1),
-      ),
-      child: child,
-    );
+  target: details,
+  transitionBuilder: (child, curved, uncurved) {
+    return FadeTransition(opacity: uncurved, child: child);
   },
-  child: const Text('Details'),
+  child: const Text('Details header'),
 )
 ```
 
-The animation uses the matching Morph's curved visual progress, clamped between
-0 and 1. It advances as the sibling's route appears, reverses as that route
-departs, and stays at 1 while no matching flight is active. Consumers can use
-any transition widget or builder logic; omitting `transitionBuilder` keeps the
-sibling visually unchanged throughout the flight.
+The builder receives curved progress that follows `Morph.curve` and uncurved
+progress unaffected by that curve. Both animations are clamped to 0–1. The
+values belong to the target's appearance, including when both appearances are
+on the same route:
 
-Set `paintAboveMorph` to false when the sibling should animate without changing
-its normal paint order:
+| Transition         | Card header | Details header |
+| ------------------ | ----------- | -------------- |
+| Card → details     | 1 → 0       | 0 → 1          |
+| Details → card     | 0 → 1       | 1 → 0          |
+| Resting on details | 0           | 1              |
+| Resting on card    | 1           | 0              |
+
+Mounting details makes them current. Removing them returns to the most recently
+mounted surviving appearance. Earlier mounted siblings remain at 0 after a
+flight settles; the current appearance's siblings remain at 1.
+
+Replacing only the current target's Morph child does not replay its headers.
+They stay visible, or continue their existing arrival or departure. When
+another appearance interrupts a flight, all participating siblings continue
+from their current curved and uncurved values, including outgoing appearances
+from earlier flights.
+
+The animation objects remain stable across ordinary rebuilds and callback
+replacements. Pass them to Flutter transition widgets or use builder logic to
+choose the visual effect. Omitting `transitionBuilder` leaves the child visually
+unchanged throughout the flight.
+
+For independent intervals, apply your own curve to uncurved progress. When
+following a route, that progress may already be eased or controlled by a
+gesture, so it is not necessarily linear elapsed time.
+
+## Keep headers mounted for a visible exit
+
+Removing a sibling disposes it normally. Morph does not keep a removed header
+alive to finish its exit. Keep both headers mounted while their departure and
+arrival should be visible; each uses its own target:
+
+```dart
+Row(
+  children: [
+    MorphSibling(
+      target: card,
+      transitionBuilder: (child, curved, uncurved) =>
+          FadeTransition(opacity: uncurved, child: child),
+      child: const Text('Card header'),
+    ),
+    MorphSibling(
+      target: details,
+      transitionBuilder: (child, curved, uncurved) =>
+          FadeTransition(opacity: uncurved, child: child),
+      child: const Text('Details header'),
+    ),
+  ],
+)
+```
+
+Switching an `IndexedStack` index or changing `Offstage` alone is not a Morph
+transition request. Use the supported mounting, removal, target-replacement,
+or child-replacement behavior described in the [Morph guide](morph.md).
+
+## Choose paint order
+
+Set `paintOnTop` to false to animate in the normal widget-tree paint order:
 
 ```dart
 MorphSibling(
-  tag: 'surface',
-  paintAboveMorph: false,
-  transitionBuilder: (child, animation) {
-    return ScaleTransition(scale: animation, child: child);
+  target: details,
+  paintOnTop: false,
+  transitionBuilder: (child, curved, uncurved) {
+    return ScaleTransition(scale: curved, child: child);
   },
   child: const Text('Details'),
 )
 ```
 
 An in-place sibling keeps its normal pointer and accessibility behavior during
-the flight. An above-Morph sibling is non-interactive while projected and does
-not contribute duplicate accessibility semantics; both return to ordinary
+the flight. An above-Morph sibling is non-interactive during the flight and
+does not contribute duplicate accessibility semantics; both return to ordinary
 widget-tree behavior when the flight finishes.
 
-Matching includes same-screen changes, route pushes, and route pops. Morphs
-with other tags do not animate or project the sibling.
-
-`MorphSibling` is not a general replacement for Flutter overlays and does not
-place content above dialogs, menus, or unrelated overlay entries. Without an
-enclosing `Overlay`, it displays the settled transition state normally.
+`MorphSibling` does not place content above dialogs, menus, or unrelated overlay
+entries. Without an enclosing Overlay, it displays its settled state normally.
 
 See the
 [MorphSibling API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/MorphSibling-class.html)

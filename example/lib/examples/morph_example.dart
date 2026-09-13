@@ -12,8 +12,14 @@ class MorphExample extends StatefulWidget {
 
 class _MorphExampleState extends State<MorphExample> {
   bool _expanded = false;
+  final _live = MorphTarget(tag: 'example-live-morph');
+  final _snapshot = MorphTarget(tag: 'example-snapshot-morph');
+  final _hidden = MorphTarget(tag: 'example-hidden-morph');
+  final _text = MorphTarget(tag: 'example-text-switch');
+  final _routeSource = MorphTarget(tag: 'example-route-morph');
 
   Future<void> _openRoute() {
+    final destination = MorphTarget(tag: _routeSource.tag);
     return Navigator.of(context).push<void>(
       PageRouteBuilder<void>(
         opaque: false,
@@ -25,13 +31,14 @@ class _MorphExampleState extends State<MorphExample> {
             child: SafeArea(
               child: Stack(
                 children: [
-                  const Align(
+                  Align(
                     alignment: Alignment.bottomRight,
                     child: Padding(
-                      padding: EdgeInsets.all(24),
+                      padding: const EdgeInsets.all(24),
                       child: Morph(
-                        tag: 'example-route-morph',
-                        child: Text(
+                        animateChildChanges: true,
+                        target: destination,
+                        child: const Text(
                           'Route destination',
                           style: TextStyle(
                             fontSize: 28,
@@ -67,28 +74,31 @@ class _MorphExampleState extends State<MorphExample> {
       children: [
         _buildBehaviorExample(
           label: 'Live: content lays out at every flight size',
-          tag: 'example-live-morph',
+          target: _live,
           behavior: MorphDescendantFlightBehavior.live,
         ),
         const SizedBox(height: 16),
         _buildBehaviorExample(
           label: 'Snapshot: captured content keeps its endpoint size',
-          tag: 'example-snapshot-morph',
+          target: _snapshot,
           behavior: MorphDescendantFlightBehavior.snapshot,
         ),
         const SizedBox(height: 16),
         _buildBehaviorExample(
           label: 'Hidden: ordinary content is omitted during the flight',
-          tag: 'example-hidden-morph',
+          target: _hidden,
           behavior: MorphDescendantFlightBehavior.hide,
         ),
         const SizedBox(height: 16),
         Morph(
-          tag: 'example-text-switch',
+          animateChildChanges: true,
+          target: _text,
           duration: const Duration(milliseconds: 900),
-          switchTransition: (child, animation) {
-            return FadeTransition(opacity: animation, child: child);
-          },
+          flightConfig: .auto(
+            childTransition: (child, animation) {
+              return FadeTransition(opacity: animation, child: child);
+            },
+          ),
           child: Text(
             _expanded ? 'Arriving Text fades in' : 'Departing Text fades out',
           ),
@@ -101,9 +111,10 @@ class _MorphExampleState extends State<MorphExample> {
         ),
         FilledButton.tonal(
           onPressed: _openRoute,
-          child: const Morph(
-            tag: 'example-route-morph',
-            child: Text('Open route Morph'),
+          child: Morph(
+            animateChildChanges: true,
+            target: _routeSource,
+            child: const Text('Open route Morph'),
           ),
         ),
       ],
@@ -112,7 +123,7 @@ class _MorphExampleState extends State<MorphExample> {
 
   Widget _buildBehaviorExample({
     required String label,
-    required String tag,
+    required MorphTarget target,
     required MorphDescendantFlightBehavior behavior,
   }) {
     final alignment = _expanded ? Alignment.centerRight : Alignment.centerLeft;
@@ -132,7 +143,8 @@ class _MorphExampleState extends State<MorphExample> {
           child: SizedBox(
             width: _expanded ? 330 : 180,
             child: Morph(
-              tag: tag,
+              animateChildChanges: true,
+              target: target,
               duration: const Duration(milliseconds: 900),
               child: DecoratedBox(
                 decoration: BoxDecoration(

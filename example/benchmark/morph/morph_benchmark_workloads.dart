@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
+import 'morph_benchmark_registered_flight_delegate.dart';
 import 'morph_benchmark_scenario.dart';
 
 /// Builds the benchmark stages that exercise specialized Morph workloads.
@@ -17,6 +18,7 @@ abstract final class MorphBenchmarkWorkloads {
 
   /// Builds one configured descendant inside a resizing surface.
   static Widget descendant({
+    required MorphTarget target,
     required bool expanded,
     required MorphDescendantFlightBehavior behavior,
     Duration duration = const Duration(milliseconds: 320),
@@ -48,7 +50,8 @@ abstract final class MorphBenchmarkWorkloads {
     return Align(
       alignment: alignment,
       child: Morph(
-        tag: 'benchmark-${scenario.id}',
+        animateChildChanges: true,
+        target: target,
         duration: duration,
         onStart: onStart,
         onEnd: onEnd,
@@ -87,7 +90,9 @@ abstract final class MorphBenchmarkWorkloads {
 
   /// Builds twenty-four sibling snapshot descendants in one surface.
   static Widget descendantSnapshotDense({
+    required MorphTarget target,
     required bool expanded,
+    bool registeredContent = false,
     bool watchDestination = false,
     bool dynamicWatchedSnapshot = false,
     bool geometryOnlyWatchedSnapshot = false,
@@ -141,6 +146,11 @@ abstract final class MorphBenchmarkWorkloads {
     if (nestedSnapshotFallback) {
       scenario = MorphBenchmarkScenario.watchSnapshotNestedFallback;
     }
+    if (registeredContent) {
+      scenario = dynamicWatchedSnapshot
+          ? MorphBenchmarkScenario.registeredWatchSnapshotDynamic
+          : MorphBenchmarkScenario.registeredSnapshotDense;
+    }
     var alignment = const Alignment(-0.18, -0.5);
     var surfaceColor = const Color(0xFFFFF0E6);
     if (expanded) {
@@ -166,9 +176,16 @@ abstract final class MorphBenchmarkWorkloads {
         final batch = generation ~/ scenario.snapshotMutationsPerBatch;
         width += (batch % 5) * 2;
       }
+      final flightConfig = registeredContent
+          ? const MorphFlightConfig.custom(
+              RegisteredDelegate(),
+            )
+          : const MorphFlightConfig.auto();
       return Morph(
-        tag: 'benchmark-${scenario.id}',
+        animateChildChanges: true,
+        target: target,
         duration: duration,
+        flightConfig: flightConfig,
         watchDestination: watchDestination,
         onStart: onStart,
         onEnd: onEnd,
@@ -240,6 +257,7 @@ abstract final class MorphBenchmarkWorkloads {
   /// Builds a near-full-surface watched snapshot that changes on consecutive
   /// benchmark frames while one sibling snapshot remains unchanged.
   static Widget watchedSnapshotFullSurface({
+    required MorphTarget target,
     required bool expanded,
     required ValueListenable<int> surfaceChanges,
     required CustomPainter dirtySnapshotPainter,
@@ -284,7 +302,8 @@ abstract final class MorphBenchmarkWorkloads {
             return Align(
               alignment: alignment,
               child: Morph(
-                tag: 'benchmark-${scenario.id}',
+                animateChildChanges: true,
+                target: target,
                 duration: duration,
                 watchDestination: true,
                 onStart: onStart,
@@ -399,15 +418,20 @@ abstract final class MorphBenchmarkWorkloads {
     if (nestedRepaintBoundary) {
       child = RepaintBoundary(child: child);
     }
-    return MorphDescendant(
-      key: ValueKey<int>(index),
-      flightBehavior: MorphDescendantFlightBehavior.snapshot,
-      child: child,
+    return SizedBox(
+      width: expanded ? 48 : 38,
+      height: expanded ? 36 : 30,
+      child: MorphDescendant(
+        key: ValueKey<int>(index),
+        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+        child: child,
+      ),
     );
   }
 
   /// Builds a Column whose matched ordinary child changes size in flight.
   static Widget columnMatchedRawResize({
+    required MorphTarget target,
     required bool expanded,
     required Duration duration,
     VoidCallback? onStart,
@@ -435,7 +459,8 @@ abstract final class MorphBenchmarkWorkloads {
       ),
     );
     final endpoint = Morph(
-      tag: 'benchmark-column-matched-raw-resize',
+      animateChildChanges: true,
+      target: target,
       duration: duration,
       onStart: onStart,
       onEnd: onEnd,
@@ -471,13 +496,16 @@ abstract final class MorphBenchmarkWorkloads {
 
   /// Builds a short watched child inside a longer, moving parent flight.
   static Widget nestedWatchHold({
+    required MorphTarget target,
+    required MorphTarget childTarget,
     required bool expanded,
     VoidCallback? onStart,
     VoidCallback? onEnd,
   }) {
     const scenario = MorphBenchmarkScenario.nestedWatchHold;
     final nestedEndpoint = Morph(
-      tag: 'benchmark-nested-watched-text',
+      animateChildChanges: true,
+      target: childTarget,
       duration: nestedWatchChildDuration,
       watchDestination: true,
       child: Text(
@@ -526,7 +554,8 @@ abstract final class MorphBenchmarkWorkloads {
           ),
         );
         final endpoint = Morph(
-          tag: 'benchmark-nested-watch-parent',
+          animateChildChanges: true,
+          target: target,
           duration: nestedWatchParentDuration,
           onStart: onStart,
           onEnd: onEnd,

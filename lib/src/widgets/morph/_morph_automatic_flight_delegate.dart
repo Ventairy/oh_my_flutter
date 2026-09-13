@@ -28,6 +28,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
           axisScale: endpoint.axisScale,
           switchThreshold: switchThreshold,
           capturedEnvironment: capturedEnvironment,
+          endpoint: endpoint,
           renderObject: endpoint._renderObject,
           specializeDecoratedBox: true,
           captureTextConstraintWidth: false,
@@ -48,12 +49,13 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
         widget: endpoint.child,
         rect: Offset.zero & endpoint.overlayBounds.size,
         capturedEnvironment: capturedEnvironment,
+        endpoint: endpoint,
       ),
     );
   }
 
   @override
-  _MorphAutomaticProperties lerp(
+  _MorphAutomaticProperties lerpProperties(
     _MorphAutomaticProperties source,
     _MorphAutomaticProperties destination,
     double progress,
@@ -182,7 +184,8 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
         axisScale: destinationEndpoint.axisScale,
       ),
       kind: flight.kind,
-      animation: flight.animation,
+      curvedAnimation: flight.curvedAnimation,
+      uncurvedAnimation: flight.uncurvedAnimation,
       flightDelegate: delegate,
     ).._geometry = flight._geometry;
   }

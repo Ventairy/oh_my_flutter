@@ -4,7 +4,9 @@ class _MorphFlightGeometry extends ChangeNotifier {
   _MorphFlightGeometry({
     required MorphEndpoint<Object?> source,
     required MorphEndpoint<Object?> destination,
-  }) : _sourceBounds = source.bounds,
+  }) : _sourceSnapshot = source,
+       _destinationSnapshot = destination,
+       _sourceBounds = source.bounds,
        _sourceLocalSize = source.localSize,
        _sourceTransform = Matrix4.copy(source.transform),
        _sourceAxisScale = source.axisScale,
@@ -13,6 +15,8 @@ class _MorphFlightGeometry extends ChangeNotifier {
        _destinationTransform = Matrix4.copy(destination.transform),
        _destinationAxisScale = destination.axisScale;
 
+  final MorphEndpoint<Object?> _sourceSnapshot;
+  final MorphEndpoint<Object?> _destinationSnapshot;
   Rect _sourceBounds;
   Size _sourceLocalSize;
   final Matrix4 _sourceTransform;
@@ -28,42 +32,54 @@ class _MorphFlightGeometry extends ChangeNotifier {
   Rect get destinationBounds => _destinationBounds;
 
   MorphEndpoint<T> source<T>(T properties) {
-    return MorphEndpoint<T>(
-      properties: properties,
-      bounds: _sourceBounds,
-      localSize: _sourceLocalSize,
-      transform: Matrix4.copy(_sourceTransform),
-      axisScale: _sourceAxisScale,
+    return _MorphDescendantSnapshots.copy(
+      _sourceSnapshot,
+      MorphEndpoint<T>(
+        properties: properties,
+        bounds: _sourceBounds,
+        localSize: _sourceLocalSize,
+        transform: Matrix4.copy(_sourceTransform),
+        axisScale: _sourceAxisScale,
+      ),
     );
   }
 
   MorphEndpoint<T> _sourceWithOwnedTransform<T>(T properties) {
-    return MorphEndpoint<T>(
-      properties: properties,
-      bounds: _sourceBounds,
-      localSize: _sourceLocalSize,
-      transform: _sourceTransform,
-      axisScale: _sourceAxisScale,
+    return _MorphDescendantSnapshots.copy(
+      _sourceSnapshot,
+      MorphEndpoint<T>(
+        properties: properties,
+        bounds: _sourceBounds,
+        localSize: _sourceLocalSize,
+        transform: _sourceTransform,
+        axisScale: _sourceAxisScale,
+      ),
     );
   }
 
   MorphEndpoint<T> destination<T>(T properties) {
-    return MorphEndpoint<T>(
-      properties: properties,
-      bounds: _destinationBounds,
-      localSize: _destinationLocalSize,
-      transform: Matrix4.copy(_destinationTransform),
-      axisScale: _destinationAxisScale,
+    return _MorphDescendantSnapshots.copy(
+      _destinationSnapshot,
+      MorphEndpoint<T>(
+        properties: properties,
+        bounds: _destinationBounds,
+        localSize: _destinationLocalSize,
+        transform: Matrix4.copy(_destinationTransform),
+        axisScale: _destinationAxisScale,
+      ),
     );
   }
 
   MorphEndpoint<T> _destinationWithOwnedTransform<T>(T properties) {
-    return MorphEndpoint<T>(
-      properties: properties,
-      bounds: _destinationBounds,
-      localSize: _destinationLocalSize,
-      transform: _destinationTransform,
-      axisScale: _destinationAxisScale,
+    return _MorphDescendantSnapshots.copy(
+      _destinationSnapshot,
+      MorphEndpoint<T>(
+        properties: properties,
+        bounds: _destinationBounds,
+        localSize: _destinationLocalSize,
+        transform: _destinationTransform,
+        axisScale: _destinationAxisScale,
+      ),
     );
   }
 

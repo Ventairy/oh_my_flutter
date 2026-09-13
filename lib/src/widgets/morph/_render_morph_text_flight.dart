@@ -80,14 +80,14 @@ class _RenderMorphTextFlight extends RenderBox {
   set flight(MorphFlight<MorphTextProperties> value) {
     if (identical(value, _flight)) return;
     if (attached) {
-      _flight.animation.removeListener(markNeedsPaint);
+      _flight.curvedAnimation.removeListener(markNeedsPaint);
     }
     _flight = value;
     _clearPaintProperties();
     _paragraphMetricsCache.clear();
     _rasterCache.clear();
     _updateFlightConstants();
-    if (attached) _flight.animation.addListener(markNeedsPaint);
+    if (attached) _flight.curvedAnimation.addListener(markNeedsPaint);
     markNeedsPaint();
   }
 
@@ -116,14 +116,14 @@ class _RenderMorphTextFlight extends RenderBox {
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    _flight.animation.addListener(markNeedsPaint);
+    _flight.curvedAnimation.addListener(markNeedsPaint);
     _rasterCache.addListener(markNeedsPaint);
     _geometry?.addListener(markNeedsPaint);
   }
 
   @override
   void detach() {
-    _flight.animation.removeListener(markNeedsPaint);
+    _flight.curvedAnimation.removeListener(markNeedsPaint);
     _rasterCache.removeListener(markNeedsPaint);
     _geometry?.removeListener(markNeedsPaint);
     super.detach();
@@ -146,7 +146,7 @@ class _RenderMorphTextFlight extends RenderBox {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    final progress = _flight.animation.value;
+    final progress = _flight.curvedAnimation.value;
     final bounds = _currentBounds;
     if (bounds.isEmpty) return;
     if (_paintRetainedRaster(
@@ -528,7 +528,7 @@ class _RenderMorphTextFlight extends RenderBox {
       ..add(
         DoubleProperty(
           'interpolatedTextLayoutWidth',
-          _propertiesAt(_flight.animation.value).layoutWidth,
+          _propertiesAt(_flight.curvedAnimation.value).layoutWidth,
         ),
       )
       ..add(
@@ -579,7 +579,7 @@ class _RenderMorphTextFlight extends RenderBox {
     return Rect.lerp(
       _geometry?.sourceBounds ?? _flight._sourceSnapshot.bounds,
       _geometry?.destinationBounds ?? _flight._destinationSnapshot.bounds,
-      _flight.animation.value,
+      _flight.curvedAnimation.value,
     )!;
   }
 

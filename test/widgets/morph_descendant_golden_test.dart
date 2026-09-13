@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
+import '../support/morph_golden_navigator.dart';
+
 void main() {
   group('MorphDescendant golden', () {
     for (final behavior in MorphDescendantFlightBehavior.values) {
@@ -23,9 +25,8 @@ void main() {
 
             return tester.pumpAndSettle;
           },
-          builder: () => _MorphDescendantGoldenHarness(
-            key: harnessKey,
-            behavior: behavior,
+          builder: () => MorphGoldenNavigator(
+            child: _MorphDescendantGoldenHarness(key: harnessKey, behavior: behavior),
           ),
         ),
       );
@@ -45,10 +46,12 @@ void main() {
 
           return tester.pumpAndSettle;
         },
-        builder: () => _MorphDescendantGoldenHarness(
-          key: atlasHarnessKey,
-          behavior: MorphDescendantFlightBehavior.snapshot,
-          multipleSnapshots: true,
+        builder: () => MorphGoldenNavigator(
+          child: _MorphDescendantGoldenHarness(
+            key: atlasHarnessKey,
+            behavior: MorphDescendantFlightBehavior.snapshot,
+            multipleSnapshots: true,
+          ),
         ),
       ),
     );
@@ -70,6 +73,8 @@ class _MorphDescendantGoldenHarness extends StatefulWidget {
 }
 
 class _MorphDescendantGoldenHarnessState extends State<_MorphDescendantGoldenHarness> {
+  final _morphTarget1 = <Object, MorphTarget>{};
+
   var _expanded = false;
 
   void _expand() {
@@ -86,7 +91,11 @@ class _MorphDescendantGoldenHarnessState extends State<_MorphDescendantGoldenHar
       child: Align(
         alignment: _expanded ? Alignment.bottomRight : Alignment.topLeft,
         child: Morph(
-          tag: 'descendant-golden-${widget.behavior.name}',
+          animateChildChanges: true,
+          target: _morphTarget1.putIfAbsent(
+            'descendant-golden-${widget.behavior.name}',
+            () => MorphTarget(tag: 'descendant-golden-${widget.behavior.name}'),
+          ),
           child: Container(
             width: _expanded ? 310 : 190,
             height: _expanded ? 220 : 140,

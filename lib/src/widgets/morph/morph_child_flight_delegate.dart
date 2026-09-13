@@ -32,6 +32,7 @@ final class MorphChildFlightDelegate {
     required Offset axisScale,
     required double switchThreshold,
     required _MorphCapturedEnvironment capturedEnvironment,
+    MorphEndpointContext? endpoint,
     RenderBox? renderObject,
     bool specializeDecoratedBox = false,
     bool captureTextConstraintWidth = true,
@@ -114,6 +115,7 @@ final class MorphChildFlightDelegate {
         axisScale: axisScale,
         switchThreshold: switchThreshold,
         capturedEnvironment: capturedEnvironment,
+        endpoint: endpoint,
         renderObject: renderObject,
       ),
       DecoratedBox() when specializeDecoratedBox => MorphContainerFlightDelegate._captureDecoratedBox(
@@ -123,6 +125,7 @@ final class MorphChildFlightDelegate {
         axisScale: axisScale,
         switchThreshold: switchThreshold,
         capturedEnvironment: capturedEnvironment,
+        endpoint: endpoint,
         renderObject: renderObject,
       ),
       _ => null,
@@ -136,11 +139,15 @@ final class MorphChildFlightDelegate {
             axisScale: axisScale,
             switchThreshold: switchThreshold,
             capturedEnvironment: capturedEnvironment,
+            endpoint: endpoint,
           )
         : null;
 
     return MorphChildProperties(
-      widget: content,
+      widget: switch (endpoint?.registerDescendantWidget(widget)) {
+        final _MorphRegisteredDescendant registration => registration.withChild(content),
+        _ => content,
+      },
       rect: text == null
           ? rect
           : Rect.fromLTWH(
@@ -182,17 +189,17 @@ final class MorphChildFlightDelegate {
     final sourceColumn = source.column;
     final destinationColumn = destination.column;
     final text = sourceText != null && destinationText != null
-        ? const MorphTextFlightDelegate().lerp(
+        ? const MorphTextFlightDelegate().lerpProperties(
             sourceText,
             destinationText,
             progress,
           )
         : null;
     final container = sourceContainer != null && destinationContainer != null
-        ? const MorphContainerFlightDelegate().lerp(sourceContainer, destinationContainer, progress)
+        ? const MorphContainerFlightDelegate().lerpProperties(sourceContainer, destinationContainer, progress)
         : null;
     final column = sourceColumn != null && destinationColumn != null
-        ? const MorphColumnFlightDelegate().lerp(sourceColumn, destinationColumn, progress)
+        ? const MorphColumnFlightDelegate().lerpProperties(sourceColumn, destinationColumn, progress)
         : null;
 
     return MorphChildProperties(
@@ -275,9 +282,10 @@ final class MorphChildFlightDelegate {
     required Widget widget,
     required Rect rect,
     required _MorphCapturedEnvironment capturedEnvironment,
+    MorphEndpointContext? endpoint,
   }) {
     return MorphChildProperties(
-      widget: widget,
+      widget: endpoint?.registerDescendantWidget(widget) ?? widget,
       rect: rect,
       padding: EdgeInsets.zero,
       alignment: null,

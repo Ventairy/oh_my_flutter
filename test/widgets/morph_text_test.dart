@@ -28,7 +28,8 @@ class _MorphColumnPropertiesHarness extends StatelessWidget {
         source: endpoint,
         destination: endpoint,
         kind: MorphFlightKind.sameScreen,
-        animation: const AlwaysStoppedAnimation<double>(0),
+        curvedAnimation: const AlwaysStoppedAnimation<double>(0),
+        uncurvedAnimation: const AlwaysStoppedAnimation<double>(0),
         flightDelegate: const MorphColumnFlightDelegate(),
       ),
     );
@@ -56,7 +57,8 @@ class _MorphTextFlightHarness extends StatelessWidget {
         source: endpoint,
         destination: endpoint,
         kind: MorphFlightKind.sameScreen,
-        animation: const AlwaysStoppedAnimation<double>(0),
+        curvedAnimation: const AlwaysStoppedAnimation<double>(0),
+        uncurvedAnimation: const AlwaysStoppedAnimation<double>(0),
         flightDelegate: delegate,
       ),
     );
@@ -95,7 +97,8 @@ class _AnimatedMorphTextFlightHarness extends StatelessWidget {
           axisScale: const Offset(1, 1),
         ),
         kind: MorphFlightKind.sameScreen,
-        animation: animation,
+        curvedAnimation: animation,
+        uncurvedAnimation: animation,
         flightDelegate: delegate,
       ),
     );
@@ -211,7 +214,9 @@ MorphTextProperties _textProperties(
 void main() {
   group('Morph Text', () {
     test('when no curve is provided, it should defer curve resolution', () {
-      const morph = Morph(tag: 'default-curve', child: Text('Text'));
+      final morphTarget1 = MorphTarget(tag: 'default-curve');
+
+      final morph = Morph(target: morphTarget1, child: const Text('Text'));
 
       expect(morph.curve, isNull);
     });
@@ -219,12 +224,17 @@ void main() {
     testWidgets(
       'when building at rest, it should display the original text without a repaint boundary',
       (tester) async {
+        final morphTarget2 = MorphTarget(tag: 'resting-text');
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                tag: 'resting-text',
-                child: Text(
+                animateChildChanges: true,
+                target: morphTarget2,
+                child: const Text(
                   'Resting text',
                   style: TextStyle(fontSize: 16),
                 ),
@@ -252,10 +262,14 @@ void main() {
     testWidgets(
       'when Text flies under a non-uniform scale, it should preserve the transformed vertical extent',
       (tester) async {
+        final morphTarget3 = MorphTarget(tag: 'non-uniform-text');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var destination = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -265,7 +279,8 @@ void main() {
                       alignment: Alignment.center,
                       transform: Matrix4.diagonal3Values(2, 1, 1),
                       child: Morph(
-                        tag: 'non-uniform-text',
+                        animateChildChanges: true,
+                        target: morphTarget3,
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.linear,
                         child: Text(
@@ -304,10 +319,14 @@ void main() {
     testWidgets(
       'when scaled Text uses a forced strut, it should preserve the transformed strut height',
       (tester) async {
+        final morphTarget4 = MorphTarget(tag: 'scaled-strut');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var destination = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -317,7 +336,8 @@ void main() {
                       alignment: Alignment.center,
                       transform: Matrix4.diagonal3Values(1, 2, 1),
                       child: Morph(
-                        tag: 'scaled-strut',
+                        animateChildChanges: true,
+                        target: morphTarget4,
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.linear,
                         child: Text(
@@ -359,10 +379,13 @@ void main() {
     testWidgets(
       'when forced-strut endpoints use different vertical scales, it should preserve exact interpolated metrics',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         const textKey = ValueKey<String>('forced-strut-metrics');
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Text(
                 'Forced metrics',
                 key: textKey,
@@ -392,8 +415,8 @@ void main() {
           switchThreshold: 0.5,
         );
         const delegate = MorphTextFlightDelegate();
-        final quarter = delegate.lerp(source, destination, 0.25);
-        final threeQuarters = delegate.lerp(
+        final quarter = delegate.lerpProperties(source, destination, 0.25);
+        final threeQuarters = delegate.lerpProperties(
           source,
           destination,
           0.75,
@@ -475,6 +498,9 @@ void main() {
     testWidgets(
       'when Text has an overflowing shadow, it should preserve the native shadow outside its layout bounds during flight',
       (tester) async {
+        final morphTarget5 = MorphTarget(tag: 'shadow-overflow');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetDevicePixelRatio);
         const screenKey = ValueKey('shadow-overflow-screen');
@@ -484,13 +510,15 @@ void main() {
           RepaintBoundary(
             key: screenKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
                     update = setState;
                     return Center(
                       child: Morph(
-                        tag: 'shadow-overflow',
+                        animateChildChanges: true,
+                        target: morphTarget5,
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.linear,
                         child: Text(
@@ -580,12 +608,16 @@ void main() {
     testWidgets(
       'when inside a bounded width, it should reserve the full width',
       (tester) async {
+        final morphTarget6 = MorphTarget(tag: 'bounded-text');
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: SizedBox(
                 width: 300,
-                child: Morph(tag: 'bounded-text', child: Text('Bounded')),
+                child: Morph(target: morphTarget6, child: const Text('Bounded')),
               ),
             ),
           ),
@@ -599,12 +631,17 @@ void main() {
     testWidgets(
       'when building with a custom style, it should preserve that style at rest',
       (tester) async {
+        final morphTarget7 = MorphTarget(tag: 'styled-text');
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                tag: 'styled-text',
-                child: Text(
+                animateChildChanges: true,
+                target: morphTarget7,
+                child: const Text(
                   'Styled text',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -623,17 +660,24 @@ void main() {
     testWidgets(
       'when plain text changes style and content, it should render the destination after the flight',
       (tester) async {
+        final morphTarget8 = MorphTarget(tag: 'text');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var destination = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: StatefulBuilder(
               builder: (context, setState) {
                 update = setState;
                 return Center(
                   child: Morph(
-                    tag: 'text',
-                    switchThreshold: 0.6,
+                    animateChildChanges: true,
+                    target: morphTarget8,
+                    flightConfig: const .auto(
+                      childSwitchAt: 0.6,
+                    ),
                     child: (destination
                         ? const Text(
                             'Full description',
@@ -661,9 +705,12 @@ void main() {
     testWidgets(
       'when text differs, it should switch content at the departing threshold',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   Text('Source', key: ValueKey('source')),
@@ -687,8 +734,8 @@ void main() {
 
         expect(
           (
-            delegate.lerp(source, destination, 0.79).text,
-            delegate.lerp(source, destination, 0.8).text,
+            delegate.lerpProperties(source, destination, 0.79).text,
+            delegate.lerpProperties(source, destination, 0.8).text,
           ),
           ('Source', 'Destination'),
         );
@@ -698,9 +745,12 @@ void main() {
     testWidgets(
       'when interpolation progress is zero, it should retain the exact source properties',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   Text(
@@ -731,7 +781,7 @@ void main() {
 
         expect(
           identical(
-            const MorphTextFlightDelegate().lerp(source, destination, 0),
+            const MorphTextFlightDelegate().lerpProperties(source, destination, 0),
             source,
           ),
           isTrue,
@@ -742,9 +792,12 @@ void main() {
     testWidgets(
       'when interpolation progress is complete, it should retain the exact destination properties',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   Text(
@@ -775,7 +828,7 @@ void main() {
 
         expect(
           identical(
-            const MorphTextFlightDelegate().lerp(source, destination, 1),
+            const MorphTextFlightDelegate().lerpProperties(source, destination, 1),
             destination,
           ),
           isTrue,
@@ -786,9 +839,12 @@ void main() {
     testWidgets(
       'when font style changes, it should interpolate the style continuously',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   Text(
@@ -818,7 +874,7 @@ void main() {
         );
 
         expect(
-          const MorphTextFlightDelegate().lerp(source, destination, 0.5).style.fontSize,
+          const MorphTextFlightDelegate().lerpProperties(source, destination, 0.5).style.fontSize,
           20,
         );
       },
@@ -827,9 +883,12 @@ void main() {
     testWidgets(
       'when font size changes during a flight, it should paint with the destination font and scale the glyphs continuously',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   Text(
@@ -858,9 +917,9 @@ void main() {
           switchThreshold: 0.5,
         );
         const delegate = MorphTextFlightDelegate();
-        final quarter = delegate.lerp(source, destination, 0.25);
-        final midpoint = delegate.lerp(source, destination, 0.5);
-        final threeQuarters = delegate.lerp(source, destination, 0.75);
+        final quarter = delegate.lerpProperties(source, destination, 0.25);
+        final midpoint = delegate.lerpProperties(source, destination, 0.5);
+        final threeQuarters = delegate.lerpProperties(source, destination, 0.75);
 
         expect(
           [
@@ -886,9 +945,12 @@ void main() {
     testWidgets(
       'when endpoint line metrics differ, it should preserve the interpolated line height and baseline after scaling',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   Text(
@@ -916,7 +978,7 @@ void main() {
           const ValueKey('tall-line'),
           switchThreshold: 0.5,
         );
-        final midpoint = const MorphTextFlightDelegate().lerp(
+        final midpoint = const MorphTextFlightDelegate().lerpProperties(
           source,
           destination,
           0.5,
@@ -940,9 +1002,12 @@ void main() {
     testWidgets(
       'when text is captured at rest, it should retain its own paint style without scaling',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Text(
                 'Resting metrics',
                 key: ValueKey('resting-metrics'),
@@ -973,9 +1038,12 @@ void main() {
     testWidgets(
       'when text properties are captured, it should dispose the measurement painter',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Text('Measured', key: ValueKey('measured-text')),
             ),
           ),
@@ -1007,9 +1075,12 @@ void main() {
     testWidgets(
       'when text properties interpolate, it should dispose the height measurement painter',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   Text(
@@ -1050,7 +1121,7 @@ void main() {
         addTearDown(
           () => FlutterMemoryAllocations.instance.removeListener(listener),
         );
-        const MorphTextFlightDelegate().lerp(source, destination, 0.5);
+        const MorphTextFlightDelegate().lerpProperties(source, destination, 0.5);
         FlutterMemoryAllocations.instance.removeListener(listener);
 
         expect((created.length, disposed.containsAll(created)), (1, true));
@@ -1060,9 +1131,12 @@ void main() {
     testWidgets(
       'when a text flight unmounts, it should dispose its retained painter',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Text('Flight', key: ValueKey('flight-properties')),
             ),
           ),
@@ -1195,11 +1269,14 @@ void main() {
     testWidgets(
       'when an automated reverse flight paints text, it should preserve direct paint math',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.devicePixelRatio = 2;
         addTearDown(tester.view.resetDevicePixelRatio);
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   SizedBox(
@@ -1268,7 +1345,7 @@ void main() {
           tester,
           'retainedTextRaster',
         );
-        final midpoint = const MorphTextFlightDelegate().lerp(
+        final midpoint = const MorphTextFlightDelegate().lerpProperties(
           source,
           destination,
           0.4,
@@ -1482,6 +1559,9 @@ void main() {
     testWidgets(
       'when non-wrapping visible text flies, it should retain the native pixels outside its endpoint',
       (tester) async {
+        final morphTarget9 = MorphTarget(tag: 'visible-text');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(300, 180);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -1494,6 +1574,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -1505,7 +1586,8 @@ void main() {
                           top: 20,
                           width: 70,
                           child: Morph(
-                            tag: 'visible-text',
+                            animateChildChanges: true,
+                            target: morphTarget9,
                             duration: const Duration(milliseconds: 400),
                             curve: Curves.linear,
                             child: Text(
@@ -1615,9 +1697,12 @@ void main() {
     testWidgets(
       'when text is nested in a Column flight, it should build with the stable destination font transform',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   SizedBox(
@@ -1673,7 +1758,7 @@ void main() {
           axisScale: const Offset(1, 1),
           switchThreshold: 0.5,
         );
-        final midpoint = const MorphColumnFlightDelegate().lerp(
+        final midpoint = const MorphColumnFlightDelegate().lerpProperties(
           source,
           destination,
           0.5,
@@ -1681,6 +1766,7 @@ void main() {
 
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Builder(
                 builder: (context) => SizedBox(
@@ -1712,9 +1798,12 @@ void main() {
     testWidgets(
       'when equal-size endpoint text changes, it should retain the selected endpoint layout width',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   SizedBox(
@@ -1752,8 +1841,8 @@ void main() {
 
         expect(
           [
-            delegate.lerp(source, destination, 0.25).reservedLayoutWidth,
-            delegate.lerp(source, destination, 0.75).reservedLayoutWidth,
+            delegate.lerpProperties(source, destination, 0.25).reservedLayoutWidth,
+            delegate.lerpProperties(source, destination, 0.75).reservedLayoutWidth,
           ],
           [180, 360],
         );
@@ -1763,9 +1852,12 @@ void main() {
     testWidgets(
       'when one-line text flies toward a narrower one-line endpoint, it should keep one line until ownership transfers',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   SizedBox(
@@ -1800,8 +1892,8 @@ void main() {
           switchThreshold: 0.5,
         );
         const delegate = MorphTextFlightDelegate();
-        final beforeTransfer = delegate.lerp(source, destination, 0.25);
-        final afterTransfer = delegate.lerp(source, destination, 0.75);
+        final beforeTransfer = delegate.lerpProperties(source, destination, 0.25);
+        final afterTransfer = delegate.lerpProperties(source, destination, 0.75);
 
         int paintedLineCount(MorphTextProperties properties) {
           final painter = TextPainter(
@@ -1843,9 +1935,12 @@ void main() {
     testWidgets(
       'when equal-size text transfers between identical widths, it should retain the common layout width',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   SizedBox(
@@ -1881,7 +1976,7 @@ void main() {
         );
 
         expect(
-          const MorphTextFlightDelegate().lerp(source, destination, 0.75).reservedLayoutWidth,
+          const MorphTextFlightDelegate().lerpProperties(source, destination, 0.75).reservedLayoutWidth,
           240,
         );
       },
@@ -1927,12 +2022,15 @@ void main() {
     testWidgets(
       'when multiline text transfers to a one-line endpoint, it should switch the paragraph boundary atomically',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         const description =
             'A long description that needs several lines at this width so the '
             'flight can progressively remove lines while returning to its summary.';
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Column(
                 children: [
                   SizedBox(
@@ -1964,9 +2062,9 @@ void main() {
           switchThreshold: 0.5,
         );
         const delegate = MorphTextFlightDelegate(switchThreshold: 0.8);
-        final early = delegate.lerp(source, destination, 0.1);
-        final beforeTransfer = delegate.lerp(source, destination, 0.6);
-        final afterTransfer = delegate.lerp(source, destination, 0.8);
+        final early = delegate.lerpProperties(source, destination, 0.1);
+        final beforeTransfer = delegate.lerpProperties(source, destination, 0.6);
+        final afterTransfer = delegate.lerpProperties(source, destination, 0.8);
 
         expect(
           (
@@ -1987,10 +2085,15 @@ void main() {
       test(
         'when creating with switchThreshold $threshold, it should not throw',
         () {
+          final morphTarget10 = MorphTarget(tag: 'threshold');
+
           expect(
             () => Morph(
-              tag: 'threshold',
-              switchThreshold: threshold,
+              animateChildChanges: true,
+              target: morphTarget10,
+              flightConfig: .auto(
+                childSwitchAt: threshold,
+              ),
               child: const Text('Text'),
             ),
             returnsNormally,
@@ -2002,10 +2105,15 @@ void main() {
     test(
       'when creating with switchThreshold below zero, it should throw an assertion error',
       () {
+        final morphTarget11 = MorphTarget(tag: 'threshold');
+
         expect(
           () => Morph(
-            tag: 'threshold',
-            switchThreshold: -0.1,
+            animateChildChanges: true,
+            target: morphTarget11,
+            flightConfig: .auto(
+              childSwitchAt: -0.1,
+            ),
             child: const Text('Text'),
           ),
           throwsA(isA<AssertionError>()),
@@ -2016,10 +2124,15 @@ void main() {
     test(
       'when creating with switchThreshold above one, it should throw an assertion error',
       () {
+        final morphTarget12 = MorphTarget(tag: 'threshold');
+
         expect(
           () => Morph(
-            tag: 'threshold',
-            switchThreshold: 1.5,
+            animateChildChanges: true,
+            target: morphTarget12,
+            flightConfig: .auto(
+              childSwitchAt: 1.5,
+            ),
             child: const Text('Text'),
           ),
           throwsA(isA<AssertionError>()),
@@ -2030,13 +2143,20 @@ void main() {
     testWidgets(
       'when building with a custom switchThreshold, it should display the text',
       (tester) async {
+        final morphTarget13 = MorphTarget(tag: 'custom-threshold');
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                tag: 'custom-threshold',
-                switchThreshold: 0.8,
-                child: Text('Custom threshold'),
+                animateChildChanges: true,
+                target: morphTarget13,
+                flightConfig: const .auto(
+                  childSwitchAt: 0.8,
+                ),
+                child: const Text('Custom threshold'),
               ),
             ),
           ),
@@ -2080,11 +2200,15 @@ class _RetainedTextGeometryApp extends StatefulWidget {
 }
 
 class _RetainedTextGeometryAppState extends State<_RetainedTextGeometryApp> {
+  final _morphTarget14 = MorphTarget(tag: 'retained-text-geometry');
+  final _morphObserver1 = MorphNavigatorObserver();
+
   bool _destination = false;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Scaffold(
         body: Stack(
           children: [
@@ -2095,7 +2219,8 @@ class _RetainedTextGeometryAppState extends State<_RetainedTextGeometryApp> {
                 child: SizedBox(
                   width: _destination ? 240 : 120,
                   child: Morph(
-                    tag: 'retained-text-geometry',
+                    animateChildChanges: true,
+                    target: _morphTarget14,
                     duration: const Duration(milliseconds: 400),
                     curve: Curves.linear,
                     child: Text(
@@ -2141,11 +2266,15 @@ class _OverflowTextMorphTestApp extends StatefulWidget {
 }
 
 class _OverflowTextMorphTestAppState extends State<_OverflowTextMorphTestApp> {
+  final _morphTarget15 = <Object, MorphTarget>{};
+  final _morphObserver1 = MorphNavigatorObserver();
+
   bool _destination = false;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Scaffold(
         body: Stack(
           children: [
@@ -2154,7 +2283,11 @@ class _OverflowTextMorphTestAppState extends State<_OverflowTextMorphTestApp> {
               child: SizedBox(
                 width: _destination ? 140 : 100,
                 child: Morph(
-                  tag: 'overflow-text-${widget.overflow.name}',
+                  animateChildChanges: true,
+                  target: _morphTarget15.putIfAbsent(
+                    'overflow-text-${widget.overflow.name}',
+                    () => MorphTarget(tag: 'overflow-text-${widget.overflow.name}'),
+                  ),
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.linear,
                   child: Text(
@@ -2186,11 +2319,15 @@ class _OverflowTextMorphTestAppState extends State<_OverflowTextMorphTestApp> {
 }
 
 class _RtlTextMorphTestAppState extends State<_RtlTextMorphTestApp> {
+  final _morphTarget16 = MorphTarget(tag: 'rtl-text');
+  final _morphObserver1 = MorphNavigatorObserver();
+
   bool _destination = false;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Directionality(
         textDirection: TextDirection.rtl,
         child: Scaffold(
@@ -2201,7 +2338,8 @@ class _RtlTextMorphTestAppState extends State<_RtlTextMorphTestApp> {
                 child: SizedBox(
                   width: _destination ? widget.destinationWidth : widget.sourceWidth,
                   child: Morph(
-                    tag: 'rtl-text',
+                    animateChildChanges: true,
+                    target: _morphTarget16,
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.linear,
                     child: Text(

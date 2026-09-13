@@ -1,63 +1,115 @@
 # Morph
 
-`Morph` animates a shared visual between two locations or between two versions
-of one widget. Matching endpoints use the same tag and must resolve to the same
-Flutter `Overlay`.
+`Morph` moves and resizes shared content between appearances, such as a card
+and its details, or animates a changed child in one location. Each appearance
+owns a stable `MorphTarget`; targets with equal tags identify the same shared
+content. Matching stays within one Flutter `Overlay`.
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 ```
 
-## Animate between two locations
+## Set up navigation and targets
 
-Place a `Morph` at each possible location and give both endpoints the same tag.
-Show only the endpoint that currently owns the visual. Rebuilding from one to
-the other starts the flight.
+Create one `MorphNavigatorObserver` for every Navigator containing Morphs.
+Register it from the Navigator's first build and retain it across rebuilds:
+
+```dart
+// Fields in the State that owns the app.
+final morphObserver = MorphNavigatorObserver();
+
+// In build:
+MaterialApp(
+  navigatorObservers: [morphObserver],
+  home: const HomePage(),
+)
+```
+
+A nested Navigator needs its own observer; an observer on the outer Navigator
+is insufficient. Do not share an observer between Navigators or add it after
+navigation has started. Subclasses must call `super` in overridden observer
+callbacks. Incorrect registration produces a descriptive debug assertion.
+
+Local Morphs can also use an Overlay without a Navigator. Without any Overlay,
+a Morph displays its child normally without transitions.
+
+Create targets once in the owning State, not inside `build`:
+
+```dart
+late final card = MorphTarget(tag: widget.item.id);
+late final details = MorphTarget(tag: widget.item.id);
+```
+
+`card` and `details` are different instances with equal tags. At most one
+attached Morph can use each target, with any number of `MorphSibling` widgets
+sharing that exact instance. Targets require no disposal. Tag equality and hash
+codes must stay stable while a target is in use. Use different tags for
+unrelated shared content.
+
+## Mount and remove appearances
+
+Keep the card mounted and conditionally mount its details:
 
 ```dart
 Stack(
   children: [
-    if (expanded)
-      const Align(
+    Align(
+      alignment: Alignment.topLeft,
+      child: Morph(
+        target: card,
+        child: const Text('Item summary'),
+      ),
+    ),
+    if (showDetails)
+      Align(
         alignment: Alignment.bottomRight,
         child: Morph(
-          tag: 'job-title',
-          child: Text(
-            'A complete job description',
+          target: details,
+          child: const Text(
+            'A complete item description',
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
           ),
-        ),
-      )
-    else
-      const Align(
-        alignment: Alignment.topLeft,
-        child: Morph(
-          tag: 'job-title',
-          child: Text('Job summary'),
         ),
       ),
   ],
 )
 ```
 
-For example, `setState(() => expanded = !expanded)` transfers the tag to the
-newly built endpoint. The endpoint being left is the **departing endpoint**;
-the endpoint being shown is the **arriving endpoint**.
+`setState(() => showDetails = true)` transfers the visual to details. Setting
+it to false returns to the card. The appearance being left is the **departing
+endpoint**; the one becoming current is the **arriving endpoint**.
 
-Use a distinct tag for every logical shared element. A normal `MaterialApp`
-with one `Navigator` already provides an overlay. Endpoints in different nested
-navigators or other different overlays cannot match.
+The newest mounted eligible appearance becomes current. Removing it selects
+the most recently mounted surviving appearance. Removing a covered appearance
+does not change the current one. Rebuilds, child updates, and reparenting within
+one frame preserve appearance order. Changing a Morph's target counts as a new
+appearance even when Flutter reuses its State.
+
+Several arrivals in one frame produce a flight directly to the last surviving
+arrival. Intermediate appearances remain in their mounting order for later
+returns. An arrival in a background route or a covered parent appearance does
+not take the foreground visual. An interrupted flight continues from its
+current appearance toward the latest destination.
+
+Changing an `IndexedStack` index or `Offstage` alone does not request a
+transition. Use mounting, removal, target replacement, or child replacement.
+There is no additional view wrapper or activation call.
+
+See [MorphSibling](morph_sibling.md) for external headers that arrive and depart
+with these appearances.
 
 ## Animate a changed child in place
 
-Changing the child of one mounted `Morph` can also start a flight without
-moving to another location. Use a different child key to explicitly represent
-a new visual:
+Set `animateChildChanges: true` so changing the child of the current mounted
+`Morph` can start a flight without moving to another appearance. The snippets
+below use target fields created once in the owning State, as in the setup
+above. Use a different child key to explicitly represent a new visual:
 
 ```dart
 Morph(
-  tag: 'status-label',
+  target: statusTarget,
+  animateChildChanges: true,
   child: Text(
     expanded ? 'Ready to publish' : 'Draft',
     key: ValueKey(expanded),
@@ -65,22 +117,40 @@ Morph(
 )
 ```
 
-An unkeyed child also starts a flight when a rebuild supplies a different
-widget instance, which ordinary declarative rebuilds commonly do. Use an
+With this enabled, an unkeyed child also starts a flight when a rebuild supplies
+a different widget instance, which ordinary declarative rebuilds commonly do. Use an
 explicit changing key when that in-place animation is intentional. Give
 successive children the same non-null key when the rebuild should update the
 resting widget without animating; that stable key suppresses the in-place
-flight even when the child's configuration or widget type changes.
+flight even when the child's configuration or widget type changes. Updating a
+covered appearance does not promote it. Child replacement leaves its siblings
+visible, or lets their existing arrival or departure continue.
+
+By default, `animateChildChanges` is `false`: updates to the direct child are
+immediate while transitions between matching appearances remain enabled:
+
+```dart
+Morph(
+  target: statusTarget,
+  animateChildChanges: false,
+  child: Container(height: expanded ? 200 : 100),
+)
+```
+
+This container's height updates without an in-place flight. Mounting or removing
+another matching appearance, including during navigation, still animates.
+Changing the flag does not cancel an existing flight.
+Rebuilds inside the child subtree do not start child-replacement flights.
 
 ## Choose the automatic behavior
 
-When `flightDelegate` is omitted, Morph chooses the transition from the two
-children:
+The default `flightConfig` is `const MorphFlightConfig.auto()`. It chooses
+the transition from the two children:
 
 - Eligible `Text`, `Container`, `DecoratedBox`, and vertical `Column` pairs
   animate their supported visual values.
 - Every other pair still moves and resizes between its endpoint rectangles,
-  then replaces discrete content at `switchThreshold`.
+  then replaces discrete content at `childSwitchAt`.
 - If a supported widget arrangement is not eligible for specialization, Morph
   uses the generic behavior automatically. No eligibility check is required in
   application code.
@@ -93,20 +163,32 @@ Specialization is best-effort: supported values interpolate smoothly, while
 unsupported or discrete values can switch. Use a custom delegate when a
 particular property must follow an application-defined interpolation contract.
 
-The default `switchThreshold` is `0.5` and its valid range is 0 to 1. The
-departing endpoint supplies it. It controls discrete automatic content changes;
-a custom flight delegate defines its own interpolation instead.
+Configure automatic child replacement on `.auto()`:
+
+```dart
+Morph(
+  target: itemTarget,
+  flightConfig: .auto(childSwitchAt: 0.4),
+  child: content,
+)
+```
+
+The default `childSwitchAt` is `0.5` and its valid range is 0 to 1. Source
+content is selected before that point, and destination content is selected at
+that point and afterward. The value follows the flight's curved progress, so
+`0.4` means 40% of elapsed time only when the curve is linear.
+
+The departing endpoint supplies the automatic configuration. A custom flight
+delegate defines its own interpolation and child transitions instead.
 
 ## Configure timing and ownership
 
-| Setting            | Default and ownership                                                                                                                                                                         |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Setting            | Default and ownership                                                                                                                                                                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `duration`         | 300 ms for a root same-screen flight. An omitted value inherits the nearest configured Morph ancestor. A fully omitted route flight follows the route animation; an explicit or inherited value gives it an independent clock. The departing endpoint wins when endpoints differ. |
-| `curve`            | `Curves.linear` for a root flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ.                                                   |
-| `switchThreshold`  | `0.5`. The departing endpoint supplies it for automatic content changes.                                                                                                                      |
-| `switchTransition` | Omitted by default. The departing endpoint supplies it.                                                                                                                                       |
-| `watchDestination` | `false`. Set it on the departing endpoint when the endpoint it travels toward can move or resize.                                                                                             |
-| `flightDelegate`   | Omitted by default. Both endpoints must use compatible delegates; the departing endpoint's delegate controls the flight.                                                                      |
+| `curve`            | `Curves.linear` for a root flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ.                                                                                                                                       |
+| `watchDestination` | `false`. Set it on the departing endpoint when the endpoint it travels toward can move or resize.                                                                                                                                                                                 |
+| `flightConfig`     | `const MorphFlightConfig.auto()`. Both endpoints must use automatic configuration or compatible custom delegates; the departing endpoint controls the flight.                                                                                                                     |
 
 If a flight must behave the same in both directions, configure the
 direction-dependent values on both endpoints. A route push uses the source as
@@ -127,7 +209,7 @@ visual values require it.
 `MorphDescendant` configures how one descendant subtree participates in its
 nearest ancestor `Morph`. Use it when that subtree needs to relate to the Morph
 differently from the surrounding descendants. Its current `flightBehavior`
-property controls how the subtree is represented during an automatic flight.
+property controls how the subtree is represented during a flight.
 
 Ordinary descendants stay live and lay out against the changing flight size.
 Choose a different flight behavior when needed:
@@ -143,7 +225,7 @@ focus, selection, or scroll position to another live subtree:
 
 ```dart
 Morph(
-  tag: 'editor-surface',
+  target: editorTarget,
   child: Container(
     decoration: const BoxDecoration(color: Colors.white),
     child: MorphDescendant(
@@ -157,9 +239,10 @@ Morph(
 )
 ```
 
-The source snapshot remains visible until `switchThreshold`; the destination
-snapshot is visible afterward. The endpoint behavior is selected at the same
-time, so matching endpoints may deliberately use different behaviors.
+For automatic flights, the source snapshot remains visible before
+`childSwitchAt`; the destination snapshot is visible at that point and afterward.
+The endpoint behavior is selected at the same time, so matching endpoints may
+deliberately use different behaviors.
 
 When the departing Morph sets `watchDestination: true`, the destination
 snapshot and its reserved size refresh while the flight is active. This keeps
@@ -215,30 +298,34 @@ independent content. Prefer one boundary around a complete subtree when all of
 its content uses the same behavior. A nested Morph remains an independent
 shared element.
 
-A custom `MorphFlightDelegate` owns the complete in-flight visual. A
-`MorphDescendant` affects that custom flight only if the delegate builds the
-wrapped subtree as part of its result.
+A `MorphFlightDelegate` owns the complete in-flight visual. For descendant
+content used in a custom flight, [register the content](#register-descendant-content)
+and build the returned widget.
 
 ## Animate a discrete content switch
 
-Use `switchTransition` when discrete automatic content changes should animate
-around `switchThreshold`. This includes changed `Text` values, generic widget
-pairs, and ordinary content inside specialized Container or Column flights.
+Set `childTransition` on `.auto()` when discrete automatic content changes
+should animate around `childSwitchAt`. This includes changed `Text` values,
+generic widget pairs, and ordinary content inside specialized Container or
+Column flights.
 Nested `Morph` widgets continue their independent flights.
 
 ```dart
 Morph(
-  tag: 'status-label',
-  switchTransition: (child, animation) {
-    return FadeTransition(opacity: animation, child: child);
-  },
+  target: statusTarget,
+  flightConfig: .auto(
+    childSwitchAt: 0.4,
+    childTransition: (child, animation) {
+      return FadeTransition(opacity: animation, child: child);
+    },
+  ),
   child: Text(expanded ? 'Ready to publish' : 'Draft'),
 )
 ```
 
 For departing content, the supplied animation moves from 1 to 0. For arriving
 content, it moves from 0 to 1. Without a builder, content switches immediately
-at `switchThreshold`. Configure the builder on both endpoints when the same
+at `childSwitchAt`. Configure the builder on both endpoints when the same
 treatment should apply during both forward and reverse flights.
 
 ## Follow a moving destination
@@ -249,7 +336,7 @@ insets change:
 
 ```dart
 Morph(
-  tag: 'continue-action',
+  target: continueTarget,
   watchDestination: true,
   child: const ContinueButton(),
 )
@@ -267,13 +354,13 @@ and curve when they omit those settings.
 
 ```dart
 Morph(
-  tag: 'card',
+  target: card,
   duration: const Duration(milliseconds: 500),
   curve: Curves.easeOutCubic,
   child: Column(
-    children: const [
-      Morph(tag: 'card-title', child: Text('Title')),
-      Morph(tag: 'card-action', child: Icon(Icons.arrow_forward)),
+    children: [
+      Morph(target: titleTarget, child: const Text('Title')),
+      Morph(target: actionTarget, child: const Icon(Icons.arrow_forward)),
     ],
   ),
 )
@@ -290,22 +377,26 @@ Put one endpoint in the current route and the matching endpoint in the route
 being opened. Both routes must use the same navigator overlay.
 
 ```dart
-// Source in the current route.
-const Morph(
-  tag: 'route-title',
-  child: Text('Job summary'),
+// Field in the source State.
+final routeSource = MorphTarget(tag: 'route-title');
+
+// Source in build.
+Morph(
+  target: routeSource,
+  child: const Text('Item summary'),
 )
 
-// Open a route containing the destination.
+// In the action that opens a new route, create its target once.
+final routeDestination = MorphTarget(tag: routeSource.tag);
 Navigator.of(context).push<void>(
   MaterialPageRoute<void>(
     builder: (context) {
-      return const Scaffold(
+      return Scaffold(
         body: Align(
           alignment: Alignment.bottomRight,
           child: Morph(
-            tag: 'route-title',
-            child: Text('Full job description'),
+            target: routeDestination,
+            child: const Text('Full item description'),
           ),
         ),
       );
@@ -327,13 +418,53 @@ the route supplies the clock, while Morph supplies the visual easing.
 Set `duration` when the shared visual should use its own clock. It can finish
 and hand off to the destination while the page transition continues, or remain
 in the navigator overlay after the page transition settles. An inherited
-duration has the same effect. If navigation reverses before the Morph finishes,
+duration has the same effect. When returning beneath a closing route's colored
+modal barrier, the shared visual finishes moving on its own clock and stays at
+its destination until that route disappears. This prevents a brief tint at
+landing without changing the route duration. Completion callbacks still follow
+the Morph's configured timing.
+
+If navigation reverses before the Morph finishes,
 the Morph returns from its current progress over the proportional elapsed
 duration. A Morph that already handed off starts a new return flight.
 
-The departing Morph supplies the effective duration, `curve`,
-`switchThreshold`, transition builder, and custom delegate. Configure both
-endpoints when push and pop should use the same independent timing.
+The departing Morph supplies the effective duration, `curve`, and flight
+delegate configuration. Configure both endpoints when push and pop should use
+the same independent timing and visual behavior.
+
+Navigation matches only the actual departing and arriving routes. An
+unmatched route between two matching routes breaks that relationship;
+
+A back gesture previews the return. Completing it accepts the previous
+appearance; cancelling it returns to the current route. A gesture with no
+movement does not start a flight or invoke lifecycle callbacks.
+
+### Use a router
+
+For GoRouter, retain the observer with the router and supply it through the
+router's `observers`. Each `ShellRoute` Navigator that contains Morphs needs its
+own observer too. Use pages with a route animation when omitted Morph durations
+should follow route progress:
+
+```dart
+late final router = GoRouter(
+  observers: [morphObserver],
+  routes: [
+    GoRoute(
+      path: '/',
+      pageBuilder: (context, state) => MaterialPage<void>(
+        key: state.pageKey,
+        child: const HomePage(),
+      ),
+    ),
+  ],
+);
+```
+
+This example also imports `package:go_router/go_router.dart`. Install GoRouter
+in the consuming application when using it. Matching never crosses Overlay
+boundaries, including separate branch Navigators; switching GoRouter branches
+does not animate between them.
 
 ## Observe the lifecycle
 
@@ -345,9 +476,10 @@ Lifecycle callbacks belong to the endpoint whose role their name describes:
 
 On route pop, the endpoint in the closing route is now the departing endpoint.
 An interrupted path does not report arrival or completion for a destination it
-did not reach. If the flight reverses or is replaced, the replacement calls the
-new departing endpoint's `onStart` and then follows the same normal completion
-order for the endpoint it actually reaches.
+did not reach. A replacement flight calls its departing endpoint's `onStart`
+and follows the completion order for the endpoint it actually reaches.
+Reversing an existing route flight continues that flight's lifecycle without
+calling `onStart` again.
 
 When the platform disables animations before a flight starts, Morph shows the
 destination immediately without lifecycle callbacks. If reduced motion becomes
@@ -359,8 +491,9 @@ destination correct or visible. Reduced motion can intentionally omit them.
 
 ## Build a custom flight
 
-Use a `MorphFlightDelegate<T>` when the automatic visual is not appropriate.
-The type parameter is the endpoint data your delegate interpolates.
+Subclass `MorphFlightDelegate<T>` when the automatic visual is not
+appropriate, then pass an instance to `MorphFlightConfig.custom`. The type
+parameter is the endpoint data your delegate interpolates.
 
 ```dart
 class StatusFlightDelegate extends MorphFlightDelegate<Color> {
@@ -372,14 +505,14 @@ class StatusFlightDelegate extends MorphFlightDelegate<Color> {
   }
 
   @override
-  Color lerp(Color source, Color destination, double progress) {
+  Color lerpProperties(Color source, Color destination, double progress) {
     return Color.lerp(source, destination, progress)!;
   }
 
   @override
   Widget buildFlight(BuildContext context, MorphFlight<Color> flight) {
     return AnimatedBuilder(
-      animation: flight.animation,
+      animation: flight.curvedAnimation,
       builder: (context, child) {
         return ColoredBox(color: flight.properties);
       },
@@ -393,8 +526,8 @@ endpoints:
 
 ```dart
 Morph(
-  tag: 'status-surface',
-  flightDelegate: const StatusFlightDelegate(),
+  target: statusTarget,
+  flightConfig: const .custom(StatusFlightDelegate()),
   child: const ColoredBox(color: Colors.green),
 )
 ```
@@ -408,24 +541,147 @@ The delegate contract is:
 1. `properties` reads each endpoint when the flight is captured. Resolve
    inherited values synchronously from `endpoint.context`; do not retain the
    context. The endpoint also exposes `child`, `localSize`, `overlayBounds`,
-   `transform`, and `axisScale`.
-2. `lerp` returns the current `T` for the curved animation progress. Progress
-   can overshoot.
+   `transform`, and `axisScale`. Register endpoint widget content with
+   `endpoint.registerDescendantWidget(...)` and store the returned widgets in
+   your properties.
+2. `lerpProperties` returns the current `T` for the curved animation progress.
+   Progress can overshoot.
 3. `buildFlight` builds the in-flight content. Morph positions and sizes the
    returned widget between the endpoint bounds. This method is not called on
-   every progress change, so listen to `flight.animation` whenever the widget
-   reads changing values.
+   every progress change, so listen to `flight.curvedAnimation` when the widget
+   reads changing properties or bounds. Listen to `flight.uncurvedAnimation`
+   when content needs its own timing and easing.
 
-`MorphFlight` exposes `source`, `destination`, `kind`, `animation`, the current
-`properties`, and the current overlay-coordinate `bounds`. Incompatible custom
+`MorphFlight` provides the endpoint values, the reason for the transition,
+and its current properties and overlay-coordinate bounds. Incompatible custom
 delegates do not run a custom flight; the destination remains visible normally.
 Treat exceptions thrown by custom delegate methods like other widget errors;
 Morph does not provide a recovery transition for invalid delegate code.
 
+### Choose animation progress
+
+Use `curvedAnimation` to follow `Morph.curve`, which also controls `properties`
+and `bounds`. Use `uncurvedAnimation` to give custom content its own intervals
+and curves. Both follow the same flight, including changes in direction.
+
+For example, this replacement for the delegate's `buildFlight` fades its visual
+in during the first quarter of the uncurved progress. The color continues to
+follow the Morph curve:
+
+```dart
+@override
+Widget buildFlight(BuildContext context, MorphFlight<Color> flight) {
+  return FadeTransition(
+    opacity: flight.uncurvedAnimation.drive(
+      CurveTween(curve: const Interval(0, 0.25, curve: Curves.easeIn)),
+    ),
+    child: AnimatedBuilder(
+      animation: flight.curvedAnimation,
+      builder: (context, child) => ColoredBox(color: flight.properties),
+    ),
+  );
+}
+```
+
+With an explicit 400 ms Morph duration, that fade takes 100 ms during
+uninterrupted forward playback. When Morph follows a route animation,
+`uncurvedAnimation` follows the route's progress. That progress may already
+be curved or controlled by a gesture, so an interval does not necessarily
+correspond to a fixed elapsed time.
+
+When migrating a custom delegate, rename `lerp` overrides and calls to
+`lerpProperties`, and replace `flight.animation` with
+`flight.curvedAnimation`. If you construct `MorphFlight` yourself, supply both
+`curvedAnimation` and `uncurvedAnimation`; there is no `animation` alias.
+
+### Register descendant content
+
+Use `endpoint.registerDescendantWidget(child)` for endpoint widget content in
+custom flights. Registration is the standard approach and is highly recommended
+for better compatibility. Content may work without it.
+
+Call the method during `properties`, store its returned `Widget`, and build
+that widget in the flight. Register the complete subtree you want to use,
+including any `MorphDescendant` wrappers. For example, this delegate keeps the
+source content visible until 80% progress:
+
+```dart
+class ContentFlightDelegate extends MorphFlightDelegate<Widget> {
+  const ContentFlightDelegate();
+
+  @override
+  Widget properties(MorphEndpointContext endpoint) {
+    return endpoint.registerDescendantWidget(endpoint.child);
+  }
+
+  @override
+  Widget lerpProperties(Widget source, Widget destination, double progress) {
+    return progress < 0.8 ? source : destination;
+  }
+
+  @override
+  Widget buildFlight(BuildContext context, MorphFlight<Widget> flight) {
+    return AnimatedBuilder(
+      animation: flight.curvedAnimation,
+      builder: (context, child) => flight.properties,
+    );
+  }
+}
+```
+
+The return type is an ordinary `Widget`. Your delegate's `T` can still be any
+type: a record, your own class with `Widget` fields, or another property shape.
+Register each piece that you want to select independently. For example, a
+card's title can switch at 25% while its body keeps the source until 75%:
+
+```dart
+@override
+({Widget title, Widget body}) lerpProperties(
+  ({Widget title, Widget body}) source,
+  ({Widget title, Widget body}) destination,
+  double progress,
+) {
+  return (
+    title: progress < 0.25 ? source.title : destination.title,
+    body: progress < 0.75 ? source.body : destination.body,
+  );
+}
+```
+
+In that delegate's `properties`, register the title and body subtrees separately
+and store the returned widgets in the corresponding fields. In `buildFlight`,
+place `flight.properties.title` and `flight.properties.body` in your layout.
+
+To crossfade the complete endpoints in the first example, replace `buildFlight`
+with ordinary Flutter transitions:
+
+```dart
+@override
+Widget buildFlight(BuildContext context, MorphFlight<Widget> flight) {
+  return Stack(
+    fit: StackFit.expand,
+    children: [
+      FadeTransition(
+        opacity: ReverseAnimation(flight.uncurvedAnimation),
+        child: flight.source.properties,
+      ),
+      FadeTransition(
+        opacity: flight.uncurvedAnimation,
+        child: flight.destination.properties,
+      ),
+    ],
+  );
+}
+```
+
+Always build the returned widget and use it only in its associated flight.
+Do not retain the endpoint context to register content after `properties`
+returns.
+
 ## Generic-content constraints
 
 During a generic flight, Morph uses the departing endpoint's inherited themes
-and `MediaQuery` before `switchThreshold`, then the arriving endpoint's values
+and `MediaQuery` before `childSwitchAt`, then the arriving endpoint's values
 after the content switch. Other inherited values introduced locally around an
 endpoint are not transferred.
 

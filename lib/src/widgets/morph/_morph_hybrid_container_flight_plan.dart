@@ -188,7 +188,7 @@ final class _MorphHybridContainerFlightPlan implements _MorphHybridRawSlotPlan {
   static bool _supportsRawChild(MorphChildProperties? child) {
     if (child == null) return true;
     if (child.rect.isEmpty) return false;
-    return _MorphHybridColumnFlightPlan._supportsRawIsland(child) && _supportsContainedRawWidget(child.widget);
+    return _MorphHybridColumnFlightPlan._supportsRawIsland(child) && _supportsContainedRawWidget(child._originalWidget);
   }
 
   static bool _supportsContainedRawWidget(Widget widget) {

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: setup gen gen-check generate-pigeons generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon generate-country-names check-country-names check-pigeons check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon generate-device-location-bindings check-device-location-bindings check-binding-tools format check-format analyze test update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-macos-native-code validate-linux-native-code validate-windows-native-code validate-native-code dry-run-publish analyze-package check clean
+.PHONY: setup gen gen-check generate-pigeons generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon generate-country-names check-country-names check-pigeons check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon generate-device-location-bindings check-device-location-bindings check-binding-tools format check-format analyze test test-morph update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-macos-native-code validate-linux-native-code validate-windows-native-code validate-native-code dry-run-publish analyze-package check clean
 
 setup:
 	fvm install
@@ -84,6 +84,9 @@ analyze:
 
 test:
 	fvm flutter test
+
+test-morph:
+	fvm flutter test test/widgets/morph*_test.dart
 
 update-goldens:
 	fvm flutter test --update-goldens
