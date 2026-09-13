@@ -151,6 +151,13 @@ and can repeat it as one strip or as a gapless loop.
 interface. It is useful when that content is hidden, inactive, or should wait
 before it starts moving.
 
+### SafeAreaObserver
+
+`SafeAreaObserver` measures how much of a surface reaches unsafe screen edges
+without moving its content. It can do things such as tell a scrolling panel
+how much room to reserve around a device cutout. Its `SafeAreaObserverHandle`
+provides local insets and change notifications.
+
 ### MaybeSafeArea
 
 `MaybeSafeArea` keeps moving, floating, or scrolling content away from unsafe

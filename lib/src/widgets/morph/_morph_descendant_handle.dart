@@ -16,9 +16,9 @@ final class _MorphDescendantHandle {
     markSnapshotDirty();
   }
 
-  _RenderMorphDescendant? get capturableRenderObject {
+  _RenderMorphDescendant? capturableRenderObject({required bool allowDetached}) {
     final renderObject = _renderObject;
-    if (renderObject == null || !renderObject.attached || !renderObject.hasSize) {
+    if (renderObject == null || (!allowDetached && !renderObject.attached) || !renderObject.hasSize) {
       return null;
     }
     return renderObject;
@@ -46,12 +46,23 @@ final class _MorphDescendantHandle {
     _MorphContentSnapshot? snapshot,
     bool snapshotCaptureCompleted = false,
     bool? capturesContinuously,
+    _MorphDescendantFlightRecord? previous,
   }) {
     final widget = owner.widget;
     final behavior = widget.flightBehavior;
     final size = renderObject.size;
+    final ancestors = previous?.ancestors ?? <Widget>[widget];
+    if (previous == null) {
+      owner.context.visitAncestorElements((element) {
+        if (element.widget is _MorphEndpointScope) return false;
+        ancestors.add(element.widget);
+        return true;
+      });
+    }
     return _MorphDescendantFlightRecord(
       handle: this,
+      widget: previous?.widget ?? widget,
+      ancestors: ancestors,
       registrationOrder: registrationOrder,
       key: widget.key,
       childType: widget.child.runtimeType,

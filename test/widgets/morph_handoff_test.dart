@@ -501,7 +501,7 @@ void main() {
   });
 }
 
-class _HandoffTestApp extends StatelessWidget {
+class _HandoffTestApp extends StatefulWidget {
   const _HandoffTestApp({
     required this.sourceOffstage,
     required this.destinationOffstage,
@@ -525,9 +525,19 @@ class _HandoffTestApp extends StatelessWidget {
   final Widget destinationChild;
 
   @override
+  State<_HandoffTestApp> createState() => _HandoffTestAppState();
+}
+
+class _HandoffTestAppState extends State<_HandoffTestApp> {
+  final _morphTarget1 = MorphTarget(tag: 'paint-confirmed-handoff');
+  final _morphTarget2 = MorphTarget(tag: 'paint-confirmed-handoff');
+  final _morphObserver1 = MorphNavigatorObserver();
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey,
+      navigatorObservers: [_morphObserver1],
+      navigatorKey: widget.navigatorKey,
       home: Builder(
         builder: (context) {
           return Scaffold(
@@ -535,7 +545,7 @@ class _HandoffTestApp extends StatelessWidget {
             body: Stack(
               children: [
                 ValueListenableBuilder<bool>(
-                  valueListenable: sourceOffstage,
+                  valueListenable: widget.sourceOffstage,
                   builder: (context, offstage, child) {
                     return Offstage(
                       offstage: offstage,
@@ -544,10 +554,11 @@ class _HandoffTestApp extends StatelessWidget {
                   },
                   child: Center(
                     child: Morph(
+                      animateChildChanges: true,
                       key: const ValueKey('handoff-source'),
-                      tag: 'paint-confirmed-handoff',
-                      duration: morphDuration,
-                      child: sourceChild,
+                      target: _morphTarget1,
+                      duration: widget.morphDuration,
+                      child: widget.sourceChild,
                     ),
                   ),
                 ),
@@ -567,7 +578,7 @@ class _HandoffTestApp extends StatelessWidget {
                           ),
                           pageBuilder: (_, _, _) {
                             return ValueListenableBuilder<bool>(
-                              valueListenable: destinationOffstage,
+                              valueListenable: widget.destinationOffstage,
                               builder: (context, offstage, child) {
                                 return Scaffold(
                                   backgroundColor: Colors.transparent,
@@ -579,12 +590,13 @@ class _HandoffTestApp extends StatelessWidget {
                               },
                               child: Center(
                                 child: Morph(
+                                  animateChildChanges: true,
                                   key: const ValueKey(
                                     'handoff-destination',
                                   ),
-                                  tag: 'paint-confirmed-handoff',
-                                  duration: morphDuration,
-                                  child: destinationChild,
+                                  target: _morphTarget2,
+                                  duration: widget.morphDuration,
+                                  child: widget.destinationChild,
                                 ),
                               ),
                             );

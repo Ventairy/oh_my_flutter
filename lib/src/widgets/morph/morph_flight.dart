@@ -1,17 +1,21 @@
 part of 'morph.dart';
 
-/// Values available while building a custom Morph transition.
+/// Customize a shared element throughout a Morph transition.
+///
+/// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md#build-a-custom-flight)
+/// for custom transition examples.
 final class MorphFlight<T> {
   /// Creates the values passed to [MorphFlightDelegate.buildFlight].
   MorphFlight({
     required MorphEndpoint<T> source,
     required MorphEndpoint<T> destination,
     required this.kind,
-    required this.animation,
+    required this.curvedAnimation,
+    required this.uncurvedAnimation,
     required MorphFlightDelegate<T> flightDelegate,
   }) : _sourceSnapshot = source,
        _destinationSnapshot = destination,
-       _interpolate = ((progress) => flightDelegate.lerp(
+       _interpolate = ((progress) => flightDelegate.lerpProperties(
          source.properties,
          destination.properties,
          progress,
@@ -22,7 +26,7 @@ final class MorphFlight<T> {
   late T _cachedProperties;
   _MorphFlightGeometry? _geometry;
 
-  // The endpoint represented when [animation] is at zero.
+  // The endpoint represented when [curvedAnimation] is at zero.
   final MorphEndpoint<T> _sourceSnapshot;
 
   T get _sourceProperties => _sourceSnapshot.properties;
@@ -30,7 +34,7 @@ final class MorphFlight<T> {
   /// Current source values and location.
   MorphEndpoint<T> get source => _geometry?.source(_sourceSnapshot.properties) ?? _copySnapshot(_sourceSnapshot);
 
-  // The endpoint represented when [animation] is at one.
+  // The endpoint represented when [curvedAnimation] is at one.
   final MorphEndpoint<T> _destinationSnapshot;
 
   T get _destinationProperties => _destinationSnapshot.properties;
@@ -42,35 +46,48 @@ final class MorphFlight<T> {
   /// Why the transition started.
   final MorphFlightKind kind;
 
-  /// Curved progress from [source] to [destination].
+  /// Follow the shared element's movement and appearance with [Morph.curve].
   ///
+  /// Drives [properties] and [bounds] from [source] to [destination].
   /// The value normally moves from 0 to 1. An overshooting curve can produce
   /// values outside that interval.
-  final Animation<double> animation;
+  final Animation<double> curvedAnimation;
 
-  /// The interpolated properties at the current animation progress.
+  /// Give custom content its own timing and easing, unaffected by [Morph.curve].
+  ///
+  /// Shares the flight's progress and playback direction with [curvedAnimation],
+  ///
+  /// When the flight follows a route animation, its progress may already be
+  /// curved or controlled by a gesture. It is therefore not always a linear
+  /// measure of elapsed time.
+  final Animation<double> uncurvedAnimation;
+
+  /// The interpolated properties at the current [curvedAnimation] progress.
   T get properties {
-    final progress = animation.value;
+    final progress = curvedAnimation.value;
     if (_cachedPropertiesProgress == progress) return _cachedProperties;
 
     _cachedPropertiesProgress = progress;
     return _cachedProperties = _interpolate(progress);
   }
 
-  /// Current bounds of the shared element.
+  /// Current bounds of the shared element, following [curvedAnimation].
   Rect get bounds => Rect.lerp(
     _geometry?.sourceBounds ?? _sourceSnapshot.bounds,
     _geometry?.destinationBounds ?? _destinationSnapshot.bounds,
-    animation.value,
+    curvedAnimation.value,
   )!;
 
   MorphEndpoint<T> _copySnapshot(MorphEndpoint<T> endpoint) {
-    return MorphEndpoint<T>(
-      properties: endpoint.properties,
-      bounds: endpoint.bounds,
-      localSize: endpoint.localSize,
-      transform: Matrix4.copy(endpoint.transform),
-      axisScale: endpoint.axisScale,
+    return _MorphDescendantSnapshots.copy(
+      endpoint,
+      MorphEndpoint<T>(
+        properties: endpoint.properties,
+        bounds: endpoint.bounds,
+        localSize: endpoint.localSize,
+        transform: Matrix4.copy(endpoint.transform),
+        axisScale: endpoint.axisScale,
+      ),
     );
   }
 }

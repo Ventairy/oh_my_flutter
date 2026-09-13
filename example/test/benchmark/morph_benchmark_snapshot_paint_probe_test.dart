@@ -1,9 +1,37 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../benchmark/morph/morph_benchmark_snapshot_paint_probe.dart';
 
 void main() {
+  testWidgets(
+    'when a capture-only probe paints normally and after the frame, '
+    'it should record only the snapshot paint',
+    (tester) async {
+      final probe = MorphBenchmarkSnapshotPaintProbe(capturesOnly: true);
+      addTearDown(probe.dispose);
+      const size = Size(40, 30);
+      await tester.pumpWidget(
+        Directionality(
+          textDirection: TextDirection.ltr,
+          child: CustomPaint(painter: probe, size: size),
+        ),
+      );
+      probe.requestMutationBatch();
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        final recorder = ui.PictureRecorder();
+        probe.paint(Canvas(recorder), size);
+        recorder.endRecording().dispose();
+      });
+      await tester.pump();
+
+      expect(probe.measureSince(0).capturedGenerations, [3]);
+    },
+  );
+
   testWidgets(
     'when one snapshot change occurs in a frame, '
     'it should record that generation once',

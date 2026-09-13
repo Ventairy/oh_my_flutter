@@ -112,30 +112,42 @@ final class _OvershootCurve extends Curve {
   double transformInternal(double t) => t * 2;
 }
 
-class _RouteSiblingApp extends StatelessWidget {
+class _RouteSiblingApp extends StatefulWidget {
   const _RouteSiblingApp({
     this.onSourceAnimation,
     this.onDestinationAnimation,
     this.morphDuration,
+    this.useUncurved = false,
   });
 
   final ValueChanged<double>? onSourceAnimation;
   final ValueChanged<double>? onDestinationAnimation;
   final Duration? morphDuration;
+  final bool useUncurved;
+
+  @override
+  State<_RouteSiblingApp> createState() => _RouteSiblingAppState();
+}
+
+class _RouteSiblingAppState extends State<_RouteSiblingApp> {
+  final _morphTarget1 = MorphTarget(tag: 'route-surface');
+  final _morphTarget2 = MorphTarget(tag: 'route-surface');
+  final _morphObserver1 = MorphNavigatorObserver();
 
   Widget _buildSourceSibling() {
     return Positioned(
       left: 150,
       top: 100,
       child: MorphSibling(
-        tag: 'route-surface',
-        transitionBuilder: onSourceAnimation == null
+        target: _morphTarget1,
+        transitionBuilder: widget.onSourceAnimation == null
             ? null
-            : (child, animation) {
+            : (child, animation, uncurvedAnimation) {
+                final selectedAnimation = widget.useUncurved ? uncurvedAnimation : animation;
                 return AnimatedBuilder(
-                  animation: animation,
+                  animation: selectedAnimation,
                   builder: (context, child) {
-                    onSourceAnimation!(animation.value);
+                    widget.onSourceAnimation!(selectedAnimation.value);
                     return child!;
                   },
                   child: child,
@@ -152,14 +164,16 @@ class _RouteSiblingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Builder(
         builder: (context) {
           return Scaffold(
             body: Stack(
               children: [
                 Morph(
-                  tag: 'route-surface',
-                  duration: morphDuration,
+                  animateChildChanges: true,
+                  target: _morphTarget1,
+                  duration: widget.morphDuration,
                   child: Container(color: Colors.grey),
                 ),
                 _buildSourceSibling(),
@@ -181,22 +195,26 @@ class _RouteSiblingApp extends StatelessWidget {
                               body: Stack(
                                 children: [
                                   Morph(
-                                    tag: 'route-surface',
-                                    duration: morphDuration,
+                                    animateChildChanges: true,
+                                    target: _morphTarget2,
+                                    duration: widget.morphDuration,
                                     child: Container(color: Colors.blue),
                                   ),
                                   Positioned(
                                     left: 150,
                                     top: 100,
                                     child: MorphSibling(
-                                      tag: 'route-surface',
-                                      transitionBuilder: onDestinationAnimation == null
+                                      target: _morphTarget2,
+                                      transitionBuilder: widget.onDestinationAnimation == null
                                           ? null
-                                          : (child, animation) {
+                                          : (child, animation, uncurvedAnimation) {
+                                              final selectedAnimation = widget.useUncurved
+                                                  ? uncurvedAnimation
+                                                  : animation;
                                               return AnimatedBuilder(
-                                                animation: animation,
+                                                animation: selectedAnimation,
                                                 builder: (context, child) {
-                                                  onDestinationAnimation!(animation.value);
+                                                  widget.onDestinationAnimation!(selectedAnimation.value);
                                                   return child!;
                                                 },
                                                 child: child,
@@ -241,6 +259,9 @@ void main() {
     testWidgets(
       'when a Morph flight covers a sibling, it should paint the sibling above the flight',
       (tester) async {
+        final morphTarget3 = MorphTarget(tag: 'surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -252,6 +273,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -259,7 +281,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'surface',
+                          animateChildChanges: true,
+                          target: morphTarget3,
                           duration: const Duration(milliseconds: 400),
                           child: Container(
                             key: ValueKey(expanded),
@@ -268,12 +291,12 @@ void main() {
                             color: Colors.blue,
                           ),
                         ),
-                        const Positioned(
+                        Positioned(
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'surface',
-                            child: ColoredBox(
+                            target: morphTarget3,
+                            child: const ColoredBox(
                               color: Colors.red,
                               child: SizedBox(width: 100, height: 50),
                             ),
@@ -307,6 +330,9 @@ void main() {
     testWidgets(
       'when painting above Morph is disabled, it should keep the sibling in its natural paint order',
       (tester) async {
+        final morphTarget4 = MorphTarget(tag: 'natural-order-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -318,6 +344,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -325,7 +352,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'natural-order-surface',
+                          animateChildChanges: true,
+                          target: morphTarget4,
                           duration: const Duration(milliseconds: 400),
                           child: SizedBox(
                             key: ValueKey(expanded),
@@ -334,13 +362,13 @@ void main() {
                             child: const ColoredBox(color: Colors.blue),
                           ),
                         ),
-                        const Positioned(
+                        Positioned(
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'natural-order-surface',
-                            paintAboveMorph: false,
-                            child: ColoredBox(
+                            target: morphTarget4,
+                            paintOnTop: false,
+                            child: const ColoredBox(
                               color: Colors.red,
                               child: SizedBox(width: 100, height: 50),
                             ),
@@ -375,6 +403,10 @@ void main() {
     testWidgets(
       'when a later differently tagged Morph flies, it should paint above the opted-in sibling',
       (tester) async {
+        final morphTarget5 = MorphTarget(tag: 'lower-surface');
+        final morphTarget6 = MorphTarget(tag: 'upper-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -386,6 +418,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -393,7 +426,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'lower-surface',
+                          animateChildChanges: true,
+                          target: morphTarget5,
                           duration: const Duration(milliseconds: 400),
                           child: SizedBox(
                             key: ValueKey(('lower', expanded)),
@@ -402,19 +436,20 @@ void main() {
                             child: const ColoredBox(color: Colors.blue),
                           ),
                         ),
-                        const Positioned(
+                        Positioned(
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'lower-surface',
-                            child: ColoredBox(
+                            target: morphTarget5,
+                            child: const ColoredBox(
                               color: Colors.red,
                               child: SizedBox(width: 100, height: 50),
                             ),
                           ),
                         ),
                         Morph(
-                          tag: 'upper-surface',
+                          animateChildChanges: true,
+                          target: morphTarget6,
                           duration: const Duration(milliseconds: 400),
                           child: SizedBox(
                             key: ValueKey(('upper', expanded)),
@@ -452,6 +487,9 @@ void main() {
     testWidgets(
       'when a sibling paints outside its bounds, it should preserve the overflow during the flight',
       (tester) async {
+        final morphTarget7 = MorphTarget(tag: 'shadow-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -463,6 +501,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -470,7 +509,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'shadow-surface',
+                          animateChildChanges: true,
+                          target: morphTarget7,
                           duration: const Duration(milliseconds: 400),
                           child: Container(
                             key: ValueKey(expanded),
@@ -479,12 +519,12 @@ void main() {
                             color: Colors.blue,
                           ),
                         ),
-                        const Positioned(
+                        Positioned(
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'shadow-surface',
-                            child: DecoratedBox(
+                            target: morphTarget7,
+                            child: const DecoratedBox(
                               decoration: BoxDecoration(
                                 color: Colors.green,
                                 boxShadow: [
@@ -527,6 +567,9 @@ void main() {
     testWidgets(
       'when multiple siblings overlap, it should preserve their paint order during the flight',
       (tester) async {
+        final morphTarget8 = MorphTarget(tag: 'multiple-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -538,6 +581,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -545,7 +589,8 @@ void main() {
                     return Stack(
                       children: <Widget>[
                         Morph(
-                          tag: 'multiple-surface',
+                          animateChildChanges: true,
+                          target: morphTarget8,
                           duration: const Duration(milliseconds: 400),
                           child: SizedBox(
                             key: ValueKey<bool>(expanded),
@@ -554,23 +599,23 @@ void main() {
                             child: const ColoredBox(color: Colors.blue),
                           ),
                         ),
-                        const Positioned(
+                        Positioned(
                           left: 100,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'multiple-surface',
-                            child: ColoredBox(
+                            target: morphTarget8,
+                            child: const ColoredBox(
                               color: Colors.red,
                               child: SizedBox(width: 100, height: 50),
                             ),
                           ),
                         ),
-                        const Positioned(
+                        Positioned(
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'multiple-surface',
-                            child: ColoredBox(
+                            target: morphTarget8,
+                            child: const ColoredBox(
                               color: Colors.green,
                               child: SizedBox(width: 100, height: 50),
                             ),
@@ -612,6 +657,9 @@ void main() {
     testWidgets(
       'when sibling content changes during a flight, it should paint the current visual state',
       (tester) async {
+        final morphTarget9 = MorphTarget(tag: 'live-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -624,6 +672,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -631,7 +680,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'live-surface',
+                          animateChildChanges: true,
+                          target: morphTarget9,
                           duration: const Duration(milliseconds: 400),
                           child: Container(
                             key: ValueKey(expanded),
@@ -644,7 +694,7 @@ void main() {
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'live-surface',
+                            target: morphTarget9,
                             child: ColoredBox(
                               color: siblingColor,
                               child: const SizedBox(width: 100, height: 50),
@@ -682,6 +732,9 @@ void main() {
     testWidgets(
       'when sibling paint animates during a flight, it should paint the current visual state',
       (tester) async {
+        final morphTarget10 = MorphTarget(tag: 'animated-paint-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -698,6 +751,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -705,7 +759,8 @@ void main() {
                     return Stack(
                       children: <Widget>[
                         Morph(
-                          tag: 'animated-paint-surface',
+                          animateChildChanges: true,
+                          target: morphTarget10,
                           duration: const Duration(milliseconds: 800),
                           child: SizedBox(
                             key: ValueKey<bool>(expanded),
@@ -718,7 +773,7 @@ void main() {
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'animated-paint-surface',
+                            target: morphTarget10,
                             child: CustomPaint(
                               painter: _AnimationColorPainter(paintAnimation),
                               size: const Size(100, 50),
@@ -757,6 +812,9 @@ void main() {
     testWidgets(
       'when sibling paint changes during a flight, it should not rebuild the Morph overlay',
       (tester) async {
+        final morphTarget11 = MorphTarget(tag: 'overlay-rebuild-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -775,6 +833,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -782,7 +841,8 @@ void main() {
                     return Stack(
                       children: <Widget>[
                         Morph(
-                          tag: 'overlay-rebuild-surface',
+                          animateChildChanges: true,
+                          target: morphTarget11,
                           duration: const Duration(milliseconds: 400),
                           child: SizedBox(
                             key: ValueKey<bool>(expanded),
@@ -794,7 +854,7 @@ void main() {
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'overlay-rebuild-surface',
+                            target: morphTarget11,
                             child: ValueListenableBuilder<Color>(
                               valueListenable: siblingColor,
                               builder: (context, color, child) {
@@ -852,6 +912,9 @@ void main() {
     testWidgets(
       'when an ancestor transform animates during a flight, it should paint the sibling at its current position',
       (tester) async {
+        final morphTarget12 = MorphTarget(tag: 'animated-transform-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -869,6 +932,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -876,7 +940,8 @@ void main() {
                     return Stack(
                       children: <Widget>[
                         Morph(
-                          tag: 'animated-transform-surface',
+                          animateChildChanges: true,
+                          target: morphTarget12,
                           duration: const Duration(milliseconds: 600),
                           child: SizedBox(
                             key: ValueKey<bool>(expanded),
@@ -890,9 +955,9 @@ void main() {
                           top: 80,
                           child: AnimatedBuilder(
                             animation: transform,
-                            child: const MorphSibling(
-                              tag: 'animated-transform-surface',
-                              child: ColoredBox(
+                            child: MorphSibling(
+                              target: morphTarget12,
+                              child: const ColoredBox(
                                 key: siblingKey,
                                 color: Colors.red,
                                 child: SizedBox(width: 60, height: 40),
@@ -944,6 +1009,9 @@ void main() {
     testWidgets(
       'when source paint and an ancestor transform change on the same flight tick, it should paint the current state at its current position',
       (tester) async {
+        final morphTarget13 = MorphTarget(tag: 'dirty-transform-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -963,6 +1031,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -970,7 +1039,8 @@ void main() {
                     return Stack(
                       children: <Widget>[
                         Morph(
-                          tag: 'dirty-transform-surface',
+                          animateChildChanges: true,
+                          target: morphTarget13,
                           duration: const Duration(milliseconds: 600),
                           child: SizedBox(
                             key: ValueKey<bool>(expanded),
@@ -985,7 +1055,7 @@ void main() {
                           child: AnimatedBuilder(
                             animation: transform,
                             child: MorphSibling(
-                              tag: 'dirty-transform-surface',
+                              target: morphTarget13,
                               child: ValueListenableBuilder<Color>(
                                 valueListenable: siblingColor,
                                 builder: (context, color, child) {
@@ -1045,6 +1115,9 @@ void main() {
     testWidgets(
       'when an ancestor scales and rotates during a flight, it should preserve the sibling placement',
       (tester) async {
+        final morphTarget14 = MorphTarget(tag: 'scaled-rotated-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -1057,6 +1130,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -1064,7 +1138,8 @@ void main() {
                     return Stack(
                       children: <Widget>[
                         Morph(
-                          tag: 'scaled-rotated-surface',
+                          animateChildChanges: true,
+                          target: morphTarget14,
                           duration: const Duration(milliseconds: 400),
                           child: SizedBox(
                             key: ValueKey<bool>(expanded),
@@ -1082,9 +1157,9 @@ void main() {
                             child: Transform.scale(
                               scale: 1.5,
                               alignment: Alignment.topLeft,
-                              child: const MorphSibling(
-                                tag: 'scaled-rotated-surface',
-                                child: SizedBox(
+                              child: MorphSibling(
+                                target: morphTarget14,
+                                child: const SizedBox(
                                   key: siblingKey,
                                   width: 60,
                                   height: 30,
@@ -1148,11 +1223,15 @@ void main() {
     testWidgets(
       'when a static sibling is projected, it should not repaint on every flight tick',
       (tester) async {
+        final morphTarget15 = MorphTarget(tag: 'static-paint-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         final paintCounter = _PaintCounter();
         var expanded = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1160,7 +1239,8 @@ void main() {
                   return Stack(
                     children: <Widget>[
                       Morph(
-                        tag: 'static-paint-surface',
+                        animateChildChanges: true,
+                        target: morphTarget15,
                         duration: const Duration(milliseconds: 400),
                         child: SizedBox(
                           key: ValueKey<bool>(expanded),
@@ -1172,7 +1252,7 @@ void main() {
                         left: 150,
                         top: 100,
                         child: MorphSibling(
-                          tag: 'static-paint-surface',
+                          target: morphTarget15,
                           child: CustomPaint(
                             painter: _CountingPainter(paintCounter),
                             size: const Size(100, 50),
@@ -1203,11 +1283,15 @@ void main() {
     testWidgets(
       'when shared and distinct flight animations overlap, it should remain projected until the last flight ends',
       (tester) async {
+        final morphTarget16 = <Object, MorphTarget>{};
+        final morphObserver1 = MorphNavigatorObserver();
+
         const siblingKey = ValueKey('overlapping-flight-sibling');
         var expanded = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1216,7 +1300,11 @@ void main() {
                     children: <Widget>[
                       for (var index = 0; index < 3; index += 1)
                         Morph(
-                          tag: 'overlapping-flight-$index',
+                          animateChildChanges: true,
+                          target: morphTarget16.putIfAbsent(
+                            'overlapping-flight-$index',
+                            () => MorphTarget(tag: 'overlapping-flight-$index'),
+                          ),
                           duration: Duration(
                             milliseconds: index < 2 ? 180 : 600,
                           ),
@@ -1226,12 +1314,15 @@ void main() {
                             height: expanded ? 200 : 40,
                           ),
                         ),
-                      const Positioned(
+                      Positioned(
                         left: 150,
                         top: 100,
                         child: MorphSibling(
-                          tag: 'overlapping-flight-2',
-                          child: SizedBox(
+                          target: morphTarget16.putIfAbsent(
+                            'overlapping-flight-2',
+                            () => MorphTarget(tag: 'overlapping-flight-2'),
+                          ),
+                          child: const SizedBox(
                             key: siblingKey,
                             width: 100,
                             height: 50,
@@ -1269,11 +1360,15 @@ void main() {
     testWidgets(
       'when a flight finishes, it should disable the sibling repaint boundary again',
       (tester) async {
+        final morphTarget17 = MorphTarget(tag: 'conditional-boundary-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         const siblingKey = ValueKey('conditional-boundary-sibling');
         var expanded = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1281,7 +1376,8 @@ void main() {
                   return Stack(
                     children: <Widget>[
                       Morph(
-                        tag: 'conditional-boundary-surface',
+                        animateChildChanges: true,
+                        target: morphTarget17,
                         duration: const Duration(milliseconds: 400),
                         child: SizedBox(
                           key: ValueKey<bool>(expanded),
@@ -1289,12 +1385,12 @@ void main() {
                           height: expanded ? 300 : 40,
                         ),
                       ),
-                      const Positioned(
+                      Positioned(
                         left: 150,
                         top: 100,
                         child: MorphSibling(
-                          tag: 'conditional-boundary-surface',
-                          child: SizedBox(
+                          target: morphTarget17,
+                          child: const SizedBox(
                             key: siblingKey,
                             width: 100,
                             height: 50,
@@ -1327,11 +1423,15 @@ void main() {
     testWidgets(
       'when a sibling is projected, it should retain the source offset layer across flight ticks',
       (tester) async {
+        final morphTarget18 = MorphTarget(tag: 'transform-layer-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         const siblingKey = ValueKey('transform-layer-sibling');
         var expanded = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1339,7 +1439,8 @@ void main() {
                   return Stack(
                     children: <Widget>[
                       Morph(
-                        tag: 'transform-layer-surface',
+                        animateChildChanges: true,
+                        target: morphTarget18,
                         duration: const Duration(milliseconds: 400),
                         child: SizedBox(
                           key: ValueKey<bool>(expanded),
@@ -1347,12 +1448,12 @@ void main() {
                           height: expanded ? 300 : 40,
                         ),
                       ),
-                      const Positioned(
+                      Positioned(
                         left: 150,
                         top: 100,
                         child: MorphSibling(
-                          tag: 'transform-layer-surface',
-                          child: SizedBox(
+                          target: morphTarget18,
+                          child: const SizedBox(
                             key: siblingKey,
                             width: 100,
                             height: 50,
@@ -1393,6 +1494,9 @@ void main() {
     testWidgets(
       'when a sibling is projected, it should suppress interaction and semantics only during the flight',
       (tester) async {
+        final morphTarget19 = MorphTarget(tag: 'interactive-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -1404,6 +1508,7 @@ void main() {
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1411,7 +1516,8 @@ void main() {
                   return Stack(
                     children: <Widget>[
                       Morph(
-                        tag: 'interactive-surface',
+                        animateChildChanges: true,
+                        target: morphTarget19,
                         duration: const Duration(milliseconds: 400),
                         child: SizedBox(
                           key: ValueKey<bool>(expanded),
@@ -1423,7 +1529,7 @@ void main() {
                         left: 150,
                         top: 100,
                         child: MorphSibling(
-                          tag: 'interactive-surface',
+                          target: morphTarget19,
                           child: Semantics(
                             label: 'Sibling action',
                             button: true,
@@ -1491,6 +1597,9 @@ void main() {
     testWidgets(
       'when painting above Morph is disabled, it should preserve interaction and semantics during the flight',
       (tester) async {
+        final morphTarget20 = MorphTarget(tag: 'natural-interactive-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         final semantics = tester.ensureSemantics();
         const siblingKey = ValueKey('natural-interactive-sibling');
         var expanded = false;
@@ -1498,6 +1607,7 @@ void main() {
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1505,7 +1615,8 @@ void main() {
                   return Stack(
                     children: [
                       Morph(
-                        tag: 'natural-interactive-surface',
+                        animateChildChanges: true,
+                        target: morphTarget20,
                         duration: const Duration(milliseconds: 400),
                         child: SizedBox(
                           key: ValueKey(expanded),
@@ -1514,8 +1625,8 @@ void main() {
                         ),
                       ),
                       MorphSibling(
-                        tag: 'natural-interactive-surface',
-                        paintAboveMorph: false,
+                        target: morphTarget20,
+                        paintOnTop: false,
                         child: Semantics(
                           label: 'Natural sibling action',
                           button: true,
@@ -1563,6 +1674,9 @@ void main() {
     testWidgets(
       'when a projected sibling is removed, it should remove the live projection during the flight',
       (tester) async {
+        final morphTarget21 = MorphTarget(tag: 'removal-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -1576,6 +1690,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -1583,7 +1698,8 @@ void main() {
                     return Stack(
                       children: <Widget>[
                         Morph(
-                          tag: 'removal-surface',
+                          animateChildChanges: true,
+                          target: morphTarget21,
                           duration: const Duration(milliseconds: 400),
                           child: SizedBox(
                             key: ValueKey<int>(generation),
@@ -1593,12 +1709,12 @@ void main() {
                           ),
                         ),
                         if (showSibling)
-                          const Positioned(
+                          Positioned(
                             left: 150,
                             top: 100,
                             child: MorphSibling(
-                              tag: 'removal-surface',
-                              child: ColoredBox(
+                              target: morphTarget21,
+                              child: const ColoredBox(
                                 key: siblingKey,
                                 color: Colors.red,
                                 child: SizedBox(width: 100, height: 50),
@@ -1645,6 +1761,10 @@ void main() {
     testWidgets(
       'when a differently tagged Morph flies, it should leave the sibling below that flight',
       (tester) async {
+        final morphTarget22 = MorphTarget(tag: 'surface');
+        final unmatchedTarget = MorphTarget(tag: 'another-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -1656,6 +1776,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -1663,7 +1784,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'surface',
+                          animateChildChanges: true,
+                          target: morphTarget22,
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.linear,
                           child: SizedBox(
@@ -1673,12 +1795,12 @@ void main() {
                             child: const ColoredBox(color: Colors.blue),
                           ),
                         ),
-                        const Positioned(
+                        Positioned(
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'another-surface',
-                            child: ColoredBox(
+                            target: unmatchedTarget,
+                            child: const ColoredBox(
                               color: Colors.red,
                               child: SizedBox(width: 100, height: 50),
                             ),
@@ -1713,6 +1835,9 @@ void main() {
     testWidgets(
       'when an inline transition builder is recreated during a flight, it should keep the sibling visible',
       (tester) async {
+        final morphTarget23 = MorphTarget(tag: 'inline-transition-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -1724,6 +1849,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -1731,7 +1857,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'inline-transition-surface',
+                          animateChildChanges: true,
+                          target: morphTarget23,
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.linear,
                           child: SizedBox(
@@ -1745,8 +1872,8 @@ void main() {
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'inline-transition-surface',
-                            transitionBuilder: (child, animation) {
+                            target: morphTarget23,
+                            transitionBuilder: (child, animation, uncurvedAnimation) {
                               return FadeTransition(
                                 opacity: animation,
                                 child: child,
@@ -1789,6 +1916,9 @@ void main() {
     testWidgets(
       'when a non-null transition builder changes during a flight, it should use the replacement at the same progress',
       (tester) async {
+        final morphTarget24 = MorphTarget(tag: 'replacement-transition-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var expanded = false;
         var useReplacement = false;
         Animation<double>? originalAnimation;
@@ -1798,6 +1928,7 @@ void main() {
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1805,7 +1936,8 @@ void main() {
                   return Stack(
                     children: [
                       Morph(
-                        tag: 'replacement-transition-surface',
+                        animateChildChanges: true,
+                        target: morphTarget24,
                         duration: const Duration(milliseconds: 400),
                         curve: Curves.linear,
                         child: SizedBox(
@@ -1815,9 +1947,9 @@ void main() {
                         ),
                       ),
                       MorphSibling(
-                        tag: 'replacement-transition-surface',
+                        target: morphTarget24,
                         transitionBuilder: useReplacement
-                            ? (child, animation) {
+                            ? (child, animation, uncurvedAnimation) {
                                 replacementAnimation = animation;
                                 return AnimatedBuilder(
                                   animation: animation,
@@ -1828,7 +1960,7 @@ void main() {
                                   },
                                 );
                               }
-                            : (child, animation) {
+                            : (child, animation, uncurvedAnimation) {
                                 originalAnimation = animation;
                                 return AnimatedBuilder(
                                   animation: animation,
@@ -1870,13 +2002,21 @@ void main() {
     );
 
     testWidgets(
-      'when a transition builder reads progress, it should receive the Morph visual progress',
+      'when a non-null transition builder changes during a flight, it should use the replacement at the same uncurved progress',
       (tester) async {
+        final morphTarget25 = MorphTarget(tag: 'replacement-transition-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var expanded = false;
-        var progress = 1.0;
+        var useReplacement = false;
+        Animation<double>? originalAnimation;
+        Animation<double>? replacementAnimation;
+        double? originalProgress;
+        double? replacementProgress;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1884,7 +2024,93 @@ void main() {
                   return Stack(
                     children: [
                       Morph(
-                        tag: 'curved-surface',
+                        animateChildChanges: true,
+                        target: morphTarget25,
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.linear,
+                        child: SizedBox(
+                          key: ValueKey(expanded),
+                          width: expanded ? 400 : 40,
+                          height: expanded ? 300 : 40,
+                        ),
+                      ),
+                      MorphSibling(
+                        target: morphTarget25,
+                        transitionBuilder: useReplacement
+                            ? (child, animation, uncurvedAnimation) {
+                                replacementAnimation = uncurvedAnimation;
+                                return AnimatedBuilder(
+                                  animation: uncurvedAnimation,
+                                  child: child,
+                                  builder: (context, child) {
+                                    replacementProgress = uncurvedAnimation.value;
+                                    return child!;
+                                  },
+                                );
+                              }
+                            : (child, animation, uncurvedAnimation) {
+                                originalAnimation = uncurvedAnimation;
+                                return AnimatedBuilder(
+                                  animation: uncurvedAnimation,
+                                  child: child,
+                                  builder: (context, child) {
+                                    originalProgress = uncurvedAnimation.value;
+                                    return child!;
+                                  },
+                                );
+                              },
+                        child: const SizedBox(width: 100, height: 50),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => expanded = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        final progressBeforeReplacement = originalProgress!;
+        update(() => useReplacement = true);
+        await tester.pump();
+
+        expect(
+          (
+            identical(originalAnimation, replacementAnimation),
+            progressBeforeReplacement,
+            replacementProgress,
+          ),
+          (true, progressBeforeReplacement, progressBeforeReplacement),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a transition builder reads progress, it should receive the Morph visual progress',
+      (tester) async {
+        final morphTarget26 = MorphTarget(tag: 'curved-surface');
+        final arrivalTarget = MorphTarget(tag: 'curved-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
+        var expanded = false;
+        var progress = 1.0;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Stack(
+                    children: [
+                      Morph(
+                        animateChildChanges: true,
+                        target: expanded ? arrivalTarget : morphTarget26,
                         duration: const Duration(milliseconds: 400),
                         curve: const Threshold(0.5),
                         child: SizedBox(
@@ -1894,9 +2120,9 @@ void main() {
                         ),
                       ),
                       MorphSibling(
-                        tag: 'curved-surface',
-                        paintAboveMorph: false,
-                        transitionBuilder: (child, animation) {
+                        target: expanded ? arrivalTarget : morphTarget26,
+                        paintOnTop: false,
+                        transitionBuilder: (child, animation, uncurvedAnimation) {
                           return AnimatedBuilder(
                             animation: animation,
                             child: child,
@@ -1927,13 +2153,18 @@ void main() {
     );
 
     testWidgets(
-      'when the Morph curve overshoots, it should clamp the sibling transition progress',
+      'when a transition builder reads progress, it should expose independent uncurved progress',
       (tester) async {
+        final morphTarget27 = MorphTarget(tag: 'curved-surface');
+        final arrivalTarget = MorphTarget(tag: 'curved-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var expanded = false;
-        var progress = 1.0;
+        var progress = (1.0, 1.0);
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1941,7 +2172,134 @@ void main() {
                   return Stack(
                     children: [
                       Morph(
-                        tag: 'overshoot-surface',
+                        animateChildChanges: true,
+                        target: expanded ? arrivalTarget : morphTarget27,
+                        duration: const Duration(milliseconds: 400),
+                        curve: const Threshold(0.5),
+                        child: SizedBox(
+                          key: ValueKey(expanded),
+                          width: expanded ? 400 : 40,
+                          height: expanded ? 300 : 40,
+                        ),
+                      ),
+                      MorphSibling(
+                        target: expanded ? arrivalTarget : morphTarget27,
+                        paintOnTop: false,
+                        transitionBuilder: (child, animation, uncurvedAnimation) {
+                          return AnimatedBuilder(
+                            animation: uncurvedAnimation,
+                            child: child,
+                            builder: (context, child) {
+                              progress = (animation.value, uncurvedAnimation.value);
+                              return child!;
+                            },
+                          );
+                        },
+                        child: const SizedBox(width: 100, height: 50),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => expanded = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(progress, (1.0, 0.5));
+      },
+    );
+
+    testWidgets(
+      'when a flight completes, it should settle both sibling animations at one',
+      (tester) async {
+        final morphTarget28 = MorphTarget(tag: 'curved-surface');
+        final arrivalTarget = MorphTarget(tag: 'curved-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
+        var expanded = false;
+        var progress = (1.0, 1.0);
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Stack(
+                    children: [
+                      Morph(
+                        animateChildChanges: true,
+                        target: expanded ? arrivalTarget : morphTarget28,
+                        duration: const Duration(milliseconds: 400),
+                        curve: const Threshold(0.5),
+                        child: SizedBox(
+                          key: ValueKey(expanded),
+                          width: expanded ? 400 : 40,
+                          height: expanded ? 300 : 40,
+                        ),
+                      ),
+                      MorphSibling(
+                        target: expanded ? arrivalTarget : morphTarget28,
+                        paintOnTop: false,
+                        transitionBuilder: (child, animation, uncurvedAnimation) {
+                          return AnimatedBuilder(
+                            animation: uncurvedAnimation,
+                            child: child,
+                            builder: (context, child) {
+                              progress = (animation.value, uncurvedAnimation.value);
+                              return child!;
+                            },
+                          );
+                        },
+                        child: const SizedBox(width: 100, height: 50),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => expanded = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pumpAndSettle();
+
+        expect(progress, (1.0, 1.0));
+      },
+    );
+
+    testWidgets(
+      'when the Morph curve overshoots, it should clamp the sibling transition progress',
+      (tester) async {
+        final morphTarget29 = MorphTarget(tag: 'overshoot-surface');
+        final arrivalTarget = MorphTarget(tag: 'overshoot-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
+        var expanded = false;
+        var progress = 1.0;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Stack(
+                    children: [
+                      Morph(
+                        animateChildChanges: true,
+                        target: expanded ? arrivalTarget : morphTarget29,
                         duration: const Duration(milliseconds: 400),
                         curve: const _OvershootCurve(),
                         child: SizedBox(
@@ -1951,8 +2309,8 @@ void main() {
                         ),
                       ),
                       MorphSibling(
-                        tag: 'overshoot-surface',
-                        transitionBuilder: (child, animation) {
+                        target: expanded ? arrivalTarget : morphTarget29,
+                        transitionBuilder: (child, animation, uncurvedAnimation) {
                           return AnimatedBuilder(
                             animation: animation,
                             child: child,
@@ -1985,6 +2343,10 @@ void main() {
     testWidgets(
       'when a transition delays its appearance, it should remain hidden before the interval',
       (tester) async {
+        final morphTarget30 = MorphTarget(tag: 'delayed-surface');
+        final arrivalTarget = MorphTarget(tag: 'delayed-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -1996,6 +2358,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -2003,7 +2366,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'delayed-surface',
+                          animateChildChanges: true,
+                          target: expanded ? arrivalTarget : morphTarget30,
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.linear,
                           child: SizedBox(
@@ -2017,8 +2381,8 @@ void main() {
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'delayed-surface',
-                            transitionBuilder: (child, animation) {
+                            target: expanded ? arrivalTarget : morphTarget30,
+                            transitionBuilder: (child, animation, uncurvedAnimation) {
                               return FadeTransition(
                                 opacity: CurvedAnimation(
                                   parent: animation,
@@ -2060,20 +2424,24 @@ void main() {
     );
 
     testWidgets(
-      'when its tag changes during a flight, it should follow the newly matching Morph',
+      'when an uncurved transition delays its appearance, it should remain hidden before the interval',
       (tester) async {
+        final morphTarget31 = MorphTarget(tag: 'delayed-surface');
+        final arrivalTarget = MorphTarget(tag: 'delayed-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
-        const boundaryKey = ValueKey('updated-tag-boundary');
+        const boundaryKey = ValueKey('delayed-sibling-boundary');
         var expanded = false;
-        var siblingTag = 'another-surface';
         late StateSetter update;
         await tester.pumpWidget(
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -2081,9 +2449,10 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'updated-tag-surface',
+                          animateChildChanges: true,
+                          target: expanded ? arrivalTarget : morphTarget31,
                           duration: const Duration(milliseconds: 400),
-                          curve: Curves.linear,
+                          curve: const Threshold(0.1),
                           child: SizedBox(
                             key: ValueKey(expanded),
                             width: expanded ? 400 : 40,
@@ -2095,7 +2464,16 @@ void main() {
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: siblingTag,
+                            target: expanded ? arrivalTarget : morphTarget31,
+                            transitionBuilder: (child, animation, uncurvedAnimation) {
+                              return FadeTransition(
+                                opacity: CurvedAnimation(
+                                  parent: uncurvedAnimation,
+                                  curve: const Interval(0.8, 1),
+                                ),
+                                child: child,
+                              );
+                            },
                             child: const ColoredBox(
                               color: Colors.red,
                               child: SizedBox(width: 100, height: 50),
@@ -2116,7 +2494,81 @@ void main() {
         await tester.pump();
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 200));
-        update(() => siblingTag = 'updated-tag-surface');
+
+        expect(
+          await _pixelColor(
+            tester,
+            boundaryKey: boundaryKey,
+            position: const Offset(200, 125),
+          ),
+          const Color(0xFF2196F3),
+        );
+      },
+    );
+
+    testWidgets(
+      'when its target changes during a flight, it should follow the newly associated Morph',
+      (tester) async {
+        final morphTarget32 = MorphTarget(tag: 'updated-tag-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
+        tester.view.physicalSize = const Size(400, 300);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        const boundaryKey = ValueKey('updated-tag-boundary');
+        var expanded = false;
+        var siblingTarget = MorphTarget(tag: 'another-surface');
+        late StateSetter update;
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: MaterialApp(
+              navigatorObservers: [morphObserver1],
+              home: Scaffold(
+                body: StatefulBuilder(
+                  builder: (context, setState) {
+                    update = setState;
+                    return Stack(
+                      children: [
+                        Morph(
+                          animateChildChanges: true,
+                          target: morphTarget32,
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.linear,
+                          child: SizedBox(
+                            key: ValueKey(expanded),
+                            width: expanded ? 400 : 40,
+                            height: expanded ? 300 : 40,
+                            child: const ColoredBox(color: Colors.blue),
+                          ),
+                        ),
+                        Positioned(
+                          left: 150,
+                          top: 100,
+                          child: MorphSibling(
+                            target: siblingTarget,
+                            child: const ColoredBox(
+                              color: Colors.red,
+                              child: SizedBox(width: 100, height: 50),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => expanded = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        update(() => siblingTarget = morphTarget32);
         await tester.pump();
         await tester.pump();
 
@@ -2132,20 +2584,24 @@ void main() {
     );
 
     testWidgets(
-      'when paintAboveMorph changes during a flight, it should update the sibling paint order',
+      'when paintOnTop changes during a flight, it should update the sibling paint order',
       (tester) async {
+        final morphTarget33 = MorphTarget(tag: 'updated-paint-order-surface');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 300);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         const boundaryKey = ValueKey('updated-paint-order-boundary');
         var expanded = false;
-        var paintAboveMorph = false;
+        var paintOnTop = false;
         late StateSetter update;
         await tester.pumpWidget(
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -2153,7 +2609,8 @@ void main() {
                     return Stack(
                       children: [
                         Morph(
-                          tag: 'updated-paint-order-surface',
+                          animateChildChanges: true,
+                          target: morphTarget33,
                           duration: const Duration(milliseconds: 400),
                           child: SizedBox(
                             key: ValueKey(expanded),
@@ -2166,8 +2623,8 @@ void main() {
                           left: 150,
                           top: 100,
                           child: MorphSibling(
-                            tag: 'updated-paint-order-surface',
-                            paintAboveMorph: paintAboveMorph,
+                            target: morphTarget33,
+                            paintOnTop: paintOnTop,
                             child: const ColoredBox(
                               color: Colors.red,
                               child: SizedBox(width: 100, height: 50),
@@ -2193,7 +2650,7 @@ void main() {
           boundaryKey: boundaryKey,
           position: const Offset(200, 125),
         );
-        update(() => paintAboveMorph = true);
+        update(() => paintOnTop = true);
         await tester.pump();
         await tester.pump();
         final projectedColor = await _pixelColor(
@@ -2201,7 +2658,7 @@ void main() {
           boundaryKey: boundaryKey,
           position: const Offset(200, 125),
         );
-        update(() => paintAboveMorph = false);
+        update(() => paintOnTop = false);
         await tester.pump();
         await tester.pump();
         final restoredColor = await _pixelColor(
@@ -2238,11 +2695,49 @@ void main() {
     );
 
     testWidgets(
+      'when a destination sibling first appears with uncurved timing, it should start at the matching route Morph progress',
+      (tester) async {
+        final values = <double>[];
+        await tester.pumpWidget(
+          _RouteSiblingApp(useUncurved: true, onDestinationAnimation: values.add),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push')));
+        await tester.pump();
+
+        expect(values.first, 0);
+      },
+    );
+
+    testWidgets(
       'when a route Morph supplies duration, its sibling should follow the independent Morph clock',
       (tester) async {
         final values = <double>[];
         await tester.pumpWidget(
           _RouteSiblingApp(
+            morphDuration: const Duration(milliseconds: 800),
+            onDestinationAnimation: values.add,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(values.last, closeTo(0.25, 0.05));
+      },
+    );
+
+    testWidgets(
+      'when a route Morph supplies duration with uncurved timing, its sibling should follow the independent Morph clock',
+      (tester) async {
+        final values = <double>[];
+        await tester.pumpWidget(
+          _RouteSiblingApp(
+            useUncurved: true,
             morphDuration: const Duration(milliseconds: 800),
             onDestinationAnimation: values.add,
           ),
@@ -2332,6 +2827,28 @@ void main() {
         final values = <double>[];
         await tester.pumpWidget(
           _RouteSiblingApp(onSourceAnimation: values.add),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('push')));
+        await tester.pumpAndSettle();
+        values.clear();
+
+        Navigator.of(
+          tester.element(find.byType(MorphSibling).last),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+
+        expect(values.last, closeTo(0.5, 0.05));
+      },
+    );
+    testWidgets(
+      'when a route Morph returns with uncurved timing, it should reverse the departing sibling transition',
+      (tester) async {
+        final values = <double>[];
+        await tester.pumpWidget(
+          _RouteSiblingApp(useUncurved: true, onSourceAnimation: values.add),
         );
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('push')));

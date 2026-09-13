@@ -6,23 +6,26 @@ part of 'morph.dart';
 /// to respond to its transition without becoming matched content.
 ///
 /// A [transitionBuilder] can use the matching Morph's visual progress to
-/// animate the sibling independently. When [paintAboveMorph] is enabled, its
+/// animate the sibling independently. When [paintOnTop] is enabled, its
 /// live visual is also painted immediately above the matching flight.
 ///
 /// See the [MorphSibling guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph_sibling.md)
 /// for usage and constraints.
 class MorphSibling extends StatefulWidget {
-  /// Creates content coordinated with the Morph identified by [tag].
+  /// Creates content coordinated with the Morph identified by [target].
   const MorphSibling({
-    required this.tag,
+    required this.target,
     required this.child,
-    this.paintAboveMorph = true,
+    this.paintOnTop = true,
     this.transitionBuilder,
     super.key,
   });
 
-  /// Identifies the [Morph] whose flight this sibling accompanies.
-  final Object tag;
+  /// Associates this sibling with one [Morph] appearance.
+  ///
+  /// Use the exact target instance passed to that Morph. Equal tags alone do
+  /// not associate a sibling with an appearance.
+  final MorphTarget target;
 
   /// Content coordinated with the matching Morph flight.
   final Widget child;
@@ -32,18 +35,30 @@ class MorphSibling extends StatefulWidget {
   /// Later flights with other tags remain above this sibling. When false, the
   /// sibling stays in its normal widget-tree paint order while still receiving
   /// the matching animation through [transitionBuilder].
-  final bool paintAboveMorph;
+  final bool paintOnTop;
 
   /// Builds the sibling's visual response to the matching Morph flight.
   ///
-  /// The animation uses the matching Morph's curved visual progress, clamped
-  /// from 0 to 1. It advances as this sibling's route appears, reverses as the
-  /// route departs, and remains at 1 while no matching flight is active.
+  /// Use curvedAnimation to follow the Morph's visual easing, or
+  /// uncurvedAnimation to apply independent timing unaffected by [Morph.curve].
+  /// Both are clamped from 0 to 1. They advance from 0 to 1 when this appearance
+  /// becomes current and return from 1 to 0 when another appearance takes over.
+  /// The resting current appearance stays at 1; earlier mounted appearances
+  /// stay at 0. Interrupted transitions continue from their sampled values.
+  ///
+  /// Replacing only the Morph's child keeps its siblings visible, or continues
+  /// their existing arrival or departure. Animation instances remain stable
+  /// across rebuilds and builder replacements. Removing a sibling disposes it
+  /// normally; keep it mounted if its departure should remain visible.
+  ///
+  /// Route-driven uncurved progress may already be eased or controlled by a
+  /// gesture, so it is not necessarily a linear measure of elapsed time.
   ///
   /// When omitted, [child] remains visually unchanged during the flight.
   final Widget Function(
     Widget child,
-    Animation<double> animation,
+    Animation<double> curvedAnimation,
+    Animation<double> uncurvedAnimation,
   )?
   transitionBuilder;
 
@@ -57,6 +72,9 @@ class _MorphSiblingState extends State<MorphSibling> {
     kAlwaysCompleteAnimation,
   );
   late final VoidCallback _onGeometryChanged;
+  final ProxyAnimation _uncurvedTransitionAnimation = ProxyAnimation(
+    kAlwaysCompleteAnimation,
+  );
   late final ValueChanged<_RenderMorphSiblingBoundary> _onRenderObjectReady;
   _MorphSiblingHandle? _handle;
   _RenderMorphSiblingBoundary? _renderObject;
@@ -89,7 +107,7 @@ class _MorphSiblingState extends State<MorphSibling> {
     final route = ModalRoute.of(context);
     final current = _handle;
     if (current != null && identical(current.overlay, overlay) && identical(current.route, route)) {
-      if (current.tag == widget.tag) return;
+      if (identical(current.target, widget.target)) return;
     }
 
     _detach();
@@ -99,8 +117,9 @@ class _MorphSiblingState extends State<MorphSibling> {
       visibility: _visibility,
       coordinator: coordinator,
       route: route,
-      tag: widget.tag,
+      target: widget.target,
       transitionAnimation: _transitionAnimation,
+      uncurvedTransitionAnimation: _uncurvedTransitionAnimation,
     );
     _handle = handle;
     coordinator
@@ -159,8 +178,8 @@ class _MorphSiblingState extends State<MorphSibling> {
     super.didUpdateWidget(oldWidget);
     final hadTransition = oldWidget.transitionBuilder != null;
     final hasTransition = widget.transitionBuilder != null;
-    if (oldWidget.tag == widget.tag &&
-        oldWidget.paintAboveMorph == widget.paintAboveMorph &&
+    if (identical(oldWidget.target, widget.target) &&
+        oldWidget.paintOnTop == widget.paintOnTop &&
         hadTransition == hasTransition) {
       return;
     }
@@ -201,6 +220,7 @@ class _MorphSiblingState extends State<MorphSibling> {
     final transitionedChild = widget.transitionBuilder?.call(
       widget.child,
       _transitionAnimation,
+      _uncurvedTransitionAnimation,
     );
     return _MorphEndpointBoundary(
       visibility: _visibility,

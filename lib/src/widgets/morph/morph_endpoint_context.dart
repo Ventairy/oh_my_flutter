@@ -14,11 +14,13 @@ final class MorphEndpointContext {
     required this.overlayBounds,
     required this._transform,
     required this.axisScale,
+    required this._descendantCapture,
   }) : _renderObject = internalRenderObject;
 
   // Built-in compound delegates use this to resolve direct-child layout. It is
   // intentionally unavailable to custom delegates.
   final RenderBox _renderObject;
+  final _MorphDescendantCapture _descendantCapture;
 
   /// Context used to resolve inherited values for [child].
   ///
@@ -29,6 +31,31 @@ final class MorphEndpointContext {
 
   /// The widget supplied to [Morph.child].
   final Widget child;
+
+  /// Prepares an endpoint's widget content for use in a custom flight.
+  ///
+  /// Call this for each endpoint subtree used by the flight, from
+  /// [MorphFlightDelegate.properties]. Store the returned widget in your
+  /// properties and build it in the flight. You can register several subtrees
+  /// and select or animate each independently with ordinary Flutter widgets.
+  ///
+  /// Registration is the standard approach and is highly recommended for
+  /// better compatibility. Content may work without it.
+  ///
+  /// Register the complete subtree, including any [MorphDescendant] wrappers.
+  /// If indistinguishable descendants occur several times within one registered
+  /// subtree, give their MorphDescendants distinct keys.
+  ///
+  /// The returned widget is intended for the associated flight. Do not retain
+  /// this endpoint context to register widgets after
+  /// [MorphFlightDelegate.properties] returns.
+  ///
+  /// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md#register-descendant-content)
+  /// for an example.
+  @useResult
+  Widget registerDescendantWidget(Widget child) {
+    return _descendantCapture.register(child);
+  }
 
   /// Size of [child] at this location.
   final Size localSize;

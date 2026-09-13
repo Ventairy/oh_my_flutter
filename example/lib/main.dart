@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
 import 'package:oh_my_flutter_example/examples/device_display_example.dart';
@@ -7,6 +8,7 @@ import 'package:oh_my_flutter_example/examples/interactive_swipe_dismiss_example
 import 'package:oh_my_flutter_example/examples/marquee_example.dart';
 import 'package:oh_my_flutter_example/examples/maybe_safe_area_example.dart';
 import 'package:oh_my_flutter_example/examples/morph_example.dart';
+import 'package:oh_my_flutter_example/examples/morph_local_example.dart';
 import 'package:oh_my_flutter_example/examples/motion_example.dart';
 import 'package:oh_my_flutter_example/examples/native_selectable_text_example.dart';
 import 'package:oh_my_flutter_example/examples/relative_time_example.dart';
@@ -18,13 +20,21 @@ import 'package:oh_my_flutter_example/examples/text_motion_example.dart';
 void main() => runApp(const UtilityExample());
 
 /// A small gallery for the public utility APIs.
-class UtilityExample extends StatelessWidget {
+class UtilityExample extends StatefulWidget {
   /// Creates the utility example.
   const UtilityExample({super.key});
 
   @override
+  State<UtilityExample> createState() => _UtilityExampleState();
+}
+
+class _UtilityExampleState extends State<UtilityExample> {
+  final _morphObserver = MorphNavigatorObserver();
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver],
       home: Scaffold(
         body: Stack(
           children: [
@@ -80,6 +90,8 @@ class UtilityExample extends StatelessWidget {
                         SizedBox(height: 32),
                         Text('Morph', style: _sectionStyle),
                         SizedBox(height: 12),
+                        MorphLocalExample(),
+                        SizedBox(height: 24),
                         MorphExample(),
                         SizedBox(height: 32),
                         Text('Sequence', style: _sectionStyle),

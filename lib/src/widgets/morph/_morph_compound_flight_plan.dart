@@ -1252,7 +1252,7 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
     if (column != null) {
       return column.children.every(_supportsChild);
     }
-    final widget = child.widget;
+    final widget = child._originalWidget;
     return switch (widget) {
       SizedBox(child: null) => true,
       Align(child: null) => true,
@@ -1283,9 +1283,9 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
     return (source.text != null && destination.text != null) ||
         (source.container != null && destination.container != null) ||
         (source.column != null && destination.column != null) ||
-        (MorphChildFlightDelegate._isEmptyLayoutWidget(source.widget) &&
+        (MorphChildFlightDelegate._isEmptyLayoutWidget(source._originalWidget) &&
             MorphChildFlightDelegate._isEmptyLayoutWidget(
-              destination.widget,
+              destination._originalWidget,
             ));
   }
 }

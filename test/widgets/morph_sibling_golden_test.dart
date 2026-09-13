@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
+import '../support/morph_golden_navigator.dart';
+
 void main() {
   group('MorphSibling golden', () {
     unawaited(
@@ -12,7 +14,7 @@ void main() {
         'when siblings are resting, it should match the reference',
         fileName: 'morph_sibling_resting',
         constraints: const BoxConstraints.tightFor(width: 240, height: 200),
-        builder: _MorphSiblingGoldenHarness.new,
+        builder: () => const MorphGoldenNavigator(child: _MorphSiblingGoldenHarness()),
       ),
     );
 
@@ -31,7 +33,7 @@ void main() {
 
           return tester.pumpAndSettle;
         },
-        builder: () => _MorphSiblingGoldenHarness(key: midpointKey),
+        builder: () => MorphGoldenNavigator(child: _MorphSiblingGoldenHarness(key: midpointKey)),
       ),
     );
 
@@ -50,10 +52,8 @@ void main() {
 
           return tester.pumpAndSettle;
         },
-        builder: () => _MorphSiblingGoldenHarness(
-          key: naturalMidpointKey,
-          paintAboveMorph: false,
-        ),
+        builder: () =>
+            MorphGoldenNavigator(child: _MorphSiblingGoldenHarness(key: naturalMidpointKey, paintOnTop: false)),
       ),
     );
 
@@ -72,10 +72,7 @@ void main() {
 
           return tester.pumpAndSettle;
         },
-        builder: () => _MorphSiblingGoldenHarness(
-          key: delayedMidpointKey,
-          delayed: true,
-        ),
+        builder: () => MorphGoldenNavigator(child: _MorphSiblingGoldenHarness(key: delayedMidpointKey, delayed: true)),
       ),
     );
   });
@@ -84,18 +81,21 @@ void main() {
 class _MorphSiblingGoldenHarness extends StatefulWidget {
   const _MorphSiblingGoldenHarness({
     this.delayed = false,
-    this.paintAboveMorph = true,
+    this.paintOnTop = true,
     super.key,
   });
 
   final bool delayed;
-  final bool paintAboveMorph;
+  final bool paintOnTop;
 
   @override
   State<_MorphSiblingGoldenHarness> createState() => _MorphSiblingGoldenHarnessState();
 }
 
 class _MorphSiblingGoldenHarnessState extends State<_MorphSiblingGoldenHarness> {
+  final _collapsedTarget = MorphTarget(tag: 'sibling-golden');
+  final _expandedTarget = MorphTarget(tag: 'sibling-golden');
+
   var _expanded = false;
 
   void expand() {
@@ -112,7 +112,8 @@ class _MorphSiblingGoldenHarnessState extends State<_MorphSiblingGoldenHarness> 
           Align(
             alignment: _expanded ? Alignment.bottomRight : Alignment.topLeft,
             child: Morph(
-              tag: 'sibling-golden',
+              animateChildChanges: true,
+              target: _expanded ? _expandedTarget : _collapsedTarget,
               duration: const Duration(milliseconds: 400),
               child: Container(
                 width: _expanded ? 240 : 64,
@@ -125,8 +126,8 @@ class _MorphSiblingGoldenHarnessState extends State<_MorphSiblingGoldenHarness> 
             ),
           ),
           MorphSibling(
-            tag: 'sibling-golden',
-            paintAboveMorph: widget.paintAboveMorph,
+            target: _expanded ? _expandedTarget : _collapsedTarget,
+            paintOnTop: widget.paintOnTop,
             transitionBuilder: widget.delayed ? _buildDelayedTransition : null,
             child: Transform.translate(
               offset: const Offset(48, 66),
@@ -147,8 +148,8 @@ class _MorphSiblingGoldenHarnessState extends State<_MorphSiblingGoldenHarness> 
             ),
           ),
           MorphSibling(
-            tag: 'sibling-golden',
-            paintAboveMorph: widget.paintAboveMorph,
+            target: _expanded ? _expandedTarget : _collapsedTarget,
+            paintOnTop: widget.paintOnTop,
             transitionBuilder: widget.delayed ? _buildDelayedTransition : null,
             child: Transform.translate(
               offset: const Offset(102, 100),
@@ -169,6 +170,7 @@ class _MorphSiblingGoldenHarnessState extends State<_MorphSiblingGoldenHarness> 
   Widget _buildDelayedTransition(
     Widget child,
     Animation<double> animation,
+    Animation<double> uncurvedAnimation,
   ) {
     return FadeTransition(
       opacity: CurvedAnimation(

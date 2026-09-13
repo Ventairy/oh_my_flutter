@@ -12,20 +12,27 @@ class _MorphTransitionTestApp extends StatefulWidget {
 }
 
 class _MorphTransitionTestAppState extends State<_MorphTransitionTestApp> {
+  final _morphTarget1 = MorphTarget(tag: 'transition-animation');
+  final _morphObserver1 = MorphNavigatorObserver();
+
   bool _expanded = false;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Stack(
         children: [
           Align(
             alignment: _expanded ? Alignment.bottomRight : Alignment.topLeft,
             child: Morph(
-              tag: 'transition-animation',
+              animateChildChanges: true,
+              target: _morphTarget1,
               duration: const Duration(milliseconds: 100),
               curve: Curves.linear,
-              switchTransition: widget.transitionBuilder,
+              flightConfig: .auto(
+                childTransition: widget.transitionBuilder,
+              ),
               child: Builder(
                 key: ValueKey<bool>(_expanded),
                 builder: (context) {
@@ -53,24 +60,31 @@ class _MorphTextSwitchTransitionTestApp extends StatefulWidget {
 }
 
 class _MorphTextSwitchTransitionTestAppState extends State<_MorphTextSwitchTransitionTestApp> {
+  final _morphTarget2 = MorphTarget(tag: 'text-switch-transition');
+  final _morphObserver1 = MorphNavigatorObserver();
+
   bool _showsDestination = false;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Stack(
         children: [
           Morph(
-            tag: 'text-switch-transition',
+            animateChildChanges: true,
+            target: _morphTarget2,
             duration: const Duration(milliseconds: 100),
             curve: Curves.linear,
-            switchTransition: (child, animation) {
-              return FadeTransition(
-                key: const ValueKey('text-switch-fade'),
-                opacity: animation,
-                child: child,
-              );
-            },
+            flightConfig: .auto(
+              childTransition: (child, animation) {
+                return FadeTransition(
+                  key: const ValueKey('text-switch-fade'),
+                  opacity: animation,
+                  child: child,
+                );
+              },
+            ),
             child: Text(_showsDestination ? 'Destination' : 'Source'),
           ),
           FilledButton(
@@ -122,21 +136,28 @@ void main() {
   testWidgets(
     'when automatic Text keeps the same value, it should not apply the switch transition',
     (tester) async {
+      final morphTarget3 = MorphTarget(tag: 'same-text-switch-transition');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var emphasized = false;
       var transitionBuilds = 0;
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: StatefulBuilder(
             builder: (context, setState) {
               update = setState;
               return Morph(
-                tag: 'same-text-switch-transition',
+                animateChildChanges: true,
+                target: morphTarget3,
                 duration: const Duration(milliseconds: 100),
-                switchTransition: (child, animation) {
-                  transitionBuilds += 1;
-                  return FadeTransition(opacity: animation, child: child);
-                },
+                flightConfig: .auto(
+                  childTransition: (child, animation) {
+                    transitionBuilds += 1;
+                    return FadeTransition(opacity: animation, child: child);
+                  },
+                ),
                 child: Text(
                   'Unchanged',
                   style: TextStyle(

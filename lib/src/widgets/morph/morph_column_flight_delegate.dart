@@ -48,6 +48,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
       axisScale: endpoint.axisScale,
       switchThreshold: switchThreshold,
       capturedEnvironment: _MorphCapturedEnvironment(endpoint.context),
+      endpoint: endpoint,
     );
   }
 
@@ -76,6 +77,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
     required Offset axisScale,
     required double switchThreshold,
     required _MorphCapturedEnvironment capturedEnvironment,
+    MorphEndpointContext? endpoint,
   }) {
     final children = <MorphChildProperties>[];
     var renderChild = renderObject.firstChild;
@@ -97,6 +99,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
           axisScale: axisScale,
           switchThreshold: switchThreshold,
           capturedEnvironment: capturedEnvironment,
+          endpoint: endpoint,
           renderObject: renderChild,
         ),
       );
@@ -110,7 +113,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
   }
 
   @override
-  MorphColumnProperties lerp(
+  MorphColumnProperties lerpProperties(
     MorphColumnProperties source,
     MorphColumnProperties destination,
     double progress,
@@ -157,7 +160,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
       );
       if (plan != null) {
         return _MorphCompoundFlight(
-          animation: flight.animation,
+          animation: flight.curvedAnimation,
           plan: plan,
         );
       }
@@ -168,7 +171,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
       );
       if (hybridPlan != null) {
         return _MorphHybridColumnFlight(
-          animation: flight.animation,
+          animation: flight.curvedAnimation,
           plan: hybridPlan,
           transitionBuilder: null,
         );

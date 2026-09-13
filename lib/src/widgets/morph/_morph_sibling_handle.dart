@@ -6,16 +6,20 @@ final class _MorphSiblingHandle {
     required this.visibility,
     required this.coordinator,
     required this.route,
-    required this.tag,
+    required this.target,
     required this.transitionAnimation,
+    required this.uncurvedTransitionAnimation,
   });
 
   final _MorphSiblingState owner;
   final _MorphVisibilityHandle visibility;
   final _MorphCoordinator coordinator;
   final ModalRoute<Object?>? route;
-  final Object tag;
+  final MorphTarget target;
+
+  Object get tag => target.tag;
   final ProxyAnimation transitionAnimation;
+  final ProxyAnimation uncurvedTransitionAnimation;
   final Matrix4 _transform = Matrix4.identity();
   late final VoidCallback _flightAnimationListener = changed;
   late final Widget overlayProjection = Positioned.fill(
@@ -53,7 +57,7 @@ final class _MorphSiblingHandle {
 
   bool get hasTransition => owner.widget.transitionBuilder != null;
 
-  bool get paintsAboveMorph => owner.widget.paintAboveMorph;
+  bool get paintsOnTop => owner.widget.paintOnTop;
 
   void changed() {
     if (!disposed) _projection?.markTransformNeedsUpdate();
@@ -75,18 +79,22 @@ final class _MorphSiblingHandle {
   void attachFlight(
     _MorphActiveFlight flight,
     Animation<double> animation,
+    Animation<double> uncurvedAnimation,
   ) {
-    if (identical(_flight, flight) && identical(_flightAnimation, animation)) {
+    if (identical(_flight, flight) && identical(_flightAnimation, flight.flightAnimation)) {
       return;
     }
     _flightAnimation?.removeListener(_flightAnimationListener);
     _flight = flight;
-    _flightAnimation = animation;
-    animation.addListener(_flightAnimationListener);
-    transitionAnimation.parent = _MorphSiblingClampedAnimation(
-      animation,
-    );
+    _flightAnimation = flight.flightAnimation;
+    flight.flightAnimation.addListener(_flightAnimationListener);
+    updateProgress(animation, uncurvedAnimation);
     changed();
+  }
+
+  void updateProgress(Animation<double> curved, Animation<double> uncurved) {
+    transitionAnimation.parent = curved;
+    uncurvedTransitionAnimation.parent = uncurved;
   }
 
   void detachFlight(_MorphActiveFlight flight) {
@@ -94,13 +102,11 @@ final class _MorphSiblingHandle {
     _flightAnimation?.removeListener(_flightAnimationListener);
     _flight = null;
     _flightAnimation = null;
-    transitionAnimation.parent = kAlwaysCompleteAnimation;
     changed();
   }
 
   void prepareForIncomingFlight() {
-    if (_flight != null || !hasTransition) return;
-    transitionAnimation.parent = kAlwaysDismissedAnimation;
+    coordinator._attachSiblingFlight(this);
   }
 
   void resetFlight() {
@@ -110,13 +116,7 @@ final class _MorphSiblingHandle {
   }
 
   void settleTransition() {
-    if (identical(transitionAnimation.parent, kAlwaysCompleteAnimation)) {
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (disposed || _flight != null) return;
-      transitionAnimation.parent = kAlwaysCompleteAnimation;
-    });
+    coordinator._attachSiblingFlight(this);
   }
 
   void detachProjection(_RenderMorphSiblingPaint projection) {

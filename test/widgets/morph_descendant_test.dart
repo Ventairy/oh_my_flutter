@@ -40,7 +40,7 @@ class _DeepMorphDescendant extends StatelessWidget {
   }
 }
 
-class _MorphDescendantRouteTestApp extends StatelessWidget {
+class _MorphDescendantRouteTestApp extends StatefulWidget {
   const _MorphDescendantRouteTestApp({
     required this.scrollController,
     this.flightBehavior = MorphDescendantFlightBehavior.snapshot,
@@ -50,22 +50,33 @@ class _MorphDescendantRouteTestApp extends StatelessWidget {
   final MorphDescendantFlightBehavior flightBehavior;
 
   @override
+  State<_MorphDescendantRouteTestApp> createState() => _MorphDescendantRouteTestAppState();
+}
+
+class _MorphDescendantRouteTestAppState extends State<_MorphDescendantRouteTestApp> {
+  final _morphTarget1 = MorphTarget(tag: 'descendant-route');
+  final _morphTarget2 = MorphTarget(tag: 'descendant-route');
+  final _morphObserver1 = MorphNavigatorObserver();
+
+  @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Builder(
         builder: (context) {
           return Scaffold(
             body: Column(
               children: [
                 Morph(
-                  tag: 'descendant-route',
+                  animateChildChanges: true,
+                  target: _morphTarget1,
                   child: Container(
                     width: 200,
                     height: 200,
                     color: Colors.red,
                     child: _DeepMorphDescendant(
-                      scrollController: scrollController,
-                      flightBehavior: flightBehavior,
+                      scrollController: widget.scrollController,
+                      flightBehavior: widget.flightBehavior,
                     ),
                   ),
                 ),
@@ -81,7 +92,8 @@ class _MorphDescendantRouteTestApp extends StatelessWidget {
                             key: const ValueKey('destination'),
                             alignment: Alignment.bottomRight,
                             child: Morph(
-                              tag: 'descendant-route',
+                              animateChildChanges: true,
+                              target: _morphTarget2,
                               child: Container(
                                 width: 300,
                                 height: 300,
@@ -240,6 +252,9 @@ void main() {
     'when a snapshot descendant owns an active keyed text field, '
     'it should keep one focused endpoint instance during the flight',
     (tester) async {
+      final morphTarget3 = MorphTarget(tag: 'keyed-editor');
+      final morphObserver1 = MorphNavigatorObserver();
+
       final fieldKey = GlobalKey();
       final focusNode = FocusNode();
       final textController = TextEditingController(text: 'Editable value');
@@ -249,13 +264,15 @@ void main() {
       late StateSetter setHarnessState;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Scaffold(
             body: Align(
               child: StatefulBuilder(
                 builder: (context, setState) {
                   setHarnessState = setState;
                   return Morph(
-                    tag: 'keyed-editor',
+                    animateChildChanges: true,
+                    target: morphTarget3,
                     child: SizedBox(
                       key: ValueKey<bool>(expanded),
                       width: expanded ? 260 : 180,
@@ -391,15 +408,20 @@ void main() {
     'when one endpoint contains several snapshot descendants, '
     'it should capture one shared image per endpoint',
     (tester) async {
+      final morphTarget4 = MorphTarget(tag: 'snapshot-atlas');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var expanded = false;
       late StateSetter setHarnessState;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: StatefulBuilder(
             builder: (context, setState) {
               setHarnessState = setState;
               return Morph(
-                tag: 'snapshot-atlas',
+                animateChildChanges: true,
+                target: morphTarget4,
                 child: Container(
                   key: ValueKey<bool>(expanded),
                   width: expanded ? 240 : 160,
@@ -454,12 +476,16 @@ void main() {
     'when a snapshot descendant contains another snapshot descendant, '
     'it should capture only the outer boundary',
     (tester) async {
+      final morphTarget5 = MorphTarget(tag: 'nested-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       var expanded = false;
       late StateSetter setHarnessState;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: StatefulBuilder(
             builder: (context, setState) {
               setHarnessState = setState;
@@ -467,7 +493,8 @@ void main() {
               final innerSize = expanded ? 50.0 : 40.0;
               return Align(
                 child: Morph(
-                  tag: 'nested-snapshot',
+                  animateChildChanges: true,
+                  target: morphTarget5,
                   child: SizedBox.square(
                     key: ValueKey<bool>(expanded),
                     dimension: outerSize,
@@ -526,6 +553,9 @@ void main() {
     'when one snapshot needs tiling within the total image budget, '
     'it should divide the image into bounded tiles',
     (tester) async {
+      final morphTarget6 = MorphTarget(tag: 'large-snapshot-tiling');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view
         ..devicePixelRatio = 1
         ..physicalSize = const Size(4300, 1000);
@@ -538,12 +568,14 @@ void main() {
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: StatefulBuilder(
             builder: (context, setState) {
               update = setState;
               return Align(
                 child: Morph(
-                  tag: 'large-snapshot-tiling',
+                  animateChildChanges: true,
+                  target: morphTarget6,
                   child: SizedBox(
                     key: ValueKey<bool>(destination),
                     width: 4200,
@@ -617,6 +649,9 @@ void main() {
     'when one snapshot exceeds the total image budget, '
     'it should avoid allocating snapshot images',
     (tester) async {
+      final morphTarget7 = MorphTarget(tag: 'snapshot-total-budget');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view
         ..devicePixelRatio = 1
         ..physicalSize = const Size(2200, 2200);
@@ -629,12 +664,14 @@ void main() {
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: StatefulBuilder(
             builder: (context, setState) {
               update = setState;
               return Align(
                 child: Morph(
-                  tag: 'snapshot-total-budget',
+                  animateChildChanges: true,
+                  target: morphTarget7,
                   child: SizedBox.square(
                     key: ValueKey<bool>(destination),
                     dimension: 2100,
@@ -680,6 +717,9 @@ void main() {
     'when atlas packing exceeds the total image budget, '
     'it should avoid allocating partial snapshot images',
     (tester) async {
+      final morphTarget8 = MorphTarget(tag: 'snapshot-packed-total-budget');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view
         ..devicePixelRatio = 1
         ..physicalSize = const Size(1600, 4100);
@@ -692,13 +732,15 @@ void main() {
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Align(
             alignment: Alignment.topLeft,
             child: StatefulBuilder(
               builder: (context, setState) {
                 update = setState;
                 return Morph(
-                  tag: 'snapshot-packed-total-budget',
+                  animateChildChanges: true,
+                  target: morphTarget8,
                   child: Column(
                     key: ValueKey<bool>(destination),
                     mainAxisSize: MainAxisSize.min,
@@ -772,6 +814,9 @@ void main() {
     'when a tiled snapshot has a fractional terminal extent, '
     'it should preserve the painted edge coverage',
     (tester) async {
+      final morphTarget9 = MorphTarget(tag: 'fractional-snapshot-tile');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view
         ..devicePixelRatio = 1
         ..physicalSize = const Size(4100, 100);
@@ -787,6 +832,7 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: ColoredBox(
               color: Colors.white,
               child: StatefulBuilder(
@@ -795,7 +841,8 @@ void main() {
                   return Align(
                     alignment: Alignment.topLeft,
                     child: Morph(
-                      tag: 'fractional-snapshot-tile',
+                      animateChildChanges: true,
+                      target: morphTarget9,
                       duration: const Duration(milliseconds: 400),
                       child: SizedBox(
                         key: ValueKey<bool>(destination),
@@ -840,16 +887,21 @@ void main() {
     'when a snapshot flight crosses the switch threshold, '
     'it should replace the source snapshot with the destination snapshot',
     (tester) async {
+      final morphTarget10 = MorphTarget(tag: 'snapshot-switch');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var expanded = false;
       late StateSetter setHarnessState;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Align(
             child: StatefulBuilder(
               builder: (context, setState) {
                 setHarnessState = setState;
                 return Morph(
-                  tag: 'snapshot-switch',
+                  animateChildChanges: true,
+                  target: morphTarget10,
                   child: ColoredBox(
                     key: ValueKey<bool>(expanded),
                     color: expanded ? Colors.blue : Colors.red,
@@ -886,6 +938,9 @@ void main() {
     'when a watched destination snapshot changes during a flight, '
     'it should refresh its geometry and pixels before handoff',
     (tester) async {
+      final morphTarget11 = MorphTarget(tag: 'watched-snapshot-refresh');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       const frameKey = ValueKey<String>('watched-snapshot-frame');
@@ -898,6 +953,7 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -905,7 +961,8 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      tag: 'watched-snapshot-refresh',
+                      animateChildChanges: true,
+                      target: morphTarget11,
                       duration: const Duration(milliseconds: 600),
                       curve: Curves.linear,
                       watchDestination: !destination,
@@ -1009,6 +1066,8 @@ void main() {
     'when a watched flight waits for its cohort, '
     'it should refresh nested snapshot pixels before handoff',
     (tester) async {
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       const frameKey = ValueKey<String>('watched-cohort-hold-frame');
@@ -1019,10 +1078,13 @@ void main() {
       late StateSetter update;
 
       Widget shortFlight() {
+        final morphTarget12 = MorphTarget(tag: 'watched-short-cohort-flight');
+
         return Align(
           alignment: destination ? Alignment.topLeft : Alignment.topRight,
           child: Morph(
-            tag: 'watched-short-cohort-flight',
+            animateChildChanges: true,
+            target: morphTarget12,
             duration: const Duration(milliseconds: 100),
             curve: Curves.linear,
             watchDestination: !destination,
@@ -1043,10 +1105,13 @@ void main() {
       }
 
       Widget longFlight() {
+        final morphTarget13 = MorphTarget(tag: 'watched-long-cohort-flight');
+
         return Align(
           alignment: destination ? Alignment.bottomCenter : Alignment.topCenter,
           child: Morph(
-            tag: 'watched-long-cohort-flight',
+            animateChildChanges: true,
+            target: morphTarget13,
             duration: const Duration(milliseconds: 400),
             curve: Curves.linear,
             watchDestination: !destination,
@@ -1066,6 +1131,7 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1128,10 +1194,14 @@ void main() {
     'when a watched destination snapshot remains unchanged during a flight, '
     'it should not capture additional images',
     (tester) async {
+      final morphTarget14 = MorphTarget(tag: 'watched-static-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var destination = false;
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) {
@@ -1139,7 +1209,8 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    tag: 'watched-static-snapshot',
+                    animateChildChanges: true,
+                    target: morphTarget14,
                     duration: const Duration(milliseconds: 600),
                     curve: Curves.linear,
                     watchDestination: !destination,
@@ -1197,10 +1268,15 @@ void main() {
     'when an unchanged watched snapshot contains a nested Morph boundary, '
     'it should not capture additional images',
     (tester) async {
+      final morphTarget15 = MorphTarget(tag: 'watched-nested-morph-snapshot');
+      final morphTarget16 = MorphTarget(tag: 'nested-suppressed-content');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var destination = false;
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) {
@@ -1208,7 +1284,8 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    tag: 'watched-nested-morph-snapshot',
+                    animateChildChanges: true,
+                    target: morphTarget15,
                     duration: const Duration(milliseconds: 600),
                     curve: Curves.linear,
                     watchDestination: !destination,
@@ -1220,7 +1297,8 @@ void main() {
                         child: MorphDescendant(
                           flightBehavior: MorphDescendantFlightBehavior.snapshot,
                           child: Morph(
-                            tag: 'nested-suppressed-content',
+                            animateChildChanges: true,
+                            target: morphTarget16,
                             child: RepaintBoundary(
                               child: ColoredBox(
                                 color: Colors.blue,
@@ -1273,6 +1351,9 @@ void main() {
     'when one watched destination snapshot changes among several, '
     'it should recapture only the changed descendant',
     (tester) async {
+      final morphTarget17 = MorphTarget(tag: 'watched-dirty-subset');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var destination = false;
       var firstRevision = 0;
       var firstPaints = 0;
@@ -1285,6 +1366,7 @@ void main() {
       );
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) {
@@ -1292,7 +1374,8 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    tag: 'watched-dirty-subset',
+                    animateChildChanges: true,
+                    target: morphTarget17,
                     duration: const Duration(milliseconds: 800),
                     curve: Curves.linear,
                     watchDestination: !destination,
@@ -1349,6 +1432,9 @@ void main() {
     'when a watched dirty subset would retain oversized shared atlases, '
     'it should compact the destination snapshot generation',
     (tester) async {
+      final morphTarget18 = MorphTarget(tag: 'watched-atlas-compaction');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view
         ..devicePixelRatio = 1
         ..physicalSize = const Size(1900, 1900);
@@ -1375,13 +1461,15 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: StatefulBuilder(
               builder: (context, setState) {
                 update = setState;
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    tag: 'watched-atlas-compaction',
+                    animateChildChanges: true,
+                    target: morphTarget18,
                     duration: const Duration(milliseconds: 800),
                     curve: Curves.linear,
                     watchDestination: !destination,
@@ -1503,6 +1591,9 @@ void main() {
     'when snapshot pixels change several times before a watched frame, '
     'it should coalesce them into one destination capture',
     (tester) async {
+      final morphTarget19 = MorphTarget(tag: 'watched-listenable-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       const frameKey = ValueKey<String>('watched-listenable-frame');
@@ -1515,6 +1606,7 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1522,7 +1614,8 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      tag: 'watched-listenable-snapshot',
+                      animateChildChanges: true,
+                      target: morphTarget19,
                       duration: const Duration(milliseconds: 800),
                       curve: Curves.linear,
                       watchDestination: !destination,
@@ -1590,6 +1683,9 @@ void main() {
     'when nested repaint-boundary pixels change independently, '
     'it should retain automatic destination refreshes',
     (tester) async {
+      final morphTarget20 = MorphTarget(tag: 'watched-fallback-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       const frameKey = ValueKey<String>('watched-fallback-frame');
@@ -1602,6 +1698,7 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1609,7 +1706,8 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      tag: 'watched-fallback-snapshot',
+                      animateChildChanges: true,
+                      target: morphTarget20,
                       duration: const Duration(milliseconds: 800),
                       curve: Curves.linear,
                       watchDestination: !destination,
@@ -1660,16 +1758,21 @@ void main() {
     'when unsupported watched snapshot content stays unchanged, '
     'it should not retry its completed empty capture',
     (tester) async {
+      final morphTarget21 = MorphTarget(tag: 'watched-unsupported-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var destination = false;
       var paints = 0;
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: StatefulBuilder(
             builder: (context, setState) {
               update = setState;
               return Morph(
-                tag: 'watched-unsupported-snapshot',
+                animateChildChanges: true,
+                target: morphTarget21,
                 duration: const Duration(milliseconds: 600),
                 watchDestination: !destination,
                 child: SizedBox(
@@ -1713,6 +1816,9 @@ void main() {
     'when a watched flight reverses to a changed origin snapshot, '
     'it should refresh the returning geometry and pixels',
     (tester) async {
+      final morphTarget22 = MorphTarget(tag: 'watched-reverse-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       const frameKey = ValueKey<String>('watched-reverse-frame');
@@ -1724,6 +1830,7 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1732,7 +1839,8 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      tag: 'watched-reverse-snapshot',
+                      animateChildChanges: true,
+                      target: morphTarget22,
                       duration: const Duration(milliseconds: 800),
                       curve: Curves.linear,
                       watchDestination: true,
@@ -1797,6 +1905,9 @@ void main() {
     'when a watched destination snapshot exceeds the total image budget, '
     'it should retain the coherent frame and recover when it shrinks',
     (tester) async {
+      final morphTarget23 = MorphTarget(tag: 'watched-snapshot-budget');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view
         ..devicePixelRatio = 1
         ..physicalSize = const Size(2200, 2200);
@@ -1814,6 +1925,7 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1822,7 +1934,8 @@ void main() {
                   return Align(
                     alignment: Alignment.topLeft,
                     child: Morph(
-                      tag: 'watched-snapshot-budget',
+                      animateChildChanges: true,
+                      target: morphTarget23,
                       duration: const Duration(milliseconds: 800),
                       curve: Curves.linear,
                       watchDestination: !destination,
@@ -1915,6 +2028,9 @@ void main() {
     'when a watched fallback snapshot becomes empty, '
     'it should release the obsolete image without recapturing',
     (tester) async {
+      final morphTarget24 = MorphTarget(tag: 'watched-empty-fallback-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       var destination = false;
@@ -1922,6 +2038,7 @@ void main() {
       late StateSetter update;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Scaffold(
             body: StatefulBuilder(
               builder: (context, setState) {
@@ -1930,7 +2047,8 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    tag: 'watched-empty-fallback-snapshot',
+                    animateChildChanges: true,
+                    target: morphTarget24,
                     duration: const Duration(milliseconds: 800),
                     curve: Curves.linear,
                     watchDestination: !destination,
@@ -2006,6 +2124,9 @@ void main() {
     'when a watched destination snapshot refresh fails, '
     'it should keep the last coherent frame and recover later',
     (tester) async {
+      final morphTarget25 = MorphTarget(tag: 'watched-snapshot-failure');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       const frameKey = ValueKey<String>('watched-failure-frame');
@@ -2018,6 +2139,7 @@ void main() {
         RepaintBoundary(
           key: frameKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -2026,7 +2148,8 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      tag: 'watched-snapshot-failure',
+                      animateChildChanges: true,
+                      target: morphTarget25,
                       duration: const Duration(milliseconds: 800),
                       curve: Curves.linear,
                       watchDestination: !destination,
@@ -2116,6 +2239,9 @@ void main() {
     'when both endpoints reuse one snapshot descendant widget, '
     'it should still switch to the destination snapshot size',
     (tester) async {
+      final morphTarget26 = MorphTarget(tag: 'reused-snapshot-switch');
+      final morphObserver1 = MorphNavigatorObserver();
+
       const descendant = MorphDescendant(
         flightBehavior: MorphDescendantFlightBehavior.snapshot,
         child: SizedBox.expand(
@@ -2126,12 +2252,14 @@ void main() {
       late StateSetter setHarnessState;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Align(
             child: StatefulBuilder(
               builder: (context, setState) {
                 setHarnessState = setState;
                 return Morph(
-                  tag: 'reused-snapshot-switch',
+                  animateChildChanges: true,
+                  target: morphTarget26,
                   child: SizedBox(
                     key: ValueKey<bool>(expanded),
                     width: expanded ? 120 : 80,
@@ -2165,16 +2293,21 @@ void main() {
     'when a specialized container contains a snapshot descendant, '
     'it should preserve the descendant configuration in its flight',
     (tester) async {
+      final morphTarget27 = MorphTarget(tag: 'container-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var expanded = false;
       late StateSetter setHarnessState;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Align(
             child: StatefulBuilder(
               builder: (context, setState) {
                 setHarnessState = setState;
                 return Morph(
-                  tag: 'container-snapshot',
+                  animateChildChanges: true,
+                  target: morphTarget27,
                   child: Container(
                     key: ValueKey<bool>(expanded),
                     width: expanded ? 180 : 120,
@@ -2216,16 +2349,21 @@ void main() {
     'when endpoint descendant behaviors differ, '
     'it should use the behavior of the currently selected endpoint',
     (tester) async {
+      final morphTarget28 = MorphTarget(tag: 'mixed-descendant-behavior');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var expanded = false;
       late StateSetter setHarnessState;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Align(
             child: StatefulBuilder(
               builder: (context, setState) {
                 setHarnessState = setState;
                 return Morph(
-                  tag: 'mixed-descendant-behavior',
+                  animateChildChanges: true,
+                  target: morphTarget28,
                   child: SizedBox.square(
                     key: ValueKey<bool>(expanded),
                     dimension: expanded ? 120 : 80,
@@ -2261,10 +2399,14 @@ void main() {
     'when animations are disabled, '
     'it should transfer snapshot descendants without capturing images',
     (tester) async {
+      final morphTarget29 = MorphTarget(tag: 'reduced-motion-snapshot');
+      final morphObserver1 = MorphNavigatorObserver();
+
       var expanded = false;
       late StateSetter setHarnessState;
       await tester.pumpWidget(
         MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: MediaQuery(
             data: const MediaQueryData(disableAnimations: true),
             child: Align(
@@ -2272,7 +2414,8 @@ void main() {
                 builder: (context, setState) {
                   setHarnessState = setState;
                   return Morph(
-                    tag: 'reduced-motion-snapshot',
+                    animateChildChanges: true,
+                    target: morphTarget29,
                     child: SizedBox.square(
                       key: ValueKey<bool>(expanded),
                       dimension: expanded ? 120 : 80,

@@ -27,21 +27,29 @@ Future<Color> _centerPixel(WidgetTester tester, Finder boundaryFinder) async {
 void main() {
   group('Morph DecoratedBox', () {
     test('when no curve is provided, it should defer curve resolution', () {
-      const morph = Morph(
-        tag: 'default-curve',
-        child: DecoratedBox(decoration: BoxDecoration()),
+      final morphTarget1 = MorphTarget(tag: 'default-curve');
+
+      final morph = Morph(
+        animateChildChanges: true,
+        target: morphTarget1,
+        child: const DecoratedBox(decoration: BoxDecoration()),
       );
 
       expect(morph.curve, isNull);
     });
 
     testWidgets('when building at rest, it should preserve the original decorated box', (tester) async {
+      final morphTarget2 = MorphTarget(tag: 'decorated-box');
+      final morphObserver1 = MorphNavigatorObserver();
+
       const decoration = BoxDecoration(color: Colors.red);
       await tester.pumpWidget(
-        const MaterialApp(
+        MaterialApp(
+          navigatorObservers: [morphObserver1],
           home: Morph(
-            tag: 'decorated-box',
-            child: DecoratedBox(
+            animateChildChanges: true,
+            target: morphTarget2,
+            child: const DecoratedBox(
               key: ValueKey('decorated-box'),
               position: DecorationPosition.foreground,
               decoration: decoration,
@@ -56,6 +64,9 @@ void main() {
     });
 
     testWidgets('when a foreground decorated box flies, it should keep its decoration above its child', (tester) async {
+      final morphTarget3 = MorphTarget(tag: 'foreground-decorated-box');
+      final morphObserver1 = MorphNavigatorObserver();
+
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetDevicePixelRatio);
       const boundaryKey = ValueKey('decorated-box-boundary');
@@ -65,6 +76,7 @@ void main() {
         RepaintBoundary(
           key: boundaryKey,
           child: MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -74,7 +86,8 @@ void main() {
                     child: SizedBox.square(
                       dimension: destination ? 140 : 80,
                       child: Morph(
-                        tag: 'foreground-decorated-box',
+                        animateChildChanges: true,
+                        target: morphTarget3,
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.linear,
                         child: DecoratedBox(

@@ -41,6 +41,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
         axisScale: endpoint.axisScale,
         switchThreshold: switchThreshold,
         capturedEnvironment: capturedEnvironment,
+        endpoint: endpoint,
         renderObject: endpoint._renderObject,
       ),
       _ => throw ArgumentError.value(
@@ -71,6 +72,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       axisScale: endpoint.axisScale,
       switchThreshold: switchThreshold,
       capturedEnvironment: capturedEnvironment,
+      endpoint: endpoint,
       renderObject: endpoint._renderObject,
     );
   }
@@ -102,6 +104,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
     required Offset axisScale,
     required double switchThreshold,
     required _MorphCapturedEnvironment capturedEnvironment,
+    MorphEndpointContext? endpoint,
     RenderBox? renderObject,
   }) {
     final decoration = _resolveDecoration(
@@ -119,6 +122,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
             axisScale: axisScale,
             switchThreshold: switchThreshold,
             capturedEnvironment: capturedEnvironment,
+            endpoint: endpoint,
             renderObject: renderObject,
           );
     return MorphContainerProperties(
@@ -159,6 +163,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
     required Offset axisScale,
     required double switchThreshold,
     required _MorphCapturedEnvironment capturedEnvironment,
+    MorphEndpointContext? endpoint,
     RenderBox? renderObject,
   }) {
     final direction = Directionality.of(context);
@@ -190,6 +195,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
             axisScale: axisScale,
             switchThreshold: switchThreshold,
             capturedEnvironment: capturedEnvironment,
+            endpoint: endpoint,
             renderObject: renderObject,
           );
     return MorphContainerProperties(
@@ -215,12 +221,14 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
     required double switchThreshold,
     required _MorphCapturedEnvironment capturedEnvironment,
     required RenderBox? renderObject,
+    required MorphEndpointContext? endpoint,
   }) {
     if (MorphChildFlightDelegate._containsNestedMorphOrFlexParentData(widget)) {
       return MorphChildFlightDelegate._rawProperties(
         widget: widget,
         rect: rect,
         capturedEnvironment: capturedEnvironment,
+        endpoint: endpoint,
       );
     }
     return MorphChildFlightDelegate._properties(
@@ -230,12 +238,13 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       axisScale: axisScale,
       switchThreshold: switchThreshold,
       capturedEnvironment: capturedEnvironment,
+      endpoint: endpoint,
       renderObject: renderObject,
     );
   }
 
   @override
-  MorphContainerProperties lerp(
+  MorphContainerProperties lerpProperties(
     MorphContainerProperties source,
     MorphContainerProperties destination,
     double progress,
@@ -468,7 +477,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       );
       if (plan != null) {
         return _MorphCompoundFlight(
-          animation: flight.animation,
+          animation: flight.curvedAnimation,
           plan: plan,
         );
       }
@@ -481,14 +490,14 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       );
       if (hybridPlan != null) {
         return _MorphHybridContainerFlight(
-          animation: flight.animation,
+          animation: flight.curvedAnimation,
           plan: hybridPlan,
           transitionBuilder: null,
         );
       }
     }
     return AnimatedBuilder(
-      animation: flight.animation,
+      animation: flight.curvedAnimation,
       builder: (context, child) => _buildProperties(
         context,
         flight.properties,

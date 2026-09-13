@@ -21,8 +21,7 @@ class MorphDescendant extends StatefulWidget {
   /// How [child] is represented while the nearest ancestor Morph transitions.
   ///
   /// Content without a MorphDescendant uses
-  /// [MorphDescendantFlightBehavior.live]. A custom [MorphFlightDelegate]
-  /// observes this behavior only when its flight result includes [child].
+  /// [MorphDescendantFlightBehavior.live].
   ///
   /// A non-live behavior also governs non-live MorphDescendants nested inside
   /// [child]. Wrap independent subtrees separately instead of nesting those
@@ -41,37 +40,28 @@ class _MorphDescendantState extends State<MorphDescendant> {
   _MorphEndpointHandle? _endpoint;
   _MorphDescendantFlightResolver? _flightResolver;
   _MorphDescendantFlightRecord? _flightRecord;
-  bool? _flightShowsSource;
   int? _flightRecordsRevision;
   bool _inFlight = false;
+  bool _insideNestedMorph = false;
 
   void _detachEndpoint() {
     _endpoint?._unregisterDescendant(_handle);
     _endpoint = null;
   }
 
-  void _releaseFlightRecord() {
-    _flightResolver?.release(_flightRecord);
-    _flightRecord = null;
-  }
-
   void _resolveFlightRecord() {
-    _releaseFlightRecord();
+    _flightRecord = null;
     final resolver = _flightResolver;
-    if (resolver == null || widget.flightBehavior.isLive) return;
-    _flightShowsSource = resolver.showsSource;
+    if (resolver == null) return;
     _flightRecordsRevision = resolver.recordsRevision;
-    _flightRecord = resolver.claim(
-      key: widget.key,
-      childType: widget.child.runtimeType,
-      behavior: widget.flightBehavior,
-    );
+    _flightRecord = resolver.resolve(this);
   }
 
   void _attachFlightResolver(_MorphDescendantFlightResolver? resolver) {
     if (identical(resolver, _flightResolver)) return;
     _flightResolver?.removeListener(_handleFlightEndpointChanged);
-    _releaseFlightRecord();
+    _flightResolver?.release(this);
+    _flightRecord = null;
     _flightResolver = resolver;
     resolver?.addListener(_handleFlightEndpointChanged);
     _resolveFlightRecord();
@@ -97,8 +87,17 @@ class _MorphDescendantState extends State<MorphDescendant> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _inFlight = _MorphFlightScope.contains(context);
-    final flightResolver = _MorphFlightScope.maybeOf(context);
+    final flightScope = _MorphFlightScope.scopeOf(context);
+    _inFlight = flightScope != null;
+    final registration = _MorphDescendantFlightScope.maybeOf(context);
+    _insideNestedMorph =
+        _inFlight &&
+        registration != null &&
+        identical(registration.flightScope, flightScope) &&
+        registration.resolver == null;
+    final flightResolver = registration != null && identical(registration.flightScope, flightScope)
+        ? registration.resolver
+        : null;
     _attachFlightResolver(flightResolver);
     _synchronizeEndpoint();
   }
@@ -110,10 +109,7 @@ class _MorphDescendantState extends State<MorphDescendant> {
       _handle.markSnapshotDirty();
     }
     if (_flightResolver != null &&
-        (_flightResolver!.showsSource != _flightShowsSource ||
-            _flightResolver!.recordsRevision != _flightRecordsRevision ||
-            oldWidget.flightBehavior != widget.flightBehavior ||
-            oldWidget.child.runtimeType != widget.child.runtimeType)) {
+        (_flightResolver!.recordsRevision != _flightRecordsRevision || !identical(oldWidget, widget))) {
       _resolveFlightRecord();
     }
     if (oldWidget.flightBehavior != widget.flightBehavior) {
@@ -122,20 +118,37 @@ class _MorphDescendantState extends State<MorphDescendant> {
   }
 
   @override
+  void deactivate() {
+    _flightResolver?.release(this);
+    super.deactivate();
+  }
+
+  @override
+  void activate() {
+    super.activate();
+    _resolveFlightRecord();
+  }
+
+  @override
   void dispose() {
     _detachEndpoint();
     _flightResolver?.removeListener(_handleFlightEndpointChanged);
-    _releaseFlightRecord();
+    _flightResolver?.release(this);
     _handle.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.flightBehavior.isLive) return widget.child;
+    if (widget.flightBehavior.isLive || _insideNestedMorph) return widget.child;
     if (_inFlight) {
-      if (_flightResolver?.showsSource != _flightShowsSource ||
-          _flightResolver?.recordsRevision != _flightRecordsRevision) {
+      assert(
+        _flightResolver != null,
+        'A Morph flight must display snapshot and hidden descendants '
+        'through the widget returned by endpoint.registerDescendantWidget(...). '
+        'Register their subtree in MorphFlightDelegate.properties and use the returned widget in the flight.',
+      );
+      if (_flightResolver?.recordsRevision != _flightRecordsRevision) {
         _resolveFlightRecord();
       }
       final record = _flightRecord;

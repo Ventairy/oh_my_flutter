@@ -165,7 +165,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
   }
 
   @override
-  MorphTextProperties lerp(
+  MorphTextProperties lerpProperties(
     MorphTextProperties source,
     MorphTextProperties destination,
     double progress,
@@ -492,7 +492,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
       flight.destination.properties,
     )) {
       result = AnimatedBuilder(
-        animation: flight.animation,
+        animation: flight.curvedAnimation,
         builder: (context, child) => _buildProperties(context, flight.properties),
       );
     } else {
@@ -507,10 +507,10 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
     }
 
     return AnimatedBuilder(
-      animation: flight.animation,
+      animation: flight.curvedAnimation,
       child: result,
       builder: (context, child) {
-        final progress = flight.animation.value;
+        final progress = flight.curvedAnimation.value;
         final threshold = flight.source.properties.switchThreshold;
 
         return _MorphSwitchTransition(

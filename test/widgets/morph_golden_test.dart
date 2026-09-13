@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
+import '../support/morph_golden_navigator.dart';
+
 void main() {
   group('Morph golden', () {
     final midpointKey = GlobalKey<_MorphGoldenHarnessState>();
@@ -22,7 +24,7 @@ void main() {
 
           return tester.pumpAndSettle;
         },
-        builder: () => _MorphGoldenHarness(key: midpointKey),
+        builder: () => MorphGoldenNavigator(child: _MorphGoldenHarness(key: midpointKey)),
       ),
     );
 
@@ -38,7 +40,7 @@ void main() {
           await tester.pumpAndSettle();
           return null;
         },
-        builder: () => _MorphGoldenHarness(key: settledKey),
+        builder: () => MorphGoldenNavigator(child: _MorphGoldenHarness(key: settledKey)),
       ),
     );
   });
@@ -52,6 +54,8 @@ class _MorphGoldenHarness extends StatefulWidget {
 }
 
 class _MorphGoldenHarnessState extends State<_MorphGoldenHarness> {
+  final _morphTarget1 = MorphTarget(tag: 'golden-container');
+
   var _expanded = false;
 
   void expand() {
@@ -65,7 +69,8 @@ class _MorphGoldenHarnessState extends State<_MorphGoldenHarness> {
       child: Align(
         alignment: _expanded ? Alignment.bottomRight : Alignment.topLeft,
         child: Morph(
-          tag: 'golden-container',
+          animateChildChanges: true,
+          target: _morphTarget1,
           child: Container(
             width: _expanded ? 310 : 190,
             padding: EdgeInsets.all(_expanded ? 28 : 14),

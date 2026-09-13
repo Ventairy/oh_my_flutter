@@ -40,6 +40,8 @@ void main() {
             'descendant_snapshot',
             'descendant_hide',
             'descendant_snapshot_dense',
+            'registered_snapshot_dense',
+            'registered_watch_snapshot_dynamic',
             'column_unmatched',
             'column_matched_raw_resize',
             'nested_hold',

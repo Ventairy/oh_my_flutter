@@ -3,9 +3,11 @@ part of 'morph.dart';
 class _MorphEndpointHandle {
   _MorphEndpointHandle({
     required this.owner,
+    required this.target,
     required this.visibility,
     required this.overlay,
     required this.route,
+    required this.observer,
     required this.parentEndpoint,
   }) {
     configurationChanged();
@@ -17,8 +19,12 @@ class _MorphEndpointHandle {
   final ModalRoute<Object?>? route;
   _MorphEndpointHandle? parentEndpoint;
 
-  late Object tag;
+  final MorphNavigatorObserver? observer;
+  final MorphTarget target;
+
+  Object get tag => target.tag;
   late MorphFlightDelegate<Object?> delegate;
+  late Object childIdentity;
   late Duration? configuredDuration;
   late Duration duration;
   late Curve curve;
@@ -27,6 +33,8 @@ class _MorphEndpointHandle {
   VoidCallback? onEnd;
   VoidCallback? onReceived;
   MorphEndpoint<Object?>? cachedEndpoint;
+  bool captureFailed = false;
+  Set<_MorphDescendantCapture> _departureCaptures = const {};
   int registrationOrder = 0;
   int? structuralOrder;
   int presentationGeneration = 0;
@@ -58,12 +66,13 @@ class _MorphEndpointHandle {
     if (_descendants.contains(descendant)) _descendantRevision += 1;
   }
 
-  List<_MorphDescendantFlightRecord> _captureDescendants() {
+  List<_MorphDescendantFlightRecord> _captureDescendants({bool allowDetached = false}) {
     return _buildDescendantRecords(
       previousRecords: const [],
       pixelRatioChanged: true,
       refresh: false,
       rejectStaleCapture: false,
+      allowDetached: allowDetached,
     )!;
   }
 
@@ -84,6 +93,7 @@ class _MorphEndpointHandle {
     required bool pixelRatioChanged,
     required bool refresh,
     required bool rejectStaleCapture,
+    bool allowDetached = false,
   }) {
     if (_descendants.isEmpty) return const [];
     final candidates =
@@ -95,7 +105,7 @@ class _MorphEndpointHandle {
         >[];
     final boundaries = <_RenderMorphDescendant>{};
     for (final descendant in _descendants) {
-      final renderObject = descendant.capturableRenderObject;
+      final renderObject = descendant.capturableRenderObject(allowDetached: allowDetached);
       if (renderObject == null) continue;
       candidates.add((handle: descendant, renderObject: renderObject));
       boundaries.add(renderObject);
@@ -120,6 +130,7 @@ class _MorphEndpointHandle {
       final canReuseSnapshot = refresh && previous != null && previous.behavior.usesSnapshot && behavior.usesSnapshot;
       final record = descendant.capture(
         renderObject,
+        previous: previous,
         snapshot: canReuseSnapshot ? previous.snapshot : null,
         snapshotCaptureCompleted: canReuseSnapshot && previous.snapshotCaptureCompleted,
         capturesContinuously: refresh && previous != null && !descendant.snapshotDirty && previous.behavior == behavior
@@ -260,7 +271,7 @@ class _MorphEndpointHandle {
       Morph._debugValidateDuration(widget.duration),
       'Morph duration must be valid.',
     );
-    tag = widget.tag;
+    childIdentity = widget.child.key ?? widget.child;
     delegate = owner._resolvedFlightDelegate;
     configuredDuration = widget.duration ?? parentEndpoint?.configuredDuration;
     duration = configuredDuration ?? Morph._defaultDuration;
@@ -287,8 +298,21 @@ class _MorphEndpointHandle {
   void captureDeparture() {
     final capturedEndpoint = owner._captureLastPainted();
     if (capturedEndpoint != null) {
+      final captures = _MorphDescendantSnapshots.capturesOf(capturedEndpoint);
+      for (final capture in captures) {
+        capture.retain();
+      }
+      releaseDeparture();
+      _departureCaptures = captures;
       _cacheCapture(capturedEndpoint);
     }
+  }
+
+  void releaseDeparture() {
+    for (final capture in _departureCaptures) {
+      capture.release();
+    }
+    _departureCaptures = const {};
   }
 
   MorphEndpoint<Object?>? capture({bool reuseSameFrame = false}) {

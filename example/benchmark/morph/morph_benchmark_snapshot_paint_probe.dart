@@ -7,16 +7,22 @@ import 'package:flutter/scheduler.dart';
 /// Counts paints performed while Morph captures a watched snapshot.
 final class MorphBenchmarkSnapshotPaintProbe extends CustomPainter {
   /// Creates a probe with generation zero and no recorded paints.
-  factory MorphBenchmarkSnapshotPaintProbe() {
+  ///
+  /// Set [capturesOnly] to exclude normal screen paints. Watched Morph
+  /// snapshots are captured after the frame's normal paint phase.
+  factory MorphBenchmarkSnapshotPaintProbe({bool capturesOnly = false}) {
     final generation = ValueNotifier<int>(0);
-    return MorphBenchmarkSnapshotPaintProbe._(generation);
+    return MorphBenchmarkSnapshotPaintProbe._(generation, capturesOnly);
   }
 
-  MorphBenchmarkSnapshotPaintProbe._(ValueNotifier<int> generation)
-    : _generation = generation,
+  MorphBenchmarkSnapshotPaintProbe._(
+    ValueNotifier<int> generation,
+    this._capturesOnly,
+  ) : _generation = generation,
       super(repaint: generation);
 
   final ValueNotifier<int> _generation;
+  final bool _capturesOnly;
   final List<(int, int)> _paintEvents = <(int, int)>[];
 
   /// Latest content generation requested by the benchmark workload.
@@ -83,7 +89,10 @@ final class MorphBenchmarkSnapshotPaintProbe extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final scheduler = SchedulerBinding.instance;
     final frameMicros = scheduler.currentSystemFrameTimeStamp.inMicroseconds;
-    _paintEvents.add((frameMicros, requestedGeneration));
+    final paintsAfterFrame = scheduler.schedulerPhase == .postFrameCallbacks;
+    if (!_capturesOnly || paintsAfterFrame) {
+      _paintEvents.add((frameMicros, requestedGeneration));
+    }
     canvas.drawRect(
       Rect.fromLTWH(
         0,

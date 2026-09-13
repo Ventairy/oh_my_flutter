@@ -22,28 +22,28 @@ class _MorphAutomaticFlightState extends State<_MorphAutomaticFlight> {
   void initState() {
     super.initState();
     _showsSource = _sourceIsSelected;
-    widget.flight.animation.addListener(_handleProgressChanged);
+    widget.flight.curvedAnimation.addListener(_handleProgressChanged);
   }
 
   @override
   void didUpdateWidget(_MorphAutomaticFlight oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.flight.animation, widget.flight.animation)) {
-      oldWidget.flight.animation.removeListener(_handleProgressChanged);
-      widget.flight.animation.addListener(_handleProgressChanged);
+    if (!identical(oldWidget.flight.curvedAnimation, widget.flight.curvedAnimation)) {
+      oldWidget.flight.curvedAnimation.removeListener(_handleProgressChanged);
+      widget.flight.curvedAnimation.addListener(_handleProgressChanged);
     }
     _showsSource = _sourceIsSelected;
   }
 
   @override
   void dispose() {
-    widget.flight.animation.removeListener(_handleProgressChanged);
+    widget.flight.curvedAnimation.removeListener(_handleProgressChanged);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final progress = widget.flight.animation.value;
+    final progress = widget.flight.curvedAnimation.value;
     final selected = _showsSource ? widget.flight._sourceProperties.child : widget.flight._destinationProperties.child;
     final transitionBuilder = widget.transitionBuilder;
     final properties = transitionBuilder == null
@@ -69,7 +69,7 @@ class _MorphAutomaticFlightState extends State<_MorphAutomaticFlight> {
   }
 
   bool get _sourceIsSelected {
-    return widget.flight.animation.value < widget.switchThreshold;
+    return widget.flight.curvedAnimation.value < widget.switchThreshold;
   }
 
   void _handleProgressChanged() {

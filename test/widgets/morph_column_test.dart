@@ -221,7 +221,9 @@ bool _pixelsMatch(
 void main() {
   group('Morph Column', () {
     test('when no curve is provided, it should defer curve resolution', () {
-      const morph = Morph(tag: 'default-curve', child: Column());
+      final morphTarget1 = MorphTarget(tag: 'default-curve');
+
+      final morph = Morph(target: morphTarget1, child: const Column());
 
       expect(morph.curve, isNull);
     });
@@ -229,14 +231,19 @@ void main() {
     testWidgets(
       'when built at rest, it should lay out children vertically and reserve bounded width',
       (tester) async {
+        final morphTarget2 = MorphTarget(tag: 'resting-column');
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: SizedBox(
                 width: 300,
                 child: Morph(
-                  tag: 'resting-column',
-                  child: Column(
+                  animateChildChanges: true,
+                  target: morphTarget2,
+                  child: const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [Text('First'), Text('Second')],
                   ),
@@ -260,17 +267,22 @@ void main() {
     testWidgets(
       'when keyed and positional children move, it should settle in destination order',
       (tester) async {
+        final morphTarget3 = MorphTarget(tag: 'column');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var destination = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: StatefulBuilder(
               builder: (context, setState) {
                 update = setState;
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    tag: 'column',
+                    animateChildChanges: true,
+                    target: morphTarget3,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: destination
@@ -304,11 +316,15 @@ void main() {
     testWidgets(
       'when Motion wraps a keyed Text, it should Morph the Text to its matched Column position',
       (tester) async {
+        final morphTarget4 = MorphTarget(tag: 'motion-wrapped-column-text');
+        final morphObserver1 = MorphNavigatorObserver();
+
         const descriptionKey = ValueKey<String>('job_description');
         var destination = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -316,7 +332,8 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      tag: 'motion-wrapped-column-text',
+                      animateChildChanges: true,
+                      target: morphTarget4,
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.linear,
                       child: Column(
@@ -453,10 +470,14 @@ void main() {
     testWidgets(
       'when an unsupported child uses a SizedBox wrapper, it should preserve the measured size during flight',
       (tester) async {
+        final morphTarget5 = MorphTarget(tag: 'sized-wrapper-flight');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var destination = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -464,7 +485,8 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      tag: 'sized-wrapper-flight',
+                      animateChildChanges: true,
+                      target: morphTarget5,
                       duration: const Duration(milliseconds: 400),
                       curve: Curves.linear,
                       child: Column(
@@ -506,10 +528,14 @@ void main() {
     testWidgets(
       'when a Column contains an unsupported ParentData child, it should skip or switch it without an exception',
       (tester) async {
+        final morphTarget6 = MorphTarget(tag: 'expanded-column-child');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var destination = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -520,7 +546,8 @@ void main() {
                       width: 160,
                       height: 120,
                       child: Morph(
-                        tag: 'expanded-column-child',
+                        animateChildChanges: true,
+                        target: morphTarget6,
                         duration: const Duration(milliseconds: 300),
                         curve: Curves.linear,
                         child: Column(
@@ -822,9 +849,12 @@ void main() {
     testWidgets(
       'when progress is zero with an immediate switch threshold, it should retain the complete source properties',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         await tester.pumpWidget(
-          const MaterialApp(
-            home: Scaffold(
+          MaterialApp(
+            navigatorObservers: [morphObserver1],
+            home: const Scaffold(
               body: Row(
                 children: [
                   SizedBox(
@@ -876,7 +906,7 @@ void main() {
           identical(
             const MorphColumnFlightDelegate(
               switchThreshold: 0,
-            ).lerp(source, destination, 0),
+            ).lerpProperties(source, destination, 0),
             source,
           ),
           isTrue,
@@ -1412,10 +1442,14 @@ void main() {
     testWidgets(
       'when matched raw islands have endpoint inheritance, it should switch captured Theme and MediaQuery together',
       (tester) async {
+        final morphTarget7 = MorphTarget(tag: 'inherited-hybrid-column');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var destination = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1442,7 +1476,8 @@ void main() {
                             width: 160,
                             height: 120,
                             child: Morph(
-                              tag: 'inherited-hybrid-column',
+                              animateChildChanges: true,
+                              target: morphTarget7,
                               duration: const Duration(
                                 milliseconds: 400,
                               ),
@@ -1807,11 +1842,16 @@ void main() {
     testWidgets(
       'when a nested Morph finishes inside a hybrid raw island, it should remain held until the parent arrives',
       (tester) async {
+        final morphTarget8 = MorphTarget(tag: 'hybrid-nested-parent');
+        final morphTarget9 = MorphTarget(tag: 'hybrid-nested-child');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var destination = false;
         final childEvents = <String>[];
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -1822,7 +1862,8 @@ void main() {
                       width: 240,
                       height: 180,
                       child: Morph(
-                        tag: 'hybrid-nested-parent',
+                        animateChildChanges: true,
+                        target: morphTarget8,
                         duration: const Duration(milliseconds: 800),
                         curve: Curves.linear,
                         child: Column(
@@ -1834,7 +1875,8 @@ void main() {
                               builder: (context) => Column(
                                 children: [
                                   Morph(
-                                    tag: 'hybrid-nested-child',
+                                    animateChildChanges: true,
+                                    target: morphTarget9,
                                     duration: const Duration(
                                       milliseconds: 200,
                                     ),
@@ -1905,6 +1947,9 @@ void main() {
     testWidgets(
       'when a hybrid raw island paints overflow, it should keep the existing Column flight clip',
       (tester) async {
+        final morphTarget10 = MorphTarget(tag: 'hybrid-raw-clip');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(220, 140);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -1917,6 +1962,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -1927,7 +1973,8 @@ void main() {
                         width: 120,
                         height: 100,
                         child: Morph(
-                          tag: 'hybrid-raw-clip',
+                          animateChildChanges: true,
+                          target: morphTarget10,
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.linear,
                           child: Column(
@@ -2163,6 +2210,9 @@ void main() {
     testWidgets(
       'when a matched paragraph outlives its shrinking Column bounds, it should not paint below the ancestor',
       (tester) async {
+        final morphTarget11 = MorphTarget(tag: 'shrinking-column');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(320, 500);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -2178,6 +2228,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -2189,10 +2240,13 @@ void main() {
                           top: 20,
                           width: 220,
                           child: Morph(
-                            tag: 'shrinking-column',
+                            animateChildChanges: true,
+                            target: morphTarget11,
                             duration: const Duration(milliseconds: 400),
                             curve: Curves.linear,
-                            switchThreshold: 0.97,
+                            flightConfig: const .auto(
+                              childSwitchAt: 0.97,
+                            ),
                             child: Column(
                               key: ValueKey(compact),
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2256,6 +2310,10 @@ void main() {
     testWidgets(
       'when a Column Morph moves with a clipped ancestor Morph, it should not paint below the ancestor flight',
       (tester) async {
+        final morphTarget12 = MorphTarget(tag: 'clipping-ancestor');
+        final morphTarget13 = MorphTarget(tag: 'nested-column');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(320, 500);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -2273,6 +2331,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -2283,7 +2342,8 @@ void main() {
                           left: 20,
                           top: 20,
                           child: Morph(
-                            tag: 'clipping-ancestor',
+                            animateChildChanges: true,
+                            target: morphTarget12,
                             duration: const Duration(milliseconds: 400),
                             curve: Curves.linear,
                             child: Container(
@@ -2300,8 +2360,11 @@ void main() {
                                 minHeight: 0,
                                 maxHeight: double.infinity,
                                 child: Morph(
-                                  tag: 'nested-column',
-                                  switchThreshold: 0.97,
+                                  animateChildChanges: true,
+                                  target: morphTarget13,
+                                  flightConfig: const .auto(
+                                    childSwitchAt: 0.97,
+                                  ),
                                   child: Column(
                                     key: ValueKey(('nested-column', compact)),
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -2349,10 +2412,15 @@ void main() {
     testWidgets(
       'when a nested Morph follows an ancestor clip, it should retain the clip layer between frames',
       (tester) async {
+        final morphTarget14 = MorphTarget(tag: 'retained-clip-ancestor');
+        final morphTarget15 = MorphTarget(tag: 'retained-clip-descendant');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var compact = false;
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: StatefulBuilder(
                 builder: (context, setState) {
@@ -2363,7 +2431,8 @@ void main() {
                         left: 20,
                         top: 20,
                         child: Morph(
-                          tag: 'retained-clip-ancestor',
+                          animateChildChanges: true,
+                          target: morphTarget14,
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.linear,
                           child: Container(
@@ -2372,7 +2441,8 @@ void main() {
                             height: compact ? 110 : 220,
                             color: Colors.white,
                             child: Morph(
-                              tag: 'retained-clip-descendant',
+                              animateChildChanges: true,
+                              target: morphTarget15,
                               child: Text(
                                 compact ? 'Compact' : 'Expanded description',
                                 key: ValueKey(('retained-clip-text', compact)),
@@ -2412,6 +2482,9 @@ void main() {
     testWidgets(
       'when a Column child wraps with visible overflow, it should retain every native pixel below its bounds',
       (tester) async {
+        final morphTarget16 = MorphTarget(tag: 'visible-column');
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(300, 180);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -2424,6 +2497,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               home: Scaffold(
                 body: StatefulBuilder(
                   builder: (context, setState) {
@@ -2434,7 +2508,8 @@ void main() {
                           left: 20,
                           top: 20,
                           child: Morph(
-                            tag: 'visible-column',
+                            animateChildChanges: true,
+                            target: morphTarget16,
                             duration: const Duration(milliseconds: 400),
                             curve: Curves.linear,
                             child: Column(
@@ -2761,27 +2836,35 @@ void main() {
     testWidgets(
       'when another Morph starts, it should preserve the retained Column flight plan',
       (tester) async {
+        final morphTarget17 = MorphTarget(tag: 'retained-column');
+        final morphTarget18 = MorphTarget(tag: 'retained-column');
+        final morphTarget19 = MorphTarget(tag: 'unrelated-text');
+        final morphObserver1 = MorphNavigatorObserver();
+
         var firstDestination = false;
         var secondDestination = false;
         late StateSetter update;
-        const firstSource = Morph(
-          tag: 'retained-column',
-          duration: Duration(seconds: 1),
-          child: Column(
+        final firstSource = Morph(
+          animateChildChanges: true,
+          target: morphTarget17,
+          duration: const Duration(seconds: 1),
+          child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [Text('Departing title'), Text('Departing detail')],
           ),
         );
-        const firstArrival = Morph(
-          tag: 'retained-column',
-          duration: Duration(seconds: 1),
-          child: Column(
+        final firstArrival = Morph(
+          animateChildChanges: true,
+          target: morphTarget18,
+          duration: const Duration(seconds: 1),
+          child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [Text('Arriving title'), Text('Arriving detail')],
           ),
         );
         await tester.pumpWidget(
           MaterialApp(
+            navigatorObservers: [morphObserver1],
             home: StatefulBuilder(
               builder: (context, setState) {
                 update = setState;
@@ -2794,7 +2877,8 @@ void main() {
                     Align(
                       alignment: secondDestination ? Alignment.centerRight : Alignment.centerLeft,
                       child: Morph(
-                        tag: 'unrelated-text',
+                        animateChildChanges: true,
+                        target: morphTarget19,
                         child: Text(
                           secondDestination ? 'Second arriving' : 'Second departing',
                         ),
@@ -3097,6 +3181,8 @@ void main() {
     testWidgets(
       'when a clipped nested header returns with its route, it should not expose a stale snapshot owner',
       (tester) async {
+        final morphObserver1 = MorphNavigatorObserver();
+
         tester.view.physicalSize = const Size(400, 600);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
@@ -3108,10 +3194,15 @@ void main() {
         const boundaryKey = ValueKey<String>('reverse-owner-boundary');
 
         Widget surface({required bool expanded}) {
+          final morphTarget20 = <Object, MorphTarget>{};
+          final morphTarget21 = <Object, MorphTarget>{};
+          final morphTarget22 = <Object, MorphTarget>{};
+
           return Align(
             alignment: Alignment.topLeft,
             child: Morph(
-              tag: surfaceTag,
+              animateChildChanges: true,
+              target: morphTarget20.putIfAbsent(surfaceTag, () => MorphTarget(tag: surfaceTag)),
               curve: Curves.linear,
               child: Container(
                 key: const ValueKey<String>(surfaceTag),
@@ -3134,9 +3225,12 @@ void main() {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Morph(
-                                  tag: headerTag,
+                                  animateChildChanges: true,
+                                  target: morphTarget21.putIfAbsent(headerTag, () => MorphTarget(tag: headerTag)),
                                   curve: Curves.linear,
-                                  switchThreshold: expanded ? 0.3 : 0.1,
+                                  flightConfig: .auto(
+                                    childSwitchAt: expanded ? 0.3 : 0.1,
+                                  ),
                                   child: Column(
                                     key: const ValueKey<String>(headerTag),
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -3186,7 +3280,8 @@ void main() {
                       ),
                       Positioned.fill(
                         child: Morph(
-                          tag: fadeTag,
+                          animateChildChanges: true,
+                          target: morphTarget22.putIfAbsent(fadeTag, () => MorphTarget(tag: fadeTag)),
                           curve: Curves.linear,
                           child: Container(
                             key: const ValueKey<String>(fadeTag),
@@ -3206,6 +3301,7 @@ void main() {
           RepaintBoundary(
             key: boundaryKey,
             child: MaterialApp(
+              navigatorObservers: [morphObserver1],
               debugShowCheckedModeBanner: false,
               home: Scaffold(
                 body: Builder(
@@ -3637,11 +3733,15 @@ class _ColumnMorphTestApp extends StatefulWidget {
 }
 
 class _ColumnMorphTestAppState extends State<_ColumnMorphTestApp> {
+  final _morphTarget23 = MorphTarget(tag: 'column-regression');
+  final _morphObserver1 = MorphNavigatorObserver();
+
   bool _destination = false;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorObservers: [_morphObserver1],
       home: Scaffold(
         body: Stack(
           children: [
@@ -3650,11 +3750,15 @@ class _ColumnMorphTestAppState extends State<_ColumnMorphTestApp> {
               child: SizedBox(
                 width: _destination ? widget.destinationWidth : widget.sourceWidth,
                 child: Morph(
-                  tag: 'column-regression',
+                  animateChildChanges: true,
+                  target: _morphTarget23,
                   duration: const Duration(milliseconds: 400),
                   curve: widget.curve,
-                  switchThreshold: widget.switchThreshold,
-                  switchTransition: widget.switchTransition,
+                  flightConfig: .auto(
+                    childSwitchAt: widget.switchThreshold,
+                    childTransition: widget.switchTransition,
+                  ),
+
                   child: widget.builder(destination: _destination),
                 ),
               ),

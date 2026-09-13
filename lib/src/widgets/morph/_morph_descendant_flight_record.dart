@@ -3,6 +3,8 @@ part of 'morph.dart';
 final class _MorphDescendantFlightRecord {
   _MorphDescendantFlightRecord({
     required this.handle,
+    required this.widget,
+    required this.ancestors,
     required this.registrationOrder,
     required this.key,
     required this.childType,
@@ -15,6 +17,8 @@ final class _MorphDescendantFlightRecord {
   });
 
   final _MorphDescendantHandle handle;
+  final MorphDescendant widget;
+  final List<Widget> ancestors;
   final int registrationOrder;
   final Key? key;
   final Type childType;
@@ -24,7 +28,13 @@ final class _MorphDescendantFlightRecord {
   final bool capturesContinuously;
   bool snapshotCaptureCompleted;
   _MorphContentSnapshot? snapshot;
-  bool claimed = false;
+
+  bool belongsTo(Widget subtree) {
+    for (final ancestor in ancestors) {
+      if (identical(ancestor, subtree)) return true;
+    }
+    return false;
+  }
 
   void retain() => snapshot?.retain();
 

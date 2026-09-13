@@ -21,32 +21,26 @@ class _MorphActiveFlight {
     this.reversibleOriginIdentity,
     this.completesAtSource = false,
     this.controllerLease,
-    List<_MorphDescendantFlightRecord>? sourceDescendants,
-    List<_MorphDescendantFlightRecord>? destinationDescendants,
   }) : morphAnimation = CurvedAnimation(
          parent: flightAnimation,
          curve: curve,
        ) {
-    _sourceDescendants = List<_MorphDescendantFlightRecord>.of(
-      sourceDescendants ?? _MorphDescendantSnapshots.of(source),
-    );
-    _destinationDescendants = List<_MorphDescendantFlightRecord>.of(
-      destinationDescendants ?? _MorphDescendantSnapshots.of(destination),
-    );
+    _registeredCaptures = {
+      ..._MorphDescendantSnapshots.capturesOf(source),
+      ..._MorphDescendantSnapshots.capturesOf(destination),
+    };
+    for (final capture in _registeredCaptures) {
+      capture.retain();
+    }
     flight = MorphFlight<Object?>(
       source: source,
       destination: destination,
       kind: kind,
-      animation: morphAnimation,
+      curvedAnimation: morphAnimation,
+      uncurvedAnimation: flightAnimation,
       flightDelegate: delegate,
     ).._geometry = geometry;
     flightAnimation.addStatusListener(_handleStatusChanged);
-    for (final record in _sourceDescendants) {
-      record.retain();
-    }
-    for (final record in _destinationDescendants) {
-      record.retain();
-    }
     _watchesDestination = watchDestination;
     if (_watchesDestination) {
       _watchedView = View.of(destinationHandle.owner.context);
@@ -78,20 +72,10 @@ class _MorphActiveFlight {
   final CurvedAnimation morphAnimation;
   late final MorphFlight<Object?> flight;
   final _MorphFlightPaintHandle _paintHandle = _MorphFlightPaintHandle();
-  late final List<_MorphDescendantFlightRecord> _sourceDescendants;
-  late final List<_MorphDescendantFlightRecord> _destinationDescendants;
-  late final _MorphDescendantFlightResolver? _descendantFlightResolver =
-      _sourceDescendants.isEmpty && _destinationDescendants.isEmpty
-      ? null
-      : _MorphDescendantFlightResolver(
-          animation: morphAnimation,
-          switchThreshold: switch (delegate) {
-            _MorphAutomaticFlightDelegate(:final switchThreshold) => switchThreshold,
-            _ => 0.5,
-          },
-          source: _sourceDescendants,
-          destination: _destinationDescendants,
-        );
+  late final Set<_MorphDescendantCapture> _registeredCaptures;
+  late final _MorphDescendantCapture? _watchedCapture = _MorphDescendantSnapshots.captureOf(
+    completesAtSource ? source : destination,
+  );
   late final bool _watchesDestination;
   late final _MorphFlightGeometry? geometry = watchDestination
       ? _MorphFlightGeometry(
@@ -131,6 +115,58 @@ class _MorphActiveFlight {
     MorphFlight<Object?> flight,
   })
   _renderFlight = _resolveRenderFlight();
+
+  _MorphNavigationRequest? _landingNavigation;
+  ModalRoute<Object?>? _routeHandoffWait;
+  int _routeHandoffGeneration = 0;
+  bool _routeHandoffCompleted = false;
+
+  bool get routeHandoffCompleted => _routeHandoffCompleted;
+
+  void updateLandingNavigation(_MorphNavigationRequest? request) {
+    _landingNavigation = request;
+    _routeHandoffWait = null;
+    _routeHandoffGeneration += 1;
+    _routeHandoffCompleted = false;
+  }
+
+  bool holdForDepartingRoute(
+    _MorphEndpointHandle winner, {
+    required bool arrived,
+    required bool returned,
+  }) {
+    final request = _landingNavigation;
+    if (_finished ||
+        winner.animationsDisabled ||
+        request == null ||
+        request.cancelled ||
+        request.kind != MorphFlightKind.routePop ||
+        !identical(request.destination, winner.route)) {
+      return false;
+    }
+    final route = request.source;
+    if (route is! ModalRoute<Object?> ||
+        route.offstage ||
+        (route.barrierColor?.a ?? 0) == 0 ||
+        !route.overlayEntries.any((entry) => entry.mounted)) {
+      return false;
+    }
+    if (identical(_routeHandoffWait, route)) return true;
+    _routeHandoffWait = route;
+    final generation = ++_routeHandoffGeneration;
+    // Route.popped resolves before the barrier exits. completed resolves only
+    // after the route's overlay entries, including that barrier, are removed.
+    unawaited(
+      route.completed.then((_) {
+        if (_finished || generation != _routeHandoffGeneration) return;
+        _landingNavigation = null;
+        _routeHandoffWait = null;
+        _routeHandoffCompleted = true;
+        coordinator.finish(this, arrived: arrived, returned: returned);
+      }),
+    );
+    return true;
+  }
 
   bool get heldAtEndpoint => _heldAtEndpoint;
   bool get heldArrived => _heldArrived;
@@ -232,17 +268,7 @@ class _MorphActiveFlight {
       flightGeometry.updateDestination(value);
     }
     if (descendants == null) return;
-    final destinationRecords = completesAtSource ? _sourceDescendants : _destinationDescendants;
-    for (final record in descendants) {
-      record.retain();
-    }
-    for (final record in destinationRecords) {
-      record.release();
-    }
-    destinationRecords
-      ..clear()
-      ..addAll(descendants);
-    _descendantFlightResolver?.recordsChanged();
+    _watchedCapture?.replaceRecords(descendants);
   }
 
   Widget build(BuildContext context) {
@@ -260,7 +286,7 @@ class _MorphActiveFlight {
             child: ExcludeSemantics(
               child: _MorphFlightScope(
                 coordinator: coordinator,
-                descendantResolver: null,
+                registeredCaptures: _registeredCaptures,
                 child: retainedFlight,
               ),
             ),
@@ -287,7 +313,7 @@ class _MorphActiveFlight {
                 child: ExcludeSemantics(
                   child: _MorphFlightScope(
                     coordinator: coordinator,
-                    descendantResolver: _descendantFlightResolver,
+                    registeredCaptures: _registeredCaptures,
                     child: renderFlight.delegate._buildErasedFlight(
                       context,
                       renderFlight.flight,
@@ -343,7 +369,6 @@ class _MorphActiveFlight {
     required MorphFlightDelegate<Object?> typedDelegate,
     required MorphFlight<Object?> typedFlight,
   }) {
-    if (_descendantFlightResolver != null) return null;
     if (typedDelegate is MorphTextFlightDelegate) {
       if (_retainedFlightResolved) return _retainedFlight;
       _retainedFlightResolved = true;
@@ -503,6 +528,7 @@ class _MorphActiveFlight {
   void _finish() {
     if (_finished) return;
     _finished = true;
+    updateLandingNavigation(null);
     _clearPresentationRequest();
     _endpointHandoffWinner = null;
     coordinator._flightEnded(this);
@@ -512,13 +538,9 @@ class _MorphActiveFlight {
       flightAnimation.removeListener(_scheduleDestinationWatch);
     }
     flightAnimation.removeStatusListener(_handleStatusChanged);
-    for (final record in _sourceDescendants) {
-      record.release();
+    for (final capture in _registeredCaptures) {
+      capture.release();
     }
-    for (final record in _destinationDescendants) {
-      record.release();
-    }
-    _descendantFlightResolver?.dispose();
     morphAnimation.dispose();
     controllerLease?.release();
     geometry?.dispose();
@@ -635,13 +657,13 @@ class _MorphActiveFlight {
     try {
       final watchedGeometry = destinationHandle.owner._readLiveGeometry();
       if (watchedGeometry != null) {
-        final destinationRecords = completesAtSource ? _sourceDescendants : _destinationDescendants;
+        final destinationRecords = _watchedCapture?.records ?? const <_MorphDescendantFlightRecord>[];
         final pixelRatio = _watchedView.devicePixelRatio;
         final recordsChanged = _watchedDescendantsChanged(
           destinationRecords,
           pixelRatio,
         );
-        if (recordsChanged && _descendantFlightResolver != null) {
+        if (recordsChanged && _watchedCapture != null) {
           captureFailureSignature = _captureFailureSignature(
             destinationRecords,
             pixelRatio,

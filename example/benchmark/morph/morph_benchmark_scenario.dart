@@ -82,6 +82,12 @@ enum MorphBenchmarkScenario {
   /// Twenty-four sibling snapshot descendants inside one surface.
   descendantSnapshotDense('descendant_snapshot_dense'),
 
+  /// Twenty-four snapshots selected by a custom flight delegate.
+  registeredSnapshotDense('registered_snapshot_dense'),
+
+  /// Twenty-four registered snapshots with watched geometry and pixel changes.
+  registeredWatchSnapshotDynamic('registered_watch_snapshot_dynamic'),
+
   /// Column flight with unmatched ordinary departing and arriving children.
   columnUnmatched('column_unmatched'),
 
@@ -116,6 +122,7 @@ enum MorphBenchmarkScenario {
       watchSnapshotDense ||
       watchSnapshotGeometryOnly ||
       watchSnapshotDynamic ||
+      registeredWatchSnapshotDynamic ||
       watchSnapshotFullSurface ||
       watchSnapshotNestedFallback => true,
       _ => false,
@@ -125,7 +132,9 @@ enum MorphBenchmarkScenario {
   /// Number of post-start snapshot mutation batches requested per transition.
   int get snapshotMutationBatches {
     return switch (this) {
-      watchSnapshotGeometryOnly || watchSnapshotDynamic => 4,
+      watchSnapshotGeometryOnly => 4,
+      watchSnapshotDynamic => 4,
+      registeredWatchSnapshotDynamic => 4,
       watchSnapshotFullSurface => 12,
       watchSnapshotNestedFallback => 8,
       _ => 0,
@@ -135,7 +144,9 @@ enum MorphBenchmarkScenario {
   /// Number of synchronous changes requested in each mutation batch.
   int get snapshotMutationsPerBatch {
     return switch (this) {
-      watchSnapshotGeometryOnly || watchSnapshotDynamic => 3,
+      watchSnapshotGeometryOnly => 3,
+      watchSnapshotDynamic => 3,
+      registeredWatchSnapshotDynamic => 3,
       watchSnapshotFullSurface || watchSnapshotNestedFallback => 1,
       _ => 0,
     };
@@ -144,7 +155,7 @@ enum MorphBenchmarkScenario {
   /// Whether benchmark mutation batches change captured descendant pixels.
   bool get mutatesSnapshotPixels {
     return switch (this) {
-      watchSnapshotDynamic => true,
+      watchSnapshotDynamic || registeredWatchSnapshotDynamic => true,
       watchSnapshotFullSurface => true,
       watchSnapshotNestedFallback => true,
       _ => false,
@@ -155,7 +166,7 @@ enum MorphBenchmarkScenario {
   bool get mutatesSnapshotGeometry {
     return switch (this) {
       watchSnapshotGeometryOnly => true,
-      watchSnapshotDynamic => true,
+      watchSnapshotDynamic || registeredWatchSnapshotDynamic => true,
       watchSnapshotFullSurface => true,
       _ => false,
     };
