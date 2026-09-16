@@ -70,7 +70,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   static const double _initialScrollOffset = 600;
   static const double _scrollTolerance = 0.01;
   static const double _sensitivity = 0.37;
-  static const double _dismissThreshold = 0.25;
+  static const double _dismissFraction = 0.25;
   static const Duration _interactionTimeout = Duration(minutes: 2);
   static const Duration _timingsTimeout = Duration(minutes: 2);
   static const Duration _viewMetricsTimeout = Duration(seconds: 30);
@@ -277,7 +277,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       origin: Offset.zero,
       viewportSize: viewMetrics.logicalSize,
     ).maximumPrimaryTravel;
-    final dismissDistance = viewMetrics.logicalSize.height * _dismissThreshold;
+    final dismissDistance = _surfaceSize.height * _dismissFraction;
     if (maximumTravel <= 24 || maximumTravel >= dismissDistance) {
       throw StateError(
         'The benchmark viewport cannot contain its below-threshold path.',
@@ -299,12 +299,16 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       'direction': 'down',
       'free_drag': true,
       'sensitivity': _sensitivity,
-      'dismiss_threshold': _dismissThreshold,
+      'dismiss_threshold': _dismissFraction,
       'initial_scroll_offset_px': _initialScrollOffset,
       'heavy_row_count': _heavyRowCount,
       'gesture_driver': 'synthetic_touch_one_move_per_vsync',
       'refresh_rate_hz': _refreshRate,
       'frame_budget_us': _frameBudgetMicros,
+      'child_size': <String, double>{
+        'width': _surfaceSize.width,
+        'height': _surfaceSize.height,
+      },
       'logical_size': <String, double>{
         'width': viewMetrics.logicalSize.width,
         'height': viewMetrics.logicalSize.height,
@@ -889,8 +893,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
     final buildFitsBudget = build['p99_us']! <= _frameBudgetMicros;
     final rasterFitsBudget = raster['p99_us']! <= _frameBudgetMicros;
     final workFitsBudget = buildFitsBudget && rasterFitsBudget;
-    final viewMetrics = _environmentViewMetrics!;
-    final dismissDistance = viewMetrics.logicalSize.height * _dismissThreshold;
+    final dismissDistance = _surfaceSize.height * _dismissFraction;
     final scrollStart = measurement.scrollStart;
     final scrollEnd = measurement.scrollEnd;
     final scrollDisplacement = (scrollEnd - scrollStart).abs();
@@ -991,6 +994,16 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
 
   bool _isFiniteAndPositive(double value) => value.isFinite && value > 0;
 
+  Size get _surfaceSize {
+    final surface = _surfaceKey.currentContext?.findRenderObject();
+
+    if (surface is! RenderBox || !surface.attached || !surface.hasSize) {
+      throw StateError('The benchmark surface has no usable geometry.');
+    }
+
+    return surface.size;
+  }
+
   Offset get _surfaceOrigin {
     final surface = _surfaceKey.currentContext?.findRenderObject();
     if (surface is! RenderBox || !surface.attached || !surface.hasSize) {
@@ -1020,7 +1033,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
             dragConfig: const InteractiveSwipeDismissDragConfig(
               freeDrag: true,
               sensitivity: _sensitivity,
-              dismissThreshold: _dismissThreshold,
+              dismissFraction: _dismissFraction,
             ),
             onDismiss: _onDismiss,
             child: _retainedWorkload,

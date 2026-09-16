@@ -9,6 +9,12 @@ final class _InteractiveSwipeDismissTranslationController {
 
   _RenderInteractiveSwipeDismissTranslation? _renderObject;
 
+  Size? get childSize {
+    final renderObject = _renderObject;
+    if (renderObject == null || !renderObject.attached || !renderObject.hasSize) return null;
+    return renderObject.size;
+  }
+
   void setTranslation(double dx, double dy) {
     if (_dx == dx && _dy == dy) return;
     _dx = dx;

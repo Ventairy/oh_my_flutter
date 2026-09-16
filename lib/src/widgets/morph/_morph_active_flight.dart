@@ -248,11 +248,10 @@ class _MorphActiveFlight {
   }
 
   MorphEndpoint<Object?> sample() {
-    final progress = morphAnimation.value;
     return delegate._interpolateEndpoint(
       currentSource,
       currentDestination,
-      progress: progress,
+      progress: flight._progress,
     );
   }
 

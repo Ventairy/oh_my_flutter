@@ -116,10 +116,10 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
   MorphColumnProperties lerpProperties(
     MorphColumnProperties source,
     MorphColumnProperties destination,
-    double progress,
+    MorphFlightProgress progress,
   ) {
-    if (progress <= 0) return source;
-    if (progress >= 1) return destination;
+    if (progress.curvedProgress <= 0) return source;
+    if (progress.curvedProgress >= 1) return destination;
     return _MorphColumnFlightPlan(
       source: source,
       destination: destination,

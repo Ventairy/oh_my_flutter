@@ -168,11 +168,11 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
   MorphTextProperties lerpProperties(
     MorphTextProperties source,
     MorphTextProperties destination,
-    double progress,
+    MorphFlightProgress progress,
   ) => _lerp(
     source,
     destination,
-    progress,
+    progress.curvedProgress,
     estimateHeight: true,
   );
 

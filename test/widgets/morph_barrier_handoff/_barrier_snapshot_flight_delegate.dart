@@ -8,7 +8,8 @@ final class _BarrierSnapshotFlightDelegate extends MorphFlightDelegate<Widget> {
       endpoint.registerDescendantWidget((endpoint.child as SizedBox).child!);
 
   @override
-  Widget lerpProperties(Widget source, Widget destination, double progress) => progress < .5 ? source : destination;
+  Widget lerpProperties(Widget source, Widget destination, MorphFlightProgress progress) =>
+      progress.curvedProgress < .5 ? source : destination;
 
   @override
   Widget buildFlight(BuildContext context, MorphFlight<Widget> flight) =>

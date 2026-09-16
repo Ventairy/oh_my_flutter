@@ -906,7 +906,16 @@ void main() {
           identical(
             const MorphColumnFlightDelegate(
               switchThreshold: 0,
-            ).lerpProperties(source, destination, 0),
+            ).lerpProperties(
+              source,
+              destination,
+              const MorphFlightProgress(
+                curvedProgress: 0,
+                uncurvedProgress: 0,
+                flightKind: MorphFlightKind.sameScreen,
+                animationStatus: AnimationStatus.forward,
+              ),
+            ),
             source,
           ),
           isTrue,

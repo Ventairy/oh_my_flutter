@@ -20,8 +20,8 @@ class _SnapshotFlightDelegate extends MorphFlightDelegate<Widget> {
   }
 
   @override
-  Widget lerpProperties(Widget source, Widget destination, double progress) {
-    return progress < switchAt ? source : destination;
+  Widget lerpProperties(Widget source, Widget destination, MorphFlightProgress progress) {
+    return progress.curvedProgress < switchAt ? source : destination;
   }
 
   @override

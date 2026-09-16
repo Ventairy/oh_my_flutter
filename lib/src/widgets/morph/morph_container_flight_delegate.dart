@@ -247,10 +247,10 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
   MorphContainerProperties lerpProperties(
     MorphContainerProperties source,
     MorphContainerProperties destination,
-    double progress,
+    MorphFlightProgress progress,
   ) {
     final threshold = source.switchThreshold;
-    final showSource = progress < threshold;
+    final showSource = progress.curvedProgress < threshold;
     final sourceChild = source.child;
     final destinationChild = destination.child;
     final child = sourceChild != null && destinationChild != null
@@ -264,13 +264,13 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
         : switch ((showSource, sourceChild, destinationChild)) {
             (true, final MorphChildProperties source?, _) => MorphChildFlightDelegate._departing(
               properties: source,
-              progress: progress,
+              progress: progress.curvedProgress,
               threshold: threshold,
               transitionEnabled: switchTransition != null,
             ),
             (false, _, final MorphChildProperties destination?) => MorphChildFlightDelegate._arriving(
               properties: destination,
-              progress: progress,
+              progress: progress.curvedProgress,
               threshold: threshold,
               transitionEnabled: switchTransition != null,
             ),
@@ -281,19 +281,19 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       alignment: Alignment.lerp(
         source.alignment,
         destination.alignment,
-        progress,
+        progress.curvedProgress,
       ),
-      padding: EdgeInsets.lerp(source.padding, destination.padding, progress)!,
+      padding: EdgeInsets.lerp(source.padding, destination.padding, progress.curvedProgress)!,
       decoration: _lerpDecoration(
         source.decoration,
         destination.decoration,
-        progress,
+        progress.curvedProgress,
         showSource: showSource,
       ),
       foregroundDecoration: _lerpDecoration(
         source.foregroundDecoration,
         destination.foregroundDecoration,
-        progress,
+        progress.curvedProgress,
         showSource: showSource,
       ),
       clipBehavior: showSource ? source.clipBehavior : destination.clipBehavior,

@@ -9,8 +9,8 @@ final class _RecordingNavigationFlightDelegate extends MorphFlightDelegate<doubl
   double properties(MorphEndpointContext endpoint) => endpoint.localSize.width;
 
   @override
-  double lerpProperties(double source, double destination, double progress) =>
-      source + (destination - source) * progress;
+  double lerpProperties(double source, double destination, MorphFlightProgress progress) =>
+      source + (destination - source) * progress.curvedProgress;
 
   @override
   Widget buildFlight(BuildContext context, MorphFlight<double> flight) {

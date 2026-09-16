@@ -20,8 +20,12 @@ final class BenchmarkCustomFlightDelegate extends MorphFlightDelegate<Color> {
   }
 
   @override
-  Color lerpProperties(Color source, Color destination, double progress) {
-    return Color.lerp(source, destination, progress)!;
+  Color lerpProperties(
+    Color source,
+    Color destination,
+    MorphFlightProgress progress,
+  ) {
+    return Color.lerp(source, destination, progress.curvedProgress)!;
   }
 
   @override

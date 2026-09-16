@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
-
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
 import 'package:oh_my_flutter_example/examples/device_display_example.dart';
 import 'package:oh_my_flutter_example/examples/device_location_example.dart';
@@ -15,6 +14,7 @@ import 'package:oh_my_flutter_example/examples/relative_time_example.dart';
 import 'package:oh_my_flutter_example/examples/route_settled_example.dart';
 import 'package:oh_my_flutter_example/examples/sequence_example.dart';
 import 'package:oh_my_flutter_example/examples/skeleton_example.dart';
+import 'package:oh_my_flutter_example/examples/snap_list_example.dart';
 import 'package:oh_my_flutter_example/examples/text_motion_example.dart';
 
 void main() => runApp(const UtilityExample());
@@ -93,6 +93,10 @@ class _UtilityExampleState extends State<UtilityExample> {
                         MorphLocalExample(),
                         SizedBox(height: 24),
                         MorphExample(),
+                        SizedBox(height: 32),
+                        Text('SnapList', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        SnapListExample(),
                         SizedBox(height: 32),
                         Text('Sequence', style: _sectionStyle),
                         SizedBox(height: 12),

@@ -13,7 +13,8 @@ class _RegistrationDelegate extends MorphFlightDelegate<Widget> {
   }
 
   @override
-  Widget lerpProperties(Widget source, Widget destination, double progress) => progress < 0.5 ? source : destination;
+  Widget lerpProperties(Widget source, Widget destination, MorphFlightProgress progress) =>
+      progress.curvedProgress < 0.5 ? source : destination;
 
   @override
   Widget buildFlight(BuildContext context, MorphFlight<Widget> flight) {

@@ -2,6 +2,7 @@ part of '../morph_flight_test.dart';
 
 final class _CountingFlightDelegate extends MorphFlightDelegate<double> {
   int interpolationCount = 0;
+  MorphFlightProgress? lastProgress;
 
   @override
   Widget buildFlight(BuildContext context, MorphFlight<double> flight) {
@@ -9,9 +10,10 @@ final class _CountingFlightDelegate extends MorphFlightDelegate<double> {
   }
 
   @override
-  double lerpProperties(double source, double destination, double progress) {
+  double lerpProperties(double source, double destination, MorphFlightProgress progress) {
     interpolationCount += 1;
-    return source + (destination - source) * progress;
+    lastProgress = progress;
+    return source + (destination - source) * progress.curvedProgress;
   }
 
   @override

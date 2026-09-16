@@ -415,11 +415,25 @@ void main() {
           switchThreshold: 0.5,
         );
         const delegate = MorphTextFlightDelegate();
-        final quarter = delegate.lerpProperties(source, destination, 0.25);
+        final quarter = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.25,
+            uncurvedProgress: 0.25,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
         final threeQuarters = delegate.lerpProperties(
           source,
           destination,
-          0.75,
+          const MorphFlightProgress(
+            curvedProgress: 0.75,
+            uncurvedProgress: 0.75,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
         );
 
         ({double baseline, double height, double lineHeight}) visualMetrics(
@@ -734,8 +748,30 @@ void main() {
 
         expect(
           (
-            delegate.lerpProperties(source, destination, 0.79).text,
-            delegate.lerpProperties(source, destination, 0.8).text,
+            delegate
+                .lerpProperties(
+                  source,
+                  destination,
+                  const MorphFlightProgress(
+                    curvedProgress: 0.79,
+                    uncurvedProgress: 0.79,
+                    flightKind: MorphFlightKind.sameScreen,
+                    animationStatus: AnimationStatus.forward,
+                  ),
+                )
+                .text,
+            delegate
+                .lerpProperties(
+                  source,
+                  destination,
+                  const MorphFlightProgress(
+                    curvedProgress: 0.8,
+                    uncurvedProgress: 0.8,
+                    flightKind: MorphFlightKind.sameScreen,
+                    animationStatus: AnimationStatus.forward,
+                  ),
+                )
+                .text,
           ),
           ('Source', 'Destination'),
         );
@@ -781,7 +817,16 @@ void main() {
 
         expect(
           identical(
-            const MorphTextFlightDelegate().lerpProperties(source, destination, 0),
+            const MorphTextFlightDelegate().lerpProperties(
+              source,
+              destination,
+              const MorphFlightProgress(
+                curvedProgress: 0,
+                uncurvedProgress: 0,
+                flightKind: MorphFlightKind.sameScreen,
+                animationStatus: AnimationStatus.forward,
+              ),
+            ),
             source,
           ),
           isTrue,
@@ -828,7 +873,16 @@ void main() {
 
         expect(
           identical(
-            const MorphTextFlightDelegate().lerpProperties(source, destination, 1),
+            const MorphTextFlightDelegate().lerpProperties(
+              source,
+              destination,
+              const MorphFlightProgress(
+                curvedProgress: 1,
+                uncurvedProgress: 1,
+                flightKind: MorphFlightKind.sameScreen,
+                animationStatus: AnimationStatus.forward,
+              ),
+            ),
             destination,
           ),
           isTrue,
@@ -874,7 +928,19 @@ void main() {
         );
 
         expect(
-          const MorphTextFlightDelegate().lerpProperties(source, destination, 0.5).style.fontSize,
+          const MorphTextFlightDelegate()
+              .lerpProperties(
+                source,
+                destination,
+                const MorphFlightProgress(
+                  curvedProgress: 0.5,
+                  uncurvedProgress: 0.5,
+                  flightKind: MorphFlightKind.sameScreen,
+                  animationStatus: AnimationStatus.forward,
+                ),
+              )
+              .style
+              .fontSize,
           20,
         );
       },
@@ -917,9 +983,36 @@ void main() {
           switchThreshold: 0.5,
         );
         const delegate = MorphTextFlightDelegate();
-        final quarter = delegate.lerpProperties(source, destination, 0.25);
-        final midpoint = delegate.lerpProperties(source, destination, 0.5);
-        final threeQuarters = delegate.lerpProperties(source, destination, 0.75);
+        final quarter = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.25,
+            uncurvedProgress: 0.25,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
+        final midpoint = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.5,
+            uncurvedProgress: 0.5,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
+        final threeQuarters = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.75,
+            uncurvedProgress: 0.75,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
 
         expect(
           [
@@ -981,7 +1074,12 @@ void main() {
         final midpoint = const MorphTextFlightDelegate().lerpProperties(
           source,
           destination,
-          0.5,
+          const MorphFlightProgress(
+            curvedProgress: 0.5,
+            uncurvedProgress: 0.5,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
         );
         final expectedLineHeight = source.lineHeight + (destination.lineHeight - source.lineHeight) * 0.5;
         final expectedBaseline = source.baseline + (destination.baseline - source.baseline) * 0.5;
@@ -1121,7 +1219,16 @@ void main() {
         addTearDown(
           () => FlutterMemoryAllocations.instance.removeListener(listener),
         );
-        const MorphTextFlightDelegate().lerpProperties(source, destination, 0.5);
+        const MorphTextFlightDelegate().lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.5,
+            uncurvedProgress: 0.5,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
         FlutterMemoryAllocations.instance.removeListener(listener);
 
         expect((created.length, disposed.containsAll(created)), (1, true));
@@ -1348,7 +1455,12 @@ void main() {
         final midpoint = const MorphTextFlightDelegate().lerpProperties(
           source,
           destination,
-          0.4,
+          const MorphFlightProgress(
+            curvedProgress: 0.4,
+            uncurvedProgress: 0.4,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
         );
         await tester.pumpWidget(const SizedBox.shrink());
 
@@ -1761,7 +1873,12 @@ void main() {
         final midpoint = const MorphColumnFlightDelegate().lerpProperties(
           source,
           destination,
-          0.5,
+          const MorphFlightProgress(
+            curvedProgress: 0.5,
+            uncurvedProgress: 0.5,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
         );
 
         await tester.pumpWidget(
@@ -1841,8 +1958,30 @@ void main() {
 
         expect(
           [
-            delegate.lerpProperties(source, destination, 0.25).reservedLayoutWidth,
-            delegate.lerpProperties(source, destination, 0.75).reservedLayoutWidth,
+            delegate
+                .lerpProperties(
+                  source,
+                  destination,
+                  const MorphFlightProgress(
+                    curvedProgress: 0.25,
+                    uncurvedProgress: 0.25,
+                    flightKind: MorphFlightKind.sameScreen,
+                    animationStatus: AnimationStatus.forward,
+                  ),
+                )
+                .reservedLayoutWidth,
+            delegate
+                .lerpProperties(
+                  source,
+                  destination,
+                  const MorphFlightProgress(
+                    curvedProgress: 0.75,
+                    uncurvedProgress: 0.75,
+                    flightKind: MorphFlightKind.sameScreen,
+                    animationStatus: AnimationStatus.forward,
+                  ),
+                )
+                .reservedLayoutWidth,
           ],
           [180, 360],
         );
@@ -1892,8 +2031,26 @@ void main() {
           switchThreshold: 0.5,
         );
         const delegate = MorphTextFlightDelegate();
-        final beforeTransfer = delegate.lerpProperties(source, destination, 0.25);
-        final afterTransfer = delegate.lerpProperties(source, destination, 0.75);
+        final beforeTransfer = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.25,
+            uncurvedProgress: 0.25,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
+        final afterTransfer = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.75,
+            uncurvedProgress: 0.75,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
 
         int paintedLineCount(MorphTextProperties properties) {
           final painter = TextPainter(
@@ -1976,7 +2133,18 @@ void main() {
         );
 
         expect(
-          const MorphTextFlightDelegate().lerpProperties(source, destination, 0.75).reservedLayoutWidth,
+          const MorphTextFlightDelegate()
+              .lerpProperties(
+                source,
+                destination,
+                const MorphFlightProgress(
+                  curvedProgress: 0.75,
+                  uncurvedProgress: 0.75,
+                  flightKind: MorphFlightKind.sameScreen,
+                  animationStatus: AnimationStatus.forward,
+                ),
+              )
+              .reservedLayoutWidth,
           240,
         );
       },
@@ -2062,9 +2230,36 @@ void main() {
           switchThreshold: 0.5,
         );
         const delegate = MorphTextFlightDelegate(switchThreshold: 0.8);
-        final early = delegate.lerpProperties(source, destination, 0.1);
-        final beforeTransfer = delegate.lerpProperties(source, destination, 0.6);
-        final afterTransfer = delegate.lerpProperties(source, destination, 0.8);
+        final early = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.1,
+            uncurvedProgress: 0.1,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
+        final beforeTransfer = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.6,
+            uncurvedProgress: 0.6,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
+        final afterTransfer = delegate.lerpProperties(
+          source,
+          destination,
+          const MorphFlightProgress(
+            curvedProgress: 0.8,
+            uncurvedProgress: 0.8,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
+        );
 
         expect(
           (

@@ -21,8 +21,8 @@ final class MorphFlight<T> {
          progress,
        ));
 
-  final T Function(double progress) _interpolate;
-  double? _cachedPropertiesProgress;
+  final T Function(MorphFlightProgress progress) _interpolate;
+  MorphFlightProgress? _cachedPropertiesProgress;
   late T _cachedProperties;
   _MorphFlightGeometry? _geometry;
 
@@ -62,9 +62,16 @@ final class MorphFlight<T> {
   /// measure of elapsed time.
   final Animation<double> uncurvedAnimation;
 
-  /// The interpolated properties at the current [curvedAnimation] progress.
+  MorphFlightProgress get _progress => MorphFlightProgress(
+    curvedProgress: curvedAnimation.value,
+    uncurvedProgress: uncurvedAnimation.value,
+    flightKind: kind,
+    animationStatus: uncurvedAnimation.status,
+  );
+
+  /// The interpolated visual values at the current flight timing.
   T get properties {
-    final progress = curvedAnimation.value;
+    final progress = _progress;
     if (_cachedPropertiesProgress == progress) return _cachedProperties;
 
     _cachedPropertiesProgress = progress;

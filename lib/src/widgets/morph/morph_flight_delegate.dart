@@ -22,9 +22,10 @@ abstract class MorphFlightDelegate<T> {
 
   /// Returns the visual values between [source] and [destination] at [progress].
   ///
-  /// [progress] follows [MorphFlight.curvedAnimation] and can fall outside the 0 to 1
-  /// interval when the configured curve overshoots.
-  T lerpProperties(T source, T destination, double progress);
+  /// Use [MorphFlightProgress.curvedProgress] to follow the surface's curve,
+  /// or apply a content curve to [MorphFlightProgress.uncurvedProgress] for
+  /// independent timing. Curved progress may overshoot the endpoint range.
+  T lerpProperties(T source, T destination, MorphFlightProgress progress);
 
   /// Builds the widget shown during the transition.
   ///
@@ -39,7 +40,7 @@ abstract class MorphFlightDelegate<T> {
   MorphEndpoint<Object?> _interpolateEndpoint(
     MorphEndpoint<Object?> source,
     MorphEndpoint<Object?> destination, {
-    required double progress,
+    required MorphFlightProgress progress,
   }) {
     return _MorphDescendantSnapshots.combine(
       source,
@@ -53,21 +54,21 @@ abstract class MorphFlightDelegate<T> {
         bounds: Rect.lerp(
           source.bounds,
           destination.bounds,
-          progress,
+          progress.curvedProgress,
         )!,
         localSize: Size.lerp(
           source.localSize,
           destination.localSize,
-          progress,
+          progress.curvedProgress,
         )!,
         transform: Matrix4Tween(
           begin: source.transform,
           end: destination.transform,
-        ).lerp(progress),
+        ).lerp(progress.curvedProgress),
         axisScale: Offset.lerp(
           source.axisScale,
           destination.axisScale,
-          progress,
+          progress.curvedProgress,
         )!,
       ),
     );
