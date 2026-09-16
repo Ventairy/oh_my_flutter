@@ -30,6 +30,123 @@ class MorphNavigatorObserver extends NavigatorObserver {
   AnimationStatus _gestureStatus = AnimationStatus.completed;
   bool _gestureMoved = false;
 
+  final List<WeakReference<_MorphTagStatusListenable>> _tagStatusListeners = [];
+  final Set<_MorphTagStatusListenable> _subscribedTagStatuses = {};
+  final Map<Object, MorphTagStatus> _tagStatuses = {};
+  final Map<Object, WeakReference<_MorphActiveFlight>> _tagFlights = {};
+  bool _tagResolutionPending = false;
+  bool _tagNotificationScheduled = false;
+
+  /// Finds the Morph observer installed on [navigator], including subclasses.
+  ///
+  /// Returns null when none is installed. Each Navigator needs its own stable
+  /// observer from creation; nested Navigators do not inherit an outer observer.
+  static MorphNavigatorObserver? maybeOfNavigator(NavigatorState navigator) {
+    final observers = navigator.widget.observers.whereType<MorphNavigatorObserver>().toList(growable: false);
+    assert(observers.length <= 1, 'A Navigator must not have multiple MorphNavigatorObservers.');
+    return observers.length == 1 ? observers.single : null;
+  }
+
+  /// Reads or watches the given [tag] status
+  ///
+  /// Read `.value` for the current status, or add a listener for changes. Remove
+  /// listeners when no longer needed; do not dispose the returned listenable.
+  /// Equal tags share a status on this observer. Queries do not start flights.
+  ///
+  /// Status follows the latest navigation on this Navigator. It starts at
+  /// [MorphTagStatus.idle], becomes pending during resolution, then reports an
+  /// unmatched result or the accepted flight's lifecycle. Terminal results stay
+  /// available until the next navigation. Local appearance changes are excluded.
+  /// Endpoints must be available during the destination's initial layout.
+  ///
+  /// Only unmatched selects a fallback; completion and cancellation must not
+  /// start another entrance or exit animation. Honor reduced motion separately.
+  /// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md).
+  ValueListenable<MorphTagStatus> tagStatus(Object tag) {
+    _tagStatusListeners.removeWhere((reference) => reference.target == null);
+    for (final reference in _tagStatusListeners) {
+      final listenable = reference.target;
+      if (listenable != null && listenable.tag == tag) return listenable;
+    }
+    final listenable = _MorphTagStatusListenable(this, tag);
+    _tagStatusListeners.add(WeakReference(listenable));
+    return listenable;
+  }
+
+  MorphTagStatus _tagStatusValue(Object tag) =>
+      _tagStatuses[tag] ??
+      (_request == null
+          ? MorphTagStatus.idle
+          : _tagResolutionPending
+          ? MorphTagStatus.pending
+          : MorphTagStatus.unmatched);
+
+  void _notifyTagStatus() {
+    if (_tagNotificationScheduled) return;
+    _tagNotificationScheduled = true;
+    scheduleMicrotask(() {
+      _tagNotificationScheduled = false;
+      _tagStatusListeners.removeWhere((reference) => reference.target == null);
+      for (final reference in List.of(_tagStatusListeners)) {
+        reference.target?.update();
+      }
+    });
+  }
+
+  void _beginTagResolution() {
+    _tagStatuses.clear();
+    _tagFlights.clear();
+    _tagResolutionPending = true;
+    _notifyTagStatus();
+    final revision = _revision;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Coordinator reconciliation runs in post-frame microtasks, including
+      // coordinators first registered by the destination in this frame.
+      scheduleMicrotask(
+        () => scheduleMicrotask(() {
+          if (_revision != revision) return;
+          _tagResolutionPending = false;
+          _notifyTagStatus();
+        }),
+      );
+    });
+    SchedulerBinding.instance.ensureVisualUpdate();
+  }
+
+  void _acceptTagFlight(_MorphActiveFlight flight) {
+    final request = _request;
+    if (request == null || !flight.kind.isRoute || request.cancelled) return;
+    final source = flight.sourceHandle?.route;
+    final destination = flight.destinationHandle.route;
+    final connectsRoutes =
+        (identical(source, request.source) && identical(destination, request.destination)) ||
+        (identical(source, request.destination) && identical(destination, request.source));
+    if (!connectsRoutes || flight._finished) return;
+    _tagFlights[flight.tag] = WeakReference(flight);
+    _tagStatuses[flight.tag] = MorphTagStatus.flying;
+    _notifyTagStatus();
+  }
+
+  void _completeTagFlight(_MorphActiveFlight flight, _MorphEndpointHandle winner) {
+    if (!identical(_tagFlights[flight.tag]?.target, flight)) return;
+    _tagFlights.remove(flight.tag);
+    _tagStatuses[flight.tag] = _request?.cancelled != true && identical(winner.route, _request?.destination)
+        ? MorphTagStatus.completed
+        : MorphTagStatus.cancelled;
+    _notifyTagStatus();
+  }
+
+  void _endTagFlight(_MorphActiveFlight flight) {
+    // Retargeting can replace the flight synchronously. Only cancel if no new
+    // flight has taken its place for this navigation.
+    scheduleMicrotask(() {
+      if (!identical(_tagFlights[flight.tag]?.target, flight)) return;
+      _tagFlights.remove(flight.tag);
+      _tagStatuses[flight.tag] = MorphTagStatus.cancelled;
+      _notifyTagStatus();
+    });
+  }
+
   static MorphNavigatorObserver? _of(BuildContext context) {
     final owner = Navigator.maybeOf(context);
     if (owner == null) return null;
@@ -115,6 +232,7 @@ class MorphNavigatorObserver extends NavigatorObserver {
       kind: kind,
       revision: ++_revision,
     );
+    _beginTagResolution();
     _notify();
   }
 
@@ -154,6 +272,7 @@ class MorphNavigatorObserver extends NavigatorObserver {
       revision: ++_revision,
       preview: true,
     );
+    _beginTagResolution();
     _notify();
   }
 
@@ -163,6 +282,7 @@ class MorphNavigatorObserver extends NavigatorObserver {
     request
       ..cancelled = false
       ..revision = ++_revision;
+    _beginTagResolution();
     _notify();
   }
 
@@ -187,6 +307,8 @@ class MorphNavigatorObserver extends NavigatorObserver {
     request
       ..cancelled = true
       ..revision = ++_revision;
+    _tagResolutionPending = false;
+    _notifyTagStatus();
     _notify();
   }
 

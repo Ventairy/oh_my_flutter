@@ -13,10 +13,10 @@ class _SplitFlightDelegate extends MorphFlightDelegate<_SplitProperties> {
   }
 
   @override
-  _SplitProperties lerpProperties(_SplitProperties source, _SplitProperties destination, double progress) {
+  _SplitProperties lerpProperties(_SplitProperties source, _SplitProperties destination, MorphFlightProgress progress) {
     return (
-      first: progress < 0.25 ? source.first : destination.first,
-      second: progress < 0.75 ? source.second : destination.second,
+      first: progress.curvedProgress < 0.25 ? source.first : destination.first,
+      second: progress.curvedProgress < 0.75 ? source.second : destination.second,
     );
   }
 

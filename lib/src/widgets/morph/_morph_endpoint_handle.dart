@@ -43,12 +43,15 @@ class _MorphEndpointHandle {
   bool active = true;
   bool disposed = false;
   bool animationsDisabled = false;
+
   MorphEndpoint<Object?>? _sameFrameEndpoint;
   final List<_MorphDescendantHandle> _descendants = [];
   int _descendantRegistrationOrder = 0;
   int _descendantRevision = 0;
 
   int get descendantRevision => _descendantRevision;
+
+  bool get flightsEnabled => owner._scopeEnabled;
 
   void _registerDescendant(_MorphDescendantHandle descendant) {
     if (_descendants.contains(descendant)) return;

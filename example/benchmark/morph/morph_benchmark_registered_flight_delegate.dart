@@ -24,16 +24,20 @@ final class RegisteredDelegate extends MorphFlightDelegate<FlightProperties> {
   FlightProperties lerpProperties(
     FlightProperties source,
     FlightProperties destination,
-    double progress,
+    MorphFlightProgress progress,
   ) {
     return (
       decoration: Decoration.lerp(
         source.decoration,
         destination.decoration,
-        progress,
+        progress.curvedProgress,
       )!,
-      padding: EdgeInsets.lerp(source.padding, destination.padding, progress)!,
-      child: progress < 0.5 ? source.child : destination.child,
+      padding: EdgeInsets.lerp(
+        source.padding,
+        destination.padding,
+        progress.curvedProgress,
+      )!,
+      child: progress.curvedProgress < 0.5 ? source.child : destination.child,
     );
   }
 

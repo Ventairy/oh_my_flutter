@@ -70,7 +70,12 @@ void main() {
           padding: const EdgeInsets.all(16),
           child: destinationChild,
         ),
-        0.75,
+        const MorphFlightProgress(
+          curvedProgress: 0.75,
+          uncurvedProgress: 0.75,
+          flightKind: MorphFlightKind.sameScreen,
+          animationStatus: AnimationStatus.forward,
+        ),
       );
 
       expect(

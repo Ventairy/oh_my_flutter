@@ -232,7 +232,7 @@ void main() {
                     Expanded(
                       child: InteractiveSwipeDismiss(
                         dragConfig: const InteractiveSwipeDismissDragConfig(
-                          dismissThreshold: 0.1,
+                          dismissFraction: 0.1,
                         ),
                         onDismiss: () {
                           firstDismissals += 1;
@@ -244,7 +244,7 @@ void main() {
                     Expanded(
                       child: InteractiveSwipeDismiss(
                         dragConfig: const InteractiveSwipeDismissDragConfig(
-                          dismissThreshold: 0.1,
+                          dismissFraction: 0.1,
                         ),
                         onDismiss: () {
                           secondDismissals += 1;

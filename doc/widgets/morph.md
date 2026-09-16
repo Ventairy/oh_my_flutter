@@ -505,8 +505,8 @@ class StatusFlightDelegate extends MorphFlightDelegate<Color> {
   }
 
   @override
-  Color lerpProperties(Color source, Color destination, double progress) {
-    return Color.lerp(source, destination, progress)!;
+  Color lerpProperties(Color source, Color destination, MorphFlightProgress progress) {
+    return Color.lerp(source, destination, progress.curvedProgress)!;
   }
 
   @override
@@ -544,8 +544,9 @@ The delegate contract is:
    `transform`, and `axisScale`. Register endpoint widget content with
    `endpoint.registerDescendantWidget(...)` and store the returned widgets in
    your properties.
-2. `lerpProperties` returns the current `T` for the curved animation progress.
-   Progress can overshoot.
+2. `lerpProperties` returns the current `T` from a `MorphFlightProgress`.
+   Use `curvedProgress` to follow the surface and `uncurvedProgress` to apply
+   independent content timing. Curved progress can overshoot.
 3. `buildFlight` builds the in-flight content. Morph positions and sizes the
    returned widget between the endpoint bounds. This method is not called on
    every progress change, so listen to `flight.curvedAnimation` when the widget
@@ -560,8 +561,8 @@ Morph does not provide a recovery transition for invalid delegate code.
 
 ### Choose animation progress
 
-Use `curvedAnimation` to follow `Morph.curve`, which also controls `properties`
-and `bounds`. Use `uncurvedAnimation` to give custom content its own intervals
+Use `curvedAnimation` to follow `Morph.curve`, which also controls `bounds`.
+Use `uncurvedAnimation` to give custom content its own intervals
 and curves. Both follow the same flight, including changes in direction.
 
 For example, this replacement for the delegate's `buildFlight` fades its visual
@@ -594,6 +595,35 @@ When migrating a custom delegate, rename `lerp` overrides and calls to
 `flight.curvedAnimation`. If you construct `MorphFlight` yourself, supply both
 `curvedAnimation` and `uncurvedAnimation`; there is no `animation` alias.
 
+Inside `lerpProperties`, applying a curve to `progress.uncurvedProgress` gives
+content independent timing without applying Morph's curve twice:
+
+```dart
+@override
+Color lerpProperties(
+  Color source,
+  Color destination,
+  MorphFlightProgress progress,
+) => Color.lerp(
+  source,
+  destination,
+  Curves.easeIn.transform(progress.uncurvedProgress),
+)!;
+```
+
+Return the visible content values from `lerpProperties` so an interrupted
+transition continues from those values. `flightKind` describes why the flight
+started; an unfinished push playing backward remains `routePush`.
+`animationStatus` describes the underlying flight animation, not its route:
+a fresh `routePop` can have `AnimationStatus.forward` because it travels from
+its outgoing endpoint toward its returning endpoint. These fields report
+playback; they do not select a reverse curve for your delegate.
+
+For existing custom delegates, replace the `double` argument of
+`lerpProperties` with `MorphFlightProgress` and use `progress.curvedProgress`
+where the old numeric argument was used. Apply the same migration to direct
+calls and `MorphChildFlightDelegate.lerp`; all progress fields are required.
+
 ### Register descendant content
 
 Use `endpoint.registerDescendantWidget(child)` for endpoint widget content in
@@ -615,8 +645,8 @@ class ContentFlightDelegate extends MorphFlightDelegate<Widget> {
   }
 
   @override
-  Widget lerpProperties(Widget source, Widget destination, double progress) {
-    return progress < 0.8 ? source : destination;
+  Widget lerpProperties(Widget source, Widget destination, MorphFlightProgress progress) {
+    return progress.curvedProgress < 0.8 ? source : destination;
   }
 
   @override
@@ -639,11 +669,11 @@ card's title can switch at 25% while its body keeps the source until 75%:
 ({Widget title, Widget body}) lerpProperties(
   ({Widget title, Widget body}) source,
   ({Widget title, Widget body}) destination,
-  double progress,
+  MorphFlightProgress progress,
 ) {
   return (
-    title: progress < 0.25 ? source.title : destination.title,
-    body: progress < 0.75 ? source.body : destination.body,
+    title: progress.curvedProgress < 0.25 ? source.title : destination.title,
+    body: progress.curvedProgress < 0.75 ? source.body : destination.body,
   );
 }
 ```
@@ -698,3 +728,91 @@ than one logical shared element with the same tag in one overlay.
 
 For exhaustive member contracts, see the
 [Morph API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/Morph-class.html).
+
+## Observe a tag during navigation
+
+Use the observer on the Navigator presenting your route to read or watch the
+result for a shared tag:
+
+```dart
+final observer = MorphNavigatorObserver.maybeOfNavigator(navigator);
+final status = observer?.tagStatus('photo');
+final current = status?.value;
+
+void onStatusChanged() {
+  final current = status!.value;
+  // Update your presentation for the current status.
+}
+
+status?.addListener(onStatusChanged);
+// Remove the listener when its owner is disposed.
+status?.removeListener(onStatusChanged);
+```
+
+Lookup includes observer subclasses and returns null when none is installed.
+Each nested Navigator needs its own observer. Keep the observer installed from
+Navigator creation, including when using a router.
+
+| Status | Meaning |
+| --- | --- |
+| `idle` | No navigation has been evaluated yet. |
+| `pending` | Morph is resolving the appearances for the latest navigation. |
+| `unmatched` | No usable flight was accepted. |
+| `flying` | A flight was accepted and is active, including its final handoff. |
+| `completed` | The flight handed off at the navigation destination. |
+| `cancelled` | An accepted flight ended without completing that navigation. |
+
+The result remains available after completion or cancellation. A new navigation
+starts a fresh resolution; the result does not describe a particular older
+route or local child-replacement animation. A gesture that starts returning and
+then cancels resolves as cancelled after its accepted flight settles. A gesture
+that never moves does not start a new resolution. An immediate flight can finish
+without listeners observing a separate flying notification.
+
+For a custom route that transforms when possible and otherwise slides, keep its
+destination laid out at its resting position but concealed while pending. Use
+the normal slide only for unmatched; flying, completed, and cancelled must not
+start a second transition. Keep the endpoints available during the destination's
+initial layout. Reading this API does not conceal, position, or animate the route
+for you. Unknown tags resolve as unmatched too.
+
+Disabled animations also produce unmatched when no flight starts. Honor reduced
+motion before selecting an animated fallback. When a newer navigation begins,
+an older route must not reinterpret that newer result as its own fallback.
+
+The returned listenable supports `.value`, `addListener`, `removeListener`, and
+`ValueListenableBuilder`. It is owned by Morph; remove your listeners rather than
+disposing it. Notifications report current values and may combine changes that
+happen within the same event-loop turn.
+
+## Inherited configuration with MorphScope
+
+Use `MorphScope` to provide configuration to Morph widgets in a subtree without
+configuring each appearance individually.
+
+### Enable or disable new flights
+
+Set `enabled` to control whether descendants can start new Morph flights:
+
+```dart
+MorphScope(
+  enabled: allowSharedTransitions,
+  child: content,
+)
+```
+
+Morph is enabled by default. Both endpoints must be enabled for a new flight.
+A disabled outer scope takes precedence over an enabled inner scope. Disabled
+content remains mounted and displays normally; same-screen changes and child
+replacements apply without starting a flight. Re-enabling allows future flights
+without replaying skipped changes.
+
+An ongoing flight keeps its normal completion, reversal, retargeting, and
+handoff behavior even after its scope is disabled. Scope changes do not cancel
+flights. Normal removal, reduced-motion, and navigation behavior still apply.
+
+The updated scope must rebuild before navigation that should use its new value.
+Changing a boolean and immediately navigating in the same callback does not
+ensure the scope has updated. A new navigation without an eligible flight
+reports `MorphTagStatus.unmatched`; an ongoing flight retains its normal status
+lifecycle.

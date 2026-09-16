@@ -2426,7 +2426,12 @@ void main() {
         final midpoint = const MorphTextFlightDelegate().lerpProperties(
           properties.source,
           properties.destination,
-          0.5,
+          const MorphFlightProgress(
+            curvedProgress: 0.5,
+            uncurvedProgress: 0.5,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
         );
         final midpointBounds = Rect.lerp(
           sourceBounds,
@@ -2576,7 +2581,12 @@ void main() {
         final expected = const MorphTextFlightDelegate().lerpProperties(
           properties.source,
           properties.destination,
-          0.6,
+          const MorphFlightProgress(
+            curvedProgress: 0.6,
+            uncurvedProgress: 0.6,
+            flightKind: MorphFlightKind.sameScreen,
+            animationStatus: AnimationStatus.forward,
+          ),
         );
         final destinationPainter =
             TextPainter(

@@ -9,6 +9,8 @@ final class _InteractiveSwipeDismissScrollSource {
   final ScrollableState scrollable;
   final ScrollPosition position;
 
+  _InteractiveSwipeDismissScrollEdge minimumEdge = _InteractiveSwipeDismissScrollEdge();
+  _InteractiveSwipeDismissScrollEdge maximumEdge = _InteractiveSwipeDismissScrollEdge();
   bool wasAwayFromEdge = false;
   double peakDelta = 0;
   Duration? flingReachedEdgeAt;
@@ -24,6 +26,8 @@ final class _InteractiveSwipeDismissScrollSource {
   RenderObject? get renderObject => notificationContext?.findRenderObject();
 
   void resetMovement() {
+    minimumEdge.reset();
+    maximumEdge.reset();
     wasAwayFromEdge = false;
     peakDelta = 0;
     flingReachedEdgeAt = null;

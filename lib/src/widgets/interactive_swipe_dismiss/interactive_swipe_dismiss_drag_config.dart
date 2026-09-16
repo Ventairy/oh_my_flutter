@@ -8,15 +8,30 @@ final class InteractiveSwipeDismissDragConfig {
   const InteractiveSwipeDismissDragConfig({
     this.freeDrag = false,
     this.sensitivity = 1,
-    this.dismissThreshold = 0.5,
+    this.dismissFraction = 0.5,
+    this.returnCurve = Curves.linear,
+    this.returnDuration = const Duration(milliseconds: 260),
   }) : assert(
          sensitivity > 0 && sensitivity < double.infinity,
          'sensitivity must be finite and greater than zero.',
        ),
        assert(
-         dismissThreshold >= 0 && dismissThreshold <= 1,
-         'dismissThreshold must be between zero and one, inclusive.',
+         dismissFraction >= 0 && dismissFraction <= 1,
+         'dismissFraction must be between zero and one, inclusive.',
        );
+
+  bool _debugValidate() {
+    assert(!returnDuration.isNegative, 'returnDuration must be nonnegative.');
+    return true;
+  }
+
+  /// The easing used when the child returns to its resting position.
+  final Curve returnCurve;
+
+  /// How long the child takes to return to its resting position.
+  ///
+  /// Must be nonnegative. Zero restores immediately, as does reduced motion.
+  final Duration returnDuration;
 
   /// Whether the child follows pointer movement on both axes.
   ///
@@ -31,10 +46,13 @@ final class InteractiveSwipeDismissDragConfig {
   /// above `1` make it travel farther.
   final double sensitivity;
 
-  /// The fraction of the matching viewport axis the finger must travel before
-  /// release commits dismissal.
+  /// The fraction of the child's size to drag before release
+  /// commits dismissal, according to the dismissal direction.
   ///
   /// This uses the unscaled finger distance, so [sensitivity] does not change
-  /// how far the user must drag. The value is inclusive from `0` to `1`.
-  final double dismissThreshold;
+  /// how far the user must drag. The size includes the wrapped child's padding
+  /// and is captured when the gesture starts. The value is inclusive from
+  /// `0` to `1`. A sufficiently fast fling can dismiss before this distance.
+  /// Without a positive finite child size, only a fling can commit dismissal.
+  final double dismissFraction;
 }

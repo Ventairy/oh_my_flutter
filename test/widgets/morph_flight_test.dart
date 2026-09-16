@@ -45,6 +45,45 @@ void main() {
       },
     );
 
+    for (final changeStatus in [false, true]) {
+      testWidgets(
+        'when ${changeStatus ? 'status' : 'uncurved progress'} changes at fixed curved progress, it should invalidate properties',
+        (tester) async {
+          final animation = AnimationController(vsync: tester, duration: const Duration(seconds: 1), value: .25);
+          addTearDown(animation.dispose);
+          final delegate = _CountingFlightDelegate();
+          final flight = MorphFlight<double>(
+            source: source,
+            destination: destination,
+            kind: MorphFlightKind.routePush,
+            curvedAnimation: const AlwaysStoppedAnimation(.5),
+            uncurvedAnimation: animation,
+            flightDelegate: delegate,
+          );
+          final before = flight.properties;
+          if (changeStatus) {
+            animation.reverse();
+          } else {
+            animation.value = .75;
+          }
+          final after = flight.properties;
+          final cached = flight.properties;
+          animation.stop();
+          expect(
+            (
+              before,
+              after,
+              cached,
+              delegate.interpolationCount,
+              delegate.lastProgress!.uncurvedProgress,
+              delegate.lastProgress!.animationStatus,
+            ),
+            (.5, .5, .5, 2, changeStatus ? .25 : .75, changeStatus ? AnimationStatus.reverse : AnimationStatus.forward),
+          );
+        },
+      );
+    }
+
     test(
       'when an endpoint transform is mutated, it should preserve the flight snapshot',
       () {

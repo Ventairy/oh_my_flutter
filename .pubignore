@@ -28,6 +28,7 @@ doc/api/
 pubspec_overrides.yaml
 skills-lock.json
 **/goldens/failures/
+**/test/**/failures/
 **/test/**/goldens/linux/
 **/test/**/goldens/macos/
 **/test/**/goldens/windows/

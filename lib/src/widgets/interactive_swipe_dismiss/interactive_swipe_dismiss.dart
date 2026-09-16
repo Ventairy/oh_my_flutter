@@ -6,9 +6,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 
-part '_interactive_swipe_dismiss_scope.dart';
 part '_interactive_swipe_dismiss_coordinator.dart';
 part '_interactive_swipe_dismiss_handle_gesture_recognizer.dart';
+part '_interactive_swipe_dismiss_scope.dart';
+part '_interactive_swipe_dismiss_scroll_edge.dart';
 part '_interactive_swipe_dismiss_scroll_source.dart';
 part '_interactive_swipe_dismiss_translation.dart';
 part '_interactive_swipe_dismiss_translation_controller.dart';
@@ -37,6 +38,8 @@ class InteractiveSwipeDismiss extends StatefulWidget {
   const InteractiveSwipeDismiss({
     required this.child,
     required this.onDismiss,
+    this.onOverdrag,
+    this.onPositionChanged,
     this.direction = InteractiveSwipeDismissDirection.down,
     this.dragConfig = const InteractiveSwipeDismissDragConfig(),
     super.key,
@@ -53,10 +56,51 @@ class InteractiveSwipeDismiss extends StatefulWidget {
   /// is called at most once per gesture.
   final FutureOr<bool> Function() onDismiss;
 
+  /// Reports how far the child has moved from its resting position.
+  ///
+  /// Use this to keep other content in sync with dragging and returning home.
+  /// The offset uses logical pixels after sensitivity and direction constraints,
+  /// with negative x for left and negative y for up. Free drag reports both axes.
+  ///
+  /// Called synchronously for every distinct translation, including each return
+  /// animation update and [Offset.zero] when the child returns home. Unchanged
+  /// positions, initial mounting, and disposal do not notify. Reduced motion
+  /// does not notify when the child stays stationary. Accepted dismissal keeps
+  /// the final position and does not report an artificial reset.
+  ///
+  /// `directionalFraction` measures translation toward [direction] divided by
+  /// the child's height for up/down or width for left/right. A value of `1.0`
+  /// means one full child size; values can exceed `1.0`. Sideways movement does
+  /// not contribute, and opposite movement reports zero. Both values reflect
+  /// sensitivity; this fraction is independent of the raw finger travel used
+  /// by [InteractiveSwipeDismissDragConfig.dismissFraction].
+  ///
+  ///
+  /// The callback is captured at gesture start and retained through the return;
+  /// changes apply to the next gesture.
+  final void Function(Offset offset, double directionalFraction)? onPositionChanged;
+
+  /// Reports total finger movement that cannot translate the child.
+  ///
+  /// Offsets use logical pixels before [InteractiveSwipeDismissDragConfig.sensitivity], with negative x for left
+  /// and negative y for up. Both components may be nonzero. The callback runs
+  /// when the restricted offset changes and reports [Offset.zero] when the
+  /// finger returns to an allowed offset, or the gesture ends or cancels.
+  /// If the initial direction rules out dismissal, the entire drag offset is
+  /// reported, including subsequent movement toward the dismissal direction.
+  /// The callback is captured at gesture start; changes apply next gesture.
+  ///
+  /// This notification does not move the child. [InteractiveSwipeDismissDragConfig.freeDrag] bypasses it because
+  /// movement is unrestricted. Reduced motion still reports gesture offsets;
+  /// consumers own any visual response and its accessibility behavior.
+  final void Function(Offset offset)? onOverdrag;
+
   /// The direction that can dismiss [child].
   ///
   /// This controls gesture recognition, scroll-edge arbitration, drag
-  /// commitment, and fling commitment.
+  /// commitment, and fling commitment. A gesture must initially favor this
+  /// direction after the activation distance. Starting opposite
+  /// cannot become a dismissal until the finger lifts and starts a new gesture.
   final InteractiveSwipeDismissDirection direction;
 
   /// Configuration that changes how pointer travel translates [child] and
@@ -70,7 +114,6 @@ class InteractiveSwipeDismiss extends StatefulWidget {
 class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with SingleTickerProviderStateMixin {
   static const _activationDistance = 10.0;
   static const _minimumFlingVelocity = 700.0;
-  static const _restoreDuration = Duration(milliseconds: 260);
   static const _flingCooldown = Duration(milliseconds: 120);
   static const _scrollEdgeTolerance = 0.5;
   static const _scrollAwayThreshold = 5.0;
@@ -89,6 +132,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   bool _pointerOwnedByHandle = false;
   bool _isInteractionActive = false;
   bool _isDirectionRejected = false;
+  bool? _initialDirectionAllowsDismissal;
   bool _isReducedMotion = false;
   bool _isAwaitingDismissal = false;
   bool _isCommitted = false;
@@ -98,7 +142,8 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   bool _isApplyingScrollFreeze = false;
   bool _surfaceWasBlockedByScroll = false;
   bool _resetScrollMovementAfterGesture = false;
-  double _viewportExtent = 1;
+  double? _childExtent;
+  Offset _overdragOffset = Offset.zero;
   Duration? _pointerDownTimeStamp;
   Duration? _previousPointerTimeStamp;
   Offset? _pointerDownPosition;
@@ -106,6 +151,8 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   PointerDeviceKind? _pointerDeviceKind;
   InteractiveSwipeDismissDirection? _gestureDirection;
   InteractiveSwipeDismissDragConfig? _gestureDragConfig;
+  void Function(Offset)? _gestureOnOverdrag;
+  void Function(Offset, double)? _gestureOnPositionChanged;
   double _pointerDx = 0;
   double _pointerDy = 0;
   double _interactionStartDx = 0;
@@ -137,6 +184,11 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   InteractiveSwipeDismissDragConfig get _effectiveDragConfig {
     return _gestureDragConfig ?? widget.dragConfig;
   }
+
+  void Function(Offset)? get _effectiveOnOverdrag =>
+      _gestureDragConfig != null ? _gestureOnOverdrag : widget.onOverdrag;
+
+  bool get _hasOverdrag => !_effectiveDragConfig.freeDrag && _effectiveOnOverdrag != null;
 
   Axis get _axis => _axisFor(_effectiveDirection);
 
@@ -188,6 +240,24 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     return metrics.pixels >= metrics.maxScrollExtent - _scrollEdgeTolerance;
   }
 
+  bool _canStartOverdragFromSurface(Offset delta) {
+    for (final source in _activeScrollSources) {
+      final position = source.position;
+      final component = position.axis == Axis.horizontal ? delta.dx : delta.dy;
+      if (component == 0) continue;
+      final positiveAxis =
+          position.axisDirection == AxisDirection.down || position.axisDirection == AxisDirection.right;
+      final minimum = (component > 0) == positiveAxis;
+      final distance = minimum
+          ? position.pixels - position.minScrollExtent
+          : position.maxScrollExtent - position.pixels;
+      if (distance > _scrollEdgeTolerance) return false;
+      final edge = minimum ? source.minimumEdge : source.maximumEdge;
+      if (edge.isCoolingDown) return false;
+    }
+    return true;
+  }
+
   bool get _canStartFromSurface {
     if (!_isAtDismissalEdge) return false;
     final now = SchedulerBinding.instance.currentSystemFrameTimeStamp;
@@ -201,12 +271,14 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   }
 
   bool _hasDirectionalIntent() {
+    if (_hasOverdrag) return Offset(_pointerDx, _pointerDy).distance >= _activationDistance;
     final primary = _signedPrimary(_pointerDx, _pointerDy);
     final cross = _crossAxis(_pointerDx, _pointerDy).abs();
     return primary >= _activationDistance && primary > cross;
   }
 
   bool _shouldRejectDirection() {
+    if (_hasOverdrag) return false;
     final primary = _signedPrimary(_pointerDx, _pointerDy);
     final cross = _crossAxis(_pointerDx, _pointerDy).abs();
     return primary <= -_activationDistance || (cross >= _activationDistance && cross >= primary.abs());
@@ -218,31 +290,38 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     return primary > 0 && primary > cross;
   }
 
+  Offset _dismissalOffset(Offset offset) {
+    final primary = _signedPrimary(offset.dx, offset.dy).clamp(0.0, double.infinity);
+    return switch (_effectiveDirection) {
+      InteractiveSwipeDismissDirection.down => Offset(0, primary),
+      InteractiveSwipeDismissDirection.up => Offset(0, -primary),
+      InteractiveSwipeDismissDirection.left => Offset(-primary, 0),
+      InteractiveSwipeDismissDirection.right => Offset(primary, 0),
+    };
+  }
+
+  void _reportOverdrag(Offset offset) {
+    if (!_hasOverdrag || offset == _overdragOffset) return;
+    _overdragOffset = offset;
+    _effectiveOnOverdrag!(offset);
+  }
+
+  void _setTranslation(double dx, double dy) {
+    if (_translationController.dx == dx && _translationController.dy == dy) return;
+    _translationController.setTranslation(dx, dy);
+    final extent = _childExtent;
+    _gestureOnPositionChanged?.call(
+      Offset(dx, dy),
+      extent == null ? 0.0 : _signedPrimary(dx, dy).clamp(0.0, double.infinity) / extent,
+    );
+  }
+
   void _updateVisualTranslation() {
-    final dragConfig = _effectiveDragConfig;
-    final sensitivity = dragConfig.sensitivity;
-    if (dragConfig.freeDrag) {
-      _translationController.setTranslation(
-        _interactionDx * sensitivity,
-        _interactionDy * sensitivity,
-      );
-      return;
-    }
-    final primary = _signedPrimary(
-      _interactionDx,
-      _interactionDy,
-    ).clamp(0.0, double.infinity);
-    final visualPrimary = primary * sensitivity;
-    switch (_effectiveDirection) {
-      case InteractiveSwipeDismissDirection.down:
-        _translationController.setTranslation(0, visualPrimary);
-      case InteractiveSwipeDismissDirection.up:
-        _translationController.setTranslation(0, -visualPrimary);
-      case InteractiveSwipeDismissDirection.left:
-        _translationController.setTranslation(-visualPrimary, 0);
-      case InteractiveSwipeDismissDirection.right:
-        _translationController.setTranslation(visualPrimary, 0);
-    }
+    if (_initialDirectionAllowsDismissal != true) return;
+    final config = _effectiveDragConfig;
+    final raw = Offset(_interactionDx, _interactionDy);
+    final offset = (config.freeDrag ? raw : _dismissalOffset(raw)) * config.sensitivity;
+    _setTranslation(offset.dx, offset.dy);
   }
 
   void _startInteraction(
@@ -289,14 +368,17 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
       _resetGestureState();
       return;
     }
-    final progress =
-        (_signedPrimary(
-                  _interactionDx,
-                  _interactionDy,
-                ) /
-                _viewportExtent)
-            .clamp(0.0, 1.0);
-    if (progress >= _effectiveDragConfig.dismissThreshold) {
+    if (_initialDirectionAllowsDismissal != true) {
+      _cancelInteraction();
+      return;
+    }
+    final extent = _childExtent;
+    final distance = _signedPrimary(_interactionDx, _interactionDy);
+    if (_hasOverdrag && distance <= 0) {
+      _cancelInteraction();
+      return;
+    }
+    if (extent != null && distance >= extent * _effectiveDragConfig.dismissFraction) {
       _requestDismissal();
       return;
     }
@@ -310,6 +392,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
 
   void _requestDismissal() {
     if (_isAwaitingDismissal) return;
+    _reportOverdrag(Offset.zero);
     _isAwaitingDismissal = true;
     _isInteractionActive = false;
     _releaseActiveScrollHolds();
@@ -346,9 +429,10 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   }
 
   void _cancelInteraction() {
+    _reportOverdrag(Offset.zero);
     _isInteractionActive = false;
     _releaseActiveScrollHolds();
-    if (_isReducedMotion) {
+    if (_isReducedMotion || _effectiveDragConfig.returnDuration == Duration.zero) {
       _resetGestureState();
       return;
     }
@@ -359,20 +443,21 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
       return;
     }
     (_restoreController ??= _createRestoreController())
+      ..duration = _effectiveDragConfig.returnDuration
       ..value = 0
       ..forward();
   }
 
   void _handleRestoreTick() {
-    final remaining = 1 - _restoreController!.value;
-    _translationController.setTranslation(
+    final remaining = 1 - _effectiveDragConfig.returnCurve.transform(_restoreController!.value);
+    _setTranslation(
       _restoreStartDx * remaining,
       _restoreStartDy * remaining,
     );
   }
 
   AnimationController _createRestoreController() {
-    return AnimationController(vsync: this, duration: _restoreDuration)
+    return AnimationController(vsync: this)
       ..addListener(_handleRestoreTick)
       ..addStatusListener((status) {
         if (status != AnimationStatus.completed) return;
@@ -381,6 +466,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   }
 
   void _resetGestureState({bool keepVisualState = false}) {
+    _reportOverdrag(Offset.zero);
     _gestureGeneration += 1;
     _scrollFreezeRevision += 1;
     _releasePointerOwnership();
@@ -388,6 +474,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     _pointerOwnedByHandle = false;
     _isInteractionActive = false;
     _isDirectionRejected = false;
+    _initialDirectionAllowsDismissal = null;
     _isReducedMotion = false;
     _isAwaitingDismissal = false;
     _surfaceWasBlockedByScroll = false;
@@ -409,17 +496,21 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     }
     _frozenScrollSources.clear();
     _activeScrollSources.clear();
-    _gestureDirection = null;
     _gestureDragConfig = null;
+    _gestureOnOverdrag = null;
     if (_resetScrollMovementAfterGesture) {
       _resetScrollMovementAfterGesture = false;
       _resetScrollMovement();
     }
-    if (keepVisualState) return;
-    _isCommitted = false;
-    _translationController.setTranslation(0, 0);
-    _restoreStartDx = 0;
-    _restoreStartDy = 0;
+    if (!keepVisualState) {
+      _isCommitted = false;
+      _setTranslation(0, 0);
+      _restoreStartDx = 0;
+      _restoreStartDy = 0;
+    }
+    _gestureOnPositionChanged = null;
+    _gestureDirection = null;
+    _childExtent = null;
   }
 
   bool _handlePointerDown(
@@ -437,6 +528,8 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     _gestureGeneration += 1;
     _gestureDirection = widget.direction;
     _gestureDragConfig = widget.dragConfig;
+    _gestureOnOverdrag = widget.onOverdrag;
+    _gestureOnPositionChanged = widget.onPositionChanged;
     _activePointer = event.pointer;
     _pointerOwnedByHandle = fromHandle;
     _isReducedMotion = MediaQuery.disableAnimationsOf(context);
@@ -446,14 +539,16 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     _previousPointerPosition = event.position;
     _pointerDeviceKind = event.kind;
     _selectScrollSourcesAt(event.position, event.viewId);
-    final size = MediaQuery.sizeOf(context);
-    _viewportExtent = _axis == Axis.vertical ? size.height : size.width;
+    final size = _translationController.childSize;
+    final extent = _axis == Axis.vertical ? size?.height : size?.width;
+    _childExtent = extent != null && extent.isFinite && extent > 0 ? extent : null;
     _pointerDx = 0;
     _pointerDy = 0;
     _interactionStartDx = 0;
     _interactionStartDy = 0;
     _surfaceWasBlockedByScroll = false;
     _isDirectionRejected = false;
+    _initialDirectionAllowsDismissal = null;
     return true;
   }
 
@@ -477,16 +572,24 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     _previousPointerPosition = event.position;
     _pointerDx += deltaDx ?? event.delta.dx;
     _pointerDy += deltaDy ?? event.delta.dy;
+    if (_initialDirectionAllowsDismissal == null) {
+      final primary = _signedPrimary(_pointerDx, _pointerDy);
+      final cross = _crossAxis(_pointerDx, _pointerDy).abs();
+      final activated = _hasOverdrag
+          ? Offset(_pointerDx, _pointerDy).distance >= _activationDistance
+          : primary.abs() >= _activationDistance || cross >= _activationDistance;
+      if (activated) _initialDirectionAllowsDismissal = primary > 0 && primary > cross;
+    }
     if (!_isInteractionActive) {
       if (!_hasDirectionalIntent()) {
         if (_shouldRejectDirection()) _isDirectionRejected = true;
         return;
       }
-      if (!fromHandle && !_canStartFromSurface) {
+      if (!fromHandle && !(_hasOverdrag ? _canStartOverdragFromSurface(event.delta) : _canStartFromSurface)) {
         _surfaceWasBlockedByScroll = true;
         return;
       }
-      if (!fromHandle && _surfaceWasBlockedByScroll && !_moveFavorsDismissal(event)) {
+      if (!fromHandle && _surfaceWasBlockedByScroll && !_hasOverdrag && !_moveFavorsDismissal(event)) {
         return;
       }
       _startInteraction(
@@ -500,6 +603,10 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     }
     if (!_isReducedMotion) {
       _updateVisualTranslation();
+    }
+    if (_hasOverdrag) {
+      final raw = Offset(_interactionDx, _interactionDy);
+      _reportOverdrag((_initialDirectionAllowsDismissal ?? false) ? raw - _dismissalOffset(raw) : raw);
     }
   }
 
@@ -578,7 +685,9 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
       source
         ..wasAwayFromEdge = previousSource.wasAwayFromEdge
         ..peakDelta = previousSource.peakDelta
-        ..flingReachedEdgeAt = previousSource.flingReachedEdgeAt;
+        ..flingReachedEdgeAt = previousSource.flingReachedEdgeAt
+        ..minimumEdge = previousSource.minimumEdge
+        ..maximumEdge = previousSource.maximumEdge;
     }
     _scrollSourceByScrollable[scrollable] = source;
     _scrollSourceByNotificationContext[scrollContext] = source;
@@ -627,7 +736,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
         );
         _scrollSourceByScrollable[scrollable] = source;
       }
-      if (source.position.axis != _axis) continue;
+      if (!_hasOverdrag && source.position.axis != _axis) continue;
       final renderObject = source.renderObject;
       if (renderObject != null && renderObject.attached) {
         sourcesByTarget[renderObject] = source;
@@ -645,6 +754,12 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
       if (source == null || selectedSources.contains(source)) continue;
       if (_distanceFromDismissalEdge(source.position) > _scrollAwayThreshold) {
         source.wasAwayFromEdge = true;
+      }
+      if (source.position.pixels - source.position.minScrollExtent > _scrollAwayThreshold) {
+        source.minimumEdge.wasAway = true;
+      }
+      if (source.position.maxScrollExtent - source.position.pixels > _scrollAwayThreshold) {
+        source.maximumEdge.wasAway = true;
       }
       selectedSources.add(source);
     }
@@ -727,6 +842,18 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     double delta, {
     required bool isBallistic,
   }) {
+    if (_hasOverdrag) {
+      source.minimumEdge.track(
+        metrics.pixels - metrics.minScrollExtent,
+        delta,
+        isBallistic: isBallistic,
+      );
+      source.maximumEdge.track(
+        metrics.maxScrollExtent - metrics.pixels,
+        delta,
+        isBallistic: isBallistic,
+      );
+    }
     final distance = _distanceFromDismissalEdge(metrics);
     if (distance > _scrollAwayThreshold) {
       source
@@ -749,7 +876,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     final scrollContext = notification.context;
     if (scrollContext == null) return false;
     final source = _registerScrollSource(scrollContext);
-    if (source == null || _isReleasingScrollHold || notification.metrics.axis != _axis) {
+    if (source == null || _isReleasingScrollHold || (!_hasOverdrag && notification.metrics.axis != _axis)) {
       return false;
     }
     if (!_isApplyingScrollFreeze && notification is ScrollUpdateNotification) {
@@ -817,7 +944,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     final source = _registerScrollSource(notification.context);
     if (source != null &&
         !_isReleasingScrollHold &&
-        notification.metrics.axis == _axis &&
+        (_hasOverdrag || notification.metrics.axis == _axis) &&
         _activeScrollSources.contains(source)) {
       _scheduleScrollFreezeReconciliation();
     }
@@ -887,6 +1014,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     _activePointer = null;
     _releasePointerOwnership();
     _releaseActiveScrollHolds();
+    _resetScrollMovement();
     _restoreController
       ?..removeListener(_handleRestoreTick)
       ..dispose();
@@ -911,6 +1039,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
 
   @override
   Widget build(BuildContext context) {
+    assert(widget.dragConfig._debugValidate(), 'Invalid drag configuration.');
     return _InteractiveSwipeDismissScope(
       coordinator: _coordinator,
       child: Listener(

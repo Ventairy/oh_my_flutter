@@ -47,7 +47,7 @@ class _MorphColumnFlightState extends State<_MorphColumnFlight> {
       builder: (context, child) {
         return widget.delegate._buildProperties(
           context,
-          _plan.lerp(widget.flight.curvedAnimation.value),
+          _plan.lerp(widget.flight._progress),
           switchTransition: widget.switchTransition,
         );
       },

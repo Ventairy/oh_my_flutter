@@ -58,10 +58,10 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
   _MorphAutomaticProperties lerpProperties(
     _MorphAutomaticProperties source,
     _MorphAutomaticProperties destination,
-    double progress,
+    MorphFlightProgress progress,
   ) {
     if (!_sharesSpecialization(source, destination)) {
-      return progress < switchThreshold ? source : destination;
+      return progress.curvedProgress < switchThreshold ? source : destination;
     }
     return _MorphAutomaticProperties(
       MorphChildFlightDelegate.lerp(

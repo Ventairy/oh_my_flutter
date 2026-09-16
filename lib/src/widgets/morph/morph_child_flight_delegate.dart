@@ -176,11 +176,11 @@ final class MorphChildFlightDelegate {
   static MorphChildProperties lerp({
     required MorphChildProperties source,
     required MorphChildProperties destination,
-    required double progress,
+    required MorphFlightProgress progress,
     required double switchThreshold,
     required bool transitionEnabled,
   }) {
-    final showSource = progress < switchThreshold;
+    final showSource = progress.curvedProgress < switchThreshold;
     final selected = showSource ? source : destination;
     final sourceText = source.text;
     final destinationText = destination.text;
@@ -204,17 +204,17 @@ final class MorphChildFlightDelegate {
 
     return MorphChildProperties(
       widget: selected.widget,
-      rect: Rect.lerp(source.rect, destination.rect, progress)!,
-      padding: EdgeInsets.lerp(source.padding, destination.padding, progress)!,
+      rect: Rect.lerp(source.rect, destination.rect, progress.curvedProgress)!,
+      padding: EdgeInsets.lerp(source.padding, destination.padding, progress.curvedProgress)!,
       alignment: Alignment.lerp(
         source.alignment,
         destination.alignment,
-        progress,
+        progress.curvedProgress,
       ),
       explicitSize: Size.lerp(
         source.explicitSize,
         destination.explicitSize,
-        progress,
+        progress.curvedProgress,
       ),
       text: text,
       container: container,
@@ -223,7 +223,7 @@ final class MorphChildFlightDelegate {
       mediaQueryData: selected._mediaQueryData,
       transitionProgress: transitionEnabled
           ? _transitionProgress(
-              progress: progress,
+              progress: progress.curvedProgress,
               threshold: switchThreshold,
               departing: showSource,
             )

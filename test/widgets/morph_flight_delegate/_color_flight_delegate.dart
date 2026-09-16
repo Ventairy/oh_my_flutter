@@ -14,7 +14,8 @@ final class _ColorFlightDelegate extends MorphFlightDelegate<Color> {
   }
 
   @override
-  Color lerpProperties(Color source, Color destination, double progress) => Color.lerp(source, destination, progress)!;
+  Color lerpProperties(Color source, Color destination, MorphFlightProgress progress) =>
+      Color.lerp(source, destination, progress.curvedProgress)!;
 
   @override
   Widget buildFlight(BuildContext context, MorphFlight<Color> flight) {

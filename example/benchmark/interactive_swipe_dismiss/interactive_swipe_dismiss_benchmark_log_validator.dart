@@ -40,7 +40,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
   static const double _initialScrollOffset = 600;
   static const double _scrollTolerance = 0.01;
   static const double _sensitivity = 0.37;
-  static const double _dismissThreshold = 0.25;
+  static const double _dismissFraction = 0.25;
   static final RegExp _invalidAttemptPath = RegExp(
     r'^steady\.trial_([12])\.invalid\.attempt_([1-3])$',
   );
@@ -396,7 +396,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
       'direction': 'down',
       'free_drag': true,
       'sensitivity': _sensitivity,
-      'dismiss_threshold': _dismissThreshold,
+      'dismiss_threshold': _dismissFraction,
       'initial_scroll_offset_px': _initialScrollOffset,
       'heavy_row_count': _heavyRowCount,
       'gesture_driver': 'synthetic_touch_one_move_per_vsync',
@@ -446,9 +446,15 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
         'Environment device_pixel_ratio must be finite and positive.',
       );
     }
+    final childHeight = _validatePositiveSize(
+      environment['child_size'],
+      'Environment child_size',
+      issues,
+    );
+    if (childHeight == null) return null;
     if (logicalHeight == null || expectedBudget == null) return null;
     return (
-      dismissDistance: logicalHeight * _dismissThreshold,
+      dismissDistance: childHeight * _dismissFraction,
       frameBudget: expectedBudget,
       maximumRawPrimary: math.min(120, logicalHeight * 0.18),
     );

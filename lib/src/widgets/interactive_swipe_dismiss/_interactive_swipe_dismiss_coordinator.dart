@@ -7,6 +7,8 @@ class _InteractiveSwipeDismissCoordinator {
 
   InteractiveSwipeDismissDirection get direction => state._effectiveDirection;
 
+  bool get hasOverdrag => state._hasOverdrag;
+
   double get activationDistance => _InteractiveSwipeDismissState._activationDistance;
 
   bool handlePointerDown(PointerDownEvent event) {

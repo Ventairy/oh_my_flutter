@@ -1,3 +1,45 @@
+## 0.22.0
+
+- Add `SnapList` with horizontal and vertical snapping, eager and lazy children,
+  configurable item sizing and motion, adjacent navigation, automatic nested
+  scrolling handoff, and measured trailing content.
+
+- Add `InteractiveSwipeDismiss.onPositionChanged` to follow every change to
+  the child's actual offset and directional fraction of its size during
+  dragging and return motion.
+
+- Inspect shared-element navigation through
+  `MorphNavigatorObserver.maybeOfNavigator` and `tagStatus`. Read or listen for
+  pending, unmatched, flying, completed, and cancelled results to choose a
+  normal route transition when a shared flight is unavailable. Use
+  `MorphScope(enabled: false)` to prevent new flights in a subtree while
+  preserving ongoing transitions.
+
+- Keep swipe dismissal tied to the gesture's initial direction. Sideways and
+  opposite starts report their entire drag as overdrag and cannot turn into a
+  dismissal until the finger lifts and starts again.
+
+- Add optional `InteractiveSwipeDismiss.onOverdrag` to report raw
+  movement outside the dismissal direction, including diagonal pulls and
+  scroll-edge handoff. Consumers own the visual response; free drag bypasses
+  notifications.
+
+- **Breaking:** Rename `InteractiveSwipeDismissDragConfig.dismissThreshold` to
+  `dismissFraction`. Dismissal distance now uses the wrapped child's size,
+  captured at gesture start, instead of the screen size.
+
+- Configure swipe dismissal return motion with `returnCurve` and
+  `returnDuration` in `InteractiveSwipeDismissDragConfig`. Existing defaults
+  remain linear over 260 ms.
+
+- **Breaking:** Custom Morph delegates now receive `MorphFlightProgress` in
+  `lerpProperties` instead of a numeric progress argument. Use
+  `progress.curvedProgress` to preserve existing interpolation, or
+  `progress.uncurvedProgress` for independent content timing. The context also
+  exposes `flightKind` and `animationStatus`, and keeps interrupted flights
+  consistent with their visible content. Direct calls and
+  `MorphChildFlightDelegate.lerp` also require the new context.
+
 ## 0.21.0
 
 - **Breaking:** Morph now uses stable `MorphTarget` instances and a

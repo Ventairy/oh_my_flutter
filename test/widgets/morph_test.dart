@@ -376,11 +376,11 @@ class _TestFlightDelegate extends MorphFlightDelegate<_TestProperties> {
   _TestProperties lerpProperties(
     _TestProperties source,
     _TestProperties destination,
-    double progress,
+    MorphFlightProgress progress,
   ) {
     return _TestProperties(
-      Color.lerp(source.color, destination.color, progress)!,
-      Offset.lerp(source.axisScale, destination.axisScale, progress)!,
+      Color.lerp(source.color, destination.color, progress.curvedProgress)!,
+      Offset.lerp(source.axisScale, destination.axisScale, progress.curvedProgress)!,
     );
   }
 

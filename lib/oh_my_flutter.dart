@@ -50,11 +50,14 @@ export 'src/widgets/morph/morph.dart'
         MorphFlight,
         MorphFlightConfig,
         MorphFlightDelegate,
+        MorphFlightProgress,
         MorphNavigatorObserver,
+        MorphScope,
         MorphSibling,
         MorphTarget;
 export 'src/widgets/morph/morph_descendant_flight_behavior.dart' show MorphDescendantFlightBehavior;
 export 'src/widgets/morph/morph_flight_kind.dart' show MorphFlightKind;
+export 'src/widgets/morph/morph_tag_status.dart' show MorphTagStatus;
 export 'src/widgets/motion/motion.dart'
     show
         FadeInMotionEffect,
@@ -86,3 +89,6 @@ export 'src/widgets/skeleton/skeleton.dart'
         SkeletonShimmerEffect,
         SkeletonStaticEffectBase,
         SkeletonStyle;
+
+export 'src/widgets/snap_list/snap_list.dart' show SnapList, SnapListController;
+export 'src/widgets/snap_list/snap_list_alignment.dart' show SnapListAlignment;

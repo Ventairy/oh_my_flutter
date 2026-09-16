@@ -4,8 +4,8 @@ part of 'interactive_swipe_dismiss.dart';
 ///
 /// Wrap a header, toolbar, or any other widget when dragging anywhere within
 /// that widget should begin dismissal regardless of descendant scroll position.
-/// Taps and cross-axis gestures remain available until movement clearly favors
-/// the dismissal direction. This widget does not change the appearance or
+/// Taps remain available until a drag is recognized. Cross-axis gestures also
+/// remain available unless overdrag is enabled on the surrounding wrapper. This widget does not change the appearance or
 /// layout of [child].
 class InteractiveSwipeDismissHandle extends StatelessWidget {
   /// Creates a drag handle around [child].

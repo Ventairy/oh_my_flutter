@@ -153,6 +153,7 @@ class Morph extends StatefulWidget {
 }
 
 class _MorphState extends State<Morph> {
+  bool _scopeEnabled = true;
   _MorphVisibilityHandle _visibility = _MorphVisibilityHandle();
   _MorphEndpointHandle? _endpoint;
   MorphTarget? _attachedTarget;
@@ -456,6 +457,7 @@ class _MorphState extends State<Morph> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    _scopeEnabled = _MorphScope.enabledOf(context);
     if (_MorphFlightScope.contains(context)) {
       _detachTarget();
       _detach();

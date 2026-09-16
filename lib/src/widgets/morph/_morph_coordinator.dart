@@ -171,6 +171,7 @@ class _MorphCoordinator extends ChangeNotifier {
       insertionIndex += 1;
     }
     _orderedFlights.insert(insertionIndex, flight);
+    flight.destinationHandle.observer?._acceptTagFlight(flight);
     for (final sibling in _siblings) {
       if (!sibling.active || sibling.tag != flight.tag) continue;
       _attachSiblingFlight(sibling);
@@ -290,7 +291,11 @@ class _MorphCoordinator extends ChangeNotifier {
         final pending = _pendingGroups.toList(growable: false);
         _pendingGroups.clear();
         for (final group in pending) {
-          if (identical(_groups[group.tag], group)) _reconcile(group);
+          if (identical(_groups[group.tag], group)) {
+            _reconcile(group);
+            final flight = _flights[group.tag];
+            if (flight != null) flight.destinationHandle.observer?._acceptTagFlight(flight);
+          }
         }
         _scheduledIncomingEndpoints.removeWhere(
           (endpoint) => !_pendingGroups.contains(_groups[endpoint.tag]),
@@ -456,6 +461,11 @@ class _MorphCoordinator extends ChangeNotifier {
       _transferOwnershipImmediately(destination);
       return;
     }
+    if (current == null && (!source.flightsEnabled || !destination.flightsEnabled)) {
+      _transferOwnershipImmediately(destination);
+      return;
+    }
+
     final configuredDuration = source.configuredDuration;
     final animation = source.route?.animation;
     if (configuredDuration == null && (animation == null || animation.isDismissed)) {
@@ -573,12 +583,22 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
 
+    if (_flights[destination.tag] == null && !destination.flightsEnabled) {
+      _transferOwnershipImmediately(destination);
+      return;
+    }
+
     final structuralOrder = destination.structuralOrder ?? destination.registrationOrder;
     final registrationOrder = destination.registrationOrder;
     destination.visibility.hidden = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!destination.active || destination.disposed) return;
       if (!identical(_groups[destination.tag]?.selected?.target, destination.target)) return;
+
+      if (_flights[destination.tag] == null && !destination.flightsEnabled) {
+        _transferOwnershipImmediately(destination);
+        return;
+      }
 
       final capturedDestination = _capture(destination);
       if (capturedDestination == null) {
@@ -661,6 +681,10 @@ class _MorphCoordinator extends ChangeNotifier {
   }) {
     if (!identical(_groups[destination.tag]?.selected?.target, destination.target)) return;
     if (destination.animationsDisabled) {
+      _transferOwnershipImmediately(destination);
+      return;
+    }
+    if (_flights[destination.tag] == null && !destination.flightsEnabled) {
       _transferOwnershipImmediately(destination);
       return;
     }
@@ -760,6 +784,7 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
 
+    flight.destinationHandle.observer?._completeTagFlight(flight, winner);
     _removeFlight(flight.tag);
     _claimOwnership(winner);
     flight.dispose();
@@ -814,6 +839,7 @@ class _MorphCoordinator extends ChangeNotifier {
   }
 
   void _flightEnded(_MorphActiveFlight flight) {
+    flight.destinationHandle.observer?._endTagFlight(flight);
     for (final sibling in _siblings) {
       if (sibling.tag == flight.tag) {
         sibling.detachFlight(flight);
@@ -900,6 +926,11 @@ class _MorphCoordinator extends ChangeNotifier {
     final existingFlight = _flights[destination.tag];
     if (existingFlight != null) {
       _retarget(existingFlight, destination);
+      return;
+    }
+
+    if (!source.flightsEnabled || !destination.flightsEnabled) {
+      _transferOwnershipImmediately(destination);
       return;
     }
 
@@ -1335,6 +1366,12 @@ class _MorphCoordinator extends ChangeNotifier {
     required Animation<double> flightAnimation,
     _MorphControllerLease? controllerLease,
   }) {
+    if (!sourceHandle.flightsEnabled || !destinationHandle.flightsEnabled) {
+      _transferOwnershipImmediately(destinationHandle);
+      controllerLease?.release();
+      return;
+    }
+
     if (!_delegatesAreCompatible(
       sourceHandle.delegate,
       destinationHandle.delegate,

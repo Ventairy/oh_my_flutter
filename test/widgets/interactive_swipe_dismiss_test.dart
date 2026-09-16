@@ -8,6 +8,132 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 void main() {
   group('InteractiveSwipeDismiss', () {
+    testWidgets('when return settings are omitted, it should return linearly over 260 milliseconds', (tester) async {
+      await tester.pumpWidget(const _TestApp(onDismiss: _TestApp.rejectDismissal));
+      final initial = _topLeft(tester);
+      final gesture = await tester.startGesture(_center(tester));
+      await gesture.moveBy(const Offset(0, 120));
+      await tester.pump();
+      await gesture.cancel();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 130));
+      final midpoint = _topLeft(tester) - initial;
+      await tester.pump(const Duration(milliseconds: 130));
+      expect((midpoint, _topLeft(tester)), (const Offset(0, 60), initial));
+    });
+
+    for (final ending in ['cancel', 'incomplete', 'rejected']) {
+      testWidgets('when $ending returns with custom motion, it should curve both axes over the configured duration', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _TestApp(
+            onDismiss: _TestApp.rejectDismissal,
+            dragConfig: InteractiveSwipeDismissDragConfig(
+              freeDrag: true,
+              dismissFraction: ending == 'rejected' ? 0 : 1,
+              returnCurve: Curves.easeInQuad,
+              returnDuration: const Duration(milliseconds: 400),
+            ),
+          ),
+        );
+        final initial = _topLeft(tester);
+        final gesture = await tester.startGesture(_center(tester));
+        await gesture.moveBy(const Offset(40, 120));
+        await tester.pump(const Duration(milliseconds: 500));
+        final displacement = _topLeft(tester) - initial;
+        if (ending == 'cancel') {
+          await gesture.cancel();
+        } else {
+          await gesture.up();
+        }
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        final midpoint = _topLeft(tester) - initial;
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(
+          (midpoint, _topLeft(tester)),
+          (
+            displacement * (1 - Curves.easeInQuad.transform(0.5)),
+            initial,
+          ),
+        );
+      });
+    }
+
+    for (final reducedMotion in [false, true]) {
+      testWidgets('when return is immediate with reduced motion $reducedMotion, it should restore without a ticker', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _TestApp(
+            disableAnimations: reducedMotion,
+            onDismiss: _TestApp.rejectDismissal,
+            dragConfig: InteractiveSwipeDismissDragConfig(
+              returnCurve: Curves.easeInQuad,
+              returnDuration: reducedMotion ? const Duration(seconds: 1) : Duration.zero,
+            ),
+          ),
+        );
+        final initial = _topLeft(tester);
+        final gesture = await tester.startGesture(_center(tester));
+        await gesture.moveBy(const Offset(0, 120));
+        await tester.pump();
+        await gesture.cancel();
+        await tester.pump();
+        expect((_topLeft(tester), tester.binding.transientCallbackCount), (initial, 0));
+      });
+    }
+
+    testWidgets('when return duration is negative, it should reject configuration', (tester) async {
+      await tester.pumpWidget(
+        const _TestApp(
+          onDismiss: _TestApp.rejectDismissal,
+          dragConfig: InteractiveSwipeDismissDragConfig(returnDuration: Duration(milliseconds: -1)),
+        ),
+      );
+      expect(tester.takeException(), isAssertionError);
+    });
+
+    testWidgets('when configuration changes during a gesture and return, it should apply only to the next gesture', (
+      tester,
+    ) async {
+      const original = InteractiveSwipeDismissDragConfig(
+        returnCurve: Curves.easeInQuad,
+        returnDuration: Duration(milliseconds: 400),
+      );
+      const next = InteractiveSwipeDismissDragConfig(returnDuration: Duration(milliseconds: 100));
+      await tester.pumpWidget(const _TestApp(onDismiss: _TestApp.rejectDismissal, dragConfig: original));
+      final initial = _topLeft(tester);
+      final gesture = await tester.startGesture(_center(tester));
+      await gesture.moveBy(const Offset(0, 120));
+      await tester.pumpWidget(const _TestApp(onDismiss: _TestApp.rejectDismissal, dragConfig: next));
+      await gesture.cancel();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(const _TestApp(onDismiss: _TestApp.rejectDismissal, dragConfig: next));
+      await tester.pump(const Duration(milliseconds: 100));
+      final firstMidpoint = _topLeft(tester).dy - initial.dy;
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpAndSettle();
+      final nextGesture = await tester.startGesture(_center(tester));
+      await nextGesture.moveBy(const Offset(0, 120));
+      await tester.pump();
+      await nextGesture.cancel();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+      final nextMidpoint = _topLeft(tester).dy - initial.dy;
+      await tester.pump(const Duration(milliseconds: 50));
+      expect(
+        (firstMidpoint, nextMidpoint, _topLeft(tester)),
+        (
+          120 * (1 - Curves.easeInQuad.transform(0.5)),
+          60.0,
+          initial,
+        ),
+      );
+    });
+
     testWidgets('when config is omitted, it should follow a downward pointer', (
       tester,
     ) async {
@@ -421,7 +547,7 @@ void main() {
       await tester.pumpWidget(
         _TestApp(
           dragConfig: const InteractiveSwipeDismissDragConfig(
-            dismissThreshold: 0.75,
+            dismissFraction: 0.75,
           ),
           onDismiss: () {
             dismissals += 1;
@@ -446,7 +572,7 @@ void main() {
       await tester.pumpWidget(
         _TestApp(
           dragConfig: const InteractiveSwipeDismissDragConfig(
-            dismissThreshold: 0.95,
+            dismissFraction: 0.95,
           ),
           onDismiss: () {
             dismissed = true;
@@ -1210,7 +1336,7 @@ void main() {
           MaterialApp(
             home: InteractiveSwipeDismiss(
               dragConfig: const InteractiveSwipeDismissDragConfig(
-                dismissThreshold: 0.1,
+                dismissFraction: 0.1,
               ),
               onDismiss: () {
                 outerDismissals += 1;
@@ -1218,7 +1344,7 @@ void main() {
               },
               child: InteractiveSwipeDismiss(
                 dragConfig: const InteractiveSwipeDismissDragConfig(
-                  dismissThreshold: 0.1,
+                  dismissFraction: 0.1,
                 ),
                 onDismiss: () {
                   innerDismissals += 1;

@@ -15,7 +15,8 @@ class _MorphColumnFlightPlan {
   final bool transitionEnabled;
   final _MorphColumnChildMatching _matching;
 
-  MorphColumnProperties lerp(double progress) {
+  MorphColumnProperties lerp(MorphFlightProgress flightProgress) {
+    final progress = flightProgress.curvedProgress;
     if (progress <= 0) return source;
     if (progress >= 1) return destination;
 
@@ -39,7 +40,7 @@ class _MorphColumnFlightPlan {
         MorphChildFlightDelegate.lerp(
           source: source.children[sourceIndex],
           destination: destination.children[destinationIndex],
-          progress: progress,
+          progress: flightProgress,
           switchThreshold: source.switchThreshold,
           transitionEnabled: transitionEnabled,
         ),

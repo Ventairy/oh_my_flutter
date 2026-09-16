@@ -36,12 +36,16 @@ final class _InteractiveSwipeDismissHandleGestureRecognizer extends OneSequenceG
   }
 
   bool get _hasDirectionalIntent {
+    if (_activeCoordinator.hasOverdrag) {
+      return Offset(_accumulatedDx, _accumulatedDy).distance >= _activeCoordinator.activationDistance;
+    }
     final primary = _signedPrimary;
     final cross = _crossAxis.abs();
     return primary >= _activeCoordinator.activationDistance && primary > cross;
   }
 
   bool get _shouldRejectDirection {
+    if (_activeCoordinator.hasOverdrag) return false;
     final primary = _signedPrimary;
     final cross = _crossAxis.abs();
     return primary <= -_activeCoordinator.activationDistance ||

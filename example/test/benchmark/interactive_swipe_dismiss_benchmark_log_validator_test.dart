@@ -66,6 +66,7 @@ void main() {
         'gesture_driver': 'synthetic_touch_one_move_per_vsync',
         'refresh_rate_hz': 60.0,
         'frame_budget_us': frameBudget,
+        'child_size': <String, double>{'width': 336, 'height': 600},
         'logical_size': <String, double>{'width': 360, 'height': 800},
         'physical_size': <String, double>{'width': 1080, 'height': 2400},
         'device_pixel_ratio': 3.0,
@@ -123,7 +124,7 @@ void main() {
         'dismiss_callbacks': dismissCallbacks,
         'maximum_transient_callbacks': 1,
         'maximum_raw_primary_px': 120.0,
-        'dismiss_distance_px': 200.0,
+        'dismiss_distance_px': 150.0,
         'build_over_budget': 0,
         'raster_over_budget': 0,
         'total_span_over_budget': 0,
@@ -206,6 +207,17 @@ void main() {
   }
 
   group('InteractiveSwipeDismissBenchmarkLogValidator', () {
+    test(
+      'when dismissal distance uses the screen, it should reject the log',
+      () {
+        final log = buildLog().replaceAll(
+          '"dismiss_distance_px":150.0',
+          '"dismiss_distance_px":200.0',
+        );
+        expect(validator().validate(log).passed, isFalse);
+      },
+    );
+
     test(
       'when a complete baseline log passes, it should accept diagnostic paints',
       () {

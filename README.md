@@ -172,6 +172,15 @@ example to refresh related content when the protected widget moves.
 showing native selection menus on Android, iOS, macOS, Windows, and Linux, with
 an adaptive Flutter fallback elsewhere.
 
+### SnapList
+
+`SnapList` builds swipeable feeds and carousels that settle on one item after
+each swipe. It can do things such as show a TikTok-style vertical feed with
+full-screen items, or a horizontal carousel with neighboring cards peeking
+into view. Supply a small list of children or build a larger feed lazily, with
+optional trailing content for loading feedback or an end message. Your app
+supplies the content, styling, and any video playback.
+
 ### Sequence
 
 `Sequence` presents one step at a time in an ordered flow, such as onboarding

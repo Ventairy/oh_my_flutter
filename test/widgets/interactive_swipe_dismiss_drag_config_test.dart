@@ -1,3 +1,4 @@
+import 'package:flutter/animation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
@@ -8,7 +9,9 @@ void main() {
 
       expect(config.freeDrag, isFalse);
       expect(config.sensitivity, 1);
-      expect(config.dismissThreshold, 0.5);
+      expect(config.dismissFraction, 0.5);
+      expect(config.returnCurve, Curves.linear);
+      expect(config.returnDuration, const Duration(milliseconds: 260));
     });
 
     test('when sensitivity is not positive, it should reject configuration', () {
@@ -29,14 +32,14 @@ void main() {
 
     test('when threshold is below zero, it should reject configuration', () {
       expect(
-        () => InteractiveSwipeDismissDragConfig(dismissThreshold: -0.01),
+        () => InteractiveSwipeDismissDragConfig(dismissFraction: -0.01),
         throwsAssertionError,
       );
     });
 
     test('when threshold is above one, it should reject configuration', () {
       expect(
-        () => InteractiveSwipeDismissDragConfig(dismissThreshold: 1.01),
+        () => InteractiveSwipeDismissDragConfig(dismissFraction: 1.01),
         throwsAssertionError,
       );
     });
