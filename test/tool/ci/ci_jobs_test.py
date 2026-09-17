@@ -27,6 +27,7 @@ class CiJobsTest(unittest.TestCase):
             '.github/workflows/ci.yml': all_jobs,
             'example/integration_test/country_names_test.dart': all_jobs,
             'new_input.json': all_jobs,
+            'test/fixtures/unknown_input.json': all_jobs,
             'test/fixtures/country_iso_3166_1.csv': {'macos-native', 'windows-native'},
             **{path: set(jobs) for path, jobs in CiJobs.desktop_tests.items()},
         }
@@ -68,8 +69,14 @@ class CiJobsTest(unittest.TestCase):
             (root / 'windows/deleted').unlink()
             git('add', '-A')
             git('commit', '-m', 'change')
+            head = git('rev-parse', 'HEAD')
+            git('checkout', '--detach', base)
+            (root / 'base-only.json').write_text('base advanced independently')
+            git('add', '.')
+            git('commit', '-m', 'advance base')
+            base = git('rev-parse', 'HEAD')
             with patch.dict(os.environ, GIT_DIR=str(root / '.git'), GIT_WORK_TREE=str(root)):
-                self.assertEqual(set(CiJobs.changed_paths(base, 'HEAD')),
+                self.assertEqual(set(CiJobs.changed_paths(base, head)),
                                  {'android/old file', 'moved.md', 'windows/deleted'})
 
     def test_when_gate_results_change_it_should_only_accept_expected_skips(self):

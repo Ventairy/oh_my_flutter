@@ -40,7 +40,9 @@ class CiJobs:
                 for platform in cls.platforms:
                     if path.startswith((f'{platform}/', f'example/{platform}/')):
                         selected.update((f'{platform}-native', 'macos-generation'))
-            elif path.startswith(('test/', 'example/test/')):
+            elif path.startswith(('test/', 'example/test/')) and (
+                path.endswith('.dart') or ('/goldens/' in path and path.endswith('.png'))
+            ):
                 continue
             else:
                 # Shared production, integration tests, CI/tooling, and unknown
