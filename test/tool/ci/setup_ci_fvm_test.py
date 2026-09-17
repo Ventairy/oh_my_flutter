@@ -18,8 +18,15 @@ class SetupCiFvmTest(unittest.TestCase):
             sdk = root / 'sdk'
             (sdk / 'bin').mkdir(parents=True)
             for name, content in {
-                'dart': '#!/bin/sh\nif [ "$3" = list ]; then echo "fvm 4.3.0"; fi\n',
-                'fvm': '#!/bin/sh\ntest -e "$FVM_CACHE_PATH/versions/3.47.1/bin/flutter" || exit 1\necho "$PWD" >> "$SDK_CALLS"\n',
+                'dart': '''#!/bin/sh
+if [ "$3" = list ]; then
+  echo "fvm 4.3.0"
+elif [ "$3" = run ]; then
+  test -e "$FVM_CACHE_PATH/versions/3.47.1/bin/flutter" || exit 1
+  echo "$PWD" >> "$SDK_CALLS"
+fi
+''',
+                'fvm': '#!/bin/sh\nexit 127\n',
             }.items():
                 path = binary / name
                 path.write_text(content)

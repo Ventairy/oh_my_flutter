@@ -71,7 +71,8 @@ repository_root="$PWD"
 for package in . example tool/country_bindings tool/device_location_bindings; do
   (
     cd "$repository_root/$package"
-    fvm exec python3 "$repository_root/tool/ci/verify_sdk.py"
+    # Invoke the package directly: Git Bash does not resolve fvm.bat as fvm.
+    dart pub global run fvm:main exec python3 "$repository_root/tool/ci/verify_sdk.py"
   )
 done
 echo "FVM setup and SDK verification: $((SECONDS - setup_started))s"
