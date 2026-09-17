@@ -82,6 +82,10 @@ check-format:
 analyze:
 	fvm flutter analyze --fatal-infos
 
+.PHONY: test-ci
+test-ci:
+	python3 -m unittest discover -s test/tool/ci -p '*_test.py'
+
 test:
 	fvm flutter test
 

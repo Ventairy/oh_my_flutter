@@ -7,6 +7,7 @@ example_directory="$repository_root/example"
 bundle_identifier='dev.ventairy.ohMyFlutterExample'
 simulated_location='-23.556391,-46.844076'
 permission_lifecycle_complete='OH_MY_FLUTTER_IOS_PERMISSION_LIFECYCLE_COMPLETE'
+timer="$repository_root/tool/ci/time_command.sh"
 
 booted_device_line="$(xcrun simctl list devices available | grep 'iPhone.*(Booted)' | head -n 1 || true)"
 booted_by_script=false
@@ -33,16 +34,16 @@ cleanup() {
 trap cleanup EXIT
 
 if test "$booted_by_script" = true; then
-  xcrun simctl boot "$device_id"
+  "$timer" "Simulator boot request" xcrun simctl boot "$device_id"
 fi
 
 cd "$example_directory"
 if [[ "${GITHUB_ACTIONS:-}" != true ]]; then
   fvm flutter clean
 fi
-fvm flutter pub get --enforce-lockfile
-fvm flutter build ios --simulator --target=lib/main.dart --no-pub
-xcrun simctl bootstatus "$device_id" -b
+"$timer" "iOS integration dependency resolution" fvm flutter pub get --enforce-lockfile
+"$timer" "iOS simulator application build" fvm flutter build ios --simulator --target=lib/main.dart --no-pub
+"$timer" "Simulator readiness" xcrun simctl bootstatus "$device_id" -b
 application_path='build/ios/iphonesimulator/Runner.app'
 purpose_string="$({
   plutil -extract NSLocationWhenInUseUsageDescription raw \
@@ -52,10 +53,10 @@ if ! grep -Eq '[^[:space:]]' <<<"$purpose_string"; then
   echo 'The example must declare a non-empty location purpose string.' >&2
   exit 1
 fi
-xcrun simctl install "$device_id" "$application_path"
+"$timer" "Simulator application installation" xcrun simctl install "$device_id" "$application_path"
 xcrun simctl privacy "$device_id" grant location "$bundle_identifier"
 xcrun simctl location "$device_id" set "$simulated_location"
-fvm flutter test \
+"$timer" "iOS location integration test" fvm flutter test \
   integration_test/device_location_ios_test.dart \
   --device-id "$device_id" \
   --no-pub
@@ -63,7 +64,7 @@ fvm flutter test \
 xcrun simctl privacy "$device_id" reset location "$bundle_identifier"
 # Opening Settings backgrounds Runner. Restore it once the test confirms the
 # lifecycle result so Flutter can close the integration-test connection.
-fvm flutter test \
+"$timer" "iOS permission lifecycle test" fvm flutter test \
   integration_test/device_location_ios_permission_lifecycle_test.dart \
   --device-id "$device_id" \
   --reporter expanded \

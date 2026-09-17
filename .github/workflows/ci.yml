@@ -14,6 +14,31 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Select affected jobs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      android-native: ${{ steps.select.outputs.android-native }}
+      ios-native: ${{ steps.select.outputs.ios-native }}
+      macos-native: ${{ steps.select.outputs.macos-native }}
+      linux-native: ${{ steps.select.outputs.linux-native }}
+      windows-native: ${{ steps.select.outputs.windows-native }}
+      macos-generation: ${{ steps.select.outputs.macos-generation }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Test CI selection and SDK bootstrap
+        run: python3 -m unittest discover -s test/tool/ci -p '*_test.py'
+      - name: Select jobs from the merge-base diff
+        id: select
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python3 tool/ci/ci_jobs.py
+
   quality:
     name: Quality (${{ matrix.check }})
     runs-on: ubuntu-24.04
@@ -36,6 +61,7 @@ jobs:
       - name: Run ${{ matrix.check }} checks
         env:
           CHECK: ${{ matrix.check }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           fvm flutter pub upgrade --no-example
           (
@@ -45,6 +71,10 @@ jobs:
 
           case "$CHECK" in
             source)
+              fvm dart run tool/generate_country_names.dart --check
+              ./tool/check_device_location_pigeon.sh
+              ./tool/check_device_display_pigeon.sh
+              ./tool/check_native_selectable_text_pigeon.sh
               fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
               fvm flutter analyze --fatal-infos --no-pub
               fvm dart doc --validate-links
@@ -68,6 +98,7 @@ jobs:
               fvm flutter test \
                 --no-pub \
                 --platform chrome \
+                test/country/country_names_browser_test.dart \
                 test/device/device_test.dart \
                 test/device/device_display/device_display_unsupported_test.dart \
                 test/device/device_location/device_location_test.dart \
@@ -124,6 +155,8 @@ jobs:
           fvm flutter test --no-pub
 
   android-native:
+    needs: changes
+    if: needs.changes.outputs.android-native == 'true'
     name: Android native
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -138,13 +171,21 @@ jobs:
       - name: Set up FVM
         run: ./tool/setup_ci_fvm.sh
         shell: bash
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+        with:
+          cache-read-only: ${{ github.event_name != 'push' || github.ref != 'refs/heads/main' }}
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
       - run: fvm flutter build apk --release
         working-directory: example
       - run: ./gradlew :oh_my_flutter:testDebugUnitTest :oh_my_flutter:lintDebug
         working-directory: example/android
+      - name: Check Android country bindings
+        run: ./tool/generate_country_bindings.sh android --check
+
   ios-native:
+    needs: changes
+    if: needs.changes.outputs.ios-native == 'true'
     name: iOS (${{ matrix.check }})
     runs-on: macos-latest
     timeout-minutes: 25
@@ -181,7 +222,7 @@ jobs:
                 exit 1
               fi
               flutter_framework_directory="$PWD/example/build/ios/Debug-iphonesimulator"
-              xcodebuild test \
+              ./tool/ci/time_command.sh "iOS native XCTest" xcodebuild test \
                 -quiet \
                 -workspace example/ios/Runner.xcworkspace \
                 -scheme oh_my_flutterTests \
@@ -200,7 +241,9 @@ jobs:
           esac
 
   macos-native:
-    name: macOS native and package tests
+    needs: changes
+    if: needs.changes.outputs.macos-native == 'true'
+    name: macOS native and platform tests
     runs-on: macos-latest
     timeout-minutes: 20
     steps:
@@ -214,16 +257,15 @@ jobs:
       - name: Set up FVM
         run: ./tool/setup_ci_fvm.sh
         shell: bash
-      - name: Check generated files
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
+      # These tests use the host SDK; simulated widget platforms run on Linux.
+      - name: Test macOS platform behavior
         run: |
           fvm flutter pub upgrade --no-example
-          make gen-check
-      - name: Test package
-        run: |
-          fvm flutter pub upgrade --no-example
-          fvm flutter test --no-pub
+          fvm flutter test --no-pub \
+            test/country/country_test.dart \
+            test/country/country_names_io_test.dart \
+            test/country/country_names_apple_test.dart \
+            test/device/device_location/apple_device_location_platform_test.dart
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
       - run: fvm flutter build macos --debug --target=lib/main.dart --no-pub
@@ -241,6 +283,8 @@ jobs:
             LD_RUNPATH_SEARCH_PATHS="$flutter_framework_directory"
 
   linux-native:
+    needs: changes
+    if: needs.changes.outputs.linux-native == 'true'
     name: Linux native
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -267,7 +311,9 @@ jobs:
       - run: xvfb-run --auto-servernum ctest --test-dir example/build/linux/x64/debug/plugins/oh_my_flutter --output-on-failure
 
   windows-native:
-    name: Windows native and package tests
+    needs: changes
+    if: needs.changes.outputs.windows-native == 'true'
+    name: Windows native and platform tests
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
@@ -281,10 +327,11 @@ jobs:
       - name: Set up FVM
         run: ./tool/setup_ci_fvm.sh
         shell: bash
-      - name: Test package
+      # These tests load Windows ICU; simulated widget platforms run on Linux.
+      - name: Test Windows platform behavior
         run: |
           fvm flutter pub upgrade --no-example
-          fvm flutter test --no-pub
+          fvm flutter test --no-pub test/country/country_test.dart test/country/country_names_io_test.dart test/country/country_names_windows_test.dart
       - run: fvm flutter pub get --enforce-lockfile
         working-directory: example
       - run: fvm flutter build windows --debug --target=lib/main.dart --no-pub
@@ -292,28 +339,43 @@ jobs:
       - run: cmake --build example/build/windows/x64 --config Debug --target oh_my_flutter_test
       - run: ctest --test-dir example/build/windows/x64/plugins/oh_my_flutter -C Debug --output-on-failure
 
+  macos-generation:
+    name: Apple and Windows binding generation
+    needs: changes
+    if: needs.changes.outputs.macos-generation == 'true'
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          flutter-version-file: .fvmrc
+          cache: true
+      - name: Set up FVM
+        run: ./tool/setup_ci_fvm.sh
+        shell: bash
+      - name: Check generated bindings
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          fvm flutter pub upgrade --no-example
+          ./tool/generate_country_bindings.sh apple --check
+          ./tool/generate_country_bindings.sh windows --check
+          ./tool/generate_device_location_bindings.sh --check
+
   required:
     name: Required
     if: always()
-    needs: [quality, minimum-dependencies, android-native, ios-native, macos-native, linux-native, windows-native]
+    needs: [changes, quality, minimum-dependencies, android-native, ios-native, macos-native, linux-native, windows-native, macos-generation]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    permissions: {}
     steps:
-      - name: Require every CI job
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require every selected CI job
         env:
-          QUALITY_RESULT: ${{ needs.quality.result }}
-          MINIMUM_DEPENDENCIES_RESULT: ${{ needs.minimum-dependencies.result }}
-          ANDROID_NATIVE_RESULT: ${{ needs.android-native.result }}
-          IOS_NATIVE_RESULT: ${{ needs.ios-native.result }}
-          MACOS_NATIVE_RESULT: ${{ needs.macos-native.result }}
-          LINUX_NATIVE_RESULT: ${{ needs.linux-native.result }}
-          WINDOWS_NATIVE_RESULT: ${{ needs.windows-native.result }}
-        run: |
-          test "$QUALITY_RESULT" = "success"
-          test "$MINIMUM_DEPENDENCIES_RESULT" = "success"
-          test "$ANDROID_NATIVE_RESULT" = "success"
-          test "$IOS_NATIVE_RESULT" = "success"
-          test "$MACOS_NATIVE_RESULT" = "success"
-          test "$LINUX_NATIVE_RESULT" = "success"
-          test "$WINDOWS_NATIVE_RESULT" = "success"
+          CI_NEEDS: ${{ toJSON(needs) }}
+        run: python3 tool/ci/ci_jobs.py required
