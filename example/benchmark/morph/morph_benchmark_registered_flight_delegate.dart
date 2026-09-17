@@ -16,7 +16,7 @@ final class RegisteredDelegate extends MorphFlightDelegate<FlightProperties> {
     return (
       decoration: container.decoration!,
       padding: container.padding! as EdgeInsets,
-      child: endpoint.registerDescendantWidget(container.child!),
+      child: endpoint.descendantWidget(container.child!),
     );
   }
 

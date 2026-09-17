@@ -53,8 +53,18 @@ final class MorphEndpointContext {
   /// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md#register-descendant-content)
   /// for an example.
   @useResult
-  Widget registerDescendantWidget(Widget child) {
+  Widget descendantWidget(Widget child) {
     return _descendantCapture.register(child);
+  }
+
+  /// Prepares a group's combined snapshot for this endpoint's flight.
+  ///
+  /// Call synchronously from [MorphFlightDelegate.properties] and build the
+  /// returned widget in that flight. Members may live outside the Morph subtree.
+  /// The endpoint rectangle defines the snapshot's bounds and scale origin.
+  /// Morph manages capture, original visibility, and disposal automatically.
+  Widget groupSnapshot(GroupLink link) {
+    return _descendantCapture.registerGroup(link, this);
   }
 
   /// Size of [child] at this location.

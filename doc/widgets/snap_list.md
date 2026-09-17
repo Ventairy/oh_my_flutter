@@ -7,7 +7,7 @@ colors, indicators, or other app styling.
 
 You can build a TikTok-style feed: each item fills the viewport, and swiping
 up or down moves to the next or previous item. Use `SnapList.builder` with
-`axis: Axis.vertical` and `viewportFraction: 1` (both defaults), and give the
+`axis: Axis.vertical` (the default), and give the
 list the available screen space. Supply your own videos, cards, and controls;
 video playback remains the app's responsibility.
 
@@ -21,7 +21,6 @@ SizedBox(
   height: 240,
   child: SnapList(
     axis: Axis.horizontal,
-    viewportFraction: 0.85,
     spacing: 12,
     children: const [
       Center(child: Text('First card')),
@@ -53,11 +52,10 @@ item identity across reorderings or insertions before existing items.
 
 ## Size and motion
 
-`axis` defaults to vertical. `viewportFraction` sets the uniform item size as
-a fraction of the viewport after padding. A fraction below one reveals nearby
-items; `spacing` adds a gap without reducing the item size. Items settle at
-`alignment`, which defaults to center. Start/end respect the
-horizontal reading direction. Safe-area spacing remains the caller's choice.
+`axis` defaults to vertical. Every item fills the viewport after padding;
+`spacing` adds a gap without reducing the item size. Safe-area spacing remains
+the caller's choice. `alignment` is retained, but with full-viewport items its
+values produce the same resting position.
 
 Every drag or fling advances at most one item. Nested content scrolls normally
 and transfers the same drag to the list when it reaches an edge with an
@@ -81,6 +79,72 @@ swipes, and returning after a cancelled drag. When omitted, they use `curve` and
 `duration`, respectively. Set them only when the return should feel different.
 Reduced motion changes items without
 animated travel.
+
+## Animate arriving and departing items
+
+Use `incomingTransitionBuilder` to fade, scale, or otherwise change an item
+as it arrives. Use `outgoingTransitionBuilder` independently for the item being
+left. These effects follow the scroll position during dragging and snapping;
+they do not start a separate timed animation. For example, fade the incoming
+card in while slightly shrinking the outgoing card:
+
+```dart
+SnapList(
+  incomingTransitionBuilder: (context, animation, isReverse, child) =>
+      FadeTransition(opacity: animation, child: child),
+  outgoingTransitionBuilder: (context, animation, isReverse, child) =>
+      ScaleTransition(
+        scale: Tween<double>(begin: 1, end: 0.92).animate(animation),
+        child: child,
+      ),
+  children: cards,
+)
+```
+
+Incoming progress goes from `0` before arrival to `1` at rest. Outgoing progress
+goes from `0` at rest to `1` after departure, so a fade-out can use
+`Tween<double>(begin: 1, end: 0).animate(animation)`.
+The inactive effect stays at its resting value. If both are provided, the
+incoming effect wraps the outgoing effect. Omitting a builder adds no effect.
+
+Both builders receive `isReverse: true` when moving toward a previous item,
+including in horizontal right-to-left lists. To fade only when moving forward,
+keep the same transition widget but supply a constant animation for backward
+movement:
+
+```dart
+incomingTransitionBuilder: (context, animation, isReverse, child) =>
+    FadeTransition(
+      opacity: isReverse ? const AlwaysStoppedAnimation<double>(1) : animation,
+      child: child,
+    ),
+```
+
+Reversing or cancelling a swipe rewinds its progress without changing its
+navigation direction. Reaching the original item and moving toward the other
+neighbor starts a transition in the other direction. Interrupted movement
+continues from its current progress.
+
+The builders receive an `Animation<double>` owned by the list. Pass it directly
+to a transition widget, or use `animation.drive(...)` / `Tween.animate(...)`
+to map its values. The animation keeps the same identity while the item's
+transition is mounted; do not dispose it. Builders are not called on every
+scroll update. If your custom effect reads `animation.value`, read it inside
+an `AnimatedBuilder` listening to that animation.
+
+Animation status follows progress: `forward` as progress increases, `reverse`
+as it decreases, `dismissed` at zero, and `completed` at one. This differs from
+`isReverse`, which identifies navigation toward a previous item. Inactive
+effects return to their resting values.
+
+Reuse the supplied `child` and keep the returned widget structure consistent
+across progress and direction changes to preserve child state. Each effect
+must produce normal appearance at its resting value. Use visual effects rather
+than changing item layout if the child should keep its normal scroll geometry.
+
+Reduced motion supplies resting values without intermediate effects. Revealing
+trailing content leaves item appearance unchanged; advancing to an appended
+item applies its incoming effect.
 
 ## Observe and navigate
 

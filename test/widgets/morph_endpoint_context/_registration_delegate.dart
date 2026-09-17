@@ -7,7 +7,7 @@ class _RegistrationDelegate extends MorphFlightDelegate<Widget> {
 
   @override
   Widget properties(MorphEndpointContext endpoint) {
-    final registered = endpoint.registerDescendantWidget((endpoint.child as SizedBox).child!);
+    final registered = endpoint.descendantWidget((endpoint.child as SizedBox).child!);
     onRegister(endpoint, registered);
     return registered;
   }

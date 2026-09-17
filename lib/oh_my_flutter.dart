@@ -31,6 +31,7 @@ export 'src/oklch/oklch.dart' show Oklch;
 export 'src/phone_number.dart' show PhoneNumber;
 export 'src/whatsapp.dart' show Whatsapp;
 export 'src/widgets/controlled_visibility/controlled_visibility.dart' show ControlledVisibility, VisibilityController;
+export 'src/widgets/group/group.dart' show Group, GroupLink, GroupSnapshot;
 export 'src/widgets/interactive_swipe_dismiss/interactive_swipe_dismiss.dart'
     show
         InteractiveSwipeDismiss,
@@ -89,6 +90,5 @@ export 'src/widgets/skeleton/skeleton.dart'
         SkeletonShimmerEffect,
         SkeletonStaticEffectBase,
         SkeletonStyle;
-
-export 'src/widgets/snap_list/snap_list.dart' show SnapList, SnapListController;
+export 'src/widgets/snap_list/snap_list.dart' show SnapList, SnapListController, SnapListTransitionBuilder;
 export 'src/widgets/snap_list/snap_list_alignment.dart' show SnapListAlignment;

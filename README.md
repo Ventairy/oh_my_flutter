@@ -19,7 +19,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.19.0
+  oh_my_flutter: ^0.23.0
 ```
 
 Import the public library wherever you need it:
@@ -158,6 +158,13 @@ without moving its content. It can do things such as tell a scrolling panel
 how much room to reserve around a device cutout. Its `SafeAreaObserverHandle`
 provides local insets and change notifications.
 
+### Group
+
+`Group` connects widgets that belong together without changing their layout.
+It can do things such as measure a card and its separately placed controls,
+capture them in one image, or carry them together through a Morph transition.
+Share a `GroupLink` between members; use `zIndex` to order their snapshot.
+
 ### MaybeSafeArea
 
 `MaybeSafeArea` keeps moving, floating, or scrolling content away from unsafe
@@ -176,10 +183,11 @@ an adaptive Flutter fallback elsewhere.
 
 `SnapList` builds swipeable feeds and carousels that settle on one item after
 each swipe. It can do things such as show a TikTok-style vertical feed with
-full-screen items, or a horizontal carousel with neighboring cards peeking
-into view. Supply a small list of children or build a larger feed lazily, with
-optional trailing content for loading feedback or an end message. Your app
-supplies the content, styling, and any video playback.
+full-screen items that fade in as you swipe, or a horizontal gallery with
+different arrival and departure effects. Supply a small list of children or
+build a larger feed lazily, with optional trailing content for loading feedback
+or an end message. Your app supplies the content, styling, and any video
+playback.
 
 ### Sequence
 

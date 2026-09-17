@@ -1,3 +1,27 @@
+## 0.23.0
+
+- **Breaking:** Rename `MorphEndpointContext.registerDescendantWidget` to
+  `descendantWidget` and `registerGroupSnapshot` to `groupSnapshot`.
+
+- Add `Group`, `GroupLink`, and disposable `GroupSnapshot` for measuring and
+  capturing separately placed widgets together. Custom Morph flights can use
+  `groupSnapshot` to carry the group while preserving nested Morphs and
+  capturing its resolved layout before the flight begins.
+
+- Add independent `SnapList.incomingTransitionBuilder` and
+  `outgoingTransitionBuilder` effects through scroll-driven `Animation<double>`
+  values for Flutter transition widgets, with backward navigation context and
+  reduced-motion support. Active item motion resolves to its destination before
+  the list becomes inactive.
+
+- **Breaking:** Remove `SnapList.viewportFraction`. Remove this argument from
+  constructor calls; items now fill the padded viewport along the scroll axis.
+
+- Preserve `SnapList` children with global keys without duplicate-key errors.
+
+- Reduce crowding between `Skeleton` text placeholders with baseline-aligned
+  bars while preserving text layout and widths.
+
 ## 0.22.0
 
 - Add `SnapList` with horizontal and vertical snapping, eager and lazy children,
@@ -56,7 +80,7 @@
   use `childSwitchAt` and `childTransition` for automatic content changes.
   Custom flights expose `curvedAnimation` and `uncurvedAnimation`; rename
   delegate `lerp` to `lerpProperties`, register
-  endpoint content with `endpoint.registerDescendantWidget(...)`, and build the
+  endpoint content with `endpoint.descendantWidget(...)`, and build the
   returned widget. Snapshot content remains available during keyed endpoint
   replacement, including in custom crossfades. Independently timed returns stay
   visually settled above a closing modal barrier until it disappears, avoiding

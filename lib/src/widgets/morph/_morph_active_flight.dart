@@ -31,6 +31,13 @@ class _MorphActiveFlight {
     };
     for (final capture in _registeredCaptures) {
       capture.retain();
+      _groupPresentationReleases.add(
+        capture.beginGroupPresentation(
+          _MorphDescendantSnapshots.capturesOf(destination).contains(capture)
+              ? destinationHandle.visibility
+              : sourceHandle?.visibility,
+        ),
+      );
     }
     flight = MorphFlight<Object?>(
       source: source,
@@ -73,6 +80,7 @@ class _MorphActiveFlight {
   late final MorphFlight<Object?> flight;
   final _MorphFlightPaintHandle _paintHandle = _MorphFlightPaintHandle();
   late final Set<_MorphDescendantCapture> _registeredCaptures;
+  final List<VoidCallback> _groupPresentationReleases = [];
   late final _MorphDescendantCapture? _watchedCapture = _MorphDescendantSnapshots.captureOf(
     completesAtSource ? source : destination,
   );
@@ -537,6 +545,10 @@ class _MorphActiveFlight {
       flightAnimation.removeListener(_scheduleDestinationWatch);
     }
     flightAnimation.removeStatusListener(_handleStatusChanged);
+    for (final release in _groupPresentationReleases) {
+      release();
+    }
+    _groupPresentationReleases.clear();
     for (final capture in _registeredCaptures) {
       capture.release();
     }
@@ -656,6 +668,7 @@ class _MorphActiveFlight {
     try {
       final watchedGeometry = destinationHandle.owner._readLiveGeometry();
       if (watchedGeometry != null) {
+        _watchedCapture?.refreshGroups();
         final destinationRecords = _watchedCapture?.records ?? const <_MorphDescendantFlightRecord>[];
         final pixelRatio = _watchedView.devicePixelRatio;
         final recordsChanged = _watchedDescendantsChanged(

@@ -43,7 +43,7 @@ final class _MorphDescendantHandle {
 
   _MorphDescendantFlightRecord capture(
     _RenderMorphDescendant renderObject, {
-    _MorphContentSnapshot? snapshot,
+    RasterSnapshot? snapshot,
     bool snapshotCaptureCompleted = false,
     bool? capturesContinuously,
     _MorphDescendantFlightRecord? previous,

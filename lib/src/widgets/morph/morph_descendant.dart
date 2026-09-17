@@ -145,7 +145,7 @@ class _MorphDescendantState extends State<MorphDescendant> {
       assert(
         _flightResolver != null,
         'A Morph flight must display snapshot and hidden descendants '
-        'through the widget returned by endpoint.registerDescendantWidget(...). '
+        'through the widget returned by endpoint.descendantWidget(...). '
         'Register their subtree in MorphFlightDelegate.properties and use the returned widget in the flight.',
       );
       if (_flightResolver?.recordsRevision != _flightRecordsRevision) {

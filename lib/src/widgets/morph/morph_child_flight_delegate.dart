@@ -144,7 +144,7 @@ final class MorphChildFlightDelegate {
         : null;
 
     return MorphChildProperties(
-      widget: switch (endpoint?.registerDescendantWidget(widget)) {
+      widget: switch (endpoint?.descendantWidget(widget)) {
         final _MorphRegisteredDescendant registration => registration.withChild(content),
         _ => content,
       },
@@ -285,7 +285,7 @@ final class MorphChildFlightDelegate {
     MorphEndpointContext? endpoint,
   }) {
     return MorphChildProperties(
-      widget: endpoint?.registerDescendantWidget(widget) ?? widget,
+      widget: endpoint?.descendantWidget(widget) ?? widget,
       rect: rect,
       padding: EdgeInsets.zero,
       alignment: null,

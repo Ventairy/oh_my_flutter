@@ -27,7 +27,7 @@ final class _MorphDescendantFlightRecord {
   final int snapshotRevision;
   final bool capturesContinuously;
   bool snapshotCaptureCompleted;
-  _MorphContentSnapshot? snapshot;
+  RasterSnapshot? snapshot;
 
   bool belongsTo(Widget subtree) {
     for (final ancestor in ancestors) {

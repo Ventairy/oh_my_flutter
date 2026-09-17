@@ -188,6 +188,15 @@ class _MorphState extends State<Morph> {
     Widget? child,
     MorphFlightDelegate<Object?>? flightDelegate,
   }) {
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (phase == .idle || phase == .postFrameCallbacks) {
+      // Post-frame observers can invalidate layout before capture runs. Paint
+      // skips dirty render objects, so resolve their layout before measuring
+      // or rasterizing the endpoint. Never re-enter the active frame pipeline.
+      _renderObject?.owner
+        ?..flushLayout()
+        ..flushCompositingBits();
+    }
     final geometry = _readLiveGeometry();
     if (geometry == null) return null;
     return _resolveEndpoint(
@@ -305,6 +314,8 @@ class _MorphState extends State<Morph> {
     return null;
   }
 
+  bool _groupCaptureScheduled = false;
+
   void _rememberPaintedGeometry() {
     final geometry = _readLiveGeometry();
     if (geometry == null) return;
@@ -322,6 +333,19 @@ class _MorphState extends State<Morph> {
     }
     _lastPaintedChild = widget.child;
     _lastPaintedFlightDelegate = _resolvedFlightDelegate;
+    final endpoint = _endpoint;
+    if (endpoint?._cachedGroupCapture != null &&
+        !endpoint!._cachedGroupCapture!.groupsAreCurrent &&
+        !_groupCaptureScheduled &&
+        !_visibility.hidden) {
+      _groupCaptureScheduled = true;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        _groupCaptureScheduled = false;
+        if (mounted && endpoint.active && !_visibility.hidden) {
+          _MorphCoordinator.of(endpoint.overlay)._capture(endpoint);
+        }
+      });
+    }
   }
 
   void _rememberPresentation() {
@@ -337,7 +361,7 @@ class _MorphState extends State<Morph> {
     _renderObject?.markNeedsPaint();
   }
 
-  MorphEndpoint<Object?> _resolveEndpoint({
+  MorphEndpoint<Object?>? _resolveEndpoint({
     required _MorphEndpointGeometry geometry,
     required Widget child,
     required MorphFlightDelegate<Object?> flightDelegate,
@@ -362,6 +386,7 @@ class _MorphState extends State<Morph> {
     } finally {
       descendantCapture.acceptsRegistrations = false;
     }
+    if (!descendantCapture.groupsReady) return null;
     final endpoint = MorphEndpoint<Object?>(
       properties: properties,
       bounds: geometry.overlayBounds,

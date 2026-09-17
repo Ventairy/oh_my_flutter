@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
-/// Demonstrates fractional cards, both axes, and app-owned pagination.
+/// Demonstrates scroll-driven effects, both axes, and app-owned pagination.
 class SnapListExample extends StatefulWidget {
   /// Creates an interactive snapping-list example.
   const SnapListExample({super.key});
@@ -71,8 +71,19 @@ class _SnapListExampleState extends State<SnapListExample> {
             controller: _controller,
             axis: _axis,
             itemCount: _count,
-            viewportFraction: .85,
             spacing: 12,
+            incomingTransitionBuilder: (context, progress, isReverse, child) =>
+                FadeTransition(
+                  opacity: isReverse
+                      ? const AlwaysStoppedAnimation<double>(1)
+                      : progress,
+                  child: child,
+                ),
+            outgoingTransitionBuilder: (context, progress, isReverse, child) =>
+                ScaleTransition(
+                  scale: Tween<double>(begin: 1, end: .92).animate(progress),
+                  child: child,
+                ),
             curve: Curves.easeOutCubic,
             reverseCurve: Curves.easeOutCubic,
             onIndexChanged: (index) {

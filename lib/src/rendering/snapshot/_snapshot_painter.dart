@@ -1,11 +1,11 @@
-part of 'morph.dart';
+part of 'raster_snapshot.dart';
 
 final class _MorphContentSnapshotPainter extends CustomPainter {
   _MorphContentSnapshotPainter({
     required this.tiles,
   });
 
-  final List<_MorphContentSnapshotTile> tiles;
+  final List<SnapshotTile> tiles;
   final Paint _paint = Paint()..filterQuality = FilterQuality.medium;
 
   @override

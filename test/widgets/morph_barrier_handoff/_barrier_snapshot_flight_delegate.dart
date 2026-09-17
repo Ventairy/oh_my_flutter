@@ -4,8 +4,7 @@ final class _BarrierSnapshotFlightDelegate extends MorphFlightDelegate<Widget> {
   const _BarrierSnapshotFlightDelegate();
 
   @override
-  Widget properties(MorphEndpointContext endpoint) =>
-      endpoint.registerDescendantWidget((endpoint.child as SizedBox).child!);
+  Widget properties(MorphEndpointContext endpoint) => endpoint.descendantWidget((endpoint.child as SizedBox).child!);
 
   @override
   Widget lerpProperties(Widget source, Widget destination, MorphFlightProgress progress) =>

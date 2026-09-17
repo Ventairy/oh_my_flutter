@@ -542,7 +542,7 @@ The delegate contract is:
    inherited values synchronously from `endpoint.context`; do not retain the
    context. The endpoint also exposes `child`, `localSize`, `overlayBounds`,
    `transform`, and `axisScale`. Register endpoint widget content with
-   `endpoint.registerDescendantWidget(...)` and store the returned widgets in
+   `endpoint.descendantWidget(...)` and store the returned widgets in
    your properties.
 2. `lerpProperties` returns the current `T` from a `MorphFlightProgress`.
    Use `curvedProgress` to follow the surface and `uncurvedProgress` to apply
@@ -626,7 +626,7 @@ calls and `MorphChildFlightDelegate.lerp`; all progress fields are required.
 
 ### Register descendant content
 
-Use `endpoint.registerDescendantWidget(child)` for endpoint widget content in
+Use `endpoint.descendantWidget(child)` for endpoint widget content in
 custom flights. Registration is the standard approach and is highly recommended
 for better compatibility. Content may work without it.
 
@@ -641,7 +641,7 @@ class ContentFlightDelegate extends MorphFlightDelegate<Widget> {
 
   @override
   Widget properties(MorphEndpointContext endpoint) {
-    return endpoint.registerDescendantWidget(endpoint.child);
+    return endpoint.descendantWidget(endpoint.child);
   }
 
   @override
@@ -816,3 +816,17 @@ Changing a boolean and immediately navigating in the same callback does not
 ensure the scope has updated. A new navigation without an eligible flight
 reports `MorphTagStatus.unmatched`; an ongoing flight retains its normal status
 lifecycle.
+
+## Register grouped content
+
+Use `endpoint.groupSnapshot(link)` inside a custom delegate's
+`properties` method when the flight includes widgets outside the Morph subtree.
+Build the returned widget in that flight and apply content effects to it as one
+composition. Give each endpoint its own stable `GroupLink`.
+
+The endpoint rectangle defines the snapshot's coordinate frame. Morph manages
+capture, original visibility, and disposal; independently transitioning nested
+Morphs are excluded from the enclosing snapshot. If the group cannot be
+captured, Morph settles without a snapshot flight.
+
+See [Group](group.md) for membership, snapshot ordering, and standalone captures.

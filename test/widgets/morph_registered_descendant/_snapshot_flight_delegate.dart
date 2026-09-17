@@ -16,7 +16,7 @@ class _SnapshotFlightDelegate extends MorphFlightDelegate<Widget> {
   @override
   Widget properties(MorphEndpointContext endpoint) {
     final child = (endpoint.child as SizedBox).child!;
-    return register ? endpoint.registerDescendantWidget(child) : child;
+    return register ? endpoint.descendantWidget(child) : child;
   }
 
   @override

@@ -193,7 +193,7 @@ void main() {
         await tester.pump();
         await tester.pump();
 
-        expect(tester.takeException().toString(), contains('endpoint.registerDescendantWidget'));
+        expect(tester.takeException().toString(), contains('endpoint.descendantWidget'));
       },
     );
   }
