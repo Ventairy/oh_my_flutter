@@ -13,11 +13,11 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// The input must include a country calling code, with or without a leading
 /// `+`. Common spacing and punctuation are accepted. Construction throws a
-/// [FormatException] when the input cannot be resolved to a valid number in
-/// the current numbering metadata.
+/// [FormatException] when the input cannot be resolved to a complete number
+/// with a possible length for its country.
 ///
-/// Metadata validation confirms that a value matches a numbering plan. It does
-/// not confirm that the number exists, is connected, or can receive calls.
+/// A possible length does not confirm that the prefix is allocated, the number
+/// exists, or the destination can receive calls.
 ///
 /// See the [phone number guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/phone_number.md)
 /// for formatting and platform behavior.
@@ -27,8 +27,8 @@ class PhoneNumber {
   /// [value] may contain common human-readable formatting and may omit the
   /// leading `+`, but it must include a country calling code.
   ///
-  /// Throws a [FormatException] when [value] cannot be resolved to a valid
-  /// phone number with a country calling code.
+  /// Throws a [FormatException] when [value] cannot be resolved to a complete
+  /// phone number with a country calling code and possible length.
   factory PhoneNumber(String value) {
     return PhoneNumber._parse(value: value, launcher: launchUrl);
   }
@@ -41,7 +41,9 @@ class PhoneNumber {
   }) {
     try {
       final parsed = parser.PhoneNumber.parse(value);
-      if (!parsed.isValid()) throw FormatException(_invalidMessage, value);
+      if (!parsed.isValidLength()) {
+        throw FormatException(_invalidMessage, value);
+      }
 
       return PhoneNumber._(parsed: parsed, launcher: launcher);
     } on parser.PhoneNumberException {
@@ -64,8 +66,8 @@ class PhoneNumber {
   }
 
   static const _invalidMessage =
-      'A phone number must include a country calling code and match its '
-      'current numbering plan.';
+      'A phone number must include a country calling code and have a possible '
+      'length for that country.';
 
   final parser.PhoneNumber _parsed;
   final Future<bool> Function(Uri uri) _launcher;

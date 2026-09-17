@@ -22,6 +22,10 @@
 - Reduce crowding between `Skeleton` text placeholders with baseline-aligned
   bars while preserving text layout and widths.
 
+- Accept complete international phone identifiers with possible
+  country-specific lengths even when their prefixes are not allocated by a
+  carrier, including service-managed WhatsApp test recipients.
+
 ## 0.22.0
 
 - Add `SnapList` with horizontal and vertical snapping, eager and lazy children,

@@ -19,11 +19,12 @@ lowercase and must contain 3 to 35 letters, numbers, periods, or underscores.
 A username cannot contain only numbers.
 
 Phone numbers may use common visual formatting but must include a country
-calling code. They are checked against the numbering metadata used by
-`PhoneNumber`.
+calling code and have a possible length for their country. Their prefixes do
+not need to be allocated by a carrier, allowing service-managed identifiers
+such as WhatsApp test recipients.
 
 Construction throws a `FormatException` when the identifier is neither a
-valid username nor a valid phone number.
+valid username nor a complete international phone identifier.
 
 ## Display the identifier
 
@@ -55,7 +56,7 @@ On mobile, the package first tries the native WhatsApp URI. If that launch
 returns `false` or throws, it tries the matching `wa.me` link. On web, it uses
 the `wa.me` link directly. The returned Boolean reports whether a destination
 accepted the launch; it does not guarantee that the recipient exists or that a
-message was sent.
+WhatsApp account is active, or that a message was sent.
 
 A `null` or empty message is omitted. Message text is URI-encoded.
 

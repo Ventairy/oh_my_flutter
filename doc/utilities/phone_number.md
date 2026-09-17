@@ -10,7 +10,9 @@ final phoneNumber = PhoneNumber('+1 (202) 555-0123');
 
 The input may use spaces, parentheses, dashes, or no visual formatting. It must
 include a country calling code, such as `55` for Brazil or `1` for the United
-States and Canada. The leading `+` is optional.
+States and Canada. The leading `+` is optional. The national number must have a
+possible length for its country, but its prefix does not need to be currently
+allocated by a carrier.
 
 ## Display a phone number
 
@@ -62,7 +64,7 @@ does not guarantee that a call was connected.
 ## Handle invalid input
 
 Construction throws a `FormatException` when the value has no recognizable
-country calling code or does not match the country's current numbering plan.
+country calling code or its length is not possible for that country.
 
 ```dart
 const input = '+1 202-555-0123';
@@ -75,9 +77,10 @@ try {
 }
 ```
 
-A value matching a numbering plan is not proof that the number exists, is
-connected, or belongs to a particular person. Phone extensions and automatic
-country inference from the device locale are not supported.
+A value with a possible length is not proof that its prefix is allocated, the
+number exists, it is connected, or it belongs to a particular person. Phone
+extensions and automatic country inference from the device locale are not
+supported.
 
 See the
 [`PhoneNumber` API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/PhoneNumber-class.html)

@@ -28,6 +28,17 @@ void main() {
       );
 
       test(
+        'when a service-managed phone identifier has an unallocated prefix, '
+        'it should accept the identifier',
+        () {
+          expect(
+            Whatsapp('+15556625497').toDisplayString(),
+            '+1 555-662-5497',
+          );
+        },
+      );
+
+      test(
         'when a username omits the at sign, it should add it for display',
         () {
           expect(Whatsapp('ventairy').toDisplayString(), '@ventairy');
@@ -177,6 +188,25 @@ void main() {
       );
 
       test(
+        'when a service-managed phone identifier has an unallocated prefix, '
+        'it should launch its phone wa.me URI',
+        () async {
+          final whatsapp = Whatsapp.test(
+            '+15556625497',
+            launcher: launch,
+            isWeb: true,
+          );
+
+          await whatsapp.chat();
+
+          expect(
+            launchedUris.single.toString(),
+            'https://wa.me/15556625497',
+          );
+        },
+      );
+
+      test(
         'when the recipient is a username, '
         'it should launch the username wa.me URI',
         () async {
@@ -283,6 +313,28 @@ void main() {
           expect(
             launchedUri.toString(),
             'whatsapp://send?phone=12025550123',
+          );
+        },
+      );
+
+      test(
+        'when a service-managed phone identifier has an unallocated prefix, '
+        'it should launch its native phone URI',
+        () async {
+          late Uri launchedUri;
+          final whatsapp = Whatsapp.test(
+            '+15556625497',
+            launcher: (uri) async {
+              launchedUri = uri;
+              return true;
+            },
+          );
+
+          await whatsapp.chat();
+
+          expect(
+            launchedUri.toString(),
+            'whatsapp://send?phone=15556625497',
           );
         },
       );
