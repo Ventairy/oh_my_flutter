@@ -174,14 +174,14 @@ void main() {
     });
   }
 
-  testWidgets('when using a fractional viewport, it should center an item of that fraction', (tester) async {
+  testWidgets('when using spacing, it should keep items the size of the viewport', (tester) async {
     await tester.pumpWidget(
       SnapListTestHost.app(
-        SnapList(axis: Axis.horizontal, viewportFraction: .5, spacing: 10, children: SnapListTestHost.cards(4)),
+        SnapList(axis: Axis.horizontal, spacing: 10, children: SnapListTestHost.cards(4)),
       ),
     );
     await tester.pumpAndSettle();
-    expect(tester.getRect(find.byKey(const ValueKey(0)).last), const Rect.fromLTWH(325, 100, 150, 400));
+    expect(tester.getRect(find.byKey(const ValueKey(0)).last), const Rect.fromLTWH(250, 100, 300, 400));
   });
 
   testWidgets('when next is requested, it should complete only after settling', (tester) async {

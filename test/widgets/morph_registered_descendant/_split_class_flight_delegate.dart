@@ -7,8 +7,8 @@ class _SplitClassFlightDelegate extends MorphFlightDelegate<_SplitFlightProperti
   _SplitFlightProperties properties(MorphEndpointContext endpoint) {
     final row = (endpoint.child as SizedBox).child! as Row;
     return _SplitFlightProperties(
-      first: endpoint.registerDescendantWidget((row.children.first as Expanded).child),
-      second: endpoint.registerDescendantWidget((row.children.last as Expanded).child),
+      first: endpoint.descendantWidget((row.children.first as Expanded).child),
+      second: endpoint.descendantWidget((row.children.last as Expanded).child),
     );
   }
 

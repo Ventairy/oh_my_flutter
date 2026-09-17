@@ -1,67 +1,41 @@
 part of 'morph.dart';
 
-final class _MorphContentSnapshot {
-  _MorphContentSnapshot({
-    required this.tiles,
-    required this.size,
-  }) {
-    _painter = _MorphContentSnapshotPainter(
-      tiles: tiles,
-    );
-  }
-
-  factory _MorphContentSnapshot.tiled({
-    required OffsetLayer layer,
-    required Size size,
+final class _MorphSnapshotCapture {
+  static GroupSnapshot? captureGroup(
+    GroupLink link, {
+    required RenderBox relativeTo,
+    required Rect bounds,
     required double pixelRatio,
-  }) {
-    final physicalWidth = (size.width * pixelRatio).ceil();
-    final physicalHeight = (size.height * pixelRatio).ceil();
-    final tiles = <_MorphContentSnapshotTile>[];
-    for (var physicalTop = 0; physicalTop < physicalHeight; physicalTop += _maximumTilePhysicalExtent) {
-      final tilePhysicalHeight = math.min(
-        _maximumTilePhysicalExtent,
-        physicalHeight - physicalTop,
-      );
-      for (var physicalLeft = 0; physicalLeft < physicalWidth; physicalLeft += _maximumTilePhysicalExtent) {
-        final tilePhysicalWidth = math.min(
-          _maximumTilePhysicalExtent,
-          physicalWidth - physicalLeft,
-        );
-        final logicalBounds = Rect.fromLTWH(
-          physicalLeft / pixelRatio,
-          physicalTop / pixelRatio,
-          tilePhysicalWidth / pixelRatio,
-          tilePhysicalHeight / pixelRatio,
-        );
-        final atlas = _MorphSnapshotAtlas(
-          layer.toImageSync(logicalBounds, pixelRatio: pixelRatio),
-        );
-        tiles.add(
-          _MorphContentSnapshotTile(
-            atlas: atlas,
-            sourceRect:
-                Offset.zero &
-                Size(
-                  tilePhysicalWidth.toDouble(),
-                  tilePhysicalHeight.toDouble(),
-                ),
-            destinationRect: logicalBounds,
-          ),
-        );
-      }
+  }) => GroupCaptureAccess.capture(
+    link,
+    relativeTo: relativeTo,
+    bounds: bounds,
+    pixelRatio: pixelRatio,
+    prepare: _suppressNestedEndpoints,
+  );
+
+  static VoidCallback _suppressNestedEndpoints(Iterable<RenderObject> roots) {
+    final endpoints = <_RenderMorphEndpoint>{};
+    for (final root in roots) {
+      _collectNestedEndpoints(root, endpoints, isRoot: true);
     }
-    return _MorphContentSnapshot(tiles: tiles, size: size);
+    for (final endpoint in endpoints) {
+      endpoint.beginSnapshotSuppression();
+    }
+    return () {
+      for (final endpoint in endpoints) {
+        endpoint.endSnapshotSuppression();
+      }
+    };
   }
 
   static const _maximumAtlasPhysicalExtent = 4096.0;
   static const int _maximumAtlasPhysicalPixels = 2048 * 2048;
   static const int _maximumCapturePhysicalPixels = 2048 * 2048;
-  static const _maximumTilePhysicalExtent = 2048;
   static const _atlasGutterPhysicalExtent = 4.0;
 
   static ({
-    List<_MorphContentSnapshot?> snapshots,
+    List<RasterSnapshot?> snapshots,
     int physicalPixels,
   })?
   captureAll({
@@ -70,7 +44,7 @@ final class _MorphContentSnapshot {
   }) {
     if (renderObjects.isEmpty) {
       return (
-        snapshots: const <_MorphContentSnapshot?>[],
+        snapshots: const <RasterSnapshot?>[],
         physicalPixels: 0,
       );
     }
@@ -89,7 +63,7 @@ final class _MorphContentSnapshot {
   }
 
   static ({
-    List<_MorphContentSnapshot?> snapshots,
+    List<RasterSnapshot?> snapshots,
     int physicalPixels,
   })?
   _captureAllWithinBudget({
@@ -99,7 +73,7 @@ final class _MorphContentSnapshot {
   }) {
     if (renderObjects.isEmpty) {
       return (
-        snapshots: const <_MorphContentSnapshot?>[],
+        snapshots: const <RasterSnapshot?>[],
         physicalPixels: 0,
       );
     }
@@ -126,7 +100,7 @@ final class _MorphContentSnapshot {
     }
     if (atlasSize.isEmpty) {
       return (
-        snapshots: List<_MorphContentSnapshot?>.filled(
+        snapshots: List<RasterSnapshot?>.filled(
           renderObjects.length,
           null,
           growable: false,
@@ -189,7 +163,7 @@ final class _MorphContentSnapshot {
           );
         }
         return (
-          snapshots: List<_MorphContentSnapshot?>.filled(
+          snapshots: List<RasterSnapshot?>.filled(
             renderObjects.length,
             null,
             growable: false,
@@ -199,8 +173,8 @@ final class _MorphContentSnapshot {
       }
       if (atlasExceedsTextureLimit) {
         return (
-          snapshots: <_MorphContentSnapshot?>[
-            _MorphContentSnapshot.tiled(
+          snapshots: <RasterSnapshot?>[
+            RasterSnapshot.tiled(
               layer: layer,
               size: renderObjects.single.size,
               pixelRatio: pixelRatio,
@@ -209,18 +183,18 @@ final class _MorphContentSnapshot {
           physicalPixels: atlasPhysicalPixels,
         );
       }
-      final atlas = _MorphSnapshotAtlas(
+      final atlas = SnapshotAtlas(
         layer.toImageSync(bounds, pixelRatio: pixelRatio),
       );
       return (
-        snapshots: List<_MorphContentSnapshot?>.generate(
+        snapshots: List<RasterSnapshot?>.generate(
           renderObjects.length,
           (index) {
             final size = renderObjects[index].size;
             final offset = offsets[index];
-            return _MorphContentSnapshot(
-              tiles: <_MorphContentSnapshotTile>[
-                _MorphContentSnapshotTile(
+            return RasterSnapshot(
+              tiles: <SnapshotTile>[
+                SnapshotTile(
                   atlas: atlas,
                   sourceRect: Rect.fromLTWH(
                     offset.dx * pixelRatio,
@@ -385,7 +359,7 @@ final class _MorphContentSnapshot {
   }
 
   static ({
-    List<_MorphContentSnapshot?> snapshots,
+    List<RasterSnapshot?> snapshots,
     int physicalPixels,
   })?
   _captureHalves({
@@ -407,46 +381,12 @@ final class _MorphContentSnapshot {
     );
     if (second == null) return null;
     return (
-      snapshots: <_MorphContentSnapshot?>[
+      snapshots: <RasterSnapshot?>[
         ...first.snapshots,
         ...second.snapshots,
       ],
       physicalPixels: first.physicalPixels + second.physicalPixels,
     );
-  }
-
-  final List<_MorphContentSnapshotTile> tiles;
-  final Size size;
-  late final _MorphContentSnapshotPainter _painter;
-  late final Widget _widget = ClipRect(
-    child: OverflowBox(
-      alignment: Alignment.topLeft,
-      minWidth: size.width,
-      maxWidth: size.width,
-      minHeight: size.height,
-      maxHeight: size.height,
-      child: CustomPaint(painter: _painter),
-    ),
-  );
-
-  Widget build() => _widget;
-
-  void addAtlasesTo(Set<_MorphSnapshotAtlas> atlases) {
-    for (final tile in tiles) {
-      atlases.add(tile.atlas);
-    }
-  }
-
-  void retain() {
-    for (final tile in tiles) {
-      tile.atlas.retain();
-    }
-  }
-
-  void release() {
-    for (final tile in tiles) {
-      tile.atlas.release();
-    }
   }
 
   static void _collectNestedEndpoints(

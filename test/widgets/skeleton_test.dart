@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
@@ -722,8 +723,56 @@ void main() {
       },
     );
 
+    group('text spacing with a real font', () {
+      setUpAll(() async {
+        final loader = FontLoader('SkeletonTestInter')
+          ..addFont(File('test/fixtures/fonts/inter.ttf').readAsBytes().then(ByteData.sublistView));
+        await loader.load();
+      });
+
+      for (final lineHeight in [1.0, 1.15, 1.8]) {
+        for (final textScale in [1.0, 2.0]) {
+          testWidgets(
+            'when text height is $lineHeight at scale $textScale, it should leave visible gaps between bones',
+            (tester) async {
+              const boundaryKey = ValueKey('skeleton-text-spacing');
+              await tester.pumpWidget(
+                _pixelApp(
+                  boundaryKey: boundaryKey,
+                  child: SizedBox(
+                    width: 300,
+                    height: 240,
+                    child: Skeleton(
+                      style: const SkeletonStyle(radius: Radius.zero),
+                      child: Text(
+                        'Caminhão\nCaminhão',
+                        textScaler: TextScaler.linear(textScale),
+                        style: TextStyle(fontFamily: 'SkeletonTestInter', fontSize: 24, height: lineHeight),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+              final frame = await _capturePixels(tester, boundaryKey);
+              final paintedRows = <int>[];
+              for (var y = 0; y < frame.height; y += 1) {
+                if (_pixelAt(frame, 30, y).a > 0.5) paintedRows.add(y);
+              }
+              var largestGap = 0;
+              for (var i = 1; i < paintedRows.length; i += 1) {
+                largestGap = math.max(largestGap, paintedRows[i] - paintedRows[i - 1] - 1);
+              }
+              // The compact layout previously filled the space between lines.
+              // The wider layout must keep its existing leading as well.
+              expect(largestGap, greaterThanOrEqualTo((lineHeight == 1.8 ? 20 : 2) * textScale));
+            },
+          );
+        }
+      }
+    });
+
     testWidgets(
-      'when a paragraph has multiple lines, it should match each tight text line box',
+      'when a paragraph has multiple lines, it should preserve each tight text line width',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-paragraph-spacing-boundary');
         const boneColor = Color(0xFF536579);
@@ -788,17 +837,8 @@ void main() {
         }
 
         expect(
-          actualBounds,
-          expectedBoxes
-              .map(
-                (box) => Rect.fromLTRB(
-                  box.left.floorToDouble(),
-                  box.top.floorToDouble(),
-                  box.right.ceilToDouble(),
-                  box.bottom.ceilToDouble(),
-                ),
-              )
-              .toList(),
+          actualBounds.map((box) => (box.left, box.right)).toList(),
+          expectedBoxes.map((box) => (box.left.floorToDouble(), box.right.ceilToDouble())).toList(),
         );
       },
     );

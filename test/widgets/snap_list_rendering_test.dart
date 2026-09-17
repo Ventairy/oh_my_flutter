@@ -37,6 +37,9 @@ void main() {
       SnapListTestHost.app(
         SnapList(
           controller: controller,
+          incomingTransitionBuilder: (_, progress, isReverse, child) => FadeTransition(opacity: progress, child: child),
+          outgoingTransitionBuilder: (_, progress, isReverse, child) =>
+              ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child),
           children: List.generate(
             1000,
             (i) => _Probe(

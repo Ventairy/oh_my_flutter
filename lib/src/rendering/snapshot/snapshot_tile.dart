@@ -1,13 +1,14 @@
-part of 'morph.dart';
+part of 'raster_snapshot.dart';
 
-final class _MorphContentSnapshotTile {
-  const _MorphContentSnapshotTile({
+@internal
+final class SnapshotTile {
+  const SnapshotTile({
     required this.atlas,
     required this.sourceRect,
     required this.destinationRect,
   });
 
-  final _MorphSnapshotAtlas atlas;
+  final SnapshotAtlas atlas;
   final Rect sourceRect;
   final Rect destinationRect;
 }

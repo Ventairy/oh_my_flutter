@@ -36,6 +36,8 @@ class _SnapListMotion extends ChangeNotifier {
   Timer? _wheelTimer;
   bool _wheelActive = false;
   double? _lastPosition;
+  bool _tickerEnabled = true;
+  ({int generation, double destination})? _activeSettle;
 
   double get pixels => scroll?.hasPixels ?? false ? scroll!.pixels : 0;
   double? get itemPosition => count == 0 ? null : pixels / stride;
@@ -82,7 +84,16 @@ class _SnapListMotion extends ChangeNotifier {
     _appendTarget = null;
     _preserveOffset = false;
     target = null;
+    _activeSettle = null;
     scroll?.goIdle();
+  }
+
+  void updateTickerMode({required bool enabled}) {
+    _tickerEnabled = enabled;
+    if (enabled) return;
+    final activeSettle = _activeSettle;
+    if (activeSettle == null || activeSettle.generation != _generation) return;
+    scroll?.jumpTo(activeSettle.destination);
   }
 
   void beginDrag() {
@@ -140,17 +151,19 @@ class _SnapListMotion extends ChangeNotifier {
     final position = scroll;
     if (position == null) return;
     final generation = ++_generation;
+    _activeSettle = (generation: generation, destination: destination);
     target = destination <= lastAnchor && count > 0 ? (destination / stride).round() : null;
     moving = (pixels - destination).abs() > precisionErrorTolerance;
     notifyListeners();
     final useReverse = cancel || reverse;
     final duration = useReverse ? reverseDuration : this.duration;
-    if (reducedMotion || duration == Duration.zero || !moving) {
+    if (reducedMotion || !_tickerEnabled || duration == Duration.zero || !moving) {
       position.jumpTo(destination);
     } else {
       await position.animateTo(destination, duration: duration, curve: useReverse ? reverseCurve : curve);
     }
     if (generation != _generation) return;
+    _activeSettle = null;
     moving = false;
     if (!trailingCommitted && target != null) index = target;
     final reachedItem = target != null;

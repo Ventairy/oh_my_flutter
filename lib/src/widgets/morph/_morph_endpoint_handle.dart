@@ -34,6 +34,16 @@ class _MorphEndpointHandle {
   VoidCallback? onReceived;
   MorphEndpoint<Object?>? cachedEndpoint;
   bool captureFailed = false;
+  _MorphDescendantCapture? _cachedGroupCapture;
+  VoidCallback? _releaseCachedGroupPresentation;
+
+  void releaseGroupCache() {
+    _releaseCachedGroupPresentation?.call();
+    _releaseCachedGroupPresentation = null;
+    _cachedGroupCapture?.release();
+    _cachedGroupCapture = null;
+  }
+
   Set<_MorphDescendantCapture> _departureCaptures = const {};
   int registrationOrder = 0;
   int? structuralOrder;
@@ -175,7 +185,7 @@ class _MorphEndpointHandle {
           pixelRatio: pixelRatio!,
         );
         retainedSnapshotPhysicalPixels = projection.retained;
-        if (projection.total > _MorphContentSnapshot._maximumCapturePhysicalPixels) {
+        if (projection.total > _MorphSnapshotCapture._maximumCapturePhysicalPixels) {
           final originallyReplacedRecords = Set<_MorphDescendantFlightRecord>.identity()..addAll(snapshotRecords);
           snapshotRecords.clear();
           snapshotRenderObjects.clear();
@@ -191,7 +201,7 @@ class _MorphEndpointHandle {
           retainedSnapshotPhysicalPixels = 0;
         }
       }
-      final capture = _MorphContentSnapshot.captureAll(
+      final capture = _MorphSnapshotCapture.captureAll(
         pixelRatio: pixelRatio!,
         renderObjects: snapshotRenderObjects,
       );
@@ -209,7 +219,7 @@ class _MorphEndpointHandle {
         if (refresh &&
             !replacesAllRetainedSnapshots &&
             retainedSnapshotPhysicalPixels + capture.physicalPixels >
-                _MorphContentSnapshot._maximumCapturePhysicalPixels) {
+                _MorphSnapshotCapture._maximumCapturePhysicalPixels) {
           return null;
         }
       }
@@ -233,7 +243,7 @@ class _MorphEndpointHandle {
     required double pixelRatio,
   }) {
     final replaced = Set<_MorphDescendantFlightRecord>.identity()..addAll(replacedRecords);
-    final retainedAtlases = Set<_MorphSnapshotAtlas>.identity();
+    final retainedAtlases = Set<SnapshotAtlas>.identity();
     for (final record in records) {
       if (!replaced.contains(record)) {
         record.snapshot?.addAtlasesTo(retainedAtlases);
@@ -247,7 +257,7 @@ class _MorphEndpointHandle {
       retained: retainedPixels,
       total:
           retainedPixels +
-          _MorphContentSnapshot._plannedCapturePhysicalPixels(
+          _MorphSnapshotCapture._plannedCapturePhysicalPixels(
             pixelRatio: pixelRatio,
             renderObjects: replacementRenderObjects,
           ),
@@ -289,6 +299,14 @@ class _MorphEndpointHandle {
   }
 
   void _cacheCapture(MorphEndpoint<Object?> endpoint) {
+    final capture = _MorphDescendantSnapshots.captureOf(endpoint);
+    final groupCapture = capture != null && capture.hasGroups ? capture : null;
+    if (!identical(groupCapture, _cachedGroupCapture)) {
+      groupCapture?.retain();
+      releaseGroupCache();
+      _cachedGroupCapture = groupCapture;
+      _releaseCachedGroupPresentation = groupCapture?.beginGroupPresentation(visibility);
+    }
     cachedEndpoint = endpoint;
     _sameFrameEndpoint = endpoint;
     scheduleMicrotask(() {

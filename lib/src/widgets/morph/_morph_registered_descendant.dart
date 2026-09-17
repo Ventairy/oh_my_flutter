@@ -26,7 +26,7 @@ class _MorphRegisteredDescendantState extends State<_MorphRegisteredDescendant> 
     final flightScope = _MorphFlightScope.scopeOf(context);
     assert(
       flightScope != null && flightScope.registeredCaptures.contains(widget.capture),
-      'Use the widget returned by registerDescendantWidget in its associated '
+      'Use the widget returned by descendantWidget in its associated '
       'Morph flight. It cannot be reused in an unrelated flight or outside a flight.',
     );
     return _MorphDescendantFlightScope(

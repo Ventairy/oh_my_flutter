@@ -90,6 +90,7 @@ class _SkeletonCanvas implements Canvas {
   void drawParagraph(Paragraph paragraph, Offset offset) {
     if (paragraph.height <= 0) return;
 
+    final metrics = paragraph.computeLineMetrics();
     var lineStart = 0;
     for (var lineNumber = 0; lineNumber < paragraph.numberOfLines; lineNumber += 1) {
       final lineRange = paragraph.getLineBoundary(
@@ -113,6 +114,22 @@ class _SkeletonCanvas implements Canvas {
       lineStart = nextLineStart;
 
       if (lineBounds == null || lineBounds.isEmpty) continue;
+
+      // Measure around the baseline using tight font bounds so added line
+      // spacing does not increase the bone's thickness. This is an optical
+      // estimate, not the glyphs' painted bounds.
+      final baseline = offset.dy + metrics[lineNumber].baseline;
+      final ascent = baseline - lineBounds.top;
+      final descent = lineBounds.bottom - baseline;
+      final bodyHeight = ascent - descent;
+      if (bodyHeight > 0 && bodyHeight.isFinite) {
+        final top = math.max(lineBounds.top, baseline - bodyHeight);
+        // Retain some descent for a fuller bar without filling the font box.
+        final bottom = math.min(lineBounds.bottom, baseline + bodyHeight * 0.2);
+        if (bottom > top) {
+          lineBounds = Rect.fromLTRB(lineBounds.left, top, lineBounds.right, bottom);
+        }
+      }
       _recordBone(
         _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(lineBounds, _radius)),
       );

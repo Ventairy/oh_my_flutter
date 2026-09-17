@@ -16,7 +16,7 @@ abstract class MorphFlightDelegate<T> {
   /// Returns the visual values for [endpoint].
   ///
   /// Register endpoint widget content with
-  /// [MorphEndpointContext.registerDescendantWidget] here, store the returned
+  /// [MorphEndpointContext.descendantWidget] here, store the returned
   /// widgets in your properties, and build those widgets in the flight.
   T properties(MorphEndpointContext endpoint);
 

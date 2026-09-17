@@ -70,7 +70,7 @@ void main() {
       await startFlight(tester);
 
       expect(
-        () => captures.last.endpoint.registerDescendantWidget(const SizedBox.shrink()),
+        () => captures.last.endpoint.descendantWidget(const SizedBox.shrink()),
         throwsA(
           isA<AssertionError>().having(
             (error) => error.message.toString(),

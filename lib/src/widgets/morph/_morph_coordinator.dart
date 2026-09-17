@@ -1610,7 +1610,9 @@ class _MorphCoordinator extends ChangeNotifier {
     });
     final ownerWasRemoved = expired.contains(_groups[tag]?.owner);
     for (final endpoint in expired) {
-      endpoint.releaseDeparture();
+      endpoint
+        ..releaseDeparture()
+        ..releaseGroupCache();
       endpoint.visibility.dispose();
     }
     final group = _groups[tag];
@@ -1631,7 +1633,9 @@ class _MorphCoordinator extends ChangeNotifier {
       final group = _groups[endpoint.tag];
       if (group != null) _scheduleReconciliation(group);
     }
-    endpoint.releaseDeparture();
+    endpoint
+      ..releaseDeparture()
+      ..releaseGroupCache();
     endpoint.visibility.hidden = false;
     endpoint.visibility.dispose();
   }

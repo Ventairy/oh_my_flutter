@@ -14,6 +14,7 @@ part '_render_snap_list_eager_content.dart';
 part '_render_snap_list_trailing.dart';
 part '_snap_list_drag.dart';
 part '_snap_list_eager_content.dart';
+part '_snap_list_item_transition.dart';
 part '_snap_list_motion.dart';
 part '_snap_list_nested_scroll.dart';
 part '_snap_list_parent_data.dart';
@@ -21,8 +22,11 @@ part '_snap_list_physics.dart';
 part '_snap_list_position.dart';
 part '_snap_list_scroll_controller.dart';
 part '_snap_list_trailing.dart';
+part '_snap_list_transition_animation.dart';
+part '_snap_list_transitions.dart';
 part '_snap_list_viewport_offset.dart';
 part 'snap_list_controller.dart';
+part 'snap_list_types.dart';
 
 /// Presents content that snaps to one item at a time on either axis.
 ///
@@ -36,7 +40,6 @@ class SnapList extends StatefulWidget {
   const SnapList({
     required List<Widget> this.children,
     this.axis = Axis.vertical,
-    this.viewportFraction = 1,
     this.spacing = 0,
     this.padding = EdgeInsets.zero,
     this.alignment = SnapListAlignment.center,
@@ -49,13 +52,14 @@ class SnapList extends StatefulWidget {
     this.controller,
     this.trailingBuilder,
     this.onIndexChanged,
+    this.incomingTransitionBuilder,
+    this.outgoingTransitionBuilder,
     super.key,
   }) : reverseDuration = reverseDuration ?? duration,
        reverseCurve = reverseCurve ?? curve,
        itemBuilder = null,
        itemCount = null,
        cacheItemCount = 1,
-       assert(viewportFraction > 0 && viewportFraction <= 1, 'viewportFraction must be in (0, 1].'),
        assert(spacing >= 0 && spacing < double.infinity, 'spacing must be finite and nonnegative.'),
        assert(commitThreshold > 0 && commitThreshold <= 1, 'commitThreshold must be in (0, 1].');
 
@@ -68,7 +72,6 @@ class SnapList extends StatefulWidget {
     required IndexedWidgetBuilder this.itemBuilder,
     this.cacheItemCount = 1,
     this.axis = Axis.vertical,
-    this.viewportFraction = 1,
     this.spacing = 0,
     this.padding = EdgeInsets.zero,
     this.alignment = SnapListAlignment.center,
@@ -81,13 +84,14 @@ class SnapList extends StatefulWidget {
     this.controller,
     this.trailingBuilder,
     this.onIndexChanged,
+    this.incomingTransitionBuilder,
+    this.outgoingTransitionBuilder,
     super.key,
   }) : reverseDuration = reverseDuration ?? duration,
        reverseCurve = reverseCurve ?? curve,
        children = null,
        assert(itemCount >= 0, 'itemCount must be nonnegative.'),
        assert(cacheItemCount >= 0, 'cacheItemCount must be nonnegative.'),
-       assert(viewportFraction > 0 && viewportFraction <= 1, 'viewportFraction must be in (0, 1].'),
        assert(spacing >= 0 && spacing < double.infinity, 'spacing must be finite and nonnegative.'),
        assert(commitThreshold > 0 && commitThreshold <= 1, 'commitThreshold must be in (0, 1].');
 
@@ -102,9 +106,6 @@ class SnapList extends StatefulWidget {
 
   /// Axis along which items move.
   final Axis axis;
-
-  /// Fraction of the padded viewport occupied by each item on [axis].
-  final double viewportFraction;
 
   /// Gap between items, in logical pixels.
   final double spacing;
@@ -158,6 +159,21 @@ class SnapList extends StatefulWidget {
   /// Called when a different real item finishes settling, not on first mount.
   final ValueChanged<int>? onIndexChanged;
 
+  /// Animates each arriving item with an effect that follows scrolling.
+  ///
+  /// Progress moves from zero to one as the item arrives, and rewinds when
+  /// the swipe is cancelled. The settled item receives one. Both navigation
+  /// directions use this builder; `isReverse` identifies previous-item travel.
+  /// Omit it for normal appearance. See [SnapListTransitionBuilder] for usage.
+  final SnapListTransitionBuilder? incomingTransitionBuilder;
+
+  /// Animates each departing item independently of its incoming effect.
+  ///
+  /// Progress moves from zero to one as the item leaves, and rewinds when
+  /// the swipe is cancelled. The settled item receives zero. For a fade-out,
+  /// drive a tween from one to zero. See [SnapListTransitionBuilder] for usage.
+  final SnapListTransitionBuilder? outgoingTransitionBuilder;
+
   /// Extra items to prepare on each side of the visible lazy range.
   final int cacheItemCount;
 
@@ -176,6 +192,7 @@ class _SnapListState extends State<SnapList> {
   )..addListener(_changed);
   late final _scrollController = _SnapListScrollController(_motion);
   late final _nested = _SnapListNestedScroll(_motion);
+  final _transitions = _SnapListTransitions();
   final _focusNode = FocusNode(debugLabel: 'SnapList');
   final _visible = ValueNotifier<(int, int)>((0, 0));
   _SnapListViewportOffset? _viewportOffset;
@@ -198,6 +215,12 @@ class _SnapListState extends State<SnapList> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _motion.updateTickerMode(enabled: TickerMode.valuesOf(context).enabled);
+  }
+
+  @override
   void didUpdateWidget(SnapList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.controller, widget.controller)) {
@@ -216,7 +239,6 @@ class _SnapListState extends State<SnapList> {
     }
     final geometryChanged =
         oldWidget.axis != widget.axis ||
-        oldWidget.viewportFraction != widget.viewportFraction ||
         oldWidget.spacing != widget.spacing ||
         oldWidget.padding != widget.padding ||
         oldWidget.alignment != widget.alignment;
@@ -276,19 +298,37 @@ class _SnapListState extends State<SnapList> {
       if (index != null) widget.onIndexChanged?.call(index);
     }
     final pixels = _motion.displayPixels;
+    _updateTransitions();
     final first = ((pixels - _leading - _itemExtent) / _motion.stride).floor() + 1;
     final last = ((pixels + _extent - _leading) / _motion.stride).ceil() - 1;
     _visible.value = (math.max(0, first), math.min(_count - 1, last));
     _controller?._changed();
   }
 
+  void _updateTransitions() {
+    if (widget.incomingTransitionBuilder == null && widget.outgoingTransitionBuilder == null) return;
+    _transitions.update(
+      _motion.displayPixels / _motion.stride,
+      _count,
+      reducedMotion: _motion.reducedMotion,
+    );
+  }
+
   Widget _item(BuildContext context, int index) {
     final child = widget.children?[index] ?? widget.itemBuilder!(context, index);
     return KeyedSubtree(
-      key: child.key ?? ValueKey(index),
+      key: ValueKey(child.key ?? index),
       child: ValueListenableBuilder<(int, int)>(
         valueListenable: _visible,
-        child: child,
+        child: widget.incomingTransitionBuilder == null && widget.outgoingTransitionBuilder == null
+            ? child
+            : _SnapListItemTransition(
+                transitions: _transitions,
+                index: index,
+                incomingBuilder: widget.incomingTransitionBuilder,
+                outgoingBuilder: widget.outgoingTransitionBuilder,
+                child: child,
+              ),
         builder: (context, range, child) {
           final visible = index >= range.$1 && index <= range.$2;
           return TickerMode(
@@ -352,7 +392,8 @@ class _SnapListState extends State<SnapList> {
               leading: _leading,
               children: List.generate(
                 _count,
-                (index) => RepaintBoundary(key: widget.children![index].key, child: _item(context, index)),
+                (index) =>
+                    RepaintBoundary(key: ValueKey(widget.children![index].key ?? index), child: _item(context, index)),
               ),
             ),
           )
@@ -434,7 +475,7 @@ class _SnapListState extends State<SnapList> {
             'SnapList requires bounded width and height.',
           );
           final extent = widget.axis == Axis.vertical ? constraints.maxHeight : constraints.maxWidth;
-          final itemExtent = extent * widget.viewportFraction;
+          final itemExtent = extent;
           _leading =
               (extent - itemExtent) *
               switch (widget.alignment) {
@@ -451,6 +492,7 @@ class _SnapListState extends State<SnapList> {
             );
             _motion.reset();
           }
+          _updateTransitions();
           _scheduleChanged();
           return Focus(
             focusNode: _focusNode,

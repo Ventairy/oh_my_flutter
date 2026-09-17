@@ -1,7 +1,8 @@
-part of 'morph.dart';
+part of 'raster_snapshot.dart';
 
-final class _MorphSnapshotAtlas {
-  _MorphSnapshotAtlas(this.image) {
+@internal
+final class SnapshotAtlas {
+  SnapshotAtlas(this.image) {
     _scheduleDisposalIfUnused(afterFrame: false);
   }
 

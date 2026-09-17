@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
@@ -97,7 +99,7 @@ void main() {
   });
 
   testWidgets(
-    'when a full trailing slot disappears as a fractional item appends, it should preserve the transition offset',
+    'when a full trailing slot disappears as an item appends, it should preserve the transition offset',
     (tester) async {
       final controller = SnapListController();
       var count = 1;
@@ -109,7 +111,6 @@ void main() {
               update = setState;
               return SnapList(
                 controller: controller,
-                viewportFraction: .25,
                 trailingBuilder: count == 1 ? (_) => const SizedBox.expand() : null,
                 children: SnapListTestHost.cards(count),
               );
@@ -126,7 +127,7 @@ void main() {
       await tester.pump();
       final afterLayout = controller.position;
       await tester.pumpAndSettle();
-      expect((before, afterLayout, controller.position), (4, 4, 1));
+      expect((before, afterLayout, controller.position), (1, 1, 1));
     },
   );
 
@@ -332,5 +333,36 @@ void main() {
     update(() => count = 3);
     await tester.pumpAndSettle();
     expect((trailingRect, controller.index), (viewport, 1));
+  });
+
+  testWidgets('when ticker mode disables during a trailing reveal, it should finish at the trailing boundary', (
+    tester,
+  ) async {
+    final controller = SnapListController();
+    final tickerEnabled = ValueNotifier<bool>(true);
+    addTearDown(tickerEnabled.dispose);
+    await tester.pumpWidget(
+      SnapListTestHost.app(
+        ValueListenableBuilder<bool>(
+          valueListenable: tickerEnabled,
+          builder: (_, enabled, child) => TickerMode(enabled: enabled, child: child!),
+          child: SnapList(
+            controller: controller,
+            duration: const Duration(milliseconds: 400),
+            trailingBuilder: (_) => const SizedBox(height: 120),
+            children: SnapListTestHost.cards(1),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    bool? completed;
+    unawaited(controller.next().then((value) => completed = value));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    tickerEnabled.value = false;
+    await tester.pump();
+    await tester.pump();
+    expect((controller.position, controller.index, controller.isMoving, completed), (.3, 0, false, false));
   });
 }

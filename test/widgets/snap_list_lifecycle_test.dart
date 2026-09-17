@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
@@ -36,6 +38,9 @@ void main() {
         SnapList.builder(
           controller: controller,
           cacheItemCount: 0,
+          incomingTransitionBuilder: (_, progress, isReverse, child) => FadeTransition(opacity: progress, child: child),
+          outgoingTransitionBuilder: (_, progress, isReverse, child) =>
+              ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child),
           itemCount: 5,
           itemBuilder: (_, i) => _Counter(key: ValueKey(i), index: i),
         ),
@@ -66,6 +71,10 @@ void main() {
             update = setState;
             return SnapList(
               controller: controller,
+              incomingTransitionBuilder: (_, progress, isReverse, child) =>
+                  FadeTransition(opacity: progress, child: child),
+              outgoingTransitionBuilder: (_, progress, isReverse, child) =>
+                  ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child),
               children: [for (final i in order) _Counter(key: ValueKey(i), index: i)],
             );
           },
@@ -177,5 +186,66 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
     expect((await result, controller.position), (false, 0));
+  });
+
+  testWidgets('when ticker mode disables during movement, it should finish at the selected item', (tester) async {
+    final controller = SnapListController();
+    final tickerEnabled = ValueNotifier<bool>(true);
+    addTearDown(tickerEnabled.dispose);
+    await tester.pumpWidget(
+      SnapListTestHost.app(
+        ValueListenableBuilder<bool>(
+          valueListenable: tickerEnabled,
+          builder: (_, enabled, child) => TickerMode(enabled: enabled, child: child!),
+          child: SnapList(
+            controller: controller,
+            duration: const Duration(milliseconds: 400),
+            children: SnapListTestHost.cards(3),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    bool? completed;
+    unawaited(controller.next().then((value) => completed = value));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    tickerEnabled.value = false;
+    await tester.pump();
+    await tester.pump();
+    expect((controller.position, controller.index, controller.isMoving, completed), (1, 1, false, true));
+  });
+
+  testWidgets('when ticker mode disables during backward movement, it should finish at the previous item', (
+    tester,
+  ) async {
+    final controller = SnapListController();
+    final tickerEnabled = ValueNotifier<bool>(true);
+    addTearDown(tickerEnabled.dispose);
+    await tester.pumpWidget(
+      SnapListTestHost.app(
+        ValueListenableBuilder<bool>(
+          valueListenable: tickerEnabled,
+          builder: (_, enabled, child) => TickerMode(enabled: enabled, child: child!),
+          child: SnapList(
+            controller: controller,
+            duration: const Duration(milliseconds: 400),
+            children: SnapListTestHost.cards(3),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final next = controller.next();
+    await tester.pumpAndSettle();
+    expect(await next, isTrue);
+    bool? completed;
+    unawaited(controller.previous().then((value) => completed = value));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    tickerEnabled.value = false;
+    await tester.pump();
+    await tester.pump();
+    expect((controller.position, controller.index, controller.isMoving, completed), (0, 0, false, true));
   });
 }
