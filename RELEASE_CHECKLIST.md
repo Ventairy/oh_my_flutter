@@ -10,3 +10,8 @@
   `Ventairy/oh_my_flutter` with tag pattern `v{{version}}`.
 - Push the release tag and verify both the GitHub Actions workflow and the
   public pub.dev version reach a terminal successful state.
+
+Pull requests run CI before merge. Main pushes do not repeat those checks.
+The release workflow runs the full CI suite on the tagged commit before publishing;
+a failed validation blocks publication. Use the CI workflow’s manual trigger for
+full validation outside a pull request or release.

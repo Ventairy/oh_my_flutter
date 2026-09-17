@@ -12,12 +12,18 @@ concurrency:
 permissions: {}
 
 jobs:
+  validate:
+    name: Validate release
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+
   publish:
     name: Publish
+    needs: validate
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
-      actions: read # Verify the exact CI workflow run.
       contents: read # Check out and verify the release commit.
       id-token: write # Authenticate to pub.dev with OIDC.
     steps:
@@ -26,31 +32,12 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Verify release ref
-        env:
-          GH_TOKEN: ${{ github.token }}
         run: |
           package_version="$(awk '$1 == "version:" { print $2 }' pubspec.yaml)"
           test -n "$package_version"
           test "$GITHUB_REF_NAME" = "v$package_version"
           git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
-          ci_run_id="$(
-            gh api --method GET \
-              "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
-              -f branch=main \
-              -f event=push \
-              -f head_sha="$GITHUB_SHA" \
-              -f per_page=1 \
-              --jq '.workflow_runs[0] | select(.status == "completed" and .conclusion == "success") | .id'
-          )"
-          test -n "$ci_run_id"
-
-          required_job_count="$(
-            gh api \
-              "repos/$GITHUB_REPOSITORY/actions/runs/$ci_run_id/jobs?per_page=100" \
-              --jq '[.jobs[] | select(.name == "Required" and .status == "completed" and .conclusion == "success")] | length'
-          )"
-          test "$required_job_count" -eq 1
       - uses: dart-lang/setup-dart@6afc89df92d6eb3834022f73cd65adc8cdfcb92d # v1.8.1
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
