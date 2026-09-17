@@ -42,3 +42,6 @@ pubspec_overrides.yaml
 .idea/
 *.iml
 .vscode/settings.json
+
+# Python CI tooling
+__pycache__/

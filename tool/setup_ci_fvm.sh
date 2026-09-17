@@ -2,9 +2,24 @@
 
 set -euo pipefail
 
+setup_started=$SECONDS
+
 flutter_version="$(jq -er '.flutter | select(type == "string" and length > 0)' .fvmrc)"
 fvm_version=4.3.0
 version_directory="$PWD/.fvm/versions/$flutter_version"
+# FVM resolves versions through its cache, including from nested packages.
+# A project-local versions link alone does not configure that cache.
+export FVM_CACHE_PATH="$PWD/.fvm"
+if [[ "${RUNNER_OS:-}" == Windows ]]; then
+  export FVM_CACHE_PATH="$(cygpath -w "$FVM_CACHE_PATH")"
+fi
+if [[ -n "${GITHUB_ENV:-}" ]]; then
+  environment_file="$GITHUB_ENV"
+  if [[ "${RUNNER_OS:-}" == Windows ]]; then
+    environment_file="$(cygpath -u "$environment_file")"
+  fi
+  echo "FVM_CACHE_PATH=$FVM_CACHE_PATH" >> "$environment_file"
+fi
 
 dart pub global activate fvm "$fvm_version"
 
@@ -15,6 +30,7 @@ else
   pub_cache_bin="${PUB_CACHE:-$HOME/.pub-cache}/bin"
   flutter_executable="$FLUTTER_ROOT/bin/flutter"
 fi
+
 export PATH="$pub_cache_bin:$PATH"
 
 if [[ -n "${GITHUB_PATH:-}" ]]; then
@@ -50,3 +66,13 @@ if [[ "$installed_version" != "$flutter_version" ]]; then
   echo "Expected Flutter $flutter_version, found $installed_version." >&2
   exit 1
 fi
+
+repository_root="$PWD"
+for package in . example tool/country_bindings tool/device_location_bindings; do
+  (
+    cd "$repository_root/$package"
+    # Invoke the package directly: Git Bash does not resolve fvm.bat as fvm.
+    dart pub global run fvm:main exec python3 "$repository_root/tool/ci/verify_sdk.py"
+  )
+done
+echo "FVM setup and SDK verification: $((SECONDS - setup_started))s"

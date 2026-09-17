@@ -7,6 +7,7 @@ example_directory="$repository_root/example"
 application_directory="$example_directory/build/ios/iphoneos/Runner.app"
 framework_directory="$application_directory/Frameworks/oh_my_flutter_device_location.framework"
 framework_binary="$framework_directory/oh_my_flutter_device_location"
+timer="$repository_root/tool/ci/time_command.sh"
 privacy_manifest_name='PrivacyInfo.xcprivacy'
 privacy_manifest="$application_directory/oh_my_flutter_oh_my_flutter.bundle/$privacy_manifest_name"
 native_symbols=(
@@ -38,7 +39,7 @@ if [[ "${GITHUB_ACTIONS:-}" != true ]]; then
   fvm flutter clean
 fi
 fvm flutter pub get --enforce-lockfile
-fvm flutter build ios --release --no-codesign --target=lib/main.dart --no-pub
+"$timer" "iOS release build with location" fvm flutter build ios --release --no-codesign --target=lib/main.dart --no-pub
 
 test -f "$framework_binary"
 xcrun vtool -show-build "$framework_binary" | grep -Eq 'minos 15(\.0+)?$'
@@ -60,7 +61,7 @@ plutil -lint "$privacy_manifest"
 
 fvm flutter clean
 fvm flutter pub get --enforce-lockfile
-fvm flutter build ios \
+"$timer" "iOS release build without location" fvm flutter build ios \
   --release \
   --no-codesign \
   --no-pub \

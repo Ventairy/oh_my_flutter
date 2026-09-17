@@ -32,3 +32,6 @@ skills-lock.json
 **/test/**/goldens/linux/
 **/test/**/goldens/macos/
 **/test/**/goldens/windows/
+
+# Python CI tooling
+__pycache__/
