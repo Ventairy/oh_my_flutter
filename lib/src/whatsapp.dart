@@ -15,7 +15,9 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// The identifier may be a WhatsApp username or a phone number with a country
 /// calling code. Construction throws a [FormatException] when the identifier
-/// cannot be resolved to either supported form.
+/// cannot be resolved to either supported form. Accepted phone identifiers
+/// have a possible length for their country, but their prefixes do not need to
+/// be allocated by a carrier.
 ///
 /// See the [WhatsApp guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/whatsapp.md)
 /// for identifier, message, and fallback behavior.
@@ -23,10 +25,11 @@ class Whatsapp {
   /// Creates a WhatsApp recipient from [identifier].
   ///
   /// Usernames may include or omit their leading `@`. Phone numbers may use
-  /// common visual formatting but must include a country calling code.
+  /// common visual formatting but must include a country calling code and have
+  /// a possible length for their country.
   ///
   /// Throws a [FormatException] when [identifier] is neither a valid username
-  /// nor a valid phone number.
+  /// nor a complete international phone identifier.
   factory Whatsapp(String identifier) {
     return Whatsapp._parse(
       identifier: identifier,

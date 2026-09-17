@@ -25,6 +25,17 @@ void main() {
       );
 
       test(
+        'when the number has a possible length but an unallocated prefix, '
+        'it should accept the value',
+        () {
+          expect(
+            PhoneNumber('+15556625497').toDisplayString(),
+            '+1 555-662-5497',
+          );
+        },
+      );
+
+      test(
         'when the number is malformed, it should throw a FormatException',
         () {
           expect(
@@ -66,6 +77,14 @@ void main() {
             PhoneNumber('+1 (202) 555-0123').e164,
             '+12025550123',
           );
+        },
+      );
+
+      test(
+        'when the prefix is unallocated, '
+        'it should return the canonical value',
+        () {
+          expect(PhoneNumber('+15556625497').e164, '+15556625497');
         },
       );
     });
