@@ -1,5 +1,5 @@
+import 'package:dlibphonenumber/dlibphonenumber.dart' as parser;
 import 'package:meta/meta.dart';
-import 'package:phone_numbers_parser/phone_numbers_parser.dart' as parser;
 import 'package:url_launcher/url_launcher.dart';
 
 /// Provides a consistent way to interact with a phone number.
@@ -40,13 +40,18 @@ class PhoneNumber {
     required Future<bool> Function(Uri uri) launcher,
   }) {
     try {
-      final parsed = parser.PhoneNumber.parse(value);
-      if (!parsed.isValidLength()) {
+      final input = value.trim();
+      // Keep identifiers and extensions out of the numeric phone API.
+      if (RegExp('[a-zA-Z]').hasMatch(input)) {
+        throw FormatException(_invalidMessage, value);
+      }
+      final parsed = _phoneUtil.parse(input.startsWith('+') ? input : '+$input', 'ZZ');
+      if (_phoneUtil.isPossibleNumberWithReason(parsed) != parser.ValidationResult.isPossible) {
         throw FormatException(_invalidMessage, value);
       }
 
       return PhoneNumber._(parsed: parsed, launcher: launcher);
-    } on parser.PhoneNumberException {
+    } on parser.NumberParseException {
       throw FormatException(_invalidMessage, value);
     }
   }
@@ -69,6 +74,8 @@ class PhoneNumber {
       'A phone number must include a country calling code and have a possible '
       'length for that country.';
 
+  static final parser.PhoneNumberUtil _phoneUtil = parser.PhoneNumberUtil.instance;
+
   final parser.PhoneNumber _parsed;
   final Future<bool> Function(Uri uri) _launcher;
 
@@ -76,7 +83,7 @@ class PhoneNumber {
   ///
   /// The result contains a leading `+`, the country calling code, and the
   /// national number without display formatting.
-  String get e164 => _parsed.international;
+  String get e164 => _phoneUtil.format(_parsed, parser.PhoneNumberFormat.e164);
 
   /// Returns the phone number formatted for display in an interface.
   ///
@@ -92,13 +99,9 @@ class PhoneNumber {
   /// calling code while retaining international grouping. This does not
   /// convert the result to the country's domestic dialing format.
   String toDisplayString({bool includeCountryCode = true}) {
-    final nationalNumber = _parsed.formatNsn(
-      format: parser.NsnFormat.international,
-    );
-
-    if (!includeCountryCode) return nationalNumber;
-
-    return '+${_parsed.countryCode} $nationalNumber';
+    final international = _phoneUtil.format(_parsed, parser.PhoneNumberFormat.international);
+    if (includeCountryCode) return international;
+    return international.substring('+${_parsed.countryCode}'.length).trimLeft();
   }
 
   /// Starts a phone call to this number using the platform's phone app.

@@ -19,7 +19,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.23.0
+  oh_my_flutter: ^0.24.0
 ```
 
 Import the public library wherever you need it:
@@ -228,7 +228,7 @@ and configuration.
 ### Device
 
 `Device` provides one place to access several device-related features. Use it
-when the same part of an application needs both display and location tools.
+when the same part of an application needs several device capabilities.
 
 #### Display
 
@@ -242,6 +242,19 @@ trustworthy values.
 `DeviceLocation` requests permission to use the device's location while the app
 is open. It can then retrieve current coordinates or a formatted address on
 Android and iOS.
+
+#### SIM
+
+`DeviceSim` provides access to the device's SIM capabilities. It can do things
+such as get the user SIM country using Android's default SIM.
+Country lookup returns null when unavailable, including on iOS, web, and desktop.
+
+#### Locale
+
+`DeviceLocale` lets applications use the device's regional preferences. It can do
+things such as suggest an initial phone-input country from the configured region
+on Android, iOS, macOS, and Windows. It returns null when unavailable, including
+on Linux and web.
 
 ### Debouncer
 
@@ -259,9 +272,10 @@ primary calling code for a phone input.
 
 ### Phone number
 
-Use `PhoneNumber` to interact with phone numbers throughout an application. It
-can do things such as formatting a number for display using its country's
-conventions.
+Use `PhoneNumber` to interact with complete phone numbers throughout an
+application. Use `PhoneNumberTextInputFormatter` to keep an editable field in
+the selected country's national format while returning its country and
+international value in a `PhoneNumberTextInputFormatterResult`.
 
 ### WhatsApp
 

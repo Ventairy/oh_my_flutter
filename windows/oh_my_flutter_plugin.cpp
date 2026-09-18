@@ -19,6 +19,7 @@ OhMyFlutterPlugin::OhMyFlutterPlugin(flutter::PluginRegistrarWindows *registrar)
     : registrar_(registrar),
       flutter_api_(std::make_shared<NativeSelectableTextMenuFlutterApi>(
           registrar->messenger())) {
+  device_locale::DeviceLocaleHostApi::SetUp(registrar->messenger(), &device_locale_host_);
   HWND view_window = nullptr;
   HWND owner_window = nullptr;
   if (registrar->GetView() != nullptr) {
@@ -78,6 +79,7 @@ OhMyFlutterPlugin::OhMyFlutterPlugin(flutter::PluginRegistrarWindows *registrar)
 }
 
 OhMyFlutterPlugin::~OhMyFlutterPlugin() {
+  device_locale::DeviceLocaleHostApi::SetUp(registrar_->messenger(), nullptr);
   NativeSelectableTextMenuHostApi::SetUp(registrar_->messenger(), nullptr);
   if (window_proc_delegate_identifier_ >= 0) {
     registrar_->UnregisterTopLevelWindowProcDelegate(

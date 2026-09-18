@@ -81,6 +81,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.2.2"
+  dlibphonenumber:
+    dependency: transitive
+    description:
+      name: dlibphonenumber
+      sha256: bd19797bba652e30f1ef61ebb1bf48142b4ff235ee5ca31cc97d1f1f35d38a49
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.71"
   fake_async:
     dependency: transitive
     description:
@@ -105,6 +113,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.1"
+  fixnum:
+    dependency: transitive
+    description:
+      name: fixnum
+      sha256: b6dc7065e46c974bc7c5f143080a6764ec7a4be6da1285ececdc37be96de53be
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.1.1"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -277,7 +293,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.23.0"
+    version: "0.24.0"
   package_config:
     dependency: transitive
     description:
@@ -294,14 +310,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.9.1"
-  phone_numbers_parser:
-    dependency: transitive
-    description:
-      name: phone_numbers_parser
-      sha256: "5c4367d9874927c517ee042241fd31af0fc91d099c69bcc5525ed6b368c3026a"
-      url: "https://pub.dev"
-    source: hosted
-    version: "9.0.26"
   platform:
     dependency: transitive
     description:
@@ -326,6 +334,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.0.6"
+  protobuf:
+    dependency: transitive
+    description:
+      name: protobuf
+      sha256: "13b6717366aa7ec3792dd62c19c7d33a785708224365f2db23c5ca01f1c1a0f2"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.1.0"
   pub_semver:
     dependency: transitive
     description:

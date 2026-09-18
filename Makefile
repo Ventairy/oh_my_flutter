@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: setup gen gen-check generate-pigeons generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon generate-country-names check-country-names check-pigeons check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon generate-device-location-bindings check-device-location-bindings check-binding-tools format check-format analyze test test-morph test-skeleton update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-macos-native-code validate-linux-native-code validate-windows-native-code validate-native-code dry-run-publish analyze-package check clean
+.PHONY: generate-device-locale-pigeon check-device-locale-pigeon generate-device-sim-pigeon check-device-sim-pigeon setup gen gen-check generate-pigeons generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon generate-country-names check-country-names check-pigeons check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon generate-device-location-bindings check-device-location-bindings check-binding-tools format check-format analyze test test-morph test-skeleton update-goldens test-with-coverage generate-api-docs check-example validate-android-native-code test-device-location-on-android-emulators validate-ios-native-code validate-macos-native-code validate-linux-native-code validate-windows-native-code validate-native-code dry-run-publish analyze-package check clean
 
 setup:
 	fvm install
@@ -11,7 +11,7 @@ gen: generate-country-names generate-pigeons generate-country-bindings generate-
 
 gen-check: check-country-names check-pigeons check-country-bindings check-device-location-bindings
 
-generate-pigeons: generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon
+generate-pigeons: generate-device-locale-pigeon generate-device-sim-pigeon generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon
 
 generate-country-names:
 	fvm dart run tool/generate_country_names.dart
@@ -68,7 +68,13 @@ generate-device-display-pigeon:
 check-device-display-pigeon:
 	./tool/check_device_display_pigeon.sh
 
-check-pigeons: check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon
+generate-device-sim-pigeon:
+	./tool/generate_device_sim_pigeon.sh
+
+check-device-sim-pigeon:
+	./tool/check_device_sim_pigeon.sh
+
+check-pigeons: check-device-locale-pigeon check-device-sim-pigeon check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon
 
 check-native-selectable-text-pigeon:
 	./tool/check_native_selectable_text_pigeon.sh
@@ -188,3 +194,9 @@ check: check-country-names check-pigeons check-binding-tools check-format analyz
 clean:
 	fvm flutter clean
 	cd example && fvm flutter clean
+
+generate-device-locale-pigeon:
+	./tool/generate_device_locale_pigeon.sh
+
+check-device-locale-pigeon:
+	./tool/check_device_locale_pigeon.sh

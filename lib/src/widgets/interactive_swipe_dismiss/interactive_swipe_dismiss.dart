@@ -38,6 +38,7 @@ class InteractiveSwipeDismiss extends StatefulWidget {
   const InteractiveSwipeDismiss({
     required this.child,
     required this.onDismiss,
+    this.canStartDrag,
     this.onOverdrag,
     this.onPositionChanged,
     this.direction = InteractiveSwipeDismissDirection.down,
@@ -47,6 +48,20 @@ class InteractiveSwipeDismiss extends StatefulWidget {
 
   /// The content translated during the drag.
   final Widget child;
+
+  /// Decides whether a new touch may start dragging the child.
+  ///
+  /// Omit this callback to allow dragging. Return `false` to leave the touch
+  /// available to descendant interactions without translating the child or
+  /// calling [onOverdrag], [onPositionChanged], or [onDismiss]. Handles follow
+  /// the same decision.
+  ///
+  /// Called once at pointer down for each eligible touch, including touches
+  /// that never become drags. Keep this check quick and free of side effects.
+  /// The decision lasts until release or cancellation; changes apply to the
+  /// next touch without requiring a rebuild. Use [onDismiss] to recheck before
+  /// accepting removal. A thrown exception is reported and blocks that touch.
+  final bool Function()? canStartDrag;
 
   /// Requests removal after a drag or fling commits.
   ///
@@ -125,6 +140,8 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   final _InteractiveSwipeDismissTranslationController _translationController =
       _InteractiveSwipeDismissTranslationController();
   AnimationController? _restoreController;
+
+  final Set<({int pointer, int viewId})> _deniedPointers = {};
 
   int? _activePointer;
   ({int pointer, int viewId})? _ownedPointerKey;
@@ -523,6 +540,23 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     final pointerKey = (pointer: event.pointer, viewId: event.viewId);
     final pointerOwner = _pointerOwners[pointerKey];
     if (pointerOwner != null && !identical(pointerOwner, this)) return false;
+    if (_deniedPointers.contains(pointerKey)) return false;
+    // A handle and the surrounding listener can receive the same pointer down.
+    _deniedPointers.add(pointerKey);
+    try {
+      if (!(widget.canStartDrag?.call() ?? true)) return false;
+    } on Object catch (error, stackTrace) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stackTrace,
+          library: 'oh_my_flutter',
+          context: ErrorDescription('while deciding whether to start an interactive swipe drag'),
+        ),
+      );
+      return false;
+    }
+    _deniedPointers.remove(pointerKey);
     _pointerOwners[pointerKey] = this;
     _ownedPointerKey = pointerKey;
     _gestureGeneration += 1;
@@ -1010,6 +1044,7 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
 
   @override
   void dispose() {
+    _deniedPointers.clear();
     _isInteractionActive = false;
     _activePointer = null;
     _releasePointerOwnership();
@@ -1030,10 +1065,12 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
   }
 
   void _handleSurfacePointerUp(PointerUpEvent event) {
+    _deniedPointers.remove((pointer: event.pointer, viewId: event.viewId));
     _handlePointerUp(event, fromHandle: false);
   }
 
   void _handleSurfacePointerCancel(PointerCancelEvent event) {
+    _deniedPointers.remove((pointer: event.pointer, viewId: event.viewId));
     _handlePointerCancel(event, fromHandle: false);
   }
 

@@ -71,6 +71,8 @@ jobs:
           case "$CHECK" in
             source)
               fvm dart run tool/generate_country_names.dart --check
+              ./tool/check_device_locale_pigeon.sh
+              ./tool/check_device_sim_pigeon.sh
               ./tool/check_device_location_pigeon.sh
               ./tool/check_device_display_pigeon.sh
               ./tool/check_native_selectable_text_pigeon.sh
@@ -99,6 +101,11 @@ jobs:
                 --platform chrome \
                 test/country/country_names_browser_test.dart \
                 test/device/device_test.dart \
+                test/device/device_locale/device_locale_test.dart \
+                test/device/device_locale/device_locale_unsupported_test.dart \
+                test/device/device_sim/device_sim_test.dart \
+                test/device/device_sim/device_sim_unsupported_test.dart \
+                test/device/device_sim/device_sim_platform_test.dart \
                 test/device/device_display/device_display_unsupported_test.dart \
                 test/device/device_location/device_location_test.dart \
                 test/device/device_location/device_location_unsupported_test.dart \

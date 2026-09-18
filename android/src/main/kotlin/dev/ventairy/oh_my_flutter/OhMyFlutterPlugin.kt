@@ -1,6 +1,8 @@
 package dev.ventairy.oh_my_flutter
 
 import dev.ventairy.oh_my_flutter.device_display.DeviceDisplayHostApi
+import dev.ventairy.oh_my_flutter.device_sim.DeviceSimHostApi
+import dev.ventairy.oh_my_flutter.device_locale.DeviceLocaleHostApi
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -17,6 +19,8 @@ class OhMyFlutterPlugin :
     private var nativeSelectableTextMenuHandler: NativeSelectableTextMenuHandler? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        DeviceSimHostApi.setUp(binding.binaryMessenger, DeviceSimHandler(binding.applicationContext))
+        DeviceLocaleHostApi.setUp(binding.binaryMessenger, DeviceLocaleHandler(binding.applicationContext))
         val displayHandler = DeviceDisplayHandler()
         val locationHandler = DeviceLocationHandler(binding.applicationContext)
         deviceDisplayHandler = displayHandler
@@ -76,6 +80,8 @@ class OhMyFlutterPlugin :
         deviceDisplayHandler = null
         deviceLocationHandler?.dispose()
         deviceLocationHandler = null
+        DeviceSimHostApi.setUp(binding.binaryMessenger, null)
+        DeviceLocaleHostApi.setUp(binding.binaryMessenger, null)
         DeviceDisplayHostApi.setUp(binding.binaryMessenger, null)
         AndroidDeviceLocationApi.setUp(binding.binaryMessenger, null)
         nativeSelectableTextMenuHandler?.dispose()

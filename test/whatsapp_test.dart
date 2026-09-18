@@ -122,7 +122,7 @@ void main() {
         'when a phone number has no country calling code, '
         'it should throw a FormatException',
         () {
-          expect(() => Whatsapp('11 91234-5678'), throwsFormatException);
+          expect(() => Whatsapp('020 7946 0018'), throwsFormatException);
         },
       );
 
