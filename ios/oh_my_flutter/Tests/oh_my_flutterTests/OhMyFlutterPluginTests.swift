@@ -4,6 +4,22 @@ import XCTest
 @testable import oh_my_flutter
 
 final class OhMyFlutterPluginTests: XCTestCase {
+  private let deviceLocaleChannel = "dev.flutter.pigeon.oh_my_flutter.DeviceLocaleHostApi.getCountry"
+
+  func testWhenThePluginRegistersItShouldConnectLocaleAccess() {
+    let registrar = IOSFlutterPluginRegistrarSpy()
+    OhMyFlutterPlugin.register(with: registrar)
+    XCTAssertNotNil(registrar.binaryMessenger.messageHandlers[deviceLocaleChannel])
+  }
+
+  func testWhenThePluginDetachesItShouldDisconnectLocaleAccess() {
+    let registrar = IOSFlutterPluginRegistrarSpy()
+    OhMyFlutterPlugin.register(with: registrar)
+    let plugin = registrar.publishedValue as! OhMyFlutterPlugin
+    plugin.detachFromEngine(for: registrar)
+    XCTAssertNil(registrar.binaryMessenger.messageHandlers[deviceLocaleChannel])
+  }
+
   private let deviceDisplayChannel =
     "dev.flutter.pigeon.oh_my_flutter.DeviceDisplayHostApi.getCornerRadii"
 

@@ -35,6 +35,30 @@ Descendant scrollables retain their normal gesture until the matching edge is
 reached. Once dismissal begins, every matching scroll position beneath the
 pointer stays at its current offset until the interaction ends.
 
+## Allow dragging only when ready
+
+Use `canStartDrag` to prevent a drag from starting, for example while saving:
+
+```dart
+InteractiveSwipeDismiss(
+  canStartDrag: () => !isSaving,
+  onDismiss: () => Navigator.maybePop(context),
+  child: content,
+)
+```
+
+The synchronous check runs once at pointer down for each eligible touch,
+including touches that never become drags. Keep it quick and free of side
+effects. Omitting it allows dragging. Returning `false` blocks the whole drag,
+including handles: the child stays still and `onOverdrag`, `onPositionChanged`,
+and `onDismiss` do not run. Descendant taps, scrolling, and gestures remain
+available.
+
+The decision lasts until release or cancellation. The next touch reads the
+current state without requiring a rebuild. If permission can change during a
+drag, check it again in `onDismiss` before accepting removal. Exceptions from
+`canStartDrag` are reported and block that touch.
+
 ## Follow the child's position
 
 Use `onPositionChanged` to keep other content in sync with the child's movement,

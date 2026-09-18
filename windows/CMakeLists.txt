@@ -11,6 +11,8 @@ list(APPEND PLUGIN_SOURCES
   "native_selectable_text.g.cpp"
   "native_selectable_text_menu_host.cpp"
   "native_selectable_text_menu_host.h"
+  "device_locale_host.cpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../lib/src/gen/device_locale/windows/device_locale.g.cpp"
   "oh_my_flutter_plugin.cpp"
   "oh_my_flutter_plugin.h"
 )
@@ -26,6 +28,7 @@ set_target_properties(${PLUGIN_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 target_compile_definitions(${PLUGIN_NAME} PRIVATE FLUTTER_PLUGIN_IMPL NOMINMAX)
 target_include_directories(${PLUGIN_NAME} INTERFACE
   "${CMAKE_CURRENT_SOURCE_DIR}/include")
+target_include_directories(${PLUGIN_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../lib/src/gen/device_locale/windows")
 target_link_libraries(${PLUGIN_NAME} PRIVATE flutter flutter_wrapper_plugin user32)
 
 set(oh_my_flutter_bundled_libraries
@@ -48,6 +51,9 @@ if (${include_${PROJECT_NAME}_tests})
 
   add_executable(${TEST_RUNNER}
     "test/native_selectable_text_menu_host_test.cpp"
+    "test/device_locale_host_test.cpp"
+    "device_locale_host.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../lib/src/gen/device_locale/windows/device_locale.g.cpp"
     "native_selectable_text.g.cpp"
     "native_selectable_text_menu_host.cpp"
     "native_selectable_text_menu_host.h"
@@ -55,7 +61,7 @@ if (${include_${PROJECT_NAME}_tests})
   apply_standard_settings(${TEST_RUNNER})
   target_compile_definitions(${TEST_RUNNER} PRIVATE NOMINMAX)
   target_include_directories(${TEST_RUNNER} PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}")
+    "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/../lib/src/gen/device_locale/windows")
   target_link_libraries(${TEST_RUNNER} PRIVATE flutter_wrapper_plugin user32)
   target_link_libraries(${TEST_RUNNER} PRIVATE gtest_main gmock)
   add_custom_command(TARGET ${TEST_RUNNER} POST_BUILD

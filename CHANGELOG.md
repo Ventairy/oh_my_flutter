@@ -1,3 +1,21 @@
+## 0.24.0
+
+- Add `DeviceLocale.getCountry()` and `Device.locale` to read the configured
+  country on Android, iOS, macOS, and Windows, returning null when unavailable.
+
+- Add `DeviceSim.getCountry()` and `Device.sim` to read Android’s default SIM
+  provider country as `Country`, returning null when unavailable.
+
+- Add `InteractiveSwipeDismiss.canStartDrag` to block body and handle drags
+  before movement while keeping descendant interactions available.
+
+- Use updated phone metadata for parsing and display formatting.
+
+- Add `PhoneNumberTextInputFormatter` for immutable country-aware national
+  formatting, explicit international-value and country results, international
+  pastes, as-you-type grouping, and supported length limits while editing
+  phone-number fields.
+
 ## 0.23.0
 
 - **Breaking:** Rename `MorphEndpointContext.registerDescendantWidget` to

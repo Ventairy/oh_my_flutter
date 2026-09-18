@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:ui';
 
+import 'package:dlibphonenumber/dlibphonenumber.dart' as parser;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
-import 'package:phone_numbers_parser/metadata.dart' as parser;
 
 void main() {
   group('Country', () {
@@ -169,7 +169,8 @@ void main() {
     group('callingCode', () {
       test('when reading primary codes, it should match phone metadata and researched supplements', () {
         final primaryCodes = {
-          for (final entry in parser.metadataByIsoCode.entries) entry.key.name: entry.value.countryCode,
+          for (final region in parser.PhoneNumberUtil.instance.supportedRegions)
+            region: parser.PhoneNumberUtil.instance.getCountryCodeForRegion(region).toString(),
           'PN': '64',
           'TF': '262',
           'GS': '500',

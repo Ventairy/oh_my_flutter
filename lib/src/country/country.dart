@@ -24,8 +24,7 @@ enum Country {
   // Every alpha-2/alpha-3 pair cross-checked against CLDR release 48,
   // including AC/ASC, TA/TAA, and XK/XKK. No package-invented codes.
   // https://github.com/unicode-org/cldr/blob/release-48/common/supplemental/supplementalData.xml
-  // Primary calling codes: phone_numbers_parser 9.0.26,
-  // lib/src/metadata/generated/metadata_by_iso_code.dart.
+  // Primary calling codes cross-checked against dlibphonenumber 1.1.71.
   // ITU reference: https://www.itu.int/oth/T0202.aspx?parent=T0202
   // SH retains 290; AC uses 247 and TA shares 290. NANP entries use 1 without
   // area codes. Parser coverage is not the calling-code authority: researched

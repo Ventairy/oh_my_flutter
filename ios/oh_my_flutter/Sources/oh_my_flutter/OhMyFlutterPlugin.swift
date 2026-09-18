@@ -4,6 +4,7 @@ import UIKit
 /// Registers package-owned iOS capabilities with a Flutter engine.
 public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
   private let binaryMessenger: FlutterBinaryMessenger
+  private let deviceLocaleHandler = AppleDeviceLocaleHandler()
   private let deviceDisplayHandler: IOSDeviceDisplayHandler
   private let nativeSelectableTextMenuHandler: IOSNativeSelectableTextMenuHandler
 
@@ -41,6 +42,7 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
       binaryMessenger: binaryMessenger,
       api: handler
     )
+    DeviceLocaleHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: instance.deviceLocaleHandler)
     registrar.publish(instance)
   }
 
@@ -53,6 +55,7 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
   }
 
   public func detachFromEngine(for _: FlutterPluginRegistrar) {
+    DeviceLocaleHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
     DeviceDisplayHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
     NativeSelectableTextMenuHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
     nativeSelectableTextMenuHandler.dispose()

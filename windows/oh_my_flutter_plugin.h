@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "native_selectable_text.g.h"
+#include "device_locale_host.h"
 #include "native_selectable_text_menu_host.h"
 
 namespace oh_my_flutter {
@@ -23,6 +24,7 @@ public:
 
 private:
   flutter::PluginRegistrarWindows *registrar_;
+  DeviceLocaleHost device_locale_host_;
   int window_proc_delegate_identifier_ = -1;
   std::shared_ptr<NativeSelectableTextMenuFlutterApi> flutter_api_;
   std::unique_ptr<NativeSelectableTextMenuHost> menu_host_;

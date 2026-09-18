@@ -4,9 +4,25 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 part '_fake_device_display.dart';
 part '_fake_device_location.dart';
+part '_fake_device_sim.dart';
+part '_fake_device_locale.dart';
 
 void main() {
   group('Device', () {
+    test('when created with defaults, it should provide locale access', () {
+      expect(const Device().locale, isA<DeviceLocale>());
+    });
+    test('when a locale utility is supplied, it should retain the substitution', () {
+      const locale = _FakeDeviceLocale();
+      expect(const Device(locale: locale).locale, same(locale));
+    });
+    test('when created with defaults, it should provide SIM access', () {
+      expect(const Device().sim, isA<DeviceSim>());
+    });
+    test('when a SIM utility is supplied, it should retain the substitution', () {
+      const sim = _FakeDeviceSim();
+      expect(const Device(sim: sim).sim, same(sim));
+    });
     test(
       'when created with defaults, it should provide device location',
       () {

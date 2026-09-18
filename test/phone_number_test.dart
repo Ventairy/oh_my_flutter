@@ -50,11 +50,19 @@ void main() {
         'it should throw a FormatException',
         () {
           expect(
-            () => PhoneNumber('11 91234-5678'),
+            () => PhoneNumber('020 7946 0018'),
             throwsFormatException,
           );
         },
       );
+
+      test('when digits can be interpreted as an international number, it should use that calling code', () {
+        expect(PhoneNumber('11912345678').e164, '+11912345678');
+      });
+
+      test('when the number has only a local length, it should reject it', () {
+        expect(() => PhoneNumber('+1 5550123'), throwsFormatException);
+      });
 
       test(
         'when the number has an invalid length, '
