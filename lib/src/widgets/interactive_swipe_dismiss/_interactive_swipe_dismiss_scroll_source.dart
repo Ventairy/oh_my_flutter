@@ -1,7 +1,7 @@
 part of 'interactive_swipe_dismiss.dart';
 
 final class _InteractiveSwipeDismissScrollSource {
-  _InteractiveSwipeDismissScrollSource({
+  new({
     required this.scrollable,
     required this.position,
   });

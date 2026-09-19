@@ -6,11 +6,11 @@ import 'device_sim_platform.dart';
 /// Reads SIM information through the Android host API.
 final class PigeonDeviceSimPlatform extends DeviceSimPlatform {
   /// Creates the Android SIM implementation.
-  PigeonDeviceSimPlatform() : _api = DeviceSimHostApi();
+  new() : _api = DeviceSimHostApi();
 
   /// Creates an implementation backed by a test host API.
   @visibleForTesting
-  PigeonDeviceSimPlatform.test(this._api);
+  new test(this._api);
 
   final DeviceSimHostApi _api;
 

@@ -5,7 +5,7 @@ part of 'motion.dart';
 /// Effects compose operations in declaration order. Effects must not retain an
 /// instance after [MotionEffect.apply] returns.
 final class MotionEffectTransform {
-  MotionEffectTransform._();
+  new _();
 
   double _opacity = 1;
   double _scale = 1;

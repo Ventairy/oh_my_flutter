@@ -5,7 +5,7 @@ part of 'interactive_swipe_dismiss.dart';
 @immutable
 final class InteractiveSwipeDismissDragConfig {
   /// Creates drag configuration for [InteractiveSwipeDismiss].
-  const InteractiveSwipeDismissDragConfig({
+  const new({
     this.freeDrag = false,
     this.sensitivity = 1,
     this.dismissFraction = 0.5,

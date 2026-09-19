@@ -816,7 +816,7 @@ enum Country {
   /// Zimbabwe (ZW).
   zimbabwe(iso2: 'ZW', iso3: 'ZWE', callingCode: '263');
 
-  const Country({required this.iso2, required this.iso3, required this.callingCode});
+  new({required this.iso2, required this.iso3, required this.callingCode});
 
   /// An uppercase two-letter identifier for storage and lookup, such as `BR`.
   ///

@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListNestedScroll {
-  _SnapListNestedScroll(this.motion);
+  new(this.motion);
   final _SnapListMotion motion;
   AxisDirection direction = AxisDirection.down;
   int? _pointer;

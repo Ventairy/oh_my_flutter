@@ -4,7 +4,7 @@ part of 'morph.dart';
 /// Visual values for a vertical column at one end of a Morph transition.
 final class MorphColumnProperties {
   /// Creates the visual values for a vertical column.
-  const MorphColumnProperties({
+  const new({
     required this.children,
     required this.switchThreshold,
   });

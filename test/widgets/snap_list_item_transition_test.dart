@@ -5,7 +5,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'snap_list_test.dart' show SnapListTestHost;
 
 class _Item extends StatefulWidget {
-  const _Item({super.key});
+  const new({super.key});
 
   static Widget _incoming(BuildContext context, Animation<double> progress, bool isReverse, Widget child) =>
       FadeTransition(opacity: isReverse ? const AlwaysStoppedAnimation<double>(1) : progress, child: child);

@@ -6,18 +6,14 @@ import 'scenario.dart';
 /// Runs host-side validation for a NativeSelectableText benchmark log.
 final class NativeSelectableTextBenchmarkValidationCommand {
   /// Creates the validation command.
-  const NativeSelectableTextBenchmarkValidationCommand();
+  const new();
 
   static const String _artifactBaseName = 'native_selectable_text_benchmark';
   static const String _jsonLinesFileName = '$_artifactBaseName.jsonl';
   static const String _summaryFileName = '${_artifactBaseName}_summary.txt';
 
   /// Validates [arguments], writes artifacts, and returns a shell exit code.
-  Future<int> run(
-    List<String> arguments, {
-    StringSink? output,
-    StringSink? errors,
-  }) async {
+  Future<int> run(List<String> arguments, {StringSink? output, StringSink? errors}) async {
     final outputSink = output ?? stdout;
     final errorSink = errors ?? stderr;
     try {
@@ -41,12 +37,8 @@ final class NativeSelectableTextBenchmarkValidationCommand {
       ).validate(log);
       final outputDirectory = Directory(options.outputDirectory);
       await outputDirectory.create(recursive: true);
-      final jsonLinesFile = File(
-        '${outputDirectory.path}/$_jsonLinesFileName',
-      );
-      final summaryFile = File(
-        '${outputDirectory.path}/$_summaryFileName',
-      );
+      final jsonLinesFile = File('${outputDirectory.path}/$_jsonLinesFileName');
+      final summaryFile = File('${outputDirectory.path}/$_summaryFileName');
       await jsonLinesFile.writeAsString(validation.extractedJsonLines);
       await summaryFile.writeAsString(validation.summary);
 
@@ -57,9 +49,7 @@ final class NativeSelectableTextBenchmarkValidationCommand {
       return validation.passed ? 0 : 1;
     } on Object catch (error) {
       errorSink
-        ..writeln(
-          'NativeSelectableText benchmark validation could not run: $error',
-        )
+        ..writeln('NativeSelectableText benchmark validation could not run: $error')
         ..writeln(_usage);
       return 1;
     }
@@ -94,10 +84,7 @@ final class NativeSelectableTextBenchmarkValidationCommand {
       '--expected-warmup-frames',
       '--expected-frames-per-trial',
     };
-    const flagOptions = <String>{
-      '--require-budget-pass',
-      '--require-enforced',
-    };
+    const flagOptions = <String>{'--require-budget-pass', '--require-enforced'};
 
     for (var index = 0; index < arguments.length; index += 1) {
       final argument = arguments[index];
@@ -122,9 +109,7 @@ final class NativeSelectableTextBenchmarkValidationCommand {
         if (!values.containsKey(option)) option,
     ];
     if (missing.isNotEmpty) {
-      throw FormatException(
-        'Missing required options: ${missing.join(', ')}.',
-      );
+      throw FormatException('Missing required options: ${missing.join(', ')}.');
     }
 
     final expectedRunId = values['--expected-run-id']!;
@@ -133,45 +118,25 @@ final class NativeSelectableTextBenchmarkValidationCommand {
     _requireNonPlaceholder(expectedRenderer, '--expected-renderer');
     final expectedScenario = values['--expected-scenario']!;
     if (!NativeSelectableTextBenchmarkScenario.accepts(expectedScenario)) {
-      throw const FormatException(
-        '--expected-scenario must be scroll, selection, or menu_idle.',
-      );
+      throw const FormatException('--expected-scenario must be scroll, selection, or menu_idle.');
     }
     final expectedWidget = values['--expected-widget']!;
     if (expectedWidget != 'native' && expectedWidget != 'selectable') {
-      throw const FormatException(
-        '--expected-widget must be native or selectable.',
-      );
+      throw const FormatException('--expected-widget must be native or selectable.');
     }
     final expectedTextCase = values['--expected-text-case']!;
-    if (!const <String>{
-      'short',
-      'paragraph',
-      'long',
-      'rich',
-    }.contains(expectedTextCase)) {
-      throw const FormatException(
-        '--expected-text-case must be short, paragraph, long, or rich.',
-      );
+    if (!const <String>{'short', 'paragraph', 'long', 'rich'}.contains(expectedTextCase)) {
+      throw const FormatException('--expected-text-case must be short, paragraph, long, or rich.');
     }
 
     return (
-      expectedFramesPerTrial: _positiveInteger(
-        values['--expected-frames-per-trial']!,
-        '--expected-frames-per-trial',
-      ),
-      expectedItemCount: _positiveInteger(
-        values['--expected-item-count']!,
-        '--expected-item-count',
-      ),
+      expectedFramesPerTrial: _positiveInteger(values['--expected-frames-per-trial']!, '--expected-frames-per-trial'),
+      expectedItemCount: _positiveInteger(values['--expected-item-count']!, '--expected-item-count'),
       expectedRenderer: expectedRenderer,
       expectedRunId: expectedRunId,
       expectedScenario: expectedScenario,
       expectedTextCase: expectedTextCase,
-      expectedWarmupFrames: _positiveInteger(
-        values['--expected-warmup-frames']!,
-        '--expected-warmup-frames',
-      ),
+      expectedWarmupFrames: _positiveInteger(values['--expected-warmup-frames']!, '--expected-warmup-frames'),
       expectedWidget: expectedWidget,
       logPath: values['--log']!,
       outputDirectory: values['--output-directory']!,
@@ -180,11 +145,7 @@ final class NativeSelectableTextBenchmarkValidationCommand {
     );
   }
 
-  String _followingValue(
-    List<String> arguments,
-    int index,
-    String option,
-  ) {
+  String _followingValue(List<String> arguments, int index, String option) {
     if (index >= arguments.length || arguments[index].startsWith('--')) {
       throw FormatException('$option requires a value.');
     }

@@ -3,7 +3,7 @@ import 'country_names_source.dart';
 /// Derives compact country-catalog aliases from CLDR locale metadata.
 final class CountryNamesLocaleResolver {
   /// Resolves the catalogs and locale metadata in [source].
-  const CountryNamesLocaleResolver(CountryNamesSourceData source) : _source = source;
+  const new(CountryNamesSourceData source) : _source = source;
 
   final CountryNamesSourceData _source;
 

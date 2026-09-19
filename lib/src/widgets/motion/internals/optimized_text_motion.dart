@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Hosts the batched render path used by every motion effect.
 class _OptimizedTextMotion extends LeafRenderObjectWidget {
-  const _OptimizedTextMotion({
+  const new({
     required this.graphemes,
     required this.applications,
     required this.style,

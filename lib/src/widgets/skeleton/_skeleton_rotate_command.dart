@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonRotateCommand implements _SkeletonBoneCommand {
-  const _SkeletonRotateCommand(this.radians);
+  const new(this.radians);
 
   final double radians;
 

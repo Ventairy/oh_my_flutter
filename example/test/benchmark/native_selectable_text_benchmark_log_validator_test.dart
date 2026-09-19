@@ -143,85 +143,53 @@ void main() {
       expect(validation.passed, isTrue);
     });
 
-    test(
-      'when a complete menu_idle log passes, it should accept it',
-      () {
-        final validation = validator(
-          scenario: 'menu_idle',
-        ).validate(buildLog(scenario: 'menu_idle'));
+    test('when a complete menu_idle log passes, it should accept it', () {
+      final validation = validator(scenario: 'menu_idle').validate(buildLog(scenario: 'menu_idle'));
 
-        expect(validation.passed, isTrue);
-      },
-    );
+      expect(validation.passed, isTrue);
+    });
 
-    test(
-      'when a measured trial is missing, it should reject the log',
-      () {
-        final lines = buildLog().split('\n')..removeAt(2);
-        final validation = validator().validate(lines.join('\n'));
+    test('when a measured trial is missing, it should reject the log', () {
+      final lines = buildLog().split('\n')..removeAt(2);
+      final validation = validator().validate(lines.join('\n'));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when the frame budget disagrees with refresh rate, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(frameBudget: 8333),
-        );
+    test('when the frame budget disagrees with refresh rate, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(frameBudget: 8333));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when application acceptance contradicts its trials, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(acceptancePassedIsConsistent: false),
-        );
+    test('when application acceptance contradicts its trials, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(acceptancePassedIsConsistent: false));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a complete baseline misses its budget, '
-      'it should distinguish evidence validity from the performance gate',
-      () {
-        final log = buildLog(budgetPassed: false);
-        final evidenceOnly = validator(
-          requireBudgetPass: false,
-        ).validate(log);
-        final gated = validator().validate(log);
+    test('when a complete baseline misses its budget, '
+        'it should distinguish evidence validity from the performance gate', () {
+      final log = buildLog(budgetPassed: false);
+      final evidenceOnly = validator(requireBudgetPass: false).validate(log);
+      final gated = validator().validate(log);
 
-        expect(
-          (evidenceOnly: evidenceOnly.passed, gated: gated.passed),
-          (evidenceOnly: true, gated: false),
-        );
-      },
-    );
+      expect((evidenceOnly: evidenceOnly.passed, gated: gated.passed), (evidenceOnly: true, gated: false));
+    });
 
-    test(
-      'when a record exceeds device log limits, '
-      'it should reconstruct and validate every chunk',
-      () {
-        final records = buildRecords();
-        records.last['diagnostic_padding'] = List<String>.filled(
-          6000,
-          'x',
-        ).join();
-        final emitted = <String>[];
-        final buffer = NativeSelectableTextBenchmarkRecordBuffer(emitted.add);
-        records.forEach(buffer.add);
-        buffer.flush();
-        final log = emitted.map((line) => 'flutter: $line').join('\n');
+    test('when a record exceeds device log limits, '
+        'it should reconstruct and validate every chunk', () {
+      final records = buildRecords();
+      records.last['diagnostic_padding'] = List<String>.filled(6000, 'x').join();
+      final emitted = <String>[];
+      final buffer = NativeSelectableTextBenchmarkRecordBuffer(emitted.add);
+      records.forEach(buffer.add);
+      buffer.flush();
+      final log = emitted.map((line) => 'flutter: $line').join('\n');
 
-        expect(validator().validate(log).passed, isTrue);
-      },
-    );
+      expect(validator().validate(log).passed, isTrue);
+    });
   });
 }

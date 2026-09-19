@@ -79,7 +79,7 @@ void main() {
 }
 
 class _MorphSiblingGoldenHarness extends StatefulWidget {
-  const _MorphSiblingGoldenHarness({
+  const new({
     this.delayed = false,
     this.paintOnTop = true,
     super.key,

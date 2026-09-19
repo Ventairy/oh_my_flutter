@@ -11,7 +11,7 @@ void main() => runApp(const MaterialApp(home: SnapListBenchmark()));
 /// Reports frame timings for lazy navigation through large lists.
 class SnapListBenchmark extends StatefulWidget {
   /// Creates a benchmark selected with the HEAVY and ITEM_COUNT dart defines.
-  const SnapListBenchmark({super.key});
+  const new({super.key});
 
   @override
   State<SnapListBenchmark> createState() => _SnapListBenchmarkState();

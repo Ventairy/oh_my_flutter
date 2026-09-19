@@ -4,7 +4,7 @@ import 'dart:math' as math;
 /// Emits complete NativeSelectableText benchmark records within log limits.
 final class NativeSelectableTextBenchmarkRecordBuffer {
   /// Creates a record buffer that writes messages through [emit].
-  NativeSelectableTextBenchmarkRecordBuffer(this.emit);
+  new(this.emit);
 
   static const String recordMarker = 'NATIVE_SELECTABLE_TEXT_BENCHMARK ';
   static const String chunkMarker = 'NATIVE_SELECTABLE_TEXT_BENCHMARK_CHUNK ';
@@ -25,10 +25,7 @@ final class NativeSelectableTextBenchmarkRecordBuffer {
   /// Emits buffered records in insertion order and clears the buffer.
   void flush() {
     if (_records.isEmpty) return;
-    final records = List<Map<String, Object>>.of(
-      _records,
-      growable: false,
-    );
+    final records = List<Map<String, Object>>.of(_records, growable: false);
     _records.clear();
     for (final record in records) {
       _emitRecord(jsonEncode(record));
@@ -48,17 +45,9 @@ final class NativeSelectableTextBenchmarkRecordBuffer {
     final recordId = _nextChunkedRecordId++;
     for (var index = 0; index < chunkCount; index += 1) {
       final start = index * _maximumChunkPayloadLength;
-      final end = math.min(
-        start + _maximumChunkPayloadLength,
-        encodedPayload.length,
-      );
+      final end = math.min(start + _maximumChunkPayloadLength, encodedPayload.length);
       emit(
-        '$chunkMarker${jsonEncode(<String, Object>{
-          'record': recordId,
-          'index': index,
-          'count': chunkCount,
-          'payload': encodedPayload.substring(start, end),
-        })}',
+        '$chunkMarker${jsonEncode(<String, Object>{'record': recordId, 'index': index, 'count': chunkCount, 'payload': encodedPayload.substring(start, end)})}',
       );
     }
   }

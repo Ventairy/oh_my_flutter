@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphSiblingBoundary extends RenderProxyBox {
-  _RenderMorphSiblingBoundary(
+  new(
     this._handle, {
     required this.onGeometryChanged,
   });

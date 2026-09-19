@@ -15,7 +15,7 @@ Finder _morphOverlay() {
 }
 
 class _MorphTestApp extends StatefulWidget {
-  const _MorphTestApp({
+  const new({
     required this.source,
     required this.destination,
     this.disableAnimations = false,
@@ -66,7 +66,7 @@ class _MorphTestAppState extends State<_MorphTestApp> {
 }
 
 class _RouteMorphTestApp extends StatefulWidget {
-  const _RouteMorphTestApp({required this.events});
+  const new({required this.events});
 
   final List<String> events;
 
@@ -136,7 +136,7 @@ class _RouteMorphTestAppState extends State<_RouteMorphTestApp> {
 }
 
 class _ControllableMorphPageRoute extends PageRoute<void> {
-  _ControllableMorphPageRoute({
+  new({
     required this.pageBuilder,
     required this.transitionDuration,
     required this.reverseTransitionDuration,
@@ -207,7 +207,7 @@ class _ControllableMorphPageRoute extends PageRoute<void> {
 }
 
 class _TimedRouteMorphTestApp extends StatefulWidget {
-  const _TimedRouteMorphTestApp({
+  const new({
     required this.animations,
     required this.events,
     this.flights,
@@ -334,14 +334,14 @@ class _TimedRouteMorphTestAppState extends State<_TimedRouteMorphTestApp> {
 }
 
 class _TestProperties {
-  const _TestProperties(this.color, this.axisScale);
+  const new(this.color, this.axisScale);
 
   final Color color;
   final Offset axisScale;
 }
 
 class _TestFlightDelegate extends MorphFlightDelegate<_TestProperties> {
-  const _TestFlightDelegate(
+  const new(
     this.color,
     this.captures, {
     this.animations,
@@ -420,7 +420,7 @@ class _TestFlightDelegate extends MorphFlightDelegate<_TestProperties> {
 }
 
 class _TransformMutatingTestFlightDelegate extends _TestFlightDelegate {
-  const _TransformMutatingTestFlightDelegate(
+  const new(
     super.color,
     super.captures, {
     required this.endpointTransforms,
@@ -438,7 +438,7 @@ class _TransformMutatingTestFlightDelegate extends _TestFlightDelegate {
 }
 
 class _RouteStartSynchronizationTestApp extends StatefulWidget {
-  const _RouteStartSynchronizationTestApp({
+  const new({
     required this.captures,
     required this.firstFlightBounds,
     required this.events,
@@ -571,7 +571,7 @@ class _HeldRouteForwardSimulation extends Simulation {
 }
 
 class _HeldMorphPageRoute extends PageRoute<void> {
-  _HeldMorphPageRoute({required this.child});
+  new({required this.child});
 
   final Widget child;
   final _simulation = _HeldRouteForwardSimulation();
@@ -627,7 +627,7 @@ class _HeldMorphPageRoute extends PageRoute<void> {
 }
 
 class _HeldRouteMorphTestApp extends StatefulWidget {
-  const _HeldRouteMorphTestApp({
+  const new({
     required this.captures,
     required this.firstFlightBounds,
   });
@@ -723,14 +723,14 @@ class _HeldRouteMorphTestAppState extends State<_HeldRouteMorphTestApp> {
 }
 
 class _IncompatibleTestFlightDelegate extends _TestFlightDelegate {
-  const _IncompatibleTestFlightDelegate(
+  const new(
     super.color,
     super.captures,
   );
 }
 
 class _ThrowingTestFlightDelegate extends _TestFlightDelegate {
-  const _ThrowingTestFlightDelegate(
+  const new(
     super.color,
     super.captures, {
     required this.throwOnCapture,
@@ -758,7 +758,7 @@ class _PaintCounter extends ChangeNotifier {
 }
 
 class _TickCounter extends StatefulWidget {
-  const _TickCounter({required this.onTick, required this.child});
+  const new({required this.onTick, required this.child});
 
   final VoidCallback onTick;
   final Widget child;
@@ -791,7 +791,7 @@ class _TickCounterState extends State<_TickCounter> with SingleTickerProviderSta
 }
 
 class _PaintCounterPainter extends CustomPainter {
-  _PaintCounterPainter(this.counter, this.color) : super(repaint: counter);
+  new(this.counter, this.color) : super(repaint: counter);
 
   final _PaintCounter counter;
   final Color color;
@@ -836,7 +836,7 @@ Widget _paintedMorphEndpoint({
 }
 
 class _OwnershipRouteTestApp extends StatefulWidget {
-  const _OwnershipRouteTestApp({
+  const new({
     required this.sourcePaints,
     required this.destinationPaints,
     this.destinationScale,
@@ -961,7 +961,7 @@ class _OwnershipRouteTestAppState extends State<_OwnershipRouteTestApp> {
 }
 
 class _RebuildingRouteTestApp extends StatefulWidget {
-  const _RebuildingRouteTestApp({
+  const new({
     required this.destinationRebuild,
     required this.captures,
     required this.flightKinds,
@@ -1049,7 +1049,7 @@ class _RebuildingRouteTestAppState extends State<_RebuildingRouteTestApp> {
 }
 
 class _RetargetOwnershipTestApp extends StatefulWidget {
-  const _RetargetOwnershipTestApp({
+  const new({
     required this.stage,
     required this.sourcePaints,
     required this.destinationPaints,
@@ -1140,7 +1140,7 @@ class _RetargetOwnershipTestAppState extends State<_RetargetOwnershipTestApp> {
 }
 
 class _ThirdEndpointRouteTestApp extends StatefulWidget {
-  const _ThirdEndpointRouteTestApp({
+  const new({
     required this.showThird,
     required this.sourcePaints,
     required this.destinationPaints,
@@ -1261,7 +1261,7 @@ class _ThirdEndpointRouteTestAppState extends State<_ThirdEndpointRouteTestApp> 
 }
 
 class _CrossRouteRetargetTestApp extends StatefulWidget {
-  const _CrossRouteRetargetTestApp({
+  const new({
     required this.showSameScreenDestination,
     required this.sourcePaints,
     required this.sameScreenDestinationPaints,
@@ -1421,7 +1421,7 @@ class _CrossRouteRetargetTestAppState extends State<_CrossRouteRetargetTestApp> 
 }
 
 class _SkippedRouteOwnershipTestApp extends StatefulWidget {
-  const _SkippedRouteOwnershipTestApp({
+  const new({
     required this.sourcePaints,
     required this.destinationPaints,
     required this.captures,
@@ -1513,7 +1513,7 @@ class _SkippedRouteOwnershipTestAppState extends State<_SkippedRouteOwnershipTes
 }
 
 class _SameScreenDuringRoutePopTestApp extends StatefulWidget {
-  const _SameScreenDuringRoutePopTestApp({
+  const new({
     required this.showSecondDestination,
     required this.captures,
   });
@@ -1614,7 +1614,7 @@ class _SameScreenDuringRoutePopTestAppState extends State<_SameScreenDuringRoute
 }
 
 class _DynamicReducedMotionRouteTestApp extends StatefulWidget {
-  const _DynamicReducedMotionRouteTestApp({required this.disableAnimations});
+  const new({required this.disableAnimations});
 
   final ValueNotifier<bool> disableAnimations;
 

@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTargetGroup {
-  _MorphTargetGroup(this.tag);
+  new(this.tag);
 
   final Object tag;
   final List<_MorphEndpointHandle> endpoints = [];

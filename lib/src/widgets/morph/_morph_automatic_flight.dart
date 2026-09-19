@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphAutomaticFlight extends StatefulWidget {
-  const _MorphAutomaticFlight({
+  const new({
     required this.flight,
     required this.switchThreshold,
     required this.transitionBuilder,

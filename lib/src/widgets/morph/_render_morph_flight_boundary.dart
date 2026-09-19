@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphFlightBoundary extends RenderProxyBox {
-  _RenderMorphFlightBoundary(
+  new(
     this._paintHandle,
     this._ancestorAnimation,
     this._ancestorGeometry,

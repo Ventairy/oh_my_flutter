@@ -3,7 +3,7 @@ import 'device_sim_unsupported.dart' if (dart.library.io) 'device_sim_io.dart' a
 /// Provides platform operations for SIM access.
 abstract class DeviceSimPlatform {
   /// Creates a SIM platform implementation.
-  const DeviceSimPlatform();
+  const new();
 
   /// The implementation used by SIM requests, replaceable in tests.
   static DeviceSimPlatform instance = default_implementation.DeviceSimPlatformImplementation();

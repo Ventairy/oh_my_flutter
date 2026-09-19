@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphDescendantSnapshots {
-  const _MorphDescendantSnapshots._();
+  const new _();
 
   static final Expando<Set<_MorphDescendantCapture>> _captures = Expando<Set<_MorphDescendantCapture>>(
     'oh_my_flutter.morph.registeredDescendants',

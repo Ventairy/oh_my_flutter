@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphHybridColumnChildPlan implements _MorphHybridRawSlotPlan {
-  const _MorphHybridColumnChildPlan({
+  const new({
     required this.source,
     required this.destination,
     required this.retained,

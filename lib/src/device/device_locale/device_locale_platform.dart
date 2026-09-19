@@ -3,7 +3,7 @@ import 'device_locale_unsupported.dart' if (dart.library.io) 'device_locale_io.d
 /// Provides platform operations for locale access.
 abstract class DeviceLocalePlatform {
   /// Creates a locale platform implementation.
-  const DeviceLocalePlatform();
+  const new();
 
   /// The implementation used by locale requests, replaceable in tests.
   static DeviceLocalePlatform instance = default_implementation.DeviceLocalePlatformImplementation();

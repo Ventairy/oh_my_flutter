@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTextRasterPoolRegistry with WidgetsBindingObserver {
-  _MorphTextRasterPoolRegistry._() {
+  new _() {
     WidgetsBinding.instance.addObserver(this);
     PaintingBinding.instance.systemFonts.addListener(_clearPools);
   }

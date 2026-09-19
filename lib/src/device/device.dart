@@ -20,7 +20,7 @@ final class Device {
   /// Creates a collection of device utilities.
   ///
   /// Supply implementations to substitute device behavior in tests.
-  const Device({
+  const new({
     this.location = const DeviceLocation(),
     this.display = const DeviceDisplay(),
     this.sim = const DeviceSim(),

@@ -572,7 +572,7 @@ void main() {
 }
 
 class _LifecycleChild extends StatefulWidget {
-  const _LifecycleChild({required this.onDispose, this.onInit});
+  const new({required this.onDispose, this.onInit});
 
   final VoidCallback? onInit;
   final VoidCallback onDispose;

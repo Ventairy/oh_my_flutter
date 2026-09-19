@@ -4,7 +4,7 @@ part of 'skeleton.dart';
 @immutable
 final class SkeletonShimmerEffect extends SkeletonAnimatedEffectBase {
   /// Creates a shimmer effect with a neutral light-gray highlight.
-  const SkeletonShimmerEffect({
+  const new({
     this.color = const Color(0xFFF5F5F5),
     this.angle = 0,
     this.duration = const Duration(milliseconds: 1500),

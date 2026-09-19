@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonAnimationClock {
-  _SkeletonAnimationClock._();
+  new _();
 
   static final _SkeletonAnimationClock instance = _SkeletonAnimationClock._();
 

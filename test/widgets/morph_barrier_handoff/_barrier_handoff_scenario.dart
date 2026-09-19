@@ -1,7 +1,7 @@
 part of '../morph_barrier_handoff_test.dart';
 
 final class _BarrierHandoffScenario {
-  _BarrierHandoffScenario({
+  new({
     this.barrier,
     this.routeDuration = const Duration(milliseconds: 300),
     this.reverseDuration,

@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTargetProgress {
-  _MorphTargetProgress(double value) : curved = AlwaysStoppedAnimation(value), uncurved = AlwaysStoppedAnimation(value);
+  new(double value) : curved = AlwaysStoppedAnimation(value), uncurved = AlwaysStoppedAnimation(value);
 
   Animation<double> curved;
   Animation<double> uncurved;

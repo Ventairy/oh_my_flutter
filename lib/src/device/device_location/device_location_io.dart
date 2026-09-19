@@ -11,7 +11,7 @@ import 'pigeon_device_location.dart';
 /// Selects the Android or iOS device-location implementation for this process.
 final class DeviceLocationPlatformImplementation extends DeviceLocationPlatform {
   /// Creates the implementation for the current operating system.
-  DeviceLocationPlatformImplementation() : _platform = _createPlatform();
+  new() : _platform = _createPlatform();
 
   final DeviceLocationPlatform _platform;
 

@@ -7,11 +7,11 @@ import 'pigeon/device_display.g.dart';
 /// Retrieves display geometry through the generated mobile host API.
 final class PigeonDeviceDisplayPlatform extends DeviceDisplayPlatform {
   /// Creates the mobile device-display platform implementation.
-  PigeonDeviceDisplayPlatform() : _api = DeviceDisplayHostApi();
+  new() : _api = DeviceDisplayHostApi();
 
   /// Creates an implementation backed by a test host API.
   @visibleForTesting
-  PigeonDeviceDisplayPlatform.test(this._api);
+  new test(this._api);
 
   final DeviceDisplayHostApi _api;
 

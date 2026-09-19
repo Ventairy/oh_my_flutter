@@ -6,17 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import '../../benchmark/native_selectable_text/validation_command.dart';
 
 void main() {
-  String buildLog({
-    required bool budgetPassed,
-    String scenario = 'selection',
-  }) {
-    const statistics = <String, num>{
-      'mean_us': 1500,
-      'p50_us': 1000,
-      'p90_us': 2000,
-      'p99_us': 3000,
-      'max_us': 4000,
-    };
+  String buildLog({required bool budgetPassed, String scenario = 'selection'}) {
+    const statistics = <String, num>{'mean_us': 1500, 'p50_us': 1000, 'p90_us': 2000, 'p99_us': 3000, 'max_us': 4000};
     final records = <Map<String, Object>>[
       <String, Object>{
         'path': 'environment',
@@ -93,14 +84,10 @@ void main() {
     required bool budgetPassed,
     String scenario = 'selection',
   }) async {
-    final temporaryDirectory = await Directory.systemTemp.createTemp(
-      'native-selectable-benchmark-command.',
-    );
+    final temporaryDirectory = await Directory.systemTemp.createTemp('native-selectable-benchmark-command.');
     addTearDown(() => temporaryDirectory.delete(recursive: true));
     final log = File('${temporaryDirectory.path}/flutter.log');
-    await log.writeAsString(
-      buildLog(budgetPassed: budgetPassed, scenario: scenario),
-    );
+    await log.writeAsString(buildLog(budgetPassed: budgetPassed, scenario: scenario));
     final artifacts = Directory('${temporaryDirectory.path}/artifacts');
     const command = NativeSelectableTextBenchmarkValidationCommand();
     final code = await command.run(
@@ -134,42 +121,26 @@ void main() {
     return (
       code: code,
       artifactsExist:
-          File(
-            '${artifacts.path}/native_selectable_text_benchmark.jsonl',
-          ).existsSync() &&
-          File(
-            '${artifacts.path}/native_selectable_text_benchmark_summary.txt',
-          ).existsSync(),
+          File('${artifacts.path}/native_selectable_text_benchmark.jsonl').existsSync() &&
+          File('${artifacts.path}/native_selectable_text_benchmark_summary.txt').existsSync(),
     );
   }
 
-  test(
-    'when a validated run passes, it should return zero and write artifacts',
-    () async {
-      final result = await runCommand(budgetPassed: true);
+  test('when a validated run passes, it should return zero and write artifacts', () async {
+    final result = await runCommand(budgetPassed: true);
 
-      expect(result, (code: 0, artifactsExist: true));
-    },
-  );
+    expect(result, (code: 0, artifactsExist: true));
+  });
 
-  test(
-    'when application acceptance is inconsistent, it should return nonzero',
-    () async {
-      final result = await runCommand(budgetPassed: false);
+  test('when application acceptance is inconsistent, it should return nonzero', () async {
+    final result = await runCommand(budgetPassed: false);
 
-      expect(result.code, 1);
-    },
-  );
+    expect(result.code, 1);
+  });
 
-  test(
-    'when menu_idle evidence is valid, it should return zero',
-    () async {
-      final result = await runCommand(
-        budgetPassed: true,
-        scenario: 'menu_idle',
-      );
+  test('when menu_idle evidence is valid, it should return zero', () async {
+    final result = await runCommand(budgetPassed: true, scenario: 'menu_idle');
 
-      expect(result.code, 0);
-    },
-  );
+    expect(result.code, 0);
+  });
 }

@@ -21,41 +21,20 @@ import 'morph_benchmark_snapshot_paint_probe.dart';
 import 'morph_benchmark_status.dart';
 import 'morph_benchmark_workloads.dart';
 
-const bool _enforceFrameBudget = bool.fromEnvironment(
-  'MORPH_ENFORCE_FRAME_BUDGET',
-);
-const int _steadyFramesPerTrial = int.fromEnvironment(
-  'MORPH_STEADY_FRAMES_PER_TRIAL',
-  defaultValue: 150,
-);
-const int _soakCycles = int.fromEnvironment(
-  'MORPH_SOAK_CYCLES',
-  defaultValue: 100,
-);
-const int _heapPauseSeconds = int.fromEnvironment(
-  'MORPH_HEAP_PAUSE_SECONDS',
-);
-const int _foregroundCount = int.fromEnvironment(
-  'MORPH_FOREGROUND_COUNT',
-  defaultValue: 16,
-);
-const String _requestedScenario = String.fromEnvironment(
-  'MORPH_SCENARIO',
-  defaultValue: 'all',
-);
-const String _renderer = String.fromEnvironment(
-  'MORPH_RENDERER',
-  defaultValue: 'unspecified',
-);
-const bool _textCacheProbe = bool.fromEnvironment(
-  'MORPH_TEXT_CACHE_PROBE',
-);
+const bool _enforceFrameBudget = bool.fromEnvironment('MORPH_ENFORCE_FRAME_BUDGET');
+const int _steadyFramesPerTrial = int.fromEnvironment('MORPH_STEADY_FRAMES_PER_TRIAL', defaultValue: 150);
+const int _soakCycles = int.fromEnvironment('MORPH_SOAK_CYCLES', defaultValue: 100);
+const int _heapPauseSeconds = int.fromEnvironment('MORPH_HEAP_PAUSE_SECONDS');
+const int _foregroundCount = int.fromEnvironment('MORPH_FOREGROUND_COUNT', defaultValue: 16);
+const String _requestedScenario = String.fromEnvironment('MORPH_SCENARIO', defaultValue: 'all');
+const String _renderer = String.fromEnvironment('MORPH_RENDERER', defaultValue: 'unspecified');
+const bool _textCacheProbe = bool.fromEnvironment('MORPH_TEXT_CACHE_PROBE');
 
 /// Profile-mode benchmark for retained, fallback, watched, nested, and custom
 /// Morph flights.
 class MorphBenchmark extends StatefulWidget {
   /// Creates the Morph benchmark application.
-  const MorphBenchmark({this.scenario = _requestedScenario, super.key});
+  const new({this.scenario = _requestedScenario, super.key});
 
   /// Scenario to measure in this application process.
   final String scenario;
@@ -145,10 +124,7 @@ class _MorphState extends State<MorphBenchmark>
   @override
   void initState() {
     super.initState();
-    const restingColors = <Color>[
-      Color(0xFFE8F1FF),
-      Color(0xFFFFF0E6),
-    ];
+    const restingColors = <Color>[Color(0xFFE8F1FF), Color(0xFFFFF0E6)];
     _restingMorphEndpoints = SizedBox(
       width: 360,
       child: Wrap(
@@ -159,53 +135,27 @@ class _MorphState extends State<MorphBenchmark>
           (index) => Morph(
             animateChildChanges: true,
             target: _target('benchmark-resting-endpoint-$index'),
-            child: Container(
-              width: 68,
-              height: 34,
-              color: restingColors[index % restingColors.length],
-            ),
+            child: Container(width: 68, height: 34, color: restingColors[index % restingColors.length]),
           ),
           growable: false,
         ),
       ),
     );
-    _restingScrollController = AnimationController(
-      vsync: this,
-      duration: _transitionDuration,
-    );
-    _foregroundPaintController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
-    _foregroundLiveCaretPainter = MorphBenchmarkLiveCaretPainter(
-      _foregroundPaintController,
-    );
+    _restingScrollController = AnimationController(vsync: this, duration: _transitionDuration);
+    _foregroundPaintController = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
+    _foregroundLiveCaretPainter = MorphBenchmarkLiveCaretPainter(_foregroundPaintController);
     _dirtyProbe = MorphBenchmarkSnapshotPaintProbe(capturesOnly: true);
     _cleanProbe = MorphBenchmarkSnapshotPaintProbe(capturesOnly: true);
     _geometryChanges = ValueNotifier<int>(0);
-    _flightImagePixelsByImage = Expando<int>(
-      'Morph benchmark temporal flight image pixels',
-    );
+    _flightImagePixelsByImage = Expando<int>('Morph benchmark temporal flight image pixels');
     if (_steadyFramesPerTrial < 1) {
-      throw ArgumentError.value(
-        _steadyFramesPerTrial,
-        'MORPH_STEADY_FRAMES_PER_TRIAL',
-        'must be at least one',
-      );
+      throw ArgumentError.value(_steadyFramesPerTrial, 'MORPH_STEADY_FRAMES_PER_TRIAL', 'must be at least one');
     }
     if (_foregroundCount < 1) {
-      throw ArgumentError.value(
-        _foregroundCount,
-        'MORPH_FOREGROUND_COUNT',
-        'must be at least one',
-      );
+      throw ArgumentError.value(_foregroundCount, 'MORPH_FOREGROUND_COUNT', 'must be at least one');
     }
-    _interruptionTracker = MorphBenchmarkInterruptionTracker(
-      WidgetsBinding.instance.lifecycleState,
-    );
-    _recordBuffer = MorphBenchmarkRecordBuffer(
-      (message) => debugPrint(message, wrapWidth: 4000),
-    );
+    _interruptionTracker = MorphBenchmarkInterruptionTracker(WidgetsBinding.instance.lifecycleState);
+    _recordBuffer = MorphBenchmarkRecordBuffer((message) => debugPrint(message, wrapWidth: 4000));
     _imageCreatedCallback = _handleImageCreated;
     _imageDisposedCallback = _handleImageDisposed;
     _previousImageCreatedCallback = ui.Image.onCreate;
@@ -271,9 +221,7 @@ class _MorphState extends State<MorphBenchmark>
         await _runScenario(scenario);
       }
       if (_soakCycles > 0) {
-        final soakScenario = MorphBenchmarkScenario.soakTargetFor(
-          widget.scenario,
-        );
+        final soakScenario = MorphBenchmarkScenario.soakTargetFor(widget.scenario);
         await _runSoak(soakScenario);
       }
       passed = _failedSteadyPaths.isEmpty;
@@ -300,11 +248,7 @@ class _MorphState extends State<MorphBenchmark>
         });
       }
     } on Object catch (error, stackTrace) {
-      _print(<String, Object>{
-        'path': 'error',
-        'error': error.toString(),
-        'stack_trace': stackTrace.toString(),
-      });
+      _print(<String, Object>{'path': 'error', 'error': error.toString(), 'stack_trace': stackTrace.toString()});
       if (mounted) {
         setState(() {
           _complete = true;
@@ -332,9 +276,7 @@ class _MorphState extends State<MorphBenchmark>
       throw StateError('The Morph benchmark must run in profile mode.');
     }
     if (_renderer == 'unspecified') {
-      throw StateError(
-        'Set MORPH_RENDERER to the renderer verified in device startup logs.',
-      );
+      throw StateError('Set MORPH_RENDERER to the renderer verified in device startup logs.');
     }
     if (!_refreshRate.isFinite || _refreshRate <= 0) {
       throw StateError('The display reported an invalid refresh rate.');
@@ -358,9 +300,7 @@ class _MorphState extends State<MorphBenchmark>
     _largestFlightImagePixels = 0;
     _liveFlightImagePixels = 0;
     _peakLiveFlightImagePixels = 0;
-    _flightImagePixelsByImage = Expando<int>(
-      'Morph benchmark temporal flight image pixels for $scenarioId',
-    );
+    _flightImagePixelsByImage = Expando<int>('Morph benchmark temporal flight image pixels for $scenarioId');
     _restingScrollController.value = 0;
     setState(() {
       _scenario = scenario;
@@ -369,9 +309,7 @@ class _MorphState extends State<MorphBenchmark>
       _status = 'Benchmarking $scenarioId…';
     });
     await SchedulerBinding.instance.endOfFrame;
-    _setForegroundPaintActive(
-      scenario == MorphBenchmarkScenario.foregroundMultiMixed,
-    );
+    _setForegroundPaintActive(scenario == MorphBenchmarkScenario.foregroundMultiMixed);
     await _flushReportedTimings();
 
     final cold = await _collectColdTrial(scenarioId);
@@ -386,9 +324,7 @@ class _MorphState extends State<MorphBenchmark>
       gate: false,
       attempt: cold.attempt,
       transitionFrameCounts: <int>[cold.forward.length],
-      snapshotRefreshes: <Map<String, Object>>[
-        ?cold.forwardSnapshotRefresh,
-      ],
+      snapshotRefreshes: <Map<String, Object>>[?cold.forwardSnapshotRefresh],
       sampleSemantics: 'initial_forward',
     );
     _printResult(
@@ -402,9 +338,7 @@ class _MorphState extends State<MorphBenchmark>
       gate: false,
       attempt: cold.attempt,
       transitionFrameCounts: <int>[cold.reverse.length],
-      snapshotRefreshes: <Map<String, Object>>[
-        ?cold.reverseSnapshotRefresh,
-      ],
+      snapshotRefreshes: <Map<String, Object>>[?cold.reverseSnapshotRefresh],
       sampleSemantics: 'first_reverse_after_forward',
     );
 
@@ -420,10 +354,7 @@ class _MorphState extends State<MorphBenchmark>
     final combinedForwardStartLatencies = <int>[];
     final combinedReverseStartLatencies = <int>[];
     for (var trial = 1; trial <= _steadyTrialCount; trial += 1) {
-      final steady = await _collectSteadyTrial(
-        scenario: scenarioId,
-        trial: trial,
-      );
+      final steady = await _collectSteadyTrial(scenario: scenarioId, trial: trial);
       combinedForward.addAll(steady.forward);
       combinedReverse.addAll(steady.reverse);
       combinedForwardBatchFrames.addAll(steady.forwardBatchFrames);
@@ -521,10 +452,7 @@ class _MorphState extends State<MorphBenchmark>
     _largestFlightImagePixels = math.max(_largestFlightImagePixels, pixels);
     _flightImagePixelsByImage[image] = pixels;
     _liveFlightImagePixels += pixels;
-    _peakLiveFlightImagePixels = math.max(
-      _peakLiveFlightImagePixels,
-      _liveFlightImagePixels,
-    );
+    _peakLiveFlightImagePixels = math.max(_peakLiveFlightImagePixels, _liveFlightImagePixels);
   }
 
   void _handleImageDisposed(ui.Image image) {
@@ -532,10 +460,7 @@ class _MorphState extends State<MorphBenchmark>
     final trackedPixels = _flightImagePixelsByImage[image];
     if (trackedPixels != null) {
       _flightImagePixelsByImage[image] = null;
-      _liveFlightImagePixels = math.max(
-        0,
-        _liveFlightImagePixels - trackedPixels,
-      );
+      _liveFlightImagePixels = math.max(0, _liveFlightImagePixels - trackedPixels);
     }
     if (_scenarioIsRunning) _scenarioImageDisposals += 1;
   }
@@ -554,10 +479,7 @@ class _MorphState extends State<MorphBenchmark>
   _collectColdTrial(String scenario) async {
     for (var attempt = 1; attempt <= _maximumTrialAttempts; attempt += 1) {
       await _ensureCollapsed();
-      final forward = await _runTransition(
-        direction: 'forward',
-        collect: true,
-      );
+      final forward = await _runTransition(direction: 'forward', collect: true);
       if (forward.invalidReasons.isNotEmpty) {
         _reportInvalidTrialAttempt(
           scenario: scenario,
@@ -573,10 +495,7 @@ class _MorphState extends State<MorphBenchmark>
         continue;
       }
 
-      final reverse = await _runTransition(
-        direction: 'reverse',
-        collect: true,
-      );
+      final reverse = await _runTransition(direction: 'reverse', collect: true);
       if (reverse.invalidReasons.isNotEmpty) {
         _reportInvalidTrialAttempt(
           scenario: scenario,
@@ -622,10 +541,7 @@ class _MorphState extends State<MorphBenchmark>
       int attempt,
     })
   >
-  _collectSteadyTrial({
-    required String scenario,
-    required int trial,
-  }) async {
+  _collectSteadyTrial({required String scenario, required int trial}) async {
     for (var attempt = 1; attempt <= _maximumTrialAttempts; attempt += 1) {
       await _ensureCollapsed();
       final forward = <FrameTiming>[];
@@ -654,10 +570,7 @@ class _MorphState extends State<MorphBenchmark>
         final direction = _expanded ? 'reverse' : 'forward';
         final target = direction == 'forward' ? forward : reverse;
         final collect = target.length < _steadyFramesPerTrial;
-        final measurement = await _runTransition(
-          direction: direction,
-          collect: collect,
-        );
+        final measurement = await _runTransition(direction: direction, collect: collect);
         if (direction == 'forward') {
           forwardTransitions += 1;
         } else {
@@ -747,10 +660,7 @@ class _MorphState extends State<MorphBenchmark>
       'valid': false,
       'invalid_direction': direction,
       'invalid_reasons': reasons,
-      'collected_frames': <String, int>{
-        'forward': forwardFrames,
-        'reverse': reverseFrames,
-      },
+      'collected_frames': <String, int>{'forward': forwardFrames, 'reverse': reverseFrames},
       'retrying': retrying,
       'maximum_trial_attempts': _maximumTrialAttempts,
     });
@@ -773,10 +683,7 @@ class _MorphState extends State<MorphBenchmark>
     });
     await SchedulerBinding.instance.endOfFrame;
     await _flushReportedTimings();
-    await _pauseForHeapSnapshot(
-      scenario: scenarioId,
-      phase: 'baseline_ready',
-    );
+    await _pauseForHeapSnapshot(scenario: scenarioId, phase: 'baseline_ready');
     final mixed = scenario == MorphBenchmarkScenario.foregroundMultiMixed;
     _setForegroundPaintActive(mixed);
     if (mixed) {
@@ -810,26 +717,15 @@ class _MorphState extends State<MorphBenchmark>
       'temporal_disposed_during_soak': soakImageDisposals,
       'attribution': 'temporal process-wide ui.Image callbacks',
     });
-    await _pauseForHeapSnapshot(
-      scenario: scenarioId,
-      phase: 'soak_complete',
-    );
+    await _pauseForHeapSnapshot(scenario: scenarioId, phase: 'soak_complete');
   }
 
-  Future<void> _pauseForHeapSnapshot({
-    required String scenario,
-    required String phase,
-  }) async {
+  Future<void> _pauseForHeapSnapshot({required String scenario, required String phase}) async {
     if (_heapPauseSeconds <= 0) return;
-    _print(<String, Object>{
-      'path': '$scenario.heap.$phase',
-      'pause_seconds': _heapPauseSeconds,
-    });
+    _print(<String, Object>{'path': '$scenario.heap.$phase', 'pause_seconds': _heapPauseSeconds});
     _recordBuffer.flush();
     await debugPrintDone;
-    await Future<void>.delayed(
-      Duration(seconds: math.max(_heapPauseSeconds, 1)),
-    );
+    await Future<void>.delayed(Duration(seconds: math.max(_heapPauseSeconds, 1)));
   }
 
   Future<
@@ -840,16 +736,11 @@ class _MorphState extends State<MorphBenchmark>
       Map<String, Object>? snapshotRefresh,
     })
   >
-  _runTransition({
-    required String direction,
-    required bool collect,
-  }) async {
+  _runTransition({required String direction, required bool collect}) async {
     await _waitUntilInteractive();
     final expectedDirection = _expanded ? 'reverse' : 'forward';
     if (direction != expectedDirection) {
-      throw StateError(
-        'Expected a $expectedDirection transition, got $direction.',
-      );
+      throw StateError('Expected a $expectedDirection transition, got $direction.');
     }
     final flightIsActive = _flightStarted != null || _flightEnded != null;
     final hasActiveWindow = flightIsActive || _windowReported != null;
@@ -882,18 +773,13 @@ class _MorphState extends State<MorphBenchmark>
             'are '
             'enabled.',
       );
-      await _awaitFlightSignal(
-        _flightEnded!,
-        timeoutMessage: 'Morph $direction did not end.',
-      );
+      await _awaitFlightSignal(_flightEnded!, timeoutMessage: 'Morph $direction did not end.');
       await _awaitWindowReported();
 
       final frames = List<FrameTiming>.of(_windowFrames, growable: false);
       final invalidReasons = _interruptionTracker.invalidReasons;
       if (collect && frames.isEmpty && invalidReasons.isEmpty) {
-        throw StateError(
-          'Morph $direction produced no attributable frame timings.',
-        );
+        throw StateError('Morph $direction produced no attributable frame timings.');
       }
       final startLatencyMicros = _flightStartLatencyMicros;
       if (startLatencyMicros == null) {
@@ -992,14 +878,8 @@ class _MorphState extends State<MorphBenchmark>
 
   Map<String, Object>? _snapshotRefreshMeasurement() {
     if (!_scenario.gatesWatchedSnapshotRefresh) return null;
-    final dirty = _dirtyProbe.measureSince(
-      _dirtyPaintStart,
-      lastEvent: _dirtyPaintEnd,
-    );
-    final clean = _cleanProbe.measureSince(
-      _cleanPaintStart,
-      lastEvent: _cleanPaintEnd,
-    );
+    final dirty = _dirtyProbe.measureSince(_dirtyPaintStart, lastEvent: _dirtyPaintEnd);
+    final clean = _cleanProbe.measureSince(_cleanPaintStart, lastEvent: _cleanPaintEnd);
     final expectedBatches = _scenario.snapshotMutationBatches;
     final expectedMutations = _scenario.snapshotMutationsPerBatch;
     final requestedGeneration = _currentSnapshotMutationGeneration();
@@ -1010,9 +890,7 @@ class _MorphState extends State<MorphBenchmark>
     final expectedGenerations = <int>[];
     if (_scenario.mutatesSnapshotPixels) {
       for (var batch = 1; batch <= expectedBatches; batch += 1) {
-        expectedGenerations.add(
-          _mutationGenerationStart + batch * expectedMutations,
-        );
+        expectedGenerations.add(_mutationGenerationStart + batch * expectedMutations);
       }
     }
     final isConservativeFallback = _scenario.usesConservativeSnapshotFallback;
@@ -1022,10 +900,7 @@ class _MorphState extends State<MorphBenchmark>
     }
     final dirtyGenerations = dirty.capturedGenerations;
     final cleanGenerations = clean.capturedGenerations;
-    final generationSequencePass = listEquals(
-      dirtyGenerations,
-      expectedGenerations,
-    );
+    final generationSequencePass = listEquals(dirtyGenerations, expectedGenerations);
     var expectedFinal = -1;
     if (expectedGenerations.isNotEmpty) {
       expectedFinal = expectedGenerations.last;
@@ -1106,13 +981,8 @@ class _MorphState extends State<MorphBenchmark>
 
   void _handleTimings(List<FrameTiming> timings) {
     for (final timing in timings) {
-      final buildStart = timing.timestampInMicroseconds(
-        FramePhase.buildStart,
-      );
-      _latestReportedBuildStartMicros = math.max(
-        _latestReportedBuildStartMicros,
-        buildStart,
-      );
+      final buildStart = timing.timestampInMicroseconds(FramePhase.buildStart);
+      _latestReportedBuildStartMicros = math.max(_latestReportedBuildStartMicros, buildStart);
       final windowStart = _windowStartMicros;
       if (windowStart == null || buildStart < windowStart) continue;
       final windowEnd = _windowEndMicros;
@@ -1139,10 +1009,8 @@ class _MorphState extends State<MorphBenchmark>
     }
     await completer.future.timeout(
       _timingsTimeout,
-      onTimeout: () => throw TimeoutException(
-        'Flutter did not report the completed Morph frame window.',
-        _timingsTimeout,
-      ),
+      onTimeout: () =>
+          throw TimeoutException('Flutter did not report the completed Morph frame window.', _timingsTimeout),
     );
   }
 
@@ -1159,10 +1027,7 @@ class _MorphState extends State<MorphBenchmark>
     }
   }
 
-  Future<void> _awaitFlightSignal(
-    Completer<void> completer, {
-    required String timeoutMessage,
-  }) async {
+  Future<void> _awaitFlightSignal(Completer<void> completer, {required String timeoutMessage}) async {
     while (!completer.isCompleted) {
       await _waitUntilInteractive();
       final interactionVersion = _interactionVersion;
@@ -1187,10 +1052,7 @@ class _MorphState extends State<MorphBenchmark>
       try {
         await completer.future.timeout(_interactionTimeout);
       } on TimeoutException {
-        throw TimeoutException(
-          'The benchmark did not regain lifecycle and view focus.',
-          _interactionTimeout,
-        );
+        throw TimeoutException('The benchmark did not regain lifecycle and view focus.', _interactionTimeout);
       } finally {
         if (identical(_interactionChanged, completer)) {
           _interactionChanged = null;
@@ -1208,9 +1070,7 @@ class _MorphState extends State<MorphBenchmark>
   void _printEnvironment(List<MorphBenchmarkScenario> scenarios) {
     final view = View.of(context);
     final logicalSize = MediaQuery.sizeOf(context);
-    final scenarioIds = <String>[
-      for (final scenario in scenarios) scenario.id,
-    ];
+    final scenarioIds = <String>[for (final scenario in scenarios) scenario.id];
     _print(<String, Object>{
       'path': 'environment',
       'mode': kProfileMode ? 'profile' : (kReleaseMode ? 'release' : 'debug'),
@@ -1220,14 +1080,8 @@ class _MorphState extends State<MorphBenchmark>
       'renderer_source': 'manually verified startup or device logs',
       'refresh_rate_hz': _refreshRate,
       'frame_budget_us': _frameBudgetMicros,
-      'logical_size': <String, double>{
-        'width': logicalSize.width,
-        'height': logicalSize.height,
-      },
-      'physical_size': <String, double>{
-        'width': view.physicalSize.width,
-        'height': view.physicalSize.height,
-      },
+      'logical_size': <String, double>{'width': logicalSize.width, 'height': logicalSize.height},
+      'physical_size': <String, double>{'width': view.physicalSize.width, 'height': view.physicalSize.height},
       'device_pixel_ratio': view.devicePixelRatio,
       'scenarios': scenarioIds,
       'steady_trials': _steadyTrialCount,
@@ -1264,16 +1118,10 @@ class _MorphState extends State<MorphBenchmark>
     var anyOverBudget = 0;
     var longestConsecutiveMisses = 0;
     var consecutiveMisses = 0;
-    assert(
-      () {
-        final countedFrames = transitionFrameCounts.fold<int>(
-          0,
-          (sum, count) => sum + count,
-        );
-        return transitionFrameCounts.isEmpty || countedFrames == frames.length;
-      }(),
-      'Transition frame counts must cover every reported frame.',
-    );
+    assert(() {
+      final countedFrames = transitionFrameCounts.fold<int>(0, (sum, count) => sum + count);
+      return transitionFrameCounts.isEmpty || countedFrames == frames.length;
+    }(), 'Transition frame counts must cover every reported frame.');
     var transitionIndex = 0;
     var transitionEnd = frames.length;
     if (transitionFrameCounts.isNotEmpty) {
@@ -1304,10 +1152,7 @@ class _MorphState extends State<MorphBenchmark>
       if (missed) {
         anyOverBudget += 1;
         consecutiveMisses += 1;
-        longestConsecutiveMisses = math.max(
-          longestConsecutiveMisses,
-          consecutiveMisses,
-        );
+        longestConsecutiveMisses = math.max(longestConsecutiveMisses, consecutiveMisses);
       } else {
         consecutiveMisses = 0;
       }
@@ -1330,9 +1175,7 @@ class _MorphState extends State<MorphBenchmark>
     final snapshotsPass =
         !reportsSnapshotRefreshes ||
         (snapshotRefreshes.length == transitions &&
-            snapshotRefreshes.every(
-              (refresh) => refresh['invariants_passed'] == true,
-            ));
+            snapshotRefreshes.every((refresh) => refresh['invariants_passed'] == true));
     if (gate && (!workFitsBudget || !snapshotsPass)) {
       _failedSteadyPaths.add(path);
     }
@@ -1348,9 +1191,7 @@ class _MorphState extends State<MorphBenchmark>
       if (transitions != 0) 'transitions': transitions,
       'frames': frames.length,
       if (startLatenciesMicros.isNotEmpty)
-        'trigger_to_on_start_us': _statistics(
-          List<int>.of(startLatenciesMicros)..sort(),
-        ),
+        'trigger_to_on_start_us': _statistics(List<int>.of(startLatenciesMicros)..sort()),
       'build_us': buildStats,
       'raster_us': rasterStats,
       'total_span_us': totalSpanStats,
@@ -1383,10 +1224,7 @@ class _MorphState extends State<MorphBenchmark>
   }
 
   int _percentile(List<int> sortedValues, double percentile) {
-    final index = ((sortedValues.length * percentile).ceil() - 1).clamp(
-      0,
-      sortedValues.length - 1,
-    );
+    final index = ((sortedValues.length * percentile).ceil() - 1).clamp(0, sortedValues.length - 1);
     return sortedValues[index];
   }
 
@@ -1406,11 +1244,7 @@ class _MorphState extends State<MorphBenchmark>
           child: Stack(
             children: [
               Positioned.fill(child: _buildScenario()),
-              if (_complete)
-                MorphBenchmarkStatus(
-                  complete: true,
-                  status: _status,
-                ),
+              if (_complete) MorphBenchmarkStatus(complete: true, status: _status),
             ],
           ),
         ),
@@ -1424,12 +1258,8 @@ class _MorphState extends State<MorphBenchmark>
       MorphBenchmarkScenario.text => _buildTextScenario(),
       MorphBenchmarkScenario.column => _buildColumnScenario(),
       MorphBenchmarkScenario.surface => _buildSurfaceScenario(),
-      MorphBenchmarkScenario.foregroundStatic => _buildForegroundScenario(
-        live: false,
-      ),
-      MorphBenchmarkScenario.foregroundLive => _buildForegroundScenario(
-        live: true,
-      ),
+      MorphBenchmarkScenario.foregroundStatic => _buildForegroundScenario(live: false),
+      MorphBenchmarkScenario.foregroundLive => _buildForegroundScenario(live: true),
       MorphBenchmarkScenario.foregroundMultiStatic => _buildMultiStatic(),
       MorphBenchmarkScenario.foregroundMultiMixed => _buildMultiMixed(),
       MorphBenchmarkScenario.foregroundFallbackStatic => _buildFallback(false),
@@ -1439,42 +1269,25 @@ class _MorphState extends State<MorphBenchmark>
       MorphBenchmarkScenario.watchCustom => _buildWatchCustomScenario(),
       MorphBenchmarkScenario.watchStationary => _buildStationaryWatch(),
       MorphBenchmarkScenario.watchStationaryControl => _buildStationaryWatch(),
-      MorphBenchmarkScenario.watchSnapshotDense => _buildDense(
-        watchDestination: true,
-      ),
+      MorphBenchmarkScenario.watchSnapshotDense => _buildDense(watchDestination: true),
       MorphBenchmarkScenario.watchSnapshotGeometryOnly => _buildDense(
         watchDestination: true,
         geometryOnlyWatchedSnapshot: true,
       ),
-      MorphBenchmarkScenario.watchSnapshotDynamic => _buildDense(
-        watchDestination: true,
-        dynamicWatchedSnapshot: true,
-      ),
+      MorphBenchmarkScenario.watchSnapshotDynamic => _buildDense(watchDestination: true, dynamicWatchedSnapshot: true),
       MorphBenchmarkScenario.watchSnapshotFullSurface => _buildFullSnapshot(),
       MorphBenchmarkScenario.watchSnapshotNestedFallback => _buildDense(
         watchDestination: true,
         nestedSnapshotFallback: true,
       ),
       MorphBenchmarkScenario.restingScroll => _buildRestingScrollScenario(),
-      MorphBenchmarkScenario.rawDescendants => _buildRawDescendantsScenario(
-        fade: false,
-      ),
-      MorphBenchmarkScenario.rawDescendantsFade => _buildRawDescendantsScenario(
-        fade: true,
-      ),
-      MorphBenchmarkScenario.descendantLive => _buildDescendantScenario(
-        MorphDescendantFlightBehavior.live,
-      ),
-      MorphBenchmarkScenario.descendantSnapshot => _buildDescendantScenario(
-        MorphDescendantFlightBehavior.snapshot,
-      ),
-      MorphBenchmarkScenario.descendantHide => _buildDescendantScenario(
-        MorphDescendantFlightBehavior.hide,
-      ),
+      MorphBenchmarkScenario.rawDescendants => _buildRawDescendantsScenario(fade: false),
+      MorphBenchmarkScenario.rawDescendantsFade => _buildRawDescendantsScenario(fade: true),
+      MorphBenchmarkScenario.descendantLive => _buildDescendantScenario(MorphDescendantFlightBehavior.live),
+      MorphBenchmarkScenario.descendantSnapshot => _buildDescendantScenario(MorphDescendantFlightBehavior.snapshot),
+      MorphBenchmarkScenario.descendantHide => _buildDescendantScenario(MorphDescendantFlightBehavior.hide),
       MorphBenchmarkScenario.descendantSnapshotDense => _buildDense(),
-      MorphBenchmarkScenario.registeredSnapshotDense => _buildDense(
-        registeredContent: true,
-      ),
+      MorphBenchmarkScenario.registeredSnapshotDense => _buildDense(registeredContent: true),
       MorphBenchmarkScenario.registeredWatchSnapshotDynamic => _buildDense(
         registeredContent: true,
         watchDestination: true,
@@ -1484,19 +1297,13 @@ class _MorphState extends State<MorphBenchmark>
       MorphBenchmarkScenario.columnMatchedRawResize => _buildMatchedRawResize(),
       MorphBenchmarkScenario.nestedHold => _buildNestedHoldScenario(),
       MorphBenchmarkScenario.nestedWatchHold => _buildNestedWatchHoldScenario(),
-      MorphBenchmarkScenario.decoratedBackground => _buildDecoratedBoxScenario(
-        position: DecorationPosition.background,
-      ),
-      MorphBenchmarkScenario.decoratedForeground => _buildDecoratedBoxScenario(
-        position: DecorationPosition.foreground,
-      ),
+      MorphBenchmarkScenario.decoratedBackground => _buildDecoratedBoxScenario(position: DecorationPosition.background),
+      MorphBenchmarkScenario.decoratedForeground => _buildDecoratedBoxScenario(position: DecorationPosition.foreground),
     };
   }
 
   Key _endpointKey(String id) {
-    return ValueKey<String>(
-      _scenario.endpointIdentity(child: id, destination: _expanded),
-    );
+    return ValueKey<String>(_scenario.endpointIdentity(child: id, destination: _expanded));
   }
 
   Widget _buildWatchTextScenario() {
@@ -1519,11 +1326,7 @@ class _MorphState extends State<MorphBenchmark>
         textAlign: TextAlign.center,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: textColor,
-          fontSize: _expanded ? 30 : 21,
-          fontWeight: FontWeight.w800,
-        ),
+        style: TextStyle(color: textColor, fontSize: _expanded ? 30 : 21, fontWeight: FontWeight.w800),
       ),
     );
     return _buildWatchedGeometry(
@@ -1553,13 +1356,7 @@ class _MorphState extends State<MorphBenchmark>
         decoration: BoxDecoration(
           color: surfaceColor,
           borderRadius: BorderRadius.circular(_expanded ? 34 : 18),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(
-              color: Color(0x22000000),
-              blurRadius: 14,
-              offset: Offset(0, 7),
-            ),
-          ],
+          boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x22000000), blurRadius: 14, offset: Offset(0, 7))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1567,10 +1364,7 @@ class _MorphState extends State<MorphBenchmark>
             Text(
               _expanded ? 'Composto observado' : 'Composto',
               key: const ValueKey<String>('watch-compound-title'),
-              style: TextStyle(
-                fontSize: _expanded ? 28 : 21,
-                fontWeight: FontWeight.w800,
-              ),
+              style: TextStyle(fontSize: _expanded ? 28 : 21, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 12),
             Text(
@@ -1605,10 +1399,7 @@ class _MorphState extends State<MorphBenchmark>
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
       flightConfig: const .custom(BenchmarkCustomFlightDelegate()),
-      child: ColoredBox(
-        key: _endpointKey('watch-custom'),
-        color: color,
-      ),
+      child: ColoredBox(key: _endpointKey('watch-custom'), color: color),
     );
     return _buildWatchedGeometry(
       alignment: alignment,
@@ -1636,26 +1427,16 @@ class _MorphState extends State<MorphBenchmark>
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
       child: Text(
-        key: _endpointKey(
-          watchDestination ? 'watch-stationary' : 'watch-control',
-        ),
+        key: _endpointKey(watchDestination ? 'watch-stationary' : 'watch-control'),
         _expanded ? 'Destino observado estável' : 'Origem observada estável',
         textAlign: TextAlign.center,
         locale: const Locale('pt', 'BR'),
-        style: TextStyle(
-          color: textColor,
-          fontSize: _expanded ? 30 : 21,
-          fontWeight: FontWeight.w800,
-        ),
+        style: TextStyle(color: textColor, fontSize: _expanded ? 30 : 21, fontWeight: FontWeight.w800),
       ),
     );
     return Align(
       alignment: alignment,
-      child: SizedBox(
-        width: _expanded ? 320 : 250,
-        height: _expanded ? 100 : 70,
-        child: endpoint,
-      ),
+      child: SizedBox(width: _expanded ? 320 : 250, height: _expanded ? 100 : 70, child: endpoint),
     );
   }
 
@@ -1667,20 +1448,14 @@ class _MorphState extends State<MorphBenchmark>
         height: 400,
         child: Flow(
           clipBehavior: Clip.none,
-          delegate: MorphBenchmarkRestingFlowDelegate(
-            _restingScrollController,
-          ),
+          delegate: MorphBenchmarkRestingFlowDelegate(_restingScrollController),
           children: <Widget>[_restingMorphEndpoints],
         ),
       ),
     );
   }
 
-  Widget _buildWatchedGeometry({
-    required Alignment alignment,
-    required Size size,
-    required Widget child,
-  }) {
+  Widget _buildWatchedGeometry({required Alignment alignment, required Size size, required Widget child}) {
     return TweenAnimationBuilder<double>(
       key: ValueKey<MorphBenchmarkScenario>(_scenario),
       duration: _transitionDuration,
@@ -1689,15 +1464,8 @@ class _MorphState extends State<MorphBenchmark>
       builder: (context, progress, child) {
         final pulse = math.sin(math.pi * progress);
         return Align(
-          alignment: Alignment(
-            alignment.x + pulse * 0.18,
-            alignment.y - pulse * 0.12,
-          ),
-          child: SizedBox(
-            width: size.width + pulse * 48,
-            height: size.height + pulse * 32,
-            child: child,
-          ),
+          alignment: Alignment(alignment.x + pulse * 0.18, alignment.y - pulse * 0.12),
+          child: SizedBox(width: size.width + pulse * 48, height: size.height + pulse * 32, child: child),
         );
       },
     );
@@ -1713,12 +1481,8 @@ class _MorphState extends State<MorphBenchmark>
       surfaceColor = const Color(0xFFFFF4E8);
       alignment = const Alignment(0.25, 0.2);
     }
-    final endpointMediaQuery =
-        MediaQueryData.fromView(
-          View.of(context),
-        ).copyWith(
-          textScaler: TextScaler.linear(_expanded ? 1.12 : 0.94),
-        );
+    final endpointMediaQuery = MediaQueryData.fromView(View.of(context))
+        .copyWith(textScaler: TextScaler.linear(_expanded ? 1.12 : 0.94));
     final AnimatedSwitcherTransitionBuilder? transition = fade
         ? (child, animation) {
             return FadeTransition(opacity: animation, child: child);
@@ -1728,9 +1492,7 @@ class _MorphState extends State<MorphBenchmark>
       animateChildChanges: true,
       target: _target(fade ? 'benchmark-raw-fade' : 'benchmark-raw-null'),
       duration: _transitionDuration,
-      flightConfig: .auto(
-        childTransition: transition,
-      ),
+      flightConfig: .auto(childTransition: transition),
       onStart: _handleFlightStarted,
       onEnd: _handleFlightEnded,
       child: Container(
@@ -1738,40 +1500,23 @@ class _MorphState extends State<MorphBenchmark>
         width: _expanded ? 344 : 292,
         height: _expanded ? 190 : 136,
         padding: EdgeInsets.all(_expanded ? 24 : 16),
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(_expanded ? 30 : 18),
-        ),
+        decoration: BoxDecoration(color: surfaceColor, borderRadius: BorderRadius.circular(_expanded ? 30 : 18)),
         child: Row(
           children: <Widget>[
-            Icon(
-              _expanded ? Icons.auto_awesome : Icons.info_outline,
-              size: _expanded ? 36 : 26,
-            ),
+            Icon(_expanded ? Icons.auto_awesome : Icons.info_outline, size: _expanded ? 36 : 26),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                ordinaryText,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
+            Expanded(child: Text(ordinaryText, maxLines: 3, overflow: TextOverflow.ellipsis)),
           ],
         ),
       ),
     );
     return MediaQuery(
       data: endpointMediaQuery,
-      child: Align(
-        alignment: alignment,
-        child: endpoint,
-      ),
+      child: Align(alignment: alignment, child: endpoint),
     );
   }
 
-  Widget _buildDescendantScenario(
-    MorphDescendantFlightBehavior behavior,
-  ) {
+  Widget _buildDescendantScenario(MorphDescendantFlightBehavior behavior) {
     return MorphBenchmarkWorkloads.descendant(
       target: _target('benchmark-${_scenario.id}'),
       expanded: _expanded,
@@ -1862,10 +1607,7 @@ class _MorphState extends State<MorphBenchmark>
           Text(
             _expanded ? 'Coluna no destino' : 'Coluna na origem',
             key: const ValueKey<String>('unmatched-column-title'),
-            style: TextStyle(
-              fontSize: _expanded ? 28 : 21,
-              fontWeight: FontWeight.w800,
-            ),
+            style: TextStyle(fontSize: _expanded ? 28 : 21, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 18),
           ordinaryChild,
@@ -1874,11 +1616,7 @@ class _MorphState extends State<MorphBenchmark>
     );
     return Align(
       alignment: alignment,
-      child: SizedBox(
-        width: _expanded ? 340 : 290,
-        height: _expanded ? 230 : 180,
-        child: endpoint,
-      ),
+      child: SizedBox(width: _expanded ? 340 : 290, height: _expanded ? 230 : 180, child: endpoint),
     );
   }
 
@@ -1910,26 +1648,15 @@ class _MorphState extends State<MorphBenchmark>
         width: _expanded ? 350 : 300,
         height: _expanded ? 420 : 300,
         padding: EdgeInsets.all(_expanded ? 28 : 18),
-        decoration: BoxDecoration(
-          color: surfaceColor,
-          borderRadius: BorderRadius.circular(_expanded ? 36 : 22),
-        ),
+        decoration: BoxDecoration(color: surfaceColor, borderRadius: BorderRadius.circular(_expanded ? 36 : 22)),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            _buildNestedText(0),
-            _buildNestedText(1),
-            _buildNestedText(2),
-            _buildNestedText(3),
-          ],
+          children: <Widget>[_buildNestedText(0), _buildNestedText(1), _buildNestedText(2), _buildNestedText(3)],
         ),
       ),
     );
-    return Align(
-      alignment: alignment,
-      child: endpoint,
-    );
+    return Align(alignment: alignment, child: endpoint);
   }
 
   Widget _buildNestedWatchHoldScenario() {
@@ -1952,17 +1679,12 @@ class _MorphState extends State<MorphBenchmark>
       child: Text(
         key: _endpointKey('nested-text-$index'),
         text,
-        style: TextStyle(
-          fontSize: _expanded ? 24 : 18,
-          fontWeight: FontWeight.w700,
-        ),
+        style: TextStyle(fontSize: _expanded ? 24 : 18, fontWeight: FontWeight.w700),
       ),
     );
   }
 
-  Widget _buildDecoratedBoxScenario({
-    required DecorationPosition position,
-  }) {
+  Widget _buildDecoratedBoxScenario({required DecorationPosition position}) {
     var alignment = const Alignment(-0.2, -0.65);
     if (_expanded) alignment = const Alignment(0.2, 0.2);
     var endpointId = 'decorated-background';
@@ -1991,13 +1713,7 @@ class _MorphState extends State<MorphBenchmark>
                 : const <Color>[Color(0xFFFFD6E8), Color(0xFFFFA8B8)],
           ),
           borderRadius: BorderRadius.circular(_expanded ? 38 : 18),
-          boxShadow: const <BoxShadow>[
-            BoxShadow(
-              color: Color(0x28000000),
-              blurRadius: 18,
-              offset: Offset(0, 9),
-            ),
-          ],
+          boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x28000000), blurRadius: 18, offset: Offset(0, 9))],
         ),
         child: Padding(
           padding: EdgeInsets.all(_expanded ? 28 : 18),
@@ -2016,11 +1732,7 @@ class _MorphState extends State<MorphBenchmark>
     );
     return Align(
       alignment: alignment,
-      child: SizedBox(
-        width: _expanded ? 340 : 280,
-        height: _expanded ? 220 : 140,
-        child: endpoint,
-      ),
+      child: SizedBox(width: _expanded ? 340 : 280, height: _expanded ? 220 : 140, child: endpoint),
     );
   }
 
@@ -2084,10 +1796,7 @@ class _MorphState extends State<MorphBenchmark>
               Text(
                 _expanded ? 'Montar dois armários' : 'Montar armários',
                 key: const ValueKey('title'),
-                style: TextStyle(
-                  fontSize: _expanded ? 30 : 22,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontSize: _expanded ? 30 : 22, fontWeight: FontWeight.w800),
               ),
               Text(
                 _expanded ? r'Pagamento de R$ 240' : r'R$ 240',
@@ -2137,13 +1846,7 @@ class _MorphState extends State<MorphBenchmark>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(_expanded ? 34 : 38),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x22000000),
-                blurRadius: 16,
-                offset: Offset(0, 8),
-              ),
-            ],
+            boxShadow: const [BoxShadow(color: Color(0x22000000), blurRadius: 16, offset: Offset(0, 8))],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2157,10 +1860,7 @@ class _MorphState extends State<MorphBenchmark>
               Text(
                 title,
                 key: const ValueKey('title'),
-                style: TextStyle(
-                  fontSize: _expanded ? 30 : 22,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontSize: _expanded ? 30 : 22, fontWeight: FontWeight.w800),
               ),
               const SizedBox(height: 8),
               Text(
@@ -2190,15 +1890,8 @@ class _MorphState extends State<MorphBenchmark>
     );
   }
 
-  Widget _buildForegroundScenario({
-    required bool live,
-    bool fallback = false,
-  }) {
-    final scenarioId = [
-      'foreground',
-      if (fallback) 'fallback',
-      if (live) 'live' else 'static',
-    ].join('-');
+  Widget _buildForegroundScenario({required bool live, bool fallback = false}) {
+    final scenarioId = ['foreground', if (fallback) 'fallback', if (live) 'live' else 'static'].join('-');
     var surfaceColor = const Color(0xFFFFFFFF);
     if (_expanded) surfaceColor = const Color(0xFFE8F1FF);
     final surface = Align(
@@ -2207,19 +1900,14 @@ class _MorphState extends State<MorphBenchmark>
         animateChildChanges: true,
         target: _target('benchmark-$scenarioId-surface'),
         duration: _transitionDuration,
-        flightConfig: .auto(
-          childTransition: fallback ? _buildForegroundFallbackTransition : null,
-        ),
+        flightConfig: .auto(childTransition: fallback ? _buildForegroundFallbackTransition : null),
         onStart: _handleFlightStarted,
         onEnd: _handleFlightEnded,
         child: Container(
           key: _endpointKey('$scenarioId-surface'),
           width: _expanded ? 340 : 300,
           height: _expanded ? 520 : 240,
-          decoration: BoxDecoration(
-            color: surfaceColor,
-            borderRadius: BorderRadius.circular(_expanded ? 34 : 24),
-          ),
+          decoration: BoxDecoration(color: surfaceColor, borderRadius: BorderRadius.circular(_expanded ? 34 : 24)),
           child: fallback ? const ColoredBox(color: Color(0x01000000)) : null,
         ),
       ),
@@ -2250,13 +1938,7 @@ class _MorphState extends State<MorphBenchmark>
             decoration: BoxDecoration(
               color: const Color(0xFFFFFFFF),
               borderRadius: BorderRadius.circular(24),
-              boxShadow: const <BoxShadow>[
-                BoxShadow(
-                  color: Color(0x33000000),
-                  blurRadius: 14,
-                  offset: Offset(0, 7),
-                ),
-              ],
+              boxShadow: const <BoxShadow>[BoxShadow(color: Color(0x33000000), blurRadius: 14, offset: Offset(0, 7))],
             ),
             child: _buildForegroundControl(),
           );
@@ -2267,10 +1949,7 @@ class _MorphState extends State<MorphBenchmark>
           left: 24,
           right: 24,
           bottom: 32,
-          child: MorphSibling(
-            target: _target('benchmark-$scenarioId-surface'),
-            child: foreground,
-          ),
+          child: MorphSibling(target: _target('benchmark-$scenarioId-surface'), child: foreground),
         ),
       ],
     );
@@ -2305,10 +1984,7 @@ class _MorphState extends State<MorphBenchmark>
           key: _endpointKey('${scenario.id}-surface'),
           width: _expanded ? 340 : 300,
           height: _expanded ? 520 : 240,
-          decoration: BoxDecoration(
-            color: surfaceColor,
-            borderRadius: BorderRadius.circular(_expanded ? 34 : 24),
-          ),
+          decoration: BoxDecoration(color: surfaceColor, borderRadius: BorderRadius.circular(_expanded ? 34 : 24)),
         ),
       ),
     );
@@ -2333,14 +2009,8 @@ class _MorphState extends State<MorphBenchmark>
     );
   }
 
-  Widget _buildForegroundFallbackTransition(
-    Widget child,
-    Animation<double> animation,
-  ) {
-    return FractionalTranslation(
-      translation: const Offset(0.12, 0),
-      child: child,
-    );
+  Widget _buildForegroundFallbackTransition(Widget child, Animation<double> animation) {
+    return FractionalTranslation(translation: const Offset(0.12, 0), child: child);
   }
 
   Widget _buildForegroundControl() {
@@ -2356,11 +2026,7 @@ class _MorphState extends State<MorphBenchmark>
               'Search for an address',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: Color(0xFF30343B),
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-              ),
+              style: TextStyle(color: Color(0xFF30343B), fontSize: 17, fontWeight: FontWeight.w600),
             ),
           ),
           SizedBox(width: 20),

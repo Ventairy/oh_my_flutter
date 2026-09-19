@@ -4,7 +4,7 @@ part of 'morph.dart';
 @immutable
 final class MorphEndpoint<T> {
   /// Creates a description of one end of a Morph transition.
-  const MorphEndpoint({
+  const new({
     required this.properties,
     required this.bounds,
     required this.localSize,

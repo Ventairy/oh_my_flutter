@@ -12,7 +12,7 @@ part '_snapshot_painter.dart';
 
 @internal
 final class RasterSnapshot {
-  RasterSnapshot({
+  new({
     required this.tiles,
     required this.size,
   }) {
@@ -21,7 +21,7 @@ final class RasterSnapshot {
     );
   }
 
-  factory RasterSnapshot.tiled({
+  factory tiled({
     required OffsetLayer layer,
     required Size size,
     required double pixelRatio,

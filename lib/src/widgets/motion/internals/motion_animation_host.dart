@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Owns the shared effect lifecycle without choosing a rendering strategy.
 class _MotionAnimationHost extends StatefulWidget {
-  const _MotionAnimationHost({
+  const new({
     required this.controller,
     required this.effects,
     required this.startup,

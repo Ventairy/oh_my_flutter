@@ -27,7 +27,7 @@ final class Oklch {
   /// Creates an opaque OKLCH color.
   ///
   /// Alpha is intentionally outside this value type's scope.
-  const Oklch(this.l, this.c, this.h);
+  const new(this.l, this.c, this.h);
 
   /// Lightness in the inclusive range `0–1`.
   final double l;

@@ -8,7 +8,7 @@ part of 'motion.dart';
 @immutable
 final class MotionEffectBounds {
   /// Creates bounds for an effect's translation and scale range.
-  const MotionEffectBounds({
+  const new({
     this.minimumOffset = Offset.zero,
     this.maximumOffset = Offset.zero,
     this.maximumScale = 1,

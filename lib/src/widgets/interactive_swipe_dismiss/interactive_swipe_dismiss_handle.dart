@@ -9,7 +9,7 @@ part of 'interactive_swipe_dismiss.dart';
 /// layout of [child].
 class InteractiveSwipeDismissHandle extends StatelessWidget {
   /// Creates a drag handle around [child].
-  const InteractiveSwipeDismissHandle({
+  const new({
     required this.child,
     this.hitTestBehavior = HitTestBehavior.translucent,
     super.key,

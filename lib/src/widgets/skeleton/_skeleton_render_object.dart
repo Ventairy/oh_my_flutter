@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _RenderSkeleton extends RenderProxyBox {
-  _RenderSkeleton({
+  new({
     required this._enabled,
     required this._animate,
     required this._forceFrames,

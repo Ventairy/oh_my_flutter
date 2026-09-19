@@ -1,7 +1,7 @@
 part of 'skeleton_benchmark.dart';
 
 class _BenchmarkCard extends StatelessWidget {
-  const _BenchmarkCard({required this.index});
+  const new({required this.index});
 
   final int index;
 
@@ -12,18 +12,12 @@ class _BenchmarkCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                const CircleAvatar(
-                  radius: 30,
-                  child: Icon(Icons.work_outline),
-                ),
+                const CircleAvatar(radius: 30, child: Icon(Icons.work_outline)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -34,10 +28,7 @@ class _BenchmarkCard extends StatelessWidget {
                         'Loading opportunity number $index',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
                       ),
                       const SizedBox(height: 8),
                       const Text(
@@ -52,11 +43,7 @@ class _BenchmarkCard extends StatelessWidget {
                           SizedBox(width: 4),
                           Text('2.4 km away'),
                           Spacer(),
-                          SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CustomPaint(painter: _PaintProbePainter()),
-                          ),
+                          SizedBox(width: 20, height: 20, child: CustomPaint(painter: _PaintProbePainter())),
                         ],
                       ),
                     ],

@@ -5,9 +5,5 @@ final class _InteractiveSwipeDismissBenchmarkProbeCounters {
   static int layouts = 0;
   static int paints = 0;
 
-  static ({int builds, int layouts, int paints}) get snapshot => (
-    builds: builds,
-    layouts: layouts,
-    paints: paints,
-  );
+  static ({int builds, int layouts, int paints}) get snapshot => (builds: builds, layouts: layouts, paints: paints);
 }

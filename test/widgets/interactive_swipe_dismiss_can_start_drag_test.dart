@@ -237,7 +237,7 @@ void main() {
 }
 
 class _GuardTestApp extends StatelessWidget {
-  const _GuardTestApp({
+  const new({
     this.canStartDrag,
     this.handle = false,
     this.freeDrag = false,

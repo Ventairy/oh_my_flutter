@@ -3,7 +3,7 @@ part of 'morph.dart';
 /// Defines a column-specific Morph transition.
 final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnProperties> {
   /// Creates a transition for a vertical column and its children.
-  const MorphColumnFlightDelegate({
+  const new({
     this.switchThreshold = 0.5,
     this.switchTransition,
   }) : assert(

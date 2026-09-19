@@ -1,7 +1,7 @@
 /// Describes display corner radii in current-orientation physical pixels.
 final class DeviceDisplayPlatformCornerRadii {
   /// Creates physical-pixel radii for every display corner.
-  const DeviceDisplayPlatformCornerRadii({
+  const new({
     required this.topLeft,
     required this.topRight,
     required this.bottomRight,

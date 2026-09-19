@@ -23,7 +23,7 @@ import 'device_location_platform.dart';
 /// for platform setup and failure handling.
 interface class DeviceLocation {
   /// Creates a utility for managing the device's foreground location access.
-  const DeviceLocation();
+  const new();
 
   static DeviceLocationPlatform? _permissionPlatform;
   static Future<DeviceLocationPermissionStatus>? _pendingPermission;

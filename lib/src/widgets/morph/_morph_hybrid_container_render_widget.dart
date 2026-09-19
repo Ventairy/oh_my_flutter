@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphHybridContainerRenderWidget extends SingleChildRenderObjectWidget {
-  const _MorphHybridContainerRenderWidget({
+  const new({
     required this.animation,
     required this.plan,
     required this.sourceBounds,

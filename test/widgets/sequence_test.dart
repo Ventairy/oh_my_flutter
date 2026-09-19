@@ -1052,7 +1052,7 @@ void main() {
 }
 
 class _LifecycleChild extends StatefulWidget {
-  const _LifecycleChild({
+  const new({
     required this.onInit,
     required this.onDispose,
     super.key,
@@ -1085,7 +1085,7 @@ class _LifecycleChildState extends State<_LifecycleChild> {
 }
 
 class _CounterChild extends StatefulWidget {
-  const _CounterChild({super.key});
+  const new({super.key});
 
   @override
   State<_CounterChild> createState() => _CounterChildState();

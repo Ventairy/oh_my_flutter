@@ -1176,7 +1176,7 @@ void main() {
 }
 
 class _ProbeMotionEffect extends MotionEffect {
-  const _ProbeMotionEffect({required super.duration}) : super(playback: MotionPlayback.loop);
+  const new({required super.duration}) : super(playback: MotionPlayback.loop);
 
   @override
   void apply(double progress, MotionEffectTransform transform) {
@@ -1185,7 +1185,7 @@ class _ProbeMotionEffect extends MotionEffect {
 }
 
 class _PeakCurve extends Curve {
-  const _PeakCurve();
+  const new();
 
   @override
   double transformInternal(double t) {

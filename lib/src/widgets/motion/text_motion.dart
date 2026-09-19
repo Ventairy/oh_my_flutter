@@ -32,7 +32,7 @@ part of 'motion.dart';
 /// for effects, staggering, callbacks, and text constraints.
 class TextMotion extends StatefulWidget {
   /// Creates text that applies one [effect] to each visible character.
-  const TextMotion({
+  const new({
     required this.effect,
     required this.child,
     this.controller,
@@ -48,7 +48,7 @@ class TextMotion extends StatefulWidget {
   /// callbacks. The first effect is applied first and each following effect
   /// composes around the result. The list must contain at least one effect and
   /// must not be mutated after being passed to this constructor.
-  const TextMotion.list({
+  const new list({
     required this.effects,
     required this.child,
     this.controller,

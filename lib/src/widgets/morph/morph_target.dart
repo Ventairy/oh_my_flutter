@@ -12,7 +12,7 @@ part of 'morph.dart';
 /// for setup and examples.
 final class MorphTarget {
   /// Creates the association for one appearance of the content matched by [tag].
-  MorphTarget({required this.tag});
+  new({required this.tag});
 
   /// Identifies shared content across different appearances.
   ///

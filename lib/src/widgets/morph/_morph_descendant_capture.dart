@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphDescendantCapture extends ChangeNotifier {
-  _MorphDescendantCapture() {
+  new() {
     _scheduleDisposal(afterFrame: false);
   }
 

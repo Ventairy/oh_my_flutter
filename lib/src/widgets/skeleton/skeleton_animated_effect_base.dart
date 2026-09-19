@@ -3,7 +3,7 @@ part of 'skeleton.dart';
 /// A skeleton effect that repeats over an animation interval.
 abstract class SkeletonAnimatedEffectBase extends SkeletonEffect {
   /// Creates an animated skeleton effect.
-  const SkeletonAnimatedEffectBase();
+  const new();
 
   /// The duration of one animation cycle.
   Duration get duration => const Duration(milliseconds: 1500);

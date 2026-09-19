@@ -19,7 +19,7 @@ part 'device_display_metrics_epoch.dart';
 /// for current display capabilities and their constraints.
 interface class DeviceDisplay {
   /// Creates a utility for working with device-display capabilities.
-  const DeviceDisplay();
+  const new();
 
   static const _maximumRequestCacheEntries = 8;
   static final Map<Object, Future<DeviceDisplayPlatformCornerRadii?>> _pendingRequests = {};

@@ -63,7 +63,7 @@ part 'skeleton_style.dart';
 /// for configuration examples and usage guidance.
 class Skeleton extends StatelessWidget {
   /// Creates a loading skeleton around [child].
-  const Skeleton({
+  const new({
     required this.child,
     super.key,
     this.enabled = true,

@@ -11,7 +11,7 @@ import 'package:flutter/widgets.dart';
 /// for explicit and temporary pause behavior.
 class PauseAnimations extends StatefulWidget {
   /// Creates a widget that pauses child animations while [paused] is true.
-  const PauseAnimations({
+  const new({
     required this.child,
     this.paused = true,
     super.key,
@@ -22,7 +22,7 @@ class PauseAnimations extends StatefulWidget {
   ///
   /// The duration must not be negative. [Duration.zero] leaves animations
   /// enabled. Changing the duration restarts the temporary pause.
-  const PauseAnimations.temporarily({
+  const new temporarily({
     required this.duration,
     required this.child,
     super.key,

@@ -5,7 +5,7 @@ class _RenderMarquee extends RenderBox
         ContainerRenderObjectMixin<RenderBox, _MarqueeParentData>,
         RenderBoxContainerDefaultsMixin<RenderBox, _MarqueeParentData>,
         DebugOverflowIndicatorMixin {
-  _RenderMarquee({
+  new({
     required this._animation,
     required this._direction,
     required this._spacing,

@@ -1389,7 +1389,7 @@ Rect _semanticsRect(WidgetTester tester, Finder finder) {
 }
 
 class _TestApp extends StatelessWidget {
-  const _TestApp({
+  const new({
     required this.onDismiss,
     this.direction = InteractiveSwipeDismissDirection.down,
     this.dragConfig = const InteractiveSwipeDismissDragConfig(),
@@ -1427,7 +1427,7 @@ class _TestApp extends StatelessWidget {
 }
 
 class _PaintProbePainter extends CustomPainter {
-  _PaintProbePainter({super.repaint});
+  new({super.repaint});
 
   int paintCount = 0;
 
@@ -1442,7 +1442,7 @@ class _PaintProbePainter extends CustomPainter {
 }
 
 class _TrackingScrollController extends ScrollController {
-  _TrackingScrollController({required super.initialScrollOffset});
+  new({required super.initialScrollOffset});
 
   late _TrackingScrollPosition trackingPosition;
 
@@ -1464,7 +1464,7 @@ class _TrackingScrollController extends ScrollController {
 }
 
 class _TrackingScrollPosition extends ScrollPositionWithSingleContext {
-  _TrackingScrollPosition({
+  new({
     required super.physics,
     required super.context,
     required super.initialPixels,
@@ -1483,7 +1483,7 @@ class _TrackingScrollPosition extends ScrollPositionWithSingleContext {
 }
 
 class _ReentrantHoldScrollController extends ScrollController {
-  _ReentrantHoldScrollController({required super.initialScrollOffset});
+  new({required super.initialScrollOffset});
 
   late _ReentrantHoldScrollPosition trackingPosition;
 
@@ -1505,7 +1505,7 @@ class _ReentrantHoldScrollController extends ScrollController {
 }
 
 class _ReentrantHoldScrollPosition extends ScrollPositionWithSingleContext {
-  _ReentrantHoldScrollPosition({
+  new({
     required super.physics,
     required super.context,
     required super.initialPixels,
@@ -1541,7 +1541,7 @@ class _ReentrantHoldScrollPosition extends ScrollPositionWithSingleContext {
 }
 
 class _SynchronousNotificationScrollHoldController implements ScrollHoldController {
-  _SynchronousNotificationScrollHoldController(this._onCancel);
+  new(this._onCancel);
 
   final VoidCallback _onCancel;
 

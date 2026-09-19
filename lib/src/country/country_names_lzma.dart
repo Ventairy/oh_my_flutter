@@ -7,7 +7,7 @@ import 'dart:typed_data';
 
 /// Decodes the bundled country-name data without a runtime codec dependency.
 final class CountryNamesLzma {
-  CountryNamesLzma._(this._input);
+  new _(this._input);
 
   static const _isMatch = 0;
   static const int _isRep = _isMatch + 192;

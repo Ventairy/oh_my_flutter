@@ -3,7 +3,7 @@ import 'dart:ui';
 /// Tracks whether an attributed benchmark window was interrupted.
 final class MorphBenchmarkInterruptionTracker {
   /// Creates a tracker with the binding's currently known lifecycle state.
-  MorphBenchmarkInterruptionTracker(this._lifecycleState);
+  new(this._lifecycleState);
 
   AppLifecycleState? _lifecycleState;
   ViewFocusState? _viewFocusState;
@@ -57,9 +57,7 @@ final class MorphBenchmarkInterruptionTracker {
     final previous = _lifecycleState;
     if (previous == state) return false;
     _lifecycleState = state;
-    _invalidate(
-      'app_lifecycle:${previous?.name ?? 'unknown'}->${state.name}',
-    );
+    _invalidate('app_lifecycle:${previous?.name ?? 'unknown'}->${state.name}');
     return true;
   }
 
@@ -71,9 +69,7 @@ final class MorphBenchmarkInterruptionTracker {
     final previous = _viewFocusState;
     if (previous == event.state) return false;
     _viewFocusState = event.state;
-    _invalidate(
-      'view_focus:${previous?.name ?? 'unknown'}->${event.state.name}',
-    );
+    _invalidate('view_focus:${previous?.name ?? 'unknown'}->${event.state.name}');
     return true;
   }
 

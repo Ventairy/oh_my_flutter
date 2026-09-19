@@ -25,8 +25,7 @@ import 'package:oh_my_flutter/src/exceptions/debouncer_canceled_exception.dart';
 /// for cancellation and lifecycle usage.
 final class Debouncer<T> {
   /// Creates a debouncer that waits for [delay] after the latest call.
-  Debouncer({required this.delay, this.switchLatest = true})
-    : assert(!delay.isNegative, 'The delay must not be negative.');
+  new({required this.delay, this.switchLatest = true}) : assert(!delay.isNegative, 'The delay must not be negative.');
 
   /// Time without another call required before the latest callback starts.
   final Duration delay;

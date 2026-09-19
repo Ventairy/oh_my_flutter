@@ -7,63 +7,43 @@ import '../../benchmark/morph/morph_benchmark_multi_foreground_workload.dart';
 
 void main() {
   group('MorphBenchmarkMultiForegroundWorkload', () {
-    testWidgets(
-      'when the default-size static workload builds, '
-      'it should create sixteen foregrounds',
-      (tester) async {
-        final morphObserver = MorphNavigatorObserver();
-        final target = MorphTarget(tag: 'benchmark');
-        final painter = MorphBenchmarkLiveCaretPainter(
-          const AlwaysStoppedAnimation<double>(0),
-        );
-        await tester.pumpWidget(
-          MaterialApp(
-            navigatorObservers: [morphObserver],
-            home: Scaffold(
-              body: MorphBenchmarkMultiForegroundWorkload(
-                target: target,
-                count: 16,
-                mixed: false,
-                livePainter: painter,
-              ),
-            ),
+    testWidgets('when the default-size static workload builds, '
+        'it should create sixteen foregrounds', (tester) async {
+      final morphObserver = MorphNavigatorObserver();
+      final target = MorphTarget(tag: 'benchmark');
+      final painter = MorphBenchmarkLiveCaretPainter(const AlwaysStoppedAnimation<double>(0));
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [morphObserver],
+          home: Scaffold(
+            body: MorphBenchmarkMultiForegroundWorkload(target: target, count: 16, mixed: false, livePainter: painter),
           ),
-        );
+        ),
+      );
 
-        expect(find.byType(MorphSibling), findsNWidgets(16));
-      },
-    );
+      expect(find.byType(MorphSibling), findsNWidgets(16));
+    });
 
-    testWidgets(
-      'when the mixed workload builds, '
-      'it should create one paint-only live control',
-      (tester) async {
-        final morphObserver = MorphNavigatorObserver();
-        final target = MorphTarget(tag: 'benchmark');
-        final painter = MorphBenchmarkLiveCaretPainter(
-          const AlwaysStoppedAnimation<double>(0),
-        );
-        await tester.pumpWidget(
-          MaterialApp(
-            navigatorObservers: [morphObserver],
-            home: Scaffold(
-              body: MorphBenchmarkMultiForegroundWorkload(
-                target: target,
-                count: 16,
-                mixed: true,
-                livePainter: painter,
-              ),
-            ),
+    testWidgets('when the mixed workload builds, '
+        'it should create one paint-only live control', (tester) async {
+      final morphObserver = MorphNavigatorObserver();
+      final target = MorphTarget(tag: 'benchmark');
+      final painter = MorphBenchmarkLiveCaretPainter(const AlwaysStoppedAnimation<double>(0));
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [morphObserver],
+          home: Scaffold(
+            body: MorphBenchmarkMultiForegroundWorkload(target: target, count: 16, mixed: true, livePainter: painter),
           ),
-        );
+        ),
+      );
 
-        final livePaint = find.byWidgetPredicate((widget) {
-          if (widget is! CustomPaint) return false;
-          return identical(widget.foregroundPainter, painter);
-        });
+      final livePaint = find.byWidgetPredicate((widget) {
+        if (widget is! CustomPaint) return false;
+        return identical(widget.foregroundPainter, painter);
+      });
 
-        expect(livePaint, findsOneWidget);
-      },
-    );
+      expect(livePaint, findsOneWidget);
+    });
   });
 }

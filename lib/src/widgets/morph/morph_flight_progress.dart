@@ -5,7 +5,7 @@ part of 'morph.dart';
 @immutable
 final class MorphFlightProgress {
   /// Creates the timing values used to interpolate a flight.
-  const MorphFlightProgress({
+  const new({
     required this.curvedProgress,
     required this.uncurvedProgress,
     required this.flightKind,

@@ -1,10 +1,7 @@
 part of 'interactive_swipe_dismiss_benchmark.dart';
 
 class _InteractiveSwipeDismissBenchmarkHeavyChild extends StatelessWidget {
-  const _InteractiveSwipeDismissBenchmarkHeavyChild({
-    required this.handleKey,
-    required this.scrollController,
-  });
+  const new({required this.handleKey, required this.scrollController});
 
   final GlobalKey handleKey;
   final ScrollController scrollController;
@@ -35,11 +32,7 @@ class _InteractiveSwipeDismissBenchmarkHeavyChild extends StatelessWidget {
                   SizedBox(height: 12),
                   Text(
                     'Interactive job header',
-                    style: TextStyle(
-                      color: Color(0xFF242321),
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(color: Color(0xFF242321), fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
@@ -56,15 +49,10 @@ class _InteractiveSwipeDismissBenchmarkHeavyChild extends StatelessWidget {
                 return DecoratedBox(
                   decoration: BoxDecoration(
                     color: Color.fromARGB(255, tone, tone - 2, tone - 7),
-                    border: const Border(
-                      bottom: BorderSide(color: Color(0x1F000000)),
-                    ),
+                    border: const Border(bottom: BorderSide(color: Color(0x1F000000))),
                   ),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     child: Row(
                       children: [
                         DecoratedBox(
@@ -75,9 +63,7 @@ class _InteractiveSwipeDismissBenchmarkHeavyChild extends StatelessWidget {
                               92 + (index % 3) * 16,
                               126 + (index % 5) * 12,
                             ),
-                            borderRadius: const BorderRadius.all(
-                              Radius.circular(18),
-                            ),
+                            borderRadius: const BorderRadius.all(Radius.circular(18)),
                           ),
                           child: const SizedBox.square(dimension: 56),
                         ),
@@ -91,10 +77,7 @@ class _InteractiveSwipeDismissBenchmarkHeavyChild extends StatelessWidget {
                                 'Static job detail ${index + 1}',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 7),
                               FractionallySizedBox(
@@ -104,9 +87,7 @@ class _InteractiveSwipeDismissBenchmarkHeavyChild extends StatelessWidget {
                                   height: 8,
                                   decoration: const BoxDecoration(
                                     color: Color(0x22000000),
-                                    borderRadius: BorderRadius.all(
-                                      Radius.circular(4),
-                                    ),
+                                    borderRadius: BorderRadius.all(Radius.circular(4)),
                                   ),
                                 ),
                               ),

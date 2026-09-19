@@ -1,7 +1,7 @@
 part of 'interactive_swipe_dismiss.dart';
 
 class _InteractiveSwipeDismissTranslation extends SingleChildRenderObjectWidget {
-  const _InteractiveSwipeDismissTranslation({
+  const new({
     required this.controller,
     required super.child,
   });

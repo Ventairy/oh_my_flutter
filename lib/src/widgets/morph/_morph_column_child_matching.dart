@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphColumnChildMatching {
-  _MorphColumnChildMatching({
+  new({
     required List<MorphChildProperties> source,
     required List<MorphChildProperties> destination,
   }) : _sharedChildCount = math.min(source.length, destination.length);

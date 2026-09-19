@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphHybridContainerFlight extends StatelessWidget {
-  const _MorphHybridContainerFlight({
+  const new({
     required this.animation,
     required this.plan,
     required this.transitionBuilder,

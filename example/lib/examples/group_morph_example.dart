@@ -7,7 +7,7 @@ part 'group_morph/_group_morph_delegate.dart';
 /// Moves a card and attached header together while its title has its own Morph.
 class GroupMorphExample extends StatefulWidget {
   /// Creates the grouped Morph example.
-  const GroupMorphExample({super.key});
+  const new({super.key});
 
   @override
   State<GroupMorphExample> createState() => _GroupMorphExampleState();

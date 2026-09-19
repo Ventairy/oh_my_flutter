@@ -2,7 +2,7 @@
 part of '../group_morph_example.dart';
 
 class _GroupMorphDelegate extends MorphFlightDelegate<Widget> {
-  const _GroupMorphDelegate(this.link);
+  const new(this.link);
   final GroupLink link;
 
   @override

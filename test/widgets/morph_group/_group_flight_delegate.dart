@@ -1,7 +1,7 @@
 part of '../morph_group_test.dart';
 
 class _GroupFlightDelegate extends MorphFlightDelegate<Widget> {
-  const _GroupFlightDelegate(this.link);
+  const new(this.link);
   final GroupLink link;
 
   @override

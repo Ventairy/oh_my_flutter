@@ -4,19 +4,12 @@ import 'dart:ui' as ui;
 /// Summarizes one attributed NativeSelectableText benchmark frame window.
 final class NativeSelectableTextBenchmarkFrameReport {
   /// Measures [frames] against the refresh-derived [frameBudgetMicros].
-  factory NativeSelectableTextBenchmarkFrameReport.fromFrames({
-    required List<ui.FrameTiming> frames,
-    required int frameBudgetMicros,
-  }) {
+  factory fromFrames({required List<ui.FrameTiming> frames, required int frameBudgetMicros}) {
     if (frames.isEmpty) {
       throw ArgumentError.value(frames, 'frames', 'must not be empty');
     }
     if (frameBudgetMicros < 1) {
-      throw ArgumentError.value(
-        frameBudgetMicros,
-        'frameBudgetMicros',
-        'must be positive',
-      );
+      throw ArgumentError.value(frameBudgetMicros, 'frameBudgetMicros', 'must be positive');
     }
 
     final buildMicros = <int>[];
@@ -57,10 +50,7 @@ final class NativeSelectableTextBenchmarkFrameReport {
       if (workMissed) {
         workOverBudget += 1;
         currentWorkMissStreak += 1;
-        longestWorkMissStreak = math.max(
-          longestWorkMissStreak,
-          currentWorkMissStreak,
-        );
+        longestWorkMissStreak = math.max(longestWorkMissStreak, currentWorkMissStreak);
       } else {
         currentWorkMissStreak = 0;
       }
@@ -69,10 +59,7 @@ final class NativeSelectableTextBenchmarkFrameReport {
       if (anyMissed) {
         anyOverBudget += 1;
         currentAnyMissStreak += 1;
-        longestAnyMissStreak = math.max(
-          longestAnyMissStreak,
-          currentAnyMissStreak,
-        );
+        longestAnyMissStreak = math.max(longestAnyMissStreak, currentAnyMissStreak);
       } else {
         currentAnyMissStreak = 0;
       }
@@ -102,7 +89,7 @@ final class NativeSelectableTextBenchmarkFrameReport {
     );
   }
 
-  const NativeSelectableTextBenchmarkFrameReport._({
+  const new _({
     required this.frames,
     required this.build,
     required this.raster,

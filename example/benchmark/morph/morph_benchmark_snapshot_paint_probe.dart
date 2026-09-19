@@ -10,16 +10,12 @@ final class MorphBenchmarkSnapshotPaintProbe extends CustomPainter {
   ///
   /// Set [capturesOnly] to exclude normal screen paints. Watched Morph
   /// snapshots are captured after the frame's normal paint phase.
-  factory MorphBenchmarkSnapshotPaintProbe({bool capturesOnly = false}) {
+  factory({bool capturesOnly = false}) {
     final generation = ValueNotifier<int>(0);
     return MorphBenchmarkSnapshotPaintProbe._(generation, capturesOnly);
   }
 
-  MorphBenchmarkSnapshotPaintProbe._(
-    ValueNotifier<int> generation,
-    this._capturesOnly,
-  ) : _generation = generation,
-      super(repaint: generation);
+  new _(ValueNotifier<int> generation, this._capturesOnly) : _generation = generation, super(repaint: generation);
 
   final ValueNotifier<int> _generation;
   final bool _capturesOnly;
@@ -49,12 +45,7 @@ final class MorphBenchmarkSnapshotPaintProbe extends CustomPainter {
   }
 
   /// Summarizes paints from [firstEvent] until [lastEvent] or the latest paint.
-  ({
-    List<int> capturedGenerations,
-    int capturePaints,
-    int finalCapturedGeneration,
-    int maxCapturePaintsPerFrame,
-  })
+  ({List<int> capturedGenerations, int capturePaints, int finalCapturedGeneration, int maxCapturePaintsPerFrame})
   measureSince(int firstEvent, {int? lastEvent}) {
     final end = lastEvent ?? _paintEvents.length;
     assert(
@@ -64,19 +55,13 @@ final class MorphBenchmarkSnapshotPaintProbe extends CustomPainter {
     final events = _paintEvents.sublist(firstEvent, end);
     final paintsPerFrame = <int, int>{};
     for (final event in events) {
-      paintsPerFrame.update(
-        event.$1,
-        (count) => count + 1,
-        ifAbsent: () => 1,
-      );
+      paintsPerFrame.update(event.$1, (count) => count + 1, ifAbsent: () => 1);
     }
     var maxPaintsPerFrame = 0;
     for (final paints in paintsPerFrame.values) {
       maxPaintsPerFrame = math.max(maxPaintsPerFrame, paints);
     }
-    final capturedGenerations = <int>[
-      for (final event in events) event.$2,
-    ];
+    final capturedGenerations = <int>[for (final event in events) event.$2];
     return (
       capturedGenerations: capturedGenerations,
       capturePaints: events.length,
@@ -94,12 +79,7 @@ final class MorphBenchmarkSnapshotPaintProbe extends CustomPainter {
       _paintEvents.add((frameMicros, requestedGeneration));
     }
     canvas.drawRect(
-      Rect.fromLTWH(
-        0,
-        0,
-        math.min(size.width, 4),
-        math.min(size.height, 4),
-      ),
+      Rect.fromLTWH(0, 0, math.min(size.width, 4), math.min(size.height, 4)),
       Paint()..color = Color(0xFF000000 | requestedGeneration),
     );
   }

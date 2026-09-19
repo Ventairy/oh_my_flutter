@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphHybridColumnFlightPlan extends ChangeNotifier {
-  _MorphHybridColumnFlightPlan._({
+  new _({
     required this.children,
     required this.rawSlots,
   }) : rawSlotCount = rawSlots.length,

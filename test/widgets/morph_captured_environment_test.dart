@@ -154,7 +154,7 @@ Widget _rawChild(BuildContext context) {
 }
 
 final class _CountingInheritedTheme extends InheritedTheme {
-  const _CountingInheritedTheme({
+  const new({
     required this.onRead,
     required super.child,
   });
@@ -177,7 +177,7 @@ final class _CountingInheritedTheme extends InheritedTheme {
 }
 
 final class _CountingInheritedElement extends InheritedElement {
-  _CountingInheritedElement(super.widget);
+  new(super.widget);
 
   @override
   _CountingInheritedTheme get widget {

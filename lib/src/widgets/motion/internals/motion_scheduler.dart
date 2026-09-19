@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Shares one scheduler callback across every active motion.
 class _MotionScheduler {
-  _MotionScheduler._();
+  new _();
 
   static final _MotionScheduler instance = _MotionScheduler._();
 

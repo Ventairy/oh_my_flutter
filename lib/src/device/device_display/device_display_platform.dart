@@ -6,7 +6,7 @@ import 'device_display_unsupported.dart' if (dart.library.io) 'device_display_io
 /// Applications use `DeviceDisplay` rather than this platform boundary.
 abstract class DeviceDisplayPlatform {
   /// Creates a device-display platform implementation.
-  const DeviceDisplayPlatform();
+  const new();
 
   /// The platform implementation used for device-display requests.
   ///

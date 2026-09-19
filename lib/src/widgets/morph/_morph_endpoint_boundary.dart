@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphEndpointBoundary extends SingleChildRenderObjectWidget {
-  const _MorphEndpointBoundary({
+  const new({
     required this.visibility,
     required this.onRenderObjectReady,
     required this.onPaint,

@@ -20,11 +20,7 @@ enum NativeSelectableTextBenchmarkScenario {
       'scroll' => scroll,
       'selection' => selection,
       'menu_idle' => menuIdle,
-      _ => throw ArgumentError.value(
-        value,
-        'scenario',
-        'must be scroll, selection, or menu_idle',
-      ),
+      _ => throw ArgumentError.value(value, 'scenario', 'must be scroll, selection, or menu_idle'),
     };
   }
 

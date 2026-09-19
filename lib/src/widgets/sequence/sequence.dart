@@ -36,7 +36,7 @@ part 'sequence_types.dart';
 /// for navigation, transitions, and child lifecycle behavior.
 class Sequence extends StatefulWidget {
   /// Creates a widget that displays one child from [children] at a time.
-  const Sequence({
+  const new({
     required this.children,
     this.nextTransition,
     this.previousTransition,

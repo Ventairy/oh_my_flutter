@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphDescendantFlightScope extends InheritedWidget {
-  const _MorphDescendantFlightScope({
+  const new({
     required this.flightScope,
     required this.resolver,
     required super.child,

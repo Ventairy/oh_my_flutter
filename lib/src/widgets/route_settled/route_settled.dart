@@ -39,7 +39,7 @@ import 'package:oh_my_flutter/src/widgets/controlled_visibility/controlled_visib
 /// for navigation lifecycle and transition behavior.
 class RouteSettled extends StatefulWidget {
   /// Creates a route-aware visibility wrapper around [child].
-  const RouteSettled({
+  const new({
     required this.child,
     this.showTransition,
     this.hideTransition,

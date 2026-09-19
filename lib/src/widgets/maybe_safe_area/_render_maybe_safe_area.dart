@@ -1,7 +1,7 @@
 part of 'maybe_safe_area.dart';
 
 class _RenderMaybeSafeArea extends RenderProxyBox {
-  _RenderMaybeSafeArea({
+  new({
     required MaybeSafeAreaBehavior initialBehavior,
     required MaybeSafeAreaHandle? initialHandle,
     required double initialDevicePixelRatio,

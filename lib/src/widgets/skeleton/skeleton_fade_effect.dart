@@ -4,7 +4,7 @@ part of 'skeleton.dart';
 @immutable
 final class SkeletonFadeEffect extends SkeletonAnimatedEffectBase {
   /// Creates a repeating fade effect.
-  const SkeletonFadeEffect({
+  const new({
     this.duration = const Duration(milliseconds: 1000),
     this.opacity = const (start: 0.4, end: 1),
   });

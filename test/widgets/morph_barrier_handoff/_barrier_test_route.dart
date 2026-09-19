@@ -1,7 +1,7 @@
 part of '../morph_barrier_handoff_test.dart';
 
 final class _BarrierTestRoute extends PageRouteBuilder<void> {
-  _BarrierTestRoute({required Widget child})
+  new({required Widget child})
     : super(
         opaque: false,
         barrierColor: Colors.white54,

@@ -4,7 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'tag_status_route.dart';
 
 class TagStatusScene {
-  TagStatusScene({this.matched = true, this.reducedMotion = false});
+  new({this.matched = true, this.reducedMotion = false});
 
   final bool matched;
   final bool reducedMotion;

@@ -9,11 +9,11 @@ import 'country_names_bundle.dart';
 
 /// Reads country names supplied by Windows, including older Windows releases.
 final class CountryNamesWindows {
-  CountryNamesWindows._(this._bindings);
+  new _(this._bindings);
 
   /// Uses controlled bindings to exercise native results and fallback behavior.
   @visibleForTesting
-  CountryNamesWindows.test({required CountryNamesWindowsBindings? bindings}) : this._(bindings);
+  new test({required CountryNamesWindowsBindings? bindings}) : this._(bindings);
 
   /// The country-name source for this Windows installation.
   static final instance = CountryNamesWindows._(_loadBindings());

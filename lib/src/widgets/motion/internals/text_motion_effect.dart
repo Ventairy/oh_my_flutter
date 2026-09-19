@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Adapts one effect lifecycle to the shared text timeline.
 class _TextMotionEffect extends MotionEffect {
-  _TextMotionEffect({
+  new({
     required this.effect,
     required this.stagger,
     required int characterCount,

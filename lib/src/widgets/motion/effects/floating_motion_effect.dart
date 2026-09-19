@@ -9,7 +9,7 @@ part of '../motion.dart';
 /// layout. Hit testing follows the translated child.
 class FloatingMotionEffect extends MotionEffect {
   /// Creates a balanced vertical floating effect.
-  const FloatingMotionEffect({
+  const new({
     this.distance = 8,
     super.delay = Duration.zero,
     super.duration = const Duration(milliseconds: 2400),

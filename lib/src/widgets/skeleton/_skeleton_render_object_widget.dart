@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonRenderObjectWidget extends SingleChildRenderObjectWidget {
-  const _SkeletonRenderObjectWidget({
+  const new({
     required this.enabled,
     required this.animate,
     required this.forceFrames,

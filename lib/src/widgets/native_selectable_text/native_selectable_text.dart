@@ -28,7 +28,7 @@ part '_native_selectable_text_menu_coordinator.dart';
 /// for platform behavior and usage guidance.
 class NativeSelectableText extends StatefulWidget {
   /// Creates selectable plain text with a native selection menu when available.
-  const NativeSelectableText(
+  const new(
     String this.data, {
     super.key,
     this.focusNode,
@@ -80,7 +80,7 @@ class NativeSelectableText extends StatefulWidget {
   /// Creates selectable rich text with a native selection menu when available.
   ///
   /// Every entry in [TextSpan.children] must also be a [TextSpan].
-  const NativeSelectableText.rich(
+  const new rich(
     TextSpan this.textSpan, {
     super.key,
     this.focusNode,

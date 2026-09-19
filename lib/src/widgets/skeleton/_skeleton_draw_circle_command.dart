@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonDrawCircleCommand implements _SkeletonBoneCommand {
-  const _SkeletonDrawCircleCommand(this.center, this.radius);
+  const new(this.center, this.radius);
 
   final Offset center;
   final double radius;

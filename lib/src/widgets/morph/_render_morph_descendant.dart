@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphDescendant extends RenderProxyBox {
-  _RenderMorphDescendant(this._onVisualChange);
+  new(this._onVisualChange);
 
   final void Function(_RenderMorphDescendant renderObject) _onVisualChange;
   int _snapshotCaptureDepth = 0;

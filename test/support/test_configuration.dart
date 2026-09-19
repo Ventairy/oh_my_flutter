@@ -5,7 +5,7 @@ import 'package:alchemist/alchemist.dart';
 
 /// Configures tests that run on Dart VM platforms.
 final class TestConfiguration {
-  const TestConfiguration._();
+  const new _();
 
   /// Runs [testMain] with the package's golden-test configuration.
   static Future<void> run(

@@ -7,7 +7,7 @@ part of '../motion.dart';
 /// follows the translated child.
 class MoveMotionEffect extends MotionEffect {
   /// Creates an effect that moves from [begin] to [end].
-  const MoveMotionEffect({
+  const new({
     required this.begin,
     required this.end,
     super.delay = Duration.zero,

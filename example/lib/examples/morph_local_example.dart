@@ -4,7 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Shows a mounted details surface returning to its card when removed.
 class MorphLocalExample extends StatefulWidget {
   /// Creates the local appearance example.
-  const MorphLocalExample({super.key});
+  const new({super.key});
 
   @override
   State<MorphLocalExample> createState() => _MorphLocalExampleState();
@@ -26,11 +26,7 @@ class _MorphLocalExampleState extends State<MorphLocalExample> {
           height: 280,
           child: Stack(
             children: [
-              Positioned(
-                top: 0,
-                left: 0,
-                child: _header(_card, 'Card header'),
-              ),
+              Positioned(top: 0, left: 0, child: _header(_card, 'Card header')),
               Positioned(
                 top: 36,
                 left: 0,
@@ -42,20 +38,13 @@ class _MorphLocalExampleState extends State<MorphLocalExample> {
                     width: 150,
                     height: 100,
                     padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8F1FF),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                    decoration: BoxDecoration(color: const Color(0xFFE8F1FF), borderRadius: BorderRadius.circular(16)),
                     child: const Text('A compact card'),
                   ),
                 ),
               ),
               if (_showDetails) ...[
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  child: _header(_details, 'Details header'),
-                ),
+                Positioned(top: 0, right: 0, child: _header(_details, 'Details header')),
                 Positioned(
                   top: 36,
                   right: 0,

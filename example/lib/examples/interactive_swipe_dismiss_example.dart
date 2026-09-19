@@ -4,17 +4,13 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Shows a route with surface and handle-driven interactive dismissal.
 class InteractiveSwipeDismissExample extends StatelessWidget {
   /// Creates the interactive swipe dismissal example.
-  const InteractiveSwipeDismissExample({super.key});
+  const new({super.key});
 
   @override
   Widget build(BuildContext context) {
     return FilledButton(
       onPressed: () {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => const _DismissibleExampleRoute(),
-          ),
-        );
+        Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const _DismissibleExampleRoute()));
       },
       child: const Text('Open dismissible route'),
     );
@@ -22,7 +18,7 @@ class InteractiveSwipeDismissExample extends StatelessWidget {
 }
 
 class _DismissibleExampleRoute extends StatelessWidget {
-  const _DismissibleExampleRoute();
+  const new();
 
   @override
   Widget build(BuildContext context) {
@@ -37,19 +33,12 @@ class _DismissibleExampleRoute extends StatelessWidget {
                 child: SizedBox(
                   height: 64,
                   child: Center(
-                    child: Text(
-                      'Drag anywhere in this header',
-                      style: Theme.of(context).textTheme.titleLarge,
-                    ),
+                    child: Text('Drag anywhere in this header', style: Theme.of(context).textTheme.titleLarge),
                   ),
                 ),
               ),
             ),
-            const Expanded(
-              child: Center(
-                child: Text('The surface and its header are interactive.'),
-              ),
-            ),
+            const Expanded(child: Center(child: Text('The surface and its header are interactive.'))),
           ],
         ),
       ),

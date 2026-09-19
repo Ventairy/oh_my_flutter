@@ -29,13 +29,13 @@ class PhoneNumber {
   ///
   /// Throws a [FormatException] when [value] cannot be resolved to a complete
   /// phone number with a country calling code and possible length.
-  factory PhoneNumber(String value) {
+  factory(String value) {
     return PhoneNumber._parse(value: value, launcher: launchUrl);
   }
 
-  PhoneNumber._({required this._parsed, required this._launcher});
+  new _({required this._parsed, required this._launcher});
 
-  factory PhoneNumber._parse({
+  factory _parse({
     required String value,
     required Future<bool> Function(Uri uri) launcher,
   }) {
@@ -63,7 +63,7 @@ class PhoneNumber {
   ///
   /// Throws a [FormatException] under the same conditions as [PhoneNumber].
   @visibleForTesting
-  factory PhoneNumber.test(
+  factory test(
     String value, {
     required Future<bool> Function(Uri uri) launcher,
   }) {

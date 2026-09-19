@@ -6,7 +6,7 @@ part of 'sequence.dart';
 /// throw a [StateError] before attachment and after detachment.
 class SequenceController extends ChangeNotifier {
   /// Creates a sequence controller whose initial [index] is `0`.
-  SequenceController();
+  new();
 
   Object? _owner;
   VoidCallback? _onNext;

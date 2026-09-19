@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphControllerLease {
-  _MorphControllerLease({
+  new({
     required TickerProvider vsync,
     required Duration duration,
     double initialValue = 0,

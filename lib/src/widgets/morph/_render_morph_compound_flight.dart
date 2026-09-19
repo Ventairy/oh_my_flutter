@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphCompoundFlight extends RenderBox {
-  _RenderMorphCompoundFlight(
+  new(
     this._animation,
     this._plan,
     this._sourceBounds,

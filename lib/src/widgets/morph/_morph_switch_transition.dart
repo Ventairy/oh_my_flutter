@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphSwitchTransition extends StatefulWidget {
-  const _MorphSwitchTransition({
+  const new({
     required this.progress,
     required this.transitionBuilder,
     required this.child,

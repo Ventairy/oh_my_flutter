@@ -1735,7 +1735,7 @@ void main() {
 }
 
 class _PaintCounter extends CustomPainter {
-  _PaintCounter({super.repaint});
+  new({super.repaint});
 
   int paintCount = 0;
 
@@ -1750,7 +1750,7 @@ class _PaintCounter extends CustomPainter {
 }
 
 class _PicturePainter extends CustomPainter {
-  const _PicturePainter(this.picture);
+  const new(this.picture);
 
   final ui.Picture picture;
 
@@ -1762,7 +1762,7 @@ class _PicturePainter extends CustomPainter {
 }
 
 class _MutableGeometryPainter extends CustomPainter {
-  _MutableGeometryPainter(this.geometry) : super(repaint: geometry);
+  new(this.geometry) : super(repaint: geometry);
 
   final ValueNotifier<({Color color, double inset})> geometry;
 
@@ -1788,7 +1788,7 @@ class _MutableGeometryPainter extends CustomPainter {
 }
 
 class _LayerPaintingLeaf extends LeafRenderObjectWidget {
-  const _LayerPaintingLeaf({required this.size, required this.color});
+  const new({required this.size, required this.color});
 
   final Size size;
   final Color color;
@@ -1800,7 +1800,7 @@ class _LayerPaintingLeaf extends LeafRenderObjectWidget {
 }
 
 class _SeveralLayerPaintingLeaf extends LeafRenderObjectWidget {
-  const _SeveralLayerPaintingLeaf({required this.size});
+  const new({required this.size});
 
   final Size size;
 
@@ -1811,7 +1811,7 @@ class _SeveralLayerPaintingLeaf extends LeafRenderObjectWidget {
 }
 
 class _RenderSeveralLayerPaintingLeaf extends RenderBox {
-  _RenderSeveralLayerPaintingLeaf({required this.preferredSize});
+  new({required this.preferredSize});
 
   final Size preferredSize;
 
@@ -1848,7 +1848,7 @@ class _RenderSeveralLayerPaintingLeaf extends RenderBox {
 }
 
 class _HalfOpacityStaticEffect extends SkeletonStaticEffectBase {
-  const _HalfOpacityStaticEffect();
+  const new();
 
   @override
   Paint buildPaint({
@@ -1861,7 +1861,7 @@ class _HalfOpacityStaticEffect extends SkeletonStaticEffectBase {
 }
 
 class _RenderLayerPaintingLeaf extends RenderBox {
-  _RenderLayerPaintingLeaf({required this.preferredSize, required this.color});
+  new({required this.preferredSize, required this.color});
 
   final LayerHandle<PictureLayer> _pictureLayer = LayerHandle<PictureLayer>();
 
@@ -1899,7 +1899,7 @@ class _RenderLayerPaintingLeaf extends RenderBox {
 }
 
 class _TickingChild extends StatefulWidget {
-  const _TickingChild({super.key});
+  const new({super.key});
 
   @override
   State<_TickingChild> createState() => _TickingChildState();
@@ -1935,7 +1935,7 @@ class _TickingChildState extends State<_TickingChild> with SingleTickerProviderS
 }
 
 class _TestClipper extends CustomClipper<Path> {
-  const _TestClipper();
+  const new();
 
   @override
   Path getClip(Size size) => Path()..addOval(Rect.fromLTWH(0, 0, size.width, size.height));

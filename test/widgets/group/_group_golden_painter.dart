@@ -1,7 +1,7 @@
 part of '../group_golden_test.dart';
 
 class _GroupGoldenPainter extends CustomPainter {
-  const _GroupGoldenPainter(this.snapshot);
+  const new(this.snapshot);
   final GroupSnapshot snapshot;
   @override
   void paint(Canvas canvas, Size size) => snapshot.paint(canvas, Offset.zero);

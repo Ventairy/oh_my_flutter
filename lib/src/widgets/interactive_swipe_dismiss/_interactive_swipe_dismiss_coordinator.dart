@@ -1,7 +1,7 @@
 part of 'interactive_swipe_dismiss.dart';
 
 class _InteractiveSwipeDismissCoordinator {
-  _InteractiveSwipeDismissCoordinator(this.state);
+  new(this.state);
 
   final _InteractiveSwipeDismissState state;
 

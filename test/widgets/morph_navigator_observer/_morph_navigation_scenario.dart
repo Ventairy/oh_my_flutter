@@ -1,7 +1,7 @@
 part of '../morph_navigator_observer_test.dart';
 
 final class _MorphNavigationScenario {
-  _MorphNavigationScenario({this.duration}) {
+  new({this.duration}) {
     for (final notifier in appearances.values) {
       addTearDown(notifier.dispose);
     }

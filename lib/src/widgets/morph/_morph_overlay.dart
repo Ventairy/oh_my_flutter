@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphOverlay extends StatefulWidget {
-  const _MorphOverlay(this.coordinator, this.entry);
+  const new(this.coordinator, this.entry);
 
   final _MorphCoordinator coordinator;
   final OverlayEntry entry;

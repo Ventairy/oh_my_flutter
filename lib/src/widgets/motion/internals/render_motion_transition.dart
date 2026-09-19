@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Paints one widget through a composed list of motion effects.
 class _RenderMotionTransition extends RenderProxyBox {
-  _RenderMotionTransition({required List<_MotionApplication> applications})
+  new({required List<_MotionApplication> applications})
     : _applications = applications,
       _renderEffects = applications.map(_MotionRenderEffect.forMotion).toList(growable: false) {
     _updateMotionState();

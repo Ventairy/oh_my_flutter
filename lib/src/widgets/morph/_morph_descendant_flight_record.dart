@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphDescendantFlightRecord {
-  _MorphDescendantFlightRecord({
+  new({
     required this.handle,
     required this.widget,
     required this.ancestors,

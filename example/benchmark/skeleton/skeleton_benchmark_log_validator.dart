@@ -3,7 +3,7 @@ import 'dart:convert';
 /// Validates the machine-readable records emitted by the Skeleton benchmark.
 final class SkeletonBenchmarkLogValidator {
   /// Creates a validator for one exact Skeleton benchmark workload.
-  SkeletonBenchmarkLogValidator({
+  new({
     required this.expectedRunId,
     required this.expectedRenderer,
     required this.expectedEffect,
@@ -17,39 +17,19 @@ final class SkeletonBenchmarkLogValidator {
     _requireNonPlaceholder(expectedRunId, 'expectedRunId');
     _requireNonPlaceholder(expectedRenderer, 'expectedRenderer');
     if (expectedEffect != 'fade' && expectedEffect != 'shimmer') {
-      throw ArgumentError.value(
-        expectedEffect,
-        'expectedEffect',
-        'must be fade or shimmer',
-      );
+      throw ArgumentError.value(expectedEffect, 'expectedEffect', 'must be fade or shimmer');
     }
     if (expectedTopology != 'single' && expectedTopology != 'many') {
-      throw ArgumentError.value(
-        expectedTopology,
-        'expectedTopology',
-        'must be single or many',
-      );
+      throw ArgumentError.value(expectedTopology, 'expectedTopology', 'must be single or many');
     }
     if (expectedCardCount < 1) {
-      throw ArgumentError.value(
-        expectedCardCount,
-        'expectedCardCount',
-        'must be at least one',
-      );
+      throw ArgumentError.value(expectedCardCount, 'expectedCardCount', 'must be at least one');
     }
     if (expectedWarmupFrames < 1) {
-      throw ArgumentError.value(
-        expectedWarmupFrames,
-        'expectedWarmupFrames',
-        'must be at least one',
-      );
+      throw ArgumentError.value(expectedWarmupFrames, 'expectedWarmupFrames', 'must be at least one');
     }
     if (expectedFramesPerTrial < 1) {
-      throw ArgumentError.value(
-        expectedFramesPerTrial,
-        'expectedFramesPerTrial',
-        'must be at least one',
-      );
+      throw ArgumentError.value(expectedFramesPerTrial, 'expectedFramesPerTrial', 'must be at least one');
     }
   }
 
@@ -57,9 +37,7 @@ final class SkeletonBenchmarkLogValidator {
   static const String _chunkMarker = 'SKELETON_BENCHMARK_CHUNK ';
   static const int _expectedSteadyTrials = 2;
   static const int _maximumTrialAttempts = 3;
-  static final RegExp _invalidAttemptPath = RegExp(
-    r'^steady\.trial_([12])\.invalid\.attempt_([1-3])$',
-  );
+  static final RegExp _invalidAttemptPath = RegExp(r'^steady\.trial_([12])\.invalid\.attempt_([1-3])$');
 
   /// Fresh identifier supplied to both the application and validator.
   final String expectedRunId;
@@ -89,9 +67,7 @@ final class SkeletonBenchmarkLogValidator {
   final bool requireEnforcedBudget;
 
   /// Parses and validates all Skeleton records found in [flutterLog].
-  ({String extractedJsonLines, bool passed, String summary}) validate(
-    String flutterLog,
-  ) {
+  ({String extractedJsonLines, bool passed, String summary}) validate(String flutterLog) {
     final issues = <String>[];
     final records = <Map<String, Object?>>[];
     final chunkCounts = <int, int>{};
@@ -117,20 +93,10 @@ final class SkeletonBenchmarkLogValidator {
       if (markerIndex < 0) continue;
       markedLineCount += 1;
       final payload = line.substring(markerIndex + _recordMarker.length).trim();
-      _decodeRecord(
-        payload: payload,
-        label: 'Record $markedLineCount',
-        records: records,
-        issues: issues,
-      );
+      _decodeRecord(payload: payload, label: 'Record $markedLineCount', records: records, issues: issues);
     }
 
-    _decodeChunks(
-      counts: chunkCounts,
-      payloads: chunkPayloads,
-      records: records,
-      issues: issues,
-    );
+    _decodeChunks(counts: chunkCounts, payloads: chunkPayloads, records: records, issues: issues);
     if (markedLineCount == 0) {
       issues.add('The log contains no SKELETON_BENCHMARK records.');
     }
@@ -185,11 +151,7 @@ final class SkeletonBenchmarkLogValidator {
           return path is String && _invalidAttemptPath.hasMatch(path);
         })
         .toList(growable: false);
-    _validateRetries(
-      steadyRecords: steadyRecords,
-      invalidAttemptRecords: invalidAttemptRecords,
-      issues: issues,
-    );
+    _validateRetries(steadyRecords: steadyRecords, invalidAttemptRecords: invalidAttemptRecords, issues: issues);
     _validateAcceptance(
       acceptance: acceptance,
       invalidAttemptRecords: invalidAttemptRecords,
@@ -206,11 +168,7 @@ final class SkeletonBenchmarkLogValidator {
       steadyRecords: steadyRecords,
       issues: issues,
     );
-    return (
-      extractedJsonLines: extracted.isEmpty ? '' : '$extracted\n',
-      passed: issues.isEmpty,
-      summary: summary,
-    );
+    return (extractedJsonLines: extracted.isEmpty ? '' : '$extracted\n', passed: issues.isEmpty, summary: summary);
   }
 
   void _collectChunk({
@@ -246,19 +204,14 @@ final class SkeletonBenchmarkLogValidator {
         return;
       }
       counts[record] = count;
-      final parts = payloads.putIfAbsent(
-        record,
-        () => List<String?>.filled(count, null),
-      );
+      final parts = payloads.putIfAbsent(record, () => List<String?>.filled(count, null));
       if (parts[index] != null) {
         issues.add('Chunked record $record repeats index $index.');
         return;
       }
       parts[index] = chunkPayload;
     } on FormatException catch (error) {
-      issues.add(
-        'Chunk $markedLineCount contains invalid JSON: ${error.message}.',
-      );
+      issues.add('Chunk $markedLineCount contains invalid JSON: ${error.message}.');
     }
   }
 
@@ -280,19 +233,10 @@ final class SkeletonBenchmarkLogValidator {
         continue;
       }
       try {
-        final payload = utf8.decode(
-          base64Decode(parts.cast<String>().join()),
-        );
-        _decodeRecord(
-          payload: payload,
-          label: 'Chunked record $record',
-          records: records,
-          issues: issues,
-        );
+        final payload = utf8.decode(base64Decode(parts.cast<String>().join()));
+        _decodeRecord(payload: payload, label: 'Chunked record $record', records: records, issues: issues);
       } on FormatException catch (error) {
-        issues.add(
-          'Chunked record $record has invalid payload: ${error.message}.',
-        );
+        issues.add('Chunked record $record has invalid payload: ${error.message}.');
       }
     }
   }
@@ -315,17 +259,8 @@ final class SkeletonBenchmarkLogValidator {
     }
   }
 
-  void _validateExactRecordSet(
-    List<Map<String, Object?>> records,
-    List<String> issues,
-  ) {
-    const fixedPaths = <String>{
-      'environment',
-      'steady.trial_1',
-      'steady.trial_2',
-      'acceptance',
-      'error',
-    };
+  void _validateExactRecordSet(List<Map<String, Object?>> records, List<String> issues) {
+    const fixedPaths = <String>{'environment', 'steady.trial_1', 'steady.trial_2', 'acceptance', 'error'};
     final pathCounts = <String, int>{};
     for (final record in records) {
       final path = record['path'];
@@ -348,10 +283,7 @@ final class SkeletonBenchmarkLogValidator {
     }
   }
 
-  void _validateRunIds(
-    List<Map<String, Object?>> records,
-    List<String> issues,
-  ) {
+  void _validateRunIds(List<Map<String, Object?>> records, List<String> issues) {
     for (final record in records) {
       if (record['run_id'] != expectedRunId) {
         issues.add(
@@ -362,15 +294,10 @@ final class SkeletonBenchmarkLogValidator {
     }
   }
 
-  void _validateEnvironment(
-    Map<String, Object?>? environment,
-    List<String> issues,
-  ) {
+  void _validateEnvironment(Map<String, Object?>? environment, List<String> issues) {
     if (environment == null) return;
     if (environment['mode'] != 'profile') {
-      issues.add(
-        'Environment mode must be profile, got ${environment['mode']}.',
-      );
+      issues.add('Environment mode must be profile, got ${environment['mode']}.');
     }
     _expectEqual(
       record: environment,
@@ -379,13 +306,7 @@ final class SkeletonBenchmarkLogValidator {
       label: 'Environment',
       issues: issues,
     );
-    _expectEqual(
-      record: environment,
-      field: 'effect',
-      expected: expectedEffect,
-      label: 'Environment',
-      issues: issues,
-    );
+    _expectEqual(record: environment, field: 'effect', expected: expectedEffect, label: 'Environment', issues: issues);
     _expectEqual(
       record: environment,
       field: 'topology',
@@ -442,24 +363,12 @@ final class SkeletonBenchmarkLogValidator {
         );
       }
     }
-    _validatePositiveSize(
-      environment['logical_size'],
-      'Environment logical_size',
-      issues,
-    );
-    _validatePositiveSize(
-      environment['physical_size'],
-      'Environment physical_size',
-      issues,
-    );
+    _validatePositiveSize(environment['logical_size'], 'Environment logical_size', issues);
+    _validatePositiveSize(environment['physical_size'], 'Environment physical_size', issues);
     final devicePixelRatio = environment['device_pixel_ratio'];
-    final devicePixelRatioIsValid = _isPositiveFiniteNumber(
-      devicePixelRatio,
-    );
+    final devicePixelRatioIsValid = _isPositiveFiniteNumber(devicePixelRatio);
     if (!devicePixelRatioIsValid) {
-      issues.add(
-        'Environment device_pixel_ratio must be finite and positive.',
-      );
+      issues.add('Environment device_pixel_ratio must be finite and positive.');
     }
     if (environment['animations_disabled'] != false) {
       issues.add(
@@ -469,11 +378,7 @@ final class SkeletonBenchmarkLogValidator {
     }
   }
 
-  void _validatePositiveSize(
-    Object? value,
-    String label,
-    List<String> issues,
-  ) {
+  void _validatePositiveSize(Object? value, String label, List<String> issues) {
     if (value is! Map<String, Object?>) {
       issues.add('$label must be a JSON object.');
       return;
@@ -491,10 +396,7 @@ final class SkeletonBenchmarkLogValidator {
     return value.isFinite && value > 0;
   }
 
-  void _validateSteadyGate(
-    Map<String, Object?> record,
-    List<String> issues,
-  ) {
+  void _validateSteadyGate(Map<String, Object?> record, List<String> issues) {
     final trial = record['trial'];
     final path = record['path'];
     if (trial is! int || trial < 1 || trial > _expectedSteadyTrials) {
@@ -540,30 +442,16 @@ final class SkeletonBenchmarkLogValidator {
       issues.add('Steady record $path has invalid frame_budget_us $budget.');
       return;
     }
-    final buildP99 = _validateStatistics(
-      record['build'],
-      '$path build',
-      issues,
-    );
-    final rasterP99 = _validateStatistics(
-      record['raster'],
-      '$path raster',
-      issues,
-    );
+    final buildP99 = _validateStatistics(record['build'], '$path build', issues);
+    final rasterP99 = _validateStatistics(record['raster'], '$path raster', issues);
     _validateStatistics(record['total_span'], '$path total_span', issues);
-    _validateStatistics(
-      record['vsync_overhead'],
-      '$path vsync_overhead',
-      issues,
-    );
+    _validateStatistics(record['vsync_overhead'], '$path vsync_overhead', issues);
     final hasStatistics = buildP99 != null && rasterP99 != null;
     final buildPasses = buildP99 != null && buildP99 <= budget;
     final rasterPasses = rasterP99 != null && rasterP99 <= budget;
     final computedBudgetPass = hasStatistics && buildPasses && rasterPasses;
     if (record['work_p99_within_budget'] != computedBudgetPass) {
-      issues.add(
-        'Steady record $path has inconsistent work_p99_within_budget.',
-      );
+      issues.add('Steady record $path has inconsistent work_p99_within_budget.');
     }
     if (requireBudgetPass && !computedBudgetPass) {
       issues.add('Steady record $path did not pass its build/raster p99 gate.');
@@ -608,30 +496,18 @@ final class SkeletonBenchmarkLogValidator {
     ]) {
       final value = record[field];
       if (value is int && value > expectedFramesPerTrial) {
-        issues.add(
-          'Steady record $path has $field=$value above its frame count.',
-        );
+        issues.add('Steady record $path has $field=$value above its frame count.');
       }
     }
   }
 
-  num? _validateStatistics(
-    Object? value,
-    String label,
-    List<String> issues,
-  ) {
+  num? _validateStatistics(Object? value, String label, List<String> issues) {
     if (value is! Map<String, Object?>) {
       issues.add('$label statistics must be a JSON object.');
       return null;
     }
     final fields = <num>[];
-    for (final field in const <String>[
-      'p50_us',
-      'p90_us',
-      'p99_us',
-      'max_us',
-      'mean_us',
-    ]) {
+    for (final field in const <String>['p50_us', 'p90_us', 'p99_us', 'max_us', 'mean_us']) {
       final statistic = value[field];
       if (statistic is! num || !statistic.isFinite || statistic < 0) {
         issues.add('$label has invalid $field $statistic.');
@@ -822,10 +698,7 @@ final class SkeletonBenchmarkLogValidator {
     return summary.toString();
   }
 
-  List<Map<String, Object?>> _recordsAtPath(
-    List<Map<String, Object?>> records,
-    String path,
-  ) {
+  List<Map<String, Object?>> _recordsAtPath(List<Map<String, Object?>> records, String path) {
     final matches = <Map<String, Object?>>[];
     for (final record in records) {
       if (record['path'] == path) matches.add(record);
@@ -833,9 +706,7 @@ final class SkeletonBenchmarkLogValidator {
     return List<Map<String, Object?>>.unmodifiable(matches);
   }
 
-  Map<String, Object?>? _singleRecord(
-    List<Map<String, Object?>> records,
-  ) {
+  Map<String, Object?>? _singleRecord(List<Map<String, Object?>> records) {
     if (records.length != 1) return null;
     return records.single;
   }
@@ -860,9 +731,7 @@ final class SkeletonBenchmarkLogValidator {
     required List<String> issues,
   }) {
     if (record[field] != expected) {
-      issues.add(
-        '$label $field must be $expected; got ${record[field]}.',
-      );
+      issues.add('$label $field must be $expected; got ${record[field]}.');
     }
   }
 

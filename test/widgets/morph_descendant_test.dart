@@ -8,7 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 class _DeepMorphDescendant extends StatelessWidget {
-  const _DeepMorphDescendant({
+  const new({
     required this.scrollController,
     required this.flightBehavior,
   });
@@ -41,7 +41,7 @@ class _DeepMorphDescendant extends StatelessWidget {
 }
 
 class _MorphDescendantRouteTestApp extends StatefulWidget {
-  const _MorphDescendantRouteTestApp({
+  const new({
     required this.scrollController,
     this.flightBehavior = MorphDescendantFlightBehavior.snapshot,
   });
@@ -118,7 +118,7 @@ class _MorphDescendantRouteTestAppState extends State<_MorphDescendantRouteTestA
 }
 
 class _SnapshotTestPainter extends CustomPainter {
-  const _SnapshotTestPainter({
+  const new({
     required this.color,
     required this.throwsOnPaint,
   });
@@ -141,7 +141,7 @@ class _SnapshotTestPainter extends CustomPainter {
 }
 
 class _CountingSnapshotPainter extends CustomPainter {
-  const _CountingSnapshotPainter({
+  const new({
     required this.color,
     required this.revision,
     required this.onPaint,
@@ -164,7 +164,7 @@ class _CountingSnapshotPainter extends CustomPainter {
 }
 
 class _ListenableSnapshotPainter extends CustomPainter {
-  _ListenableSnapshotPainter(this.color) : super(repaint: color);
+  new(this.color) : super(repaint: color);
 
   final ValueListenable<Color> color;
 

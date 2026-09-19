@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonDrawOvalCommand implements _SkeletonBoneCommand {
-  const _SkeletonDrawOvalCommand(this.rect);
+  const new(this.rect);
 
   final Rect rect;
 

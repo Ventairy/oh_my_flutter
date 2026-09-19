@@ -30,7 +30,7 @@ class Whatsapp {
   ///
   /// Throws a [FormatException] when [identifier] is neither a valid username
   /// nor a complete international phone identifier.
-  factory Whatsapp(String identifier) {
+  factory(String identifier) {
     return Whatsapp._parse(
       identifier: identifier,
       launcher: launchUrl,
@@ -38,13 +38,13 @@ class Whatsapp {
     );
   }
 
-  Whatsapp._({
+  new _({
     required this._identifier,
     required this._launcher,
     required this._isWeb,
   });
 
-  factory Whatsapp._parse({
+  factory _parse({
     required String identifier,
     required Future<bool> Function(Uri uri) launcher,
     required bool isWeb,
@@ -78,7 +78,7 @@ class Whatsapp {
     }
   }
 
-  factory Whatsapp._fromUsername({
+  factory _fromUsername({
     required String username,
     required String source,
     required Future<bool> Function(Uri uri) launcher,
@@ -108,7 +108,7 @@ class Whatsapp {
   ///
   /// Throws a [FormatException] under the same conditions as [Whatsapp].
   @visibleForTesting
-  factory Whatsapp.test(
+  factory test(
     String identifier, {
     required Future<bool> Function(Uri uri) launcher,
     bool isWeb = false,
@@ -178,7 +178,7 @@ class Whatsapp {
       // The platform could not handle the native WhatsApp URI.
     }
 
-    return _launcher(_buildWebUri(message: message));
+    return await _launcher(_buildWebUri(message: message));
   }
 
   Uri _buildWebUri({String? message}) {

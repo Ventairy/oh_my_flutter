@@ -7,7 +7,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Measures and captures separately positioned pieces of a card.
 class GroupExample extends StatefulWidget {
   /// Creates the Group example.
-  const GroupExample({super.key});
+  const new({super.key});
 
   @override
   State<GroupExample> createState() => _GroupExampleState();

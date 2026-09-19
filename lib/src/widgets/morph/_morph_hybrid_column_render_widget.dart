@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphHybridColumnRenderWidget extends MultiChildRenderObjectWidget {
-  const _MorphHybridColumnRenderWidget({
+  const new({
     required this.animation,
     required this.plan,
     required this.rasterPool,

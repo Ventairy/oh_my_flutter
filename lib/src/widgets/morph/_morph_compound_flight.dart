@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphCompoundFlight extends LeafRenderObjectWidget {
-  const _MorphCompoundFlight({
+  const new({
     required this.animation,
     required this.plan,
     this.rasterPool,

@@ -7,7 +7,7 @@ import 'device_location_exception_reason.dart';
 /// an underlying exception.
 final class DeviceLocationException implements Exception {
   /// Creates a location exception for [reason].
-  const DeviceLocationException(this.reason, {this.cause});
+  const new(this.reason, {this.cause});
 
   /// The actionable reason the location operation could not be completed.
   final DeviceLocationExceptionReason reason;

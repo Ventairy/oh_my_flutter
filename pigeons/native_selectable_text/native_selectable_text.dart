@@ -25,7 +25,7 @@ import 'package:pigeon/pigeon.dart';
 /// Carries a Flutter logical-pixel rectangle to a native menu host.
 class NativeSelectableTextRectangleMessage {
   /// Creates a rectangle message.
-  NativeSelectableTextRectangleMessage({
+  new({
     required this.left,
     required this.top,
     required this.right,
@@ -48,7 +48,7 @@ class NativeSelectableTextRectangleMessage {
 /// Carries a Flutter logical-pixel point to a native menu host.
 class NativeSelectableTextPointMessage {
   /// Creates a point message.
-  NativeSelectableTextPointMessage({required this.dx, required this.dy});
+  new({required this.dx, required this.dy});
 
   /// The horizontal coordinate.
   final double dx;
@@ -60,7 +60,7 @@ class NativeSelectableTextPointMessage {
 /// Describes one labeled native selection-menu command.
 class NativeSelectableTextMenuItemMessage {
   /// Creates a menu item whose identifier routes its callback to Flutter.
-  NativeSelectableTextMenuItemMessage({
+  new({
     required this.identifier,
     required this.label,
   });
@@ -75,7 +75,7 @@ class NativeSelectableTextMenuItemMessage {
 /// Describes one native selection-menu presentation.
 class NativeSelectableTextMenuRequestMessage {
   /// Creates a presentation request.
-  NativeSelectableTextMenuRequestMessage({
+  new({
     required this.sessionIdentifier,
     required this.selectionRectangle,
     required this.primaryAnchor,

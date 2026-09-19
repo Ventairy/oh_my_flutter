@@ -77,7 +77,7 @@ enum AndroidDeviceLocationPermissionStatus {
 /// Carries Android coordinates across the package's platform channel.
 class AndroidDeviceCoordinates {
   /// Creates a coordinates message with horizontal accuracy.
-  AndroidDeviceCoordinates({
+  new({
     required this.latitude,
     required this.longitude,
     required this.accuracy,
@@ -96,7 +96,7 @@ class AndroidDeviceCoordinates {
 /// Carries an Android reverse-geocoding result across the platform channel.
 class AndroidDeviceLocationAddress {
   /// Creates a message with nullable device-supplied address components.
-  AndroidDeviceLocationAddress({
+  new({
     this.formattedAddress,
     this.name,
     this.street,

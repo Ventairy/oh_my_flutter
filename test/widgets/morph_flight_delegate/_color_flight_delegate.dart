@@ -1,7 +1,7 @@
 part of '../morph_flight_delegate_test.dart';
 
 final class _ColorFlightDelegate extends MorphFlightDelegate<Color> {
-  const _ColorFlightDelegate({this.onCapture, this.onBuild});
+  const new({this.onCapture, this.onBuild});
 
   final ValueChanged<Color>? onCapture;
   final void Function(MorphFlight<Color> flight)? onBuild;

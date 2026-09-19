@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphSiblingHandle {
-  _MorphSiblingHandle({
+  new({
     required this.owner,
     required this.visibility,
     required this.coordinator,

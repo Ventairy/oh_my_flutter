@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphColumnFlightPlan {
-  _MorphColumnFlightPlan({
+  new({
     required this.source,
     required this.destination,
     required this.transitionEnabled,

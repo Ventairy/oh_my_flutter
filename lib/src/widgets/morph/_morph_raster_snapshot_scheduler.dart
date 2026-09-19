@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphRasterSnapshotScheduler<K, V> {
-  _MorphRasterSnapshotScheduler(
+  new(
     this._disposeValue, {
     required int maximumPending,
   }) : assert(

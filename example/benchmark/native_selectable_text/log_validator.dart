@@ -6,7 +6,7 @@ import 'scenario.dart';
 /// Validates one captured NativeSelectableText benchmark process log.
 final class NativeSelectableTextBenchmarkLogValidator {
   /// Creates a validator for one exact benchmark configuration.
-  NativeSelectableTextBenchmarkLogValidator({
+  new({
     required this.expectedRunId,
     required this.expectedRenderer,
     required this.expectedScenario,
@@ -22,23 +22,10 @@ final class NativeSelectableTextBenchmarkLogValidator {
     _requireNonPlaceholder(expectedRenderer, 'expectedRenderer');
     NativeSelectableTextBenchmarkScenario.parse(expectedScenario);
     if (expectedWidget != 'native' && expectedWidget != 'selectable') {
-      throw ArgumentError.value(
-        expectedWidget,
-        'expectedWidget',
-        'must be native or selectable',
-      );
+      throw ArgumentError.value(expectedWidget, 'expectedWidget', 'must be native or selectable');
     }
-    if (!const <String>{
-      'short',
-      'paragraph',
-      'long',
-      'rich',
-    }.contains(expectedTextCase)) {
-      throw ArgumentError.value(
-        expectedTextCase,
-        'expectedTextCase',
-        'must be short, paragraph, long, or rich',
-      );
+    if (!const <String>{'short', 'paragraph', 'long', 'rich'}.contains(expectedTextCase)) {
+      throw ArgumentError.value(expectedTextCase, 'expectedTextCase', 'must be short, paragraph, long, or rich');
     }
     _requirePositive(expectedItemCount, 'expectedItemCount');
     _requirePositive(expectedWarmupFrames, 'expectedWarmupFrames');
@@ -78,9 +65,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
   final bool requireEnforcedBudget;
 
   /// Parses and validates all benchmark records in [flutterLog].
-  ({String extractedJsonLines, bool passed, String summary}) validate(
-    String flutterLog,
-  ) {
+  ({String extractedJsonLines, bool passed, String summary}) validate(String flutterLog) {
     final issues = <String>[];
     final records = <Map<String, Object?>>[];
     final chunkCounts = <int, int>{};
@@ -94,11 +79,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
       if (chunkIndex >= 0) {
         markedLineCount += 1;
         _collectChunk(
-          payload: line
-              .substring(
-                chunkIndex + chunkMarker.length,
-              )
-              .trim(),
+          payload: line.substring(chunkIndex + chunkMarker.length).trim(),
           lineNumber: markedLineCount,
           counts: chunkCounts,
           payloads: chunkPayloads,
@@ -111,27 +92,16 @@ final class NativeSelectableTextBenchmarkLogValidator {
       if (recordIndex < 0) continue;
       markedLineCount += 1;
       _decodeRecord(
-        payload: line
-            .substring(
-              recordIndex + recordMarker.length,
-            )
-            .trim(),
+        payload: line.substring(recordIndex + recordMarker.length).trim(),
         label: 'Record $markedLineCount',
         records: records,
         issues: issues,
       );
     }
 
-    _decodeChunks(
-      counts: chunkCounts,
-      payloads: chunkPayloads,
-      records: records,
-      issues: issues,
-    );
+    _decodeChunks(counts: chunkCounts, payloads: chunkPayloads, records: records, issues: issues);
     if (markedLineCount == 0) {
-      issues.add(
-        'The log contains no NATIVE_SELECTABLE_TEXT_BENCHMARK records.',
-      );
+      issues.add('The log contains no NATIVE_SELECTABLE_TEXT_BENCHMARK records.');
     }
 
     final environmentRecords = _recordsAtPath(records, 'environment');
@@ -167,9 +137,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
     for (var trial = 1; trial <= _expectedTrialCount; trial += 1) {
       final matches = _recordsAtPath(records, 'trial.$trial');
       if (matches.length != 1) {
-        issues.add(
-          'Expected exactly one trial.$trial record; found ${matches.length}.',
-        );
+        issues.add('Expected exactly one trial.$trial record; found ${matches.length}.');
         continue;
       }
       final record = matches.single;
@@ -232,10 +200,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
         return;
       }
       counts[record] = count;
-      final parts = payloads.putIfAbsent(
-        record,
-        () => List<String?>.filled(count, null),
-      );
+      final parts = payloads.putIfAbsent(record, () => List<String?>.filled(count, null));
       if (parts.length != count) {
         issues.add('Chunked record $record has inconsistent storage.');
         return;
@@ -268,12 +233,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
       try {
         final encoded = parts.whereType<String>().join();
         final payload = utf8.decode(base64Decode(encoded));
-        _decodeRecord(
-          payload: payload,
-          label: 'Chunked record $recordId',
-          records: records,
-          issues: issues,
-        );
+        _decodeRecord(payload: payload, label: 'Chunked record $recordId', records: records, issues: issues);
       } on FormatException catch (error) {
         issues.add(
           'Chunked record $recordId has invalid encoding: '
@@ -301,17 +261,8 @@ final class NativeSelectableTextBenchmarkLogValidator {
     }
   }
 
-  void _validateExactRecordSet(
-    List<Map<String, Object?>> records,
-    List<String> issues,
-  ) {
-    const expectedPaths = <String>{
-      'environment',
-      'trial.1',
-      'trial.2',
-      'acceptance',
-      'error',
-    };
+  void _validateExactRecordSet(List<Map<String, Object?>> records, List<String> issues) {
+    const expectedPaths = <String>{'environment', 'trial.1', 'trial.2', 'acceptance', 'error'};
     for (final record in records) {
       final path = record['path'];
       if (path is! String || path.isEmpty) {
@@ -322,10 +273,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
     }
   }
 
-  void _validateRunIds(
-    List<Map<String, Object?>> records,
-    List<String> issues,
-  ) {
+  void _validateRunIds(List<Map<String, Object?>> records, List<String> issues) {
     for (final record in records) {
       if (record['run_id'] != expectedRunId) {
         issues.add(
@@ -336,85 +284,24 @@ final class NativeSelectableTextBenchmarkLogValidator {
     }
   }
 
-  void _validateEnvironment(
-    Map<String, Object?>? record,
-    List<String> issues,
-  ) {
+  void _validateEnvironment(Map<String, Object?>? record, List<String> issues) {
     if (record == null) return;
     _expectEqual(record, 'mode', 'profile', 'Environment', issues);
-    _expectEqual(
-      record,
-      'renderer',
-      expectedRenderer,
-      'Environment',
-      issues,
-    );
-    _expectEqual(
-      record,
-      'scenario',
-      expectedScenario,
-      'Environment',
-      issues,
-    );
-    _expectEqual(
-      record,
-      'widget',
-      expectedWidget,
-      'Environment',
-      issues,
-    );
-    _expectEqual(
-      record,
-      'text_case',
-      expectedTextCase,
-      'Environment',
-      issues,
-    );
-    _expectEqual(
-      record,
-      'warmup_frames',
-      expectedWarmupFrames,
-      'Environment',
-      issues,
-    );
-    _expectEqual(
-      record,
-      'measured_frames',
-      expectedFramesPerTrial,
-      'Environment',
-      issues,
-    );
-    _expectEqual(
-      record,
-      'trials',
-      _expectedTrialCount,
-      'Environment',
-      issues,
-    );
-    _expectEqual(
-      record,
-      'configured_item_count',
-      expectedItemCount,
-      'Environment',
-      issues,
-    );
+    _expectEqual(record, 'renderer', expectedRenderer, 'Environment', issues);
+    _expectEqual(record, 'scenario', expectedScenario, 'Environment', issues);
+    _expectEqual(record, 'widget', expectedWidget, 'Environment', issues);
+    _expectEqual(record, 'text_case', expectedTextCase, 'Environment', issues);
+    _expectEqual(record, 'warmup_frames', expectedWarmupFrames, 'Environment', issues);
+    _expectEqual(record, 'measured_frames', expectedFramesPerTrial, 'Environment', issues);
+    _expectEqual(record, 'trials', _expectedTrialCount, 'Environment', issues);
+    _expectEqual(record, 'configured_item_count', expectedItemCount, 'Environment', issues);
     var activeWidgetCount = 1;
     if (expectedScenario == 'scroll') {
       activeWidgetCount = expectedItemCount;
     }
-    _expectEqual(
-      record,
-      'active_widget_count',
-      activeWidgetCount,
-      'Environment',
-      issues,
-    );
+    _expectEqual(record, 'active_widget_count', activeWidgetCount, 'Environment', issues);
 
-    for (final field in const <String>[
-      'platform',
-      'operating_system',
-      'renderer_source',
-    ]) {
+    for (final field in const <String>['platform', 'operating_system', 'renderer_source']) {
       final value = record[field];
       if (value is! String || value.trim().isEmpty) {
         issues.add('Environment $field must be a non-empty string.');
@@ -462,11 +349,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
     }
   }
 
-  bool _validateTrial(
-    Map<String, Object?> record,
-    int expectedTrial,
-    List<String> issues,
-  ) {
+  bool _validateTrial(Map<String, Object?> record, int expectedTrial, List<String> issues) {
     final label = 'Trial $expectedTrial';
     _expectEqual(record, 'trial', expectedTrial, label, issues);
     _expectEqual(record, 'valid', true, label, issues);
@@ -474,34 +357,16 @@ final class NativeSelectableTextBenchmarkLogValidator {
     _expectEqual(record, 'scenario', expectedScenario, label, issues);
     _expectEqual(record, 'widget', expectedWidget, label, issues);
     _expectEqual(record, 'text_case', expectedTextCase, label, issues);
-    _expectEqual(
-      record,
-      'frames',
-      expectedFramesPerTrial,
-      label,
-      issues,
-    );
+    _expectEqual(record, 'frames', expectedFramesPerTrial, label, issues);
     final budget = record['frame_budget_us'];
     if (budget is! int || budget < 1) {
       issues.add('$label frame_budget_us must be a positive integer.');
       return false;
     }
-    final buildP99 = _validateStatistics(
-      record['build'],
-      '$label build',
-      issues,
-    );
-    final rasterP99 = _validateStatistics(
-      record['raster'],
-      '$label raster',
-      issues,
-    );
+    final buildP99 = _validateStatistics(record['build'], '$label build', issues);
+    final rasterP99 = _validateStatistics(record['raster'], '$label raster', issues);
     _validateStatistics(record['total_span'], '$label total_span', issues);
-    _validateStatistics(
-      record['vsync_overhead'],
-      '$label vsync_overhead',
-      issues,
-    );
+    _validateStatistics(record['vsync_overhead'], '$label vsync_overhead', issues);
 
     for (final field in const <String>[
       'build_over_budget',
@@ -539,11 +404,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
       }
     }
     if (anyMisses is int &&
-        <Object?>[
-          workMisses,
-          totalMisses,
-          vsyncMisses,
-        ].whereType<int>().any((count) => count > anyMisses)) {
+        <Object?>[workMisses, totalMisses, vsyncMisses].whereType<int>().any((count) => count > anyMisses)) {
       issues.add('$label has inconsistent any-over-budget count.');
     }
     final longestWork = record['longest_work_miss_streak'];
@@ -564,23 +425,13 @@ final class NativeSelectableTextBenchmarkLogValidator {
     return computedPass;
   }
 
-  num? _validateStatistics(
-    Object? value,
-    String label,
-    List<String> issues,
-  ) {
+  num? _validateStatistics(Object? value, String label, List<String> issues) {
     if (value is! Map<String, Object?>) {
       issues.add('$label statistics must be a JSON object.');
       return null;
     }
     final statistics = <num>[];
-    for (final field in const <String>[
-      'p50_us',
-      'p90_us',
-      'p99_us',
-      'max_us',
-      'mean_us',
-    ]) {
+    for (final field in const <String>['p50_us', 'p90_us', 'p99_us', 'max_us', 'mean_us']) {
       final statistic = value[field];
       if (statistic is! num || !statistic.isFinite || statistic < 0) {
         issues.add('$label has invalid $field=$statistic.');
@@ -607,41 +458,11 @@ final class NativeSelectableTextBenchmarkLogValidator {
     required List<String> issues,
   }) {
     if (acceptance == null) return;
-    _expectEqual(
-      acceptance,
-      'scenario',
-      expectedScenario,
-      'Acceptance',
-      issues,
-    );
-    _expectEqual(
-      acceptance,
-      'widget',
-      expectedWidget,
-      'Acceptance',
-      issues,
-    );
-    _expectEqual(
-      acceptance,
-      'text_case',
-      expectedTextCase,
-      'Acceptance',
-      issues,
-    );
-    _expectEqual(
-      acceptance,
-      'trials',
-      _expectedTrialCount,
-      'Acceptance',
-      issues,
-    );
-    _expectEqual(
-      acceptance,
-      'frames_per_trial',
-      expectedFramesPerTrial,
-      'Acceptance',
-      issues,
-    );
+    _expectEqual(acceptance, 'scenario', expectedScenario, 'Acceptance', issues);
+    _expectEqual(acceptance, 'widget', expectedWidget, 'Acceptance', issues);
+    _expectEqual(acceptance, 'text_case', expectedTextCase, 'Acceptance', issues);
+    _expectEqual(acceptance, 'trials', _expectedTrialCount, 'Acceptance', issues);
+    _expectEqual(acceptance, 'frames_per_trial', expectedFramesPerTrial, 'Acceptance', issues);
 
     final expectedFailedPaths = <String>[
       for (var trial = 1; trial <= _expectedTrialCount; trial += 1)
@@ -682,11 +503,7 @@ final class NativeSelectableTextBenchmarkLogValidator {
     }
   }
 
-  void _validateSize(
-    Object? value,
-    String label,
-    List<String> issues,
-  ) {
+  void _validateSize(Object? value, String label, List<String> issues) {
     if (value is! Map<String, Object?>) {
       issues.add('Environment $label must be a JSON object.');
       return;
@@ -758,28 +575,15 @@ final class NativeSelectableTextBenchmarkLogValidator {
     return record['error'] ?? 'unknown error';
   }
 
-  List<Map<String, Object?>> _recordsAtPath(
-    List<Map<String, Object?>> records,
-    String path,
-  ) {
-    return List<Map<String, Object?>>.unmodifiable(
-      records.where((record) => record['path'] == path),
-    );
+  List<Map<String, Object?>> _recordsAtPath(List<Map<String, Object?>> records, String path) {
+    return List<Map<String, Object?>>.unmodifiable(records.where((record) => record['path'] == path));
   }
 
-  Map<String, Object?>? _singleRecord(
-    List<Map<String, Object?>> records,
-  ) {
+  Map<String, Object?>? _singleRecord(List<Map<String, Object?>> records) {
     return records.length == 1 ? records.single : null;
   }
 
-  void _expectEqual(
-    Map<String, Object?> record,
-    String field,
-    Object expected,
-    String label,
-    List<String> issues,
-  ) {
+  void _expectEqual(Map<String, Object?> record, String field, Object expected, String label, List<String> issues) {
     if (record[field] != expected) {
       issues.add('$label $field must be $expected; got ${record[field]}.');
     }

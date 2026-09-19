@@ -5,7 +5,7 @@ part of 'group.dart';
 /// Paint it repeatedly or export an image. It remains usable after the original
 /// members unmount. Call [dispose] when finished.
 final class GroupSnapshot {
-  GroupSnapshot._(this.bounds, this._snapshot, this._pixelRatio) {
+  new _(this.bounds, this._snapshot, this._pixelRatio) {
     _snapshot.retain();
   }
 

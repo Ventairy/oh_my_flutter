@@ -503,7 +503,7 @@ void main() {
 }
 
 final class _CornerRadiiTestFlutterView extends TestFlutterView {
-  _CornerRadiiTestFlutterView(
+  new(
     ui.FlutterView view, {
     required this.cornerRadii,
   }) : super(

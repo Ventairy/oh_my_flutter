@@ -23,7 +23,7 @@ final class _FakeDeviceDisplayPlatform extends DeviceDisplayPlatform {
       viewHeight,
     );
     final pending = completer;
-    if (pending != null) return pending.future;
+    if (pending != null) return await pending.future;
 
     final requestError = error;
     if (requestError != null) throw requestError;

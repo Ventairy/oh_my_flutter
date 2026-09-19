@@ -2,7 +2,7 @@ part of 'skeleton.dart';
 
 @immutable
 class _SkeletonBuiltInPaintKey {
-  const _SkeletonBuiltInPaintKey({
+  const new({
     required this.effect,
     required this.bounds,
     required this.color,

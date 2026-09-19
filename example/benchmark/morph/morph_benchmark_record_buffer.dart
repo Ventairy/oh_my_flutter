@@ -5,7 +5,7 @@ import 'dart:math' as math;
 final class MorphBenchmarkRecordBuffer {
   /// Creates a benchmark record buffer that writes complete log lines with
   /// the supplied emitter.
-  MorphBenchmarkRecordBuffer(this._emit);
+  new(this._emit);
 
   static const String _recordMarker = 'MORPH_BENCHMARK ';
   static const String _chunkMarker = 'MORPH_BENCHMARK_CHUNK ';
@@ -47,10 +47,7 @@ final class MorphBenchmarkRecordBuffer {
     final recordId = _nextChunkedRecordId++;
     for (var index = 0; index < chunkCount; index += 1) {
       final start = index * _maximumChunkPayloadLength;
-      final end = math.min(
-        start + _maximumChunkPayloadLength,
-        encodedPayload.length,
-      );
+      final end = math.min(start + _maximumChunkPayloadLength, encodedPayload.length);
       final chunk = <String, Object>{
         'record': recordId,
         'index': index,

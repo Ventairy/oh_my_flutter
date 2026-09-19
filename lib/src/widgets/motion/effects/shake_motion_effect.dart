@@ -9,7 +9,7 @@ part of '../motion.dart';
 /// the translated child.
 class ShakeMotionEffect extends MotionEffect {
   /// Creates an effect that shakes along [offset].
-  const ShakeMotionEffect({
+  const new({
     required this.offset,
     this.count = 3,
     this.damping = 1,

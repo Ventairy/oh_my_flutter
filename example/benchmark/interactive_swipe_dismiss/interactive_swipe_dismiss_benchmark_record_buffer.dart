@@ -4,7 +4,7 @@ import 'dart:math' as math;
 /// Buffers InteractiveSwipeDismiss benchmark records until timing finishes.
 final class InteractiveSwipeDismissBenchmarkRecordBuffer {
   /// Creates a record buffer that emits complete benchmark log lines.
-  InteractiveSwipeDismissBenchmarkRecordBuffer(this._emit);
+  new(this._emit);
 
   /// Prefix used for a complete JSON benchmark record.
   static const String recordMarker = 'INTERACTIVE_SWIPE_DISMISS_BENCHMARK ';
@@ -46,10 +46,7 @@ final class InteractiveSwipeDismissBenchmarkRecordBuffer {
     final recordId = _nextChunkedRecordId++;
     for (var index = 0; index < chunkCount; index += 1) {
       final start = index * _maximumChunkPayloadLength;
-      final end = math.min(
-        start + _maximumChunkPayloadLength,
-        encodedPayload.length,
-      );
+      final end = math.min(start + _maximumChunkPayloadLength, encodedPayload.length);
       final chunk = <String, Object>{
         'record': recordId,
         'index': index,

@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphHybridContainerFlightPlan implements _MorphHybridRawSlotPlan {
-  _MorphHybridContainerFlightPlan._({
+  new _({
     required MorphContainerProperties source,
     required MorphContainerProperties destination,
     required this._decorationPlan,

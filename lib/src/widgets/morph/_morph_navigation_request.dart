@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphNavigationRequest {
-  _MorphNavigationRequest({
+  new({
     required this.source,
     required this.destination,
     required this.kind,

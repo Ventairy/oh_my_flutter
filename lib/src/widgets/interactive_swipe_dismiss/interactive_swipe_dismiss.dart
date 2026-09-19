@@ -35,7 +35,7 @@ part 'interactive_swipe_dismiss_handle.dart';
 /// for usage examples.
 class InteractiveSwipeDismiss extends StatefulWidget {
   /// Creates a live drag-to-dismiss interaction around [child].
-  const InteractiveSwipeDismiss({
+  const new({
     required this.child,
     required this.onDismiss,
     this.canStartDrag,

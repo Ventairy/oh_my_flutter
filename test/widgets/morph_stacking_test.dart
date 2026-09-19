@@ -302,7 +302,7 @@ PageRoute<void> _route({
 }
 
 class _MorphLayerPage extends StatefulWidget {
-  const _MorphLayerPage({
+  const new({
     required this.lazyBackground,
     this.foregroundFirst = false,
     this.generation = 0,
@@ -370,7 +370,7 @@ class _MorphLayerPageState extends State<_MorphLayerPage> {
 }
 
 class _NestedMorphPage extends StatefulWidget {
-  const _NestedMorphPage({required this.lazyParent});
+  const new({required this.lazyParent});
 
   final bool lazyParent;
 
@@ -409,7 +409,7 @@ class _NestedMorphPageState extends State<_NestedMorphPage> {
 }
 
 class _ReorderedSameScreenPage extends StatefulWidget {
-  const _ReorderedSameScreenPage({
+  const new({
     required this.foregroundFirst,
     required this.generation,
   });
@@ -458,7 +458,7 @@ class _ReorderedSameScreenPageState extends State<_ReorderedSameScreenPage> {
 }
 
 class _BackgroundMorph extends StatefulWidget {
-  const _BackgroundMorph({required this.generation});
+  const new({required this.generation});
 
   final int generation;
 

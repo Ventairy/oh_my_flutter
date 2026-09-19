@@ -74,7 +74,7 @@ final class _PaintCounter {
 }
 
 final class _CountingPainter extends CustomPainter {
-  _CountingPainter(this.counter);
+  new(this.counter);
 
   final _PaintCounter counter;
 
@@ -89,7 +89,7 @@ final class _CountingPainter extends CustomPainter {
 }
 
 final class _AnimationColorPainter extends CustomPainter {
-  _AnimationColorPainter(this.animation) : super(repaint: animation);
+  new(this.animation) : super(repaint: animation);
 
   final Animation<double> animation;
 
@@ -106,14 +106,14 @@ final class _AnimationColorPainter extends CustomPainter {
 }
 
 final class _OvershootCurve extends Curve {
-  const _OvershootCurve();
+  const new();
 
   @override
   double transformInternal(double t) => t * 2;
 }
 
 class _RouteSiblingApp extends StatefulWidget {
-  const _RouteSiblingApp({
+  const new({
     this.onSourceAnimation,
     this.onDestinationAnimation,
     this.morphDuration,

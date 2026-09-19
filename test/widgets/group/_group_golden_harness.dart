@@ -1,7 +1,7 @@
 part of '../group_golden_test.dart';
 
 class _GroupGoldenHarness extends StatefulWidget {
-  const _GroupGoldenHarness({super.key});
+  const new({super.key});
   @override
   State<_GroupGoldenHarness> createState() => _GroupGoldenHarnessState();
 }

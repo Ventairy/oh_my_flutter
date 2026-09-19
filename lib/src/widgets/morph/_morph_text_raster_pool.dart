@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTextRasterPool {
-  _MorphTextRasterPool() {
+  new() {
     _scheduler = _MorphRasterSnapshotScheduler<_MorphTextRasterPoolKey, _MorphTextRasterPoolReservation>(
       _disposeScheduledReservation,
       maximumPending: _maximumPending,

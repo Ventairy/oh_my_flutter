@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonClipRRectCommand implements _SkeletonBoneCommand {
-  const _SkeletonClipRRectCommand({
+  const new({
     required this.rrect,
     required this.doAntiAlias,
   });

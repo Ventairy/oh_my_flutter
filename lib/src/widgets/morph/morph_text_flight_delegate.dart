@@ -3,7 +3,7 @@ part of 'morph.dart';
 /// Defines a text-specific Morph transition.
 final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextProperties> {
   /// Creates a transition for plain text.
-  const MorphTextFlightDelegate({
+  const new({
     this.switchThreshold = 0.5,
     this.switchTransition,
   }) : assert(

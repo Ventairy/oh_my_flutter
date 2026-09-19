@@ -1,7 +1,7 @@
 part of 'maybe_safe_area.dart';
 
 class _MaybeSafeAreaLayer extends ContainerLayer {
-  _MaybeSafeAreaLayer({required this.resolveOriginalTransform, required this.onTransform});
+  new({required this.resolveOriginalTransform, required this.onTransform});
 
   final ValueChanged<Matrix4> onTransform;
 

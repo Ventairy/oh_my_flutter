@@ -11,7 +11,7 @@ part of 'morph.dart';
 /// for a complete custom transition example.
 abstract class MorphFlightDelegate<T> {
   /// Creates a delegate for a custom Morph transition.
-  const MorphFlightDelegate();
+  const new();
 
   /// Returns the visual values for [endpoint].
   ///

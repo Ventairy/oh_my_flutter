@@ -1,7 +1,7 @@
 part of '../morph_flight_config_test.dart';
 
 class _MorphFlightConfigTestApp extends StatefulWidget {
-  const _MorphFlightConfigTestApp({
+  const new({
     this.configuration,
     this.curve = Curves.linear,
     this.snapshot = false,

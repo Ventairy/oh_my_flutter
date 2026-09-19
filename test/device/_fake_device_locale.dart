@@ -1,7 +1,7 @@
 part of 'device_test.dart';
 
 class _FakeDeviceLocale implements DeviceLocale {
-  const _FakeDeviceLocale();
+  const new();
 
   @override
   Future<Country?> getCountry() async => Country.brazil;

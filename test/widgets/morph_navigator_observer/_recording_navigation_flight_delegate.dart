@@ -1,7 +1,7 @@
 part of '../morph_navigator_observer_test.dart';
 
 final class _RecordingNavigationFlightDelegate extends MorphFlightDelegate<double> {
-  _RecordingNavigationFlightDelegate(this.flights);
+  new(this.flights);
 
   final List<MorphFlight<double>> flights;
 

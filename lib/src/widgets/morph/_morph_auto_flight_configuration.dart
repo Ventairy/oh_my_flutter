@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphAutoFlightConfiguration extends MorphFlightConfig {
-  const _MorphAutoFlightConfiguration({
+  const new({
     this.childSwitchAt = 0.5,
     this.childTransition,
   }) : assert(

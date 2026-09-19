@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListPosition extends ScrollPositionWithSingleContext {
-  _SnapListPosition({required super.physics, required super.context, required this.motion, super.oldPosition})
+  new({required super.physics, required super.context, required this.motion, super.oldPosition})
     : super(keepScrollOffset: false) {
     motion.scroll = this;
     addListener(motion.changed);

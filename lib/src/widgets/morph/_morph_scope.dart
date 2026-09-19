@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphScope extends InheritedWidget {
-  const _MorphScope({required this.enabled, required super.child});
+  const new({required this.enabled, required super.child});
 
   final bool enabled;
 

@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListTrailing extends SingleChildRenderObjectWidget {
-  const _SnapListTrailing({
+  const new({
     required this.axis,
     required this.extent,
     required this.onExtentChanged,

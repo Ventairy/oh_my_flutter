@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTextRasterPoolLease {
-  _MorphTextRasterPoolLease(this._pool, this._entry);
+  new(this._pool, this._entry);
 
   _MorphTextRasterPool? _pool;
   final _MorphTextRasterPoolEntry _entry;

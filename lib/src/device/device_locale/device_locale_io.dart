@@ -7,7 +7,7 @@ import 'pigeon_device_locale.dart';
 /// Selects the locale implementation for the current operating system.
 final class DeviceLocalePlatformImplementation extends DeviceLocalePlatform {
   /// Creates the implementation for this process.
-  DeviceLocalePlatformImplementation()
+  new()
     : _platform = (Platform.isAndroid || Platform.isIOS || Platform.isMacOS || Platform.isWindows)
           ? PigeonDeviceLocalePlatform()
           : unsupported.DeviceLocalePlatformImplementation();

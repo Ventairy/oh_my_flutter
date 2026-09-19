@@ -4,7 +4,7 @@ part of 'morph.dart';
 /// Visual values for plain text at one end of a Morph transition.
 final class MorphTextProperties {
   /// Creates the visual values for plain text.
-  const MorphTextProperties({
+  const new({
     required this.text,
     required this.style,
     required this.textAlign,

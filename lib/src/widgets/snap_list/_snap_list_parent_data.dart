@@ -1,3 +1,3 @@
 part of 'snap_list.dart';
 
-class _SnapListParentData extends ContainerBoxParentData<RenderBox> {}
+class _SnapListParentData extends ContainerBoxParentData<RenderBox>;

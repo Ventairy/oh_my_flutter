@@ -4,7 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Shows built-in Motion effects and their lifecycle callbacks.
 class MotionExample extends StatefulWidget {
   /// Creates the Motion example.
-  const MotionExample({super.key});
+  const new({super.key});
 
   @override
   State<MotionExample> createState() => _MotionExampleState();
@@ -34,10 +34,7 @@ class _MotionExampleState extends State<MotionExample> {
               child: Motion.list(
                 effects: [
                   FadeInMotionEffect(),
-                  ScaleInMotionEffect(
-                    scale: 0.7,
-                    delay: Duration(milliseconds: 80),
-                  ),
+                  ScaleInMotionEffect(scale: 0.7, delay: Duration(milliseconds: 80)),
                 ],
                 child: Icon(Icons.visibility_outlined, size: 32),
               ),
@@ -87,9 +84,7 @@ class _MotionExampleState extends State<MotionExample> {
             ),
             const SizedBox(width: 24),
             const Motion(
-              effect: FloatingMotionEffect(
-                delay: Duration(milliseconds: 300),
-              ),
+              effect: FloatingMotionEffect(delay: Duration(milliseconds: 300)),
               child: Icon(Icons.cloud_outlined, size: 40),
             ),
           ],

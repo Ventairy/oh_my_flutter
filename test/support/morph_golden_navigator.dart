@@ -4,7 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Supplies the observer required by Morph golden scenarios.
 class MorphGoldenNavigator extends StatefulWidget {
   /// Places [child] in an observed route while retaining the golden test theme.
-  const MorphGoldenNavigator({required this.child, super.key});
+  const new({required this.child, super.key});
 
   /// The golden scenario to display.
   final Widget child;

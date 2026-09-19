@@ -1,9 +1,9 @@
 part of 'morph.dart';
 
 class _MorphCoordinator extends ChangeNotifier {
-  _MorphCoordinator._(this.overlay);
+  new _(this.overlay);
 
-  factory _MorphCoordinator.of(OverlayState overlay) {
+  factory of(OverlayState overlay) {
     return _coordinators[overlay] ??= _MorphCoordinator._(overlay);
   }
 

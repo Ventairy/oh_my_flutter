@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphFlightBoundary extends SingleChildRenderObjectWidget {
-  const _MorphFlightBoundary({
+  const new({
     required this.paintHandle,
     required super.child,
     this.ancestorAnimation,

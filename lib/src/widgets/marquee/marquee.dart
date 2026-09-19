@@ -44,7 +44,7 @@ class Marquee extends StatefulWidget {
   /// [spacing] must be finite and non-negative, and supplied viewport
   /// dimensions must be finite and non-negative. The children list must not be
   /// mutated after it is passed to this constructor.
-  const Marquee({
+  const new({
     required this.children,
     this.direction = MarqueeDirection.right,
     this.duration = const Duration(seconds: 1),

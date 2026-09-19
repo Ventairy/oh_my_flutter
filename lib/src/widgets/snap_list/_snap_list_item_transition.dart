@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListItemTransition extends StatefulWidget {
-  const _SnapListItemTransition({
+  const new({
     required this.transitions,
     required this.index,
     required this.incomingBuilder,

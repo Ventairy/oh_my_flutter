@@ -55,25 +55,14 @@ void main() {
         .join('\n');
   }
 
-  Future<
-    ({
-      int exitCode,
-      bool jsonLinesWritten,
-      bool summaryWritten,
-    })
-  >
-  runCommand({required bool acceptancePassed}) async {
-    final temporaryDirectory = await Directory.systemTemp.createTemp(
-      'morph-benchmark-validator-test.',
-    );
+  Future<({int exitCode, bool jsonLinesWritten, bool summaryWritten})> runCommand({
+    required bool acceptancePassed,
+  }) async {
+    final temporaryDirectory = await Directory.systemTemp.createTemp('morph-benchmark-validator-test.');
     addTearDown(() => temporaryDirectory.delete(recursive: true));
     final logFile = File('${temporaryDirectory.path}/flutter.log');
-    await logFile.writeAsString(
-      buildLog(acceptancePassed: acceptancePassed),
-    );
-    final artifactDirectory = Directory(
-      '${temporaryDirectory.path}/artifacts',
-    );
+    await logFile.writeAsString(buildLog(acceptancePassed: acceptancePassed));
+    final artifactDirectory = Directory('${temporaryDirectory.path}/artifacts');
     final exitCode = await const MorphBenchmarkValidationCommand().run(
       <String>[
         '--log',
@@ -92,39 +81,23 @@ void main() {
     );
     return (
       exitCode: exitCode,
-      jsonLinesWritten: File(
-        '${artifactDirectory.path}/morph_benchmark.jsonl',
-      ).existsSync(),
-      summaryWritten: File(
-        '${artifactDirectory.path}/morph_benchmark_summary.txt',
-      ).existsSync(),
+      jsonLinesWritten: File('${artifactDirectory.path}/morph_benchmark.jsonl').existsSync(),
+      summaryWritten: File('${artifactDirectory.path}/morph_benchmark_summary.txt').existsSync(),
     );
   }
 
   group('MorphBenchmarkValidationCommand', () {
-    test(
-      'when validation passes, it should write both artifacts and exit zero',
-      () async {
-        final result = await runCommand(acceptancePassed: true);
+    test('when validation passes, it should write both artifacts and exit zero', () async {
+      final result = await runCommand(acceptancePassed: true);
 
-        expect(
-          result,
-          (exitCode: 0, jsonLinesWritten: true, summaryWritten: true),
-        );
-      },
-    );
+      expect(result, (exitCode: 0, jsonLinesWritten: true, summaryWritten: true));
+    });
 
-    test(
-      'when application acceptance fails, '
-      'it should write both artifacts and exit nonzero',
-      () async {
-        final result = await runCommand(acceptancePassed: false);
+    test('when application acceptance fails, '
+        'it should write both artifacts and exit nonzero', () async {
+      final result = await runCommand(acceptancePassed: false);
 
-        expect(
-          result,
-          (exitCode: 1, jsonLinesWritten: true, summaryWritten: true),
-        );
-      },
-    );
+      expect(result, (exitCode: 1, jsonLinesWritten: true, summaryWritten: true));
+    });
   });
 }

@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonDrawPathCommand implements _SkeletonBoneCommand {
-  _SkeletonDrawPathCommand(Path path) : path = Path.from(path);
+  new(Path path) : path = Path.from(path);
 
   final Path path;
 

@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphDescendantBoundary extends SingleChildRenderObjectWidget {
-  const _MorphDescendantBoundary({
+  const new({
     required this.onRenderObjectReady,
     required super.child,
   });

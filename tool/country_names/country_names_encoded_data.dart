@@ -3,7 +3,7 @@ part of 'country_names_encoder.dart';
 /// Keeps validated country-name payloads ready for deterministic source output.
 final class CountryNamesEncodedData {
   /// Takes immutable copies of the original and compressed payloads.
-  CountryNamesEncodedData({
+  new({
     required List<int> rawBytes,
     required List<int> compressedBytes,
     required this.catalogCount,

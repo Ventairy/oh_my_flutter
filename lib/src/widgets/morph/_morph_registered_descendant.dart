@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphRegisteredDescendant extends StatefulWidget {
-  _MorphRegisteredDescendant({required this.capture, required this.child, Widget? subtree})
+  new({required this.capture, required this.child, Widget? subtree})
     : subtree = subtree ?? child,
       super(key: UniqueKey());
 

@@ -23,7 +23,7 @@ class _PaintCounter extends ChangeNotifier {
 }
 
 class _PaintCounterPainter extends CustomPainter {
-  _PaintCounterPainter(this.counter) : super(repaint: counter);
+  new(this.counter) : super(repaint: counter);
 
   final _PaintCounter counter;
 
@@ -200,7 +200,7 @@ bool _pixelRegionsMatch(
 }
 
 final class _ExtremeOvershootCurve extends Curve {
-  const _ExtremeOvershootCurve();
+  const new();
 
   @override
   double transformInternal(double t) {
@@ -3580,7 +3580,7 @@ void main() {
 }
 
 class _ContainerClampTestApp extends StatefulWidget {
-  const _ContainerClampTestApp();
+  const new();
 
   static const longText =
       'This long description has enough content to span several lines while '

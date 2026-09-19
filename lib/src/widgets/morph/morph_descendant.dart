@@ -12,7 +12,7 @@ part of 'morph.dart';
 /// renders [child].
 class MorphDescendant extends StatefulWidget {
   /// Creates configuration for [child] relative to its nearest ancestor Morph.
-  const MorphDescendant({
+  const new({
     required this.flightBehavior,
     required this.child,
     super.key,

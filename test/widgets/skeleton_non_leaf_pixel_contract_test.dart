@@ -327,7 +327,7 @@ void main() {
 }
 
 class _SaturatedPainter extends CustomPainter {
-  const _SaturatedPainter({
+  const new({
     required this.color,
     this.drawText = false,
     this.topBandOnly = false,

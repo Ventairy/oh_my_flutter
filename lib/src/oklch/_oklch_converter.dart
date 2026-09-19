@@ -1,7 +1,7 @@
 part of 'oklch.dart';
 
 final class _OklchConverter {
-  _OklchConverter._();
+  new _();
 
   static const double _achromaticEpsilon = 0.000004;
   static const double _gamutEpsilon = 0.0001;

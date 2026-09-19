@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListPhysics extends ScrollPhysics {
-  const _SnapListPhysics({super.parent});
+  const new({super.parent});
 
   @override
   _SnapListPhysics applyTo(ScrollPhysics? ancestor) => _SnapListPhysics(parent: buildParent(ancestor));

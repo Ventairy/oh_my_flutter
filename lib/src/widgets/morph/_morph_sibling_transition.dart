@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphSiblingTransition {
-  _MorphSiblingTransition({required this.group, required this.coordinator, required _MorphActiveFlight flight})
+  new({required this.group, required this.coordinator, required _MorphActiveFlight flight})
     : animation = flight.flightAnimation,
       curvedAnimation = CurvedAnimation(parent: flight.flightAnimation, curve: flight.curve),
       controllerLease = flight.controllerLease {

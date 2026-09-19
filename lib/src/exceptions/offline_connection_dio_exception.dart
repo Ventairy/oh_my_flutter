@@ -22,7 +22,7 @@ class OfflineConnectionDioException implements Exception {
   ///
   /// [message] describes the offline condition. [cause] is the original error
   /// that triggered the connectivity check, when available.
-  const OfflineConnectionDioException({required this.message, this.cause});
+  const new({required this.message, this.cause});
 
   /// Human-readable description of why the request is considered offline.
   final String message;

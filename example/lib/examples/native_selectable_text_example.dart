@@ -4,7 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Shows native selection menus for plain and styled Flutter text.
 class NativeSelectableTextExample extends StatelessWidget {
   /// Creates the native selectable text example.
-  const NativeSelectableTextExample({super.key});
+  const new({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -16,9 +16,7 @@ class NativeSelectableTextExample extends StatelessWidget {
           children: [
             Text('Long-press or right-click either sample to select it.'),
             SizedBox(height: 16),
-            NativeSelectableText(
-              'Plain text with emoji stays rendered by Flutter. 👋',
-            ),
+            NativeSelectableText('Plain text with emoji stays rendered by Flutter. 👋'),
             Divider(height: 32),
             NativeSelectableText.rich(
               TextSpan(

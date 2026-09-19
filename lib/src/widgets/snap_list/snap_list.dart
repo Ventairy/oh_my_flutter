@@ -37,7 +37,7 @@ part 'snap_list_types.dart';
 /// See the [SnapList guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/snap_list.md).
 class SnapList extends StatefulWidget {
   /// Creates a list that keeps every supplied child's state mounted.
-  const SnapList({
+  const new({
     required List<Widget> this.children,
     this.axis = Axis.vertical,
     this.spacing = 0,
@@ -67,7 +67,7 @@ class SnapList extends StatefulWidget {
   ///
   /// Children may request Flutter's automatic keep-alive. Existing items
   /// retain their positions when new items are appended.
-  const SnapList.builder({
+  const new builder({
     required int this.itemCount,
     required IndexedWidgetBuilder this.itemBuilder,
     this.cacheItemCount = 1,

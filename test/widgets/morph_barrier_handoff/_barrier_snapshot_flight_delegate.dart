@@ -1,7 +1,7 @@
 part of '../morph_barrier_handoff_test.dart';
 
 final class _BarrierSnapshotFlightDelegate extends MorphFlightDelegate<Widget> {
-  const _BarrierSnapshotFlightDelegate();
+  const new();
 
   @override
   Widget properties(MorphEndpointContext endpoint) => endpoint.descendantWidget((endpoint.child as SizedBox).child!);

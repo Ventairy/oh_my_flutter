@@ -1,7 +1,7 @@
 part of 'marquee.dart';
 
 class _MarqueeViewport extends MultiChildRenderObjectWidget {
-  const _MarqueeViewport({
+  const new({
     required this.animation,
     required this.direction,
     required this.spacing,

@@ -16,49 +16,25 @@ import 'skeleton_benchmark_record_buffer.dart';
 part '_benchmark_card.dart';
 part '_paint_probe_painter.dart';
 
-const bool _enforceFrameBudget = bool.fromEnvironment(
-  'SKELETON_ENFORCE_FRAME_BUDGET',
-);
-const int _warmupFrameCount = int.fromEnvironment(
-  'SKELETON_WARMUP_FRAMES',
-  defaultValue: 180,
-);
-const int _measuredFrameCount = int.fromEnvironment(
-  'SKELETON_MEASURED_FRAMES',
-  defaultValue: 600,
-);
-const int _cardCount = int.fromEnvironment(
-  'SKELETON_CARD_COUNT',
-  defaultValue: 16,
-);
-const String _effectName = String.fromEnvironment(
-  'SKELETON_EFFECT',
-  defaultValue: 'shimmer',
-);
-const String _topologyName = String.fromEnvironment(
-  'SKELETON_TOPOLOGY',
-  defaultValue: 'single',
-);
-const String _rendererName = String.fromEnvironment(
-  'SKELETON_RENDERER',
-  defaultValue: 'unspecified',
-);
-const String _runId = String.fromEnvironment(
-  'SKELETON_RUN_ID',
-  defaultValue: 'unspecified',
-);
+const bool _enforceFrameBudget = bool.fromEnvironment('SKELETON_ENFORCE_FRAME_BUDGET');
+const int _warmupFrameCount = int.fromEnvironment('SKELETON_WARMUP_FRAMES', defaultValue: 180);
+const int _measuredFrameCount = int.fromEnvironment('SKELETON_MEASURED_FRAMES', defaultValue: 600);
+const int _cardCount = int.fromEnvironment('SKELETON_CARD_COUNT', defaultValue: 16);
+const String _effectName = String.fromEnvironment('SKELETON_EFFECT', defaultValue: 'shimmer');
+const String _topologyName = String.fromEnvironment('SKELETON_TOPOLOGY', defaultValue: 'single');
+const String _rendererName = String.fromEnvironment('SKELETON_RENDERER', defaultValue: 'unspecified');
+const String _runId = String.fromEnvironment('SKELETON_RUN_ID', defaultValue: 'unspecified');
 
 /// A profile-mode stress benchmark for animated [Skeleton] painting.
 class SkeletonBenchmark extends StatefulWidget {
   /// Creates the benchmark application.
-  const SkeletonBenchmark({super.key});
+  const new({super.key});
 
   @override
   State<SkeletonBenchmark> createState() => _SkeletonState();
 }
 
 // The formatter keeps this declaration on one line at its 120-column width.
-// ignore: lines_longer_than_80_chars
 class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserver {
   static const int _steadyTrialCount = 2;
   static const int _maximumTrialAttempts = 3;
@@ -83,23 +59,13 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
   int _frameBudgetMicros = 0;
   bool _animationsDisabled = false;
   bool _windowIsActive = false;
-  ({
-    double devicePixelRatio,
-    Size logicalSize,
-    Size physicalSize,
-    double refreshRate,
-  })?
-  _environmentViewMetrics;
+  ({double devicePixelRatio, Size logicalSize, Size physicalSize, double refreshRate})? _environmentViewMetrics;
 
   @override
   void initState() {
     super.initState();
-    _interruptionTracker = SkeletonBenchmarkInterruptionTracker(
-      WidgetsBinding.instance.lifecycleState,
-    );
-    _recordBuffer = SkeletonBenchmarkRecordBuffer(
-      (message) => debugPrint(message, wrapWidth: 4000),
-    );
+    _interruptionTracker = SkeletonBenchmarkInterruptionTracker(WidgetsBinding.instance.lifecycleState);
+    _recordBuffer = SkeletonBenchmarkRecordBuffer((message) => debugPrint(message, wrapWidth: 4000));
     WidgetsBinding.instance
       ..addObserver(this)
       ..addTimingsCallback(_handleTimings)
@@ -195,9 +161,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
     }
     final normalizedRenderer = _rendererName.trim().toLowerCase();
     if (normalizedRenderer.isEmpty || normalizedRenderer == 'unspecified') {
-      throw StateError(
-        'Set SKELETON_RENDERER to the renderer verified in device logs.',
-      );
+      throw StateError('Set SKELETON_RENDERER to the renderer verified in device logs.');
     }
     if (_runId.trim().isEmpty || _runId.trim().toLowerCase() == 'unspecified') {
       throw StateError('Set SKELETON_RUN_ID to a fresh run identifier.');
@@ -266,10 +230,8 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
   Future<void> _captureValidViewMetrics() async {
     await _captureValidViewMetricsWithoutTimeout().timeout(
       _viewMetricsTimeout,
-      onTimeout: () => throw TimeoutException(
-        'The benchmark view did not report finite, nonzero metrics.',
-        _viewMetricsTimeout,
-      ),
+      onTimeout: () =>
+          throw TimeoutException('The benchmark view did not report finite, nonzero metrics.', _viewMetricsTimeout),
     );
   }
 
@@ -319,21 +281,12 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
     return value.isFinite && value > 0;
   }
 
-  Future<
-    ({
-      int attempt,
-      List<FrameTiming> frames,
-      int probePaints,
-      int transientCallbackCount,
-    })
-  >
-  _collectSteadyTrial(int trial) async {
+  Future<({int attempt, List<FrameTiming> frames, int probePaints, int transientCallbackCount})> _collectSteadyTrial(
+    int trial,
+  ) async {
     for (var attempt = 1; attempt <= _maximumTrialAttempts; attempt += 1) {
       await _warmTrial();
-      final measurement = await _collectFrameWindow(
-        targetFrames: _measuredFrameCount,
-        measured: true,
-      );
+      final measurement = await _collectFrameWindow(targetFrames: _measuredFrameCount, measured: true);
       if (!measurement.interrupted) {
         return (
           attempt: attempt,
@@ -359,10 +312,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
   Future<void> _warmTrial() async {
     while (true) {
       await _waitUntilInteractive();
-      final warmup = await _collectFrameWindow(
-        targetFrames: _warmupFrameCount,
-        measured: false,
-      );
+      final warmup = await _collectFrameWindow(targetFrames: _warmupFrameCount, measured: false);
       if (!warmup.interrupted) return;
     }
   }
@@ -376,10 +326,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
       int transientCallbackCount,
     })
   >
-  _collectFrameWindow({
-    required int targetFrames,
-    required bool measured,
-  }) async {
+  _collectFrameWindow({required int targetFrames, required bool measured}) async {
     await _waitUntilInteractive();
     await _flushReportedTimings();
     if (_windowIsActive) {
@@ -413,9 +360,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
       if (!startedNormally) {
         return (
           frames: const <FrameTiming>[],
-          invalidReasons: const <String>[
-            'interaction_changed_before_window_start',
-          ],
+          invalidReasons: const <String>['interaction_changed_before_window_start'],
           interrupted: true,
           probePaints: 0,
           transientCallbackCount: 0,
@@ -452,9 +397,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
     final windowStart = _windowStartMicros;
     if (windowStart == null) return;
     for (final timing in timings) {
-      final buildStart = timing.timestampInMicroseconds(
-        ui.FramePhase.buildStart,
-      );
+      final buildStart = timing.timestampInMicroseconds(ui.FramePhase.buildStart);
       if (buildStart < windowStart) continue;
       if (_windowFrames.length >= _windowTargetFrames) break;
       _windowFrames.add(timing);
@@ -482,10 +425,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
       try {
         await completer.future.timeout(_interactionTimeout);
       } on TimeoutException {
-        throw TimeoutException(
-          'The benchmark did not regain lifecycle and view focus.',
-          _interactionTimeout,
-        );
+        throw TimeoutException('The benchmark did not regain lifecycle and view focus.', _interactionTimeout);
       } finally {
         if (identical(_interactionChanged, completer)) {
           _interactionChanged = null;
@@ -565,10 +505,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
       if (missed) {
         anyOverBudget += 1;
         consecutiveMisses += 1;
-        longestConsecutiveMisses = math.max(
-          longestConsecutiveMisses,
-          consecutiveMisses,
-        );
+        longestConsecutiveMisses = math.max(longestConsecutiveMisses, consecutiveMisses);
       } else {
         consecutiveMisses = 0;
       }
@@ -629,10 +566,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
   }
 
   int _percentile(List<int> sortedValues, double percentile) {
-    final index = ((sortedValues.length * percentile).ceil() - 1).clamp(
-      0,
-      sortedValues.length - 1,
-    );
+    final index = ((sortedValues.length * percentile).ceil() - 1).clamp(0, sortedValues.length - 1);
     return sortedValues[index];
   }
 
@@ -647,11 +581,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
   };
 
   Widget _buildWorkload() {
-    final cards = List<Widget>.generate(
-      _cardCount,
-      (index) => _BenchmarkCard(index: index),
-      growable: false,
-    );
+    final cards = List<Widget>.generate(_cardCount, (index) => _BenchmarkCard(index: index), growable: false);
     return switch (_topologyName) {
       'many' => Column(
         children: [
@@ -682,10 +612,7 @@ class _SkeletonState extends State<SkeletonBenchmark> with WidgetsBindingObserve
               alignment: Alignment.topCenter,
               minHeight: _cardCount * 124,
               maxHeight: _cardCount * 124,
-              child: SizedBox(
-                height: _cardCount * 124,
-                child: _buildWorkload(),
-              ),
+              child: SizedBox(height: _cardCount * 124, child: _buildWorkload()),
             ),
           ),
         ),

@@ -2,7 +2,7 @@ part of 'morph.dart';
 
 @immutable
 final class _MorphTextRasterPoolKey {
-  const _MorphTextRasterPoolKey({
+  const new({
     required this.viewId,
     required this.viewDevicePixelRatio,
     required this.rasterDevicePixelRatio,

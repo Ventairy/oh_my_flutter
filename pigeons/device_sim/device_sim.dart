@@ -11,7 +11,6 @@ import 'package:pigeon/pigeon.dart';
 )
 @HostApi()
 // Pigeon requires an abstract host API even for a single operation.
-// ignore: one_member_abstracts
 abstract class DeviceSimHostApi {
   /// Returns the default SIM provider's ISO alpha-2 country code, if available.
   String? getCountry();

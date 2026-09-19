@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTransitionAnimation extends Animation<double> {
-  _MorphTransitionAnimation(this._value) : _status = _statusForValue(_value);
+  new(this._value) : _status = _statusForValue(_value);
 
   double _value;
   AnimationStatus _status;

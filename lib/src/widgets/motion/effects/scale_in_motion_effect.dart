@@ -5,7 +5,7 @@ part of '../motion.dart';
 /// Scaling does not affect surrounding layout.
 class ScaleInMotionEffect extends MotionEffect {
   /// Creates an effect that scales from [scale] to `1.0`.
-  const ScaleInMotionEffect({
+  const new({
     this.scale = 0,
     super.delay = Duration.zero,
     super.duration = const Duration(milliseconds: 300),

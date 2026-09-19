@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonRestoreToCountCommand implements _SkeletonBoneCommand {
-  const _SkeletonRestoreToCountCommand(this.count);
+  const new(this.count);
 
   final int count;
 

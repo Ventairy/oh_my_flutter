@@ -8,7 +8,7 @@ import 'device_location_platform.dart';
 /// Reports that device location is unavailable on an unsupported platform.
 final class DeviceLocationPlatformImplementation extends DeviceLocationPlatform {
   /// Creates an unsupported device-location implementation.
-  DeviceLocationPlatformImplementation();
+  new();
 
   static const _error = DeviceLocationException(
     DeviceLocationExceptionReason.unsupportedPlatform,

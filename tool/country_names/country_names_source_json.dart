@@ -1,7 +1,7 @@
 part of 'country_names_source.dart';
 
 final class _CountryNamesSourceJson {
-  const _CountryNamesSourceJson({required this.label, required this.uri, required this.value});
+  const new({required this.label, required this.uri, required this.value});
 
   static final _localePattern = RegExp(
     r'^[a-z]{2,8}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?(?:-(?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*$',

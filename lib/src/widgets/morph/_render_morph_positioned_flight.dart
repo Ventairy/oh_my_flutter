@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphPositionedFlight extends RenderProxyBox {
-  _RenderMorphPositionedFlight(
+  new(
     this._animation,
     this._geometry,
     this._sourceBounds,

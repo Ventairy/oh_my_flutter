@@ -74,7 +74,7 @@ Widget _horizontalMarquee({
 }
 
 class _InitializationCounter extends StatefulWidget {
-  const _InitializationCounter({required this.onInit, super.key});
+  const new({required this.onInit, super.key});
 
   final VoidCallback onInit;
 

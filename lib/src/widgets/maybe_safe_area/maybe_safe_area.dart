@@ -39,7 +39,7 @@ class MaybeSafeArea extends SingleChildRenderObjectWidget {
   /// The [behavior] controls whether avoidance follows later movement or is
   /// preserved relative to the moving child. Each enabled edge participates
   /// independently.
-  const MaybeSafeArea({
+  const new({
     required super.child,
     this.behavior = MaybeSafeAreaBehavior.live,
     this.handle,

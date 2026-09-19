@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Checks configuration that Dart cannot assert in const constructors.
 class _MotionDebugValidator {
-  const _MotionDebugValidator._();
+  const new _();
 
   static bool validateEffects(List<MotionEffect> effects) {
     assert(effects.isNotEmpty, 'effects must not be empty.');
