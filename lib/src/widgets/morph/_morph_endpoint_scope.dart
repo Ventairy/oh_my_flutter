@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphEndpointScope extends InheritedWidget {
-  const _MorphEndpointScope({
+  const new({
     required this.endpoint,
     required this.configuredDuration,
     required this.duration,

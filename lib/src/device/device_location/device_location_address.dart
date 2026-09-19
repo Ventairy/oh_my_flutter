@@ -19,7 +19,7 @@ final class DeviceLocationAddress {
   /// be empty; values returned by `DeviceLocation` are also trimmed so
   /// whitespace-only native values become null. When constructing an address
   /// directly, supply [countryCode] as two uppercase ASCII letters.
-  const DeviceLocationAddress({
+  const new({
     required this.coordinates,
     this.formattedAddress,
     this.name,

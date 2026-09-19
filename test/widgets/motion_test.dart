@@ -2421,7 +2421,7 @@ void main() {
 }
 
 class _ScaleMotionEffect extends ScaleInMotionEffect {
-  const _ScaleMotionEffect({
+  const new({
     super.delay,
     super.duration,
     super.curve,
@@ -2429,7 +2429,7 @@ class _ScaleMotionEffect extends ScaleInMotionEffect {
 }
 
 class _SharedMoveMotionEffect extends MotionEffect {
-  const _SharedMoveMotionEffect();
+  const new();
 
   @override
   void apply(double progress, MotionEffectTransform transform) {
@@ -2440,7 +2440,7 @@ class _SharedMoveMotionEffect extends MotionEffect {
 }
 
 class _BuildCountingChild extends StatelessWidget {
-  const _BuildCountingChild({required this.onBuild});
+  const new({required this.onBuild});
 
   final VoidCallback onBuild;
 

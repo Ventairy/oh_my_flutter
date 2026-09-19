@@ -1,7 +1,7 @@
 part of 'raster_snapshot.dart';
 
 final class _MorphContentSnapshotPainter extends CustomPainter {
-  _MorphContentSnapshotPainter({
+  new({
     required this.tiles,
   });
 

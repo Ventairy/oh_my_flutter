@@ -4,7 +4,7 @@ import 'dart:math' as math;
 /// Buffers Skeleton benchmark records until timed work has finished.
 final class SkeletonBenchmarkRecordBuffer {
   /// Creates a record buffer that emits complete benchmark log lines.
-  SkeletonBenchmarkRecordBuffer(this._emit);
+  new(this._emit);
 
   static const String _recordMarker = 'SKELETON_BENCHMARK ';
   static const String _chunkMarker = 'SKELETON_BENCHMARK_CHUNK ';
@@ -43,10 +43,7 @@ final class SkeletonBenchmarkRecordBuffer {
     final recordId = _nextChunkedRecordId++;
     for (var index = 0; index < chunkCount; index += 1) {
       final start = index * _maximumChunkPayloadLength;
-      final end = math.min(
-        start + _maximumChunkPayloadLength,
-        encodedPayload.length,
-      );
+      final end = math.min(start + _maximumChunkPayloadLength, encodedPayload.length);
       final chunk = <String, Object>{
         'record': recordId,
         'index': index,

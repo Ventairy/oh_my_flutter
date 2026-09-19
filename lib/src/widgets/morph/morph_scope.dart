@@ -6,7 +6,7 @@ part of 'morph.dart';
 /// each appearance individually. See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md).
 class MorphScope extends StatelessWidget {
   /// Creates inherited Morph configuration for [child].
-  const MorphScope({required this.child, this.enabled = true, super.key});
+  const new({required this.child, this.enabled = true, super.key});
 
   /// Whether descendants may start new Morph flights.
   ///

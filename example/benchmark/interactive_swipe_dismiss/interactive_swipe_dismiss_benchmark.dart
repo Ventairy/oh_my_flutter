@@ -22,33 +22,17 @@ part '_interactive_swipe_dismiss_benchmark_probe_counters.dart';
 part '_interactive_swipe_dismiss_benchmark_probe_render_box.dart';
 part '_interactive_swipe_dismiss_benchmark_probe_render_object_widget.dart';
 
-const bool _enforceFrameBudget = bool.fromEnvironment(
-  'INTERACTIVE_SWIPE_DISMISS_ENFORCE_FRAME_BUDGET',
-);
-const bool _requireRetainedPaint = bool.fromEnvironment(
-  'INTERACTIVE_SWIPE_DISMISS_REQUIRE_RETAINED_PAINT',
-);
-const int _warmupFrameCount = int.fromEnvironment(
-  'INTERACTIVE_SWIPE_DISMISS_WARMUP_FRAMES',
-  defaultValue: 180,
-);
-const int _measuredFrameCount = int.fromEnvironment(
-  'INTERACTIVE_SWIPE_DISMISS_MEASURED_FRAMES',
-  defaultValue: 600,
-);
-const String _rendererName = String.fromEnvironment(
-  'INTERACTIVE_SWIPE_DISMISS_RENDERER',
-  defaultValue: 'unspecified',
-);
-const String _runId = String.fromEnvironment(
-  'INTERACTIVE_SWIPE_DISMISS_RUN_ID',
-  defaultValue: 'unspecified',
-);
+const bool _enforceFrameBudget = bool.fromEnvironment('INTERACTIVE_SWIPE_DISMISS_ENFORCE_FRAME_BUDGET');
+const bool _requireRetainedPaint = bool.fromEnvironment('INTERACTIVE_SWIPE_DISMISS_REQUIRE_RETAINED_PAINT');
+const int _warmupFrameCount = int.fromEnvironment('INTERACTIVE_SWIPE_DISMISS_WARMUP_FRAMES', defaultValue: 180);
+const int _measuredFrameCount = int.fromEnvironment('INTERACTIVE_SWIPE_DISMISS_MEASURED_FRAMES', defaultValue: 600);
+const String _rendererName = String.fromEnvironment('INTERACTIVE_SWIPE_DISMISS_RENDERER', defaultValue: 'unspecified');
+const String _runId = String.fromEnvironment('INTERACTIVE_SWIPE_DISMISS_RUN_ID', defaultValue: 'unspecified');
 
 /// Profile-mode benchmark for the Cataqui-style interactive-dismiss path.
 class InteractiveSwipeDismissBenchmark extends StatefulWidget {
   /// Creates the benchmark application.
-  const InteractiveSwipeDismissBenchmark({super.key});
+  const new({super.key});
 
   @override
   State<InteractiveSwipeDismissBenchmark> createState() {
@@ -58,7 +42,6 @@ class InteractiveSwipeDismissBenchmark extends StatefulWidget {
 
 // The configured formatter keeps this intrinsic class declaration on one
 // line.
-// ignore: lines_longer_than_80_chars
 class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismissBenchmark>
     with WidgetsBindingObserver {
   static const String _scenario = 'cataqui_scrolled_header_free_drag';
@@ -84,7 +67,6 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   late final Widget _retainedWorkload;
   // The configured formatter keeps this descriptive field declaration on one
   // line.
-  // ignore: lines_longer_than_80_chars
   late final InteractiveSwipeDismissBenchmarkInterruptionTracker _interruptionTracker;
   late final InteractiveSwipeDismissBenchmarkRecordBuffer _recordBuffer;
 
@@ -119,35 +101,20 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   bool _windowIsActive = false;
   bool _preflightPassed = false;
   int _frameBudgetMicros = 0;
-  ({
-    double devicePixelRatio,
-    Size logicalSize,
-    Size physicalSize,
-    double refreshRate,
-  })?
-  _environmentViewMetrics;
+  ({double devicePixelRatio, Size logicalSize, Size physicalSize, double refreshRate})? _environmentViewMetrics;
 
   @override
   void initState() {
     super.initState();
-    _scrollController = ScrollController(
-      initialScrollOffset: _initialScrollOffset,
-    );
+    _scrollController = ScrollController(initialScrollOffset: _initialScrollOffset);
     _retainedWorkload = KeyedSubtree(
       key: _surfaceKey,
       child: _InteractiveSwipeDismissBenchmarkProbe(
-        child: _InteractiveSwipeDismissBenchmarkHeavyChild(
-          handleKey: _handleKey,
-          scrollController: _scrollController,
-        ),
+        child: _InteractiveSwipeDismissBenchmarkHeavyChild(handleKey: _handleKey, scrollController: _scrollController),
       ),
     );
-    _interruptionTracker = InteractiveSwipeDismissBenchmarkInterruptionTracker(
-      WidgetsBinding.instance.lifecycleState,
-    );
-    _recordBuffer = InteractiveSwipeDismissBenchmarkRecordBuffer(
-      (message) => debugPrint(message, wrapWidth: 4000),
-    );
+    _interruptionTracker = InteractiveSwipeDismissBenchmarkInterruptionTracker(WidgetsBinding.instance.lifecycleState);
+    _recordBuffer = InteractiveSwipeDismissBenchmarkRecordBuffer((message) => debugPrint(message, wrapWidth: 4000));
     WidgetsBinding.instance
       ..addObserver(this)
       ..addTimingsCallback(_handleTimings)
@@ -185,9 +152,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   void dispose() {
     final scheduledGestureFrame = _scheduledGestureFrame;
     if (scheduledGestureFrame != null) {
-      SchedulerBinding.instance.cancelFrameCallbackWithId(
-        scheduledGestureFrame,
-      );
+      SchedulerBinding.instance.cancelFrameCallbackWithId(scheduledGestureFrame);
     }
     _cancelActivePointer();
     WidgetsBinding.instance
@@ -243,15 +208,11 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
 
   void _validateEnvironment() {
     if (!kProfileMode) {
-      throw StateError(
-        'The InteractiveSwipeDismiss benchmark must run in profile mode.',
-      );
+      throw StateError('The InteractiveSwipeDismiss benchmark must run in profile mode.');
     }
     final normalizedRenderer = _rendererName.trim().toLowerCase();
     if (normalizedRenderer.isEmpty || normalizedRenderer == 'unspecified') {
-      throw StateError(
-        'Set INTERACTIVE_SWIPE_DISMISS_RENDERER after verifying device logs.',
-      );
+      throw StateError('Set INTERACTIVE_SWIPE_DISMISS_RENDERER after verifying device logs.');
     }
     if (_runId.trim().isEmpty || _runId.trim().toLowerCase() == 'unspecified') {
       throw StateError('Set a fresh INTERACTIVE_SWIPE_DISMISS_RUN_ID.');
@@ -263,14 +224,10 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       throw StateError('The benchmark did not capture valid view metrics.');
     }
     if (_animationsDisabled) {
-      throw StateError(
-        'InteractiveSwipeDismiss benchmarking requires animations enabled.',
-      );
+      throw StateError('InteractiveSwipeDismiss benchmarking requires animations enabled.');
     }
     if (_warmupFrameCount < 2 || _measuredFrameCount < 2) {
-      throw StateError(
-        'Warmup and measured frame counts must be at least two.',
-      );
+      throw StateError('Warmup and measured frame counts must be at least two.');
     }
     final viewMetrics = _environmentViewMetrics!;
     final maximumTravel = InteractiveSwipeDismissBenchmarkMotion(
@@ -279,9 +236,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
     ).maximumPrimaryTravel;
     final dismissDistance = _surfaceSize.height * _dismissFraction;
     if (maximumTravel <= 24 || maximumTravel >= dismissDistance) {
-      throw StateError(
-        'The benchmark viewport cannot contain its below-threshold path.',
-      );
+      throw StateError('The benchmark viewport cannot contain its below-threshold path.');
     }
   }
 
@@ -305,10 +260,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       'gesture_driver': 'synthetic_touch_one_move_per_vsync',
       'refresh_rate_hz': _refreshRate,
       'frame_budget_us': _frameBudgetMicros,
-      'child_size': <String, double>{
-        'width': _surfaceSize.width,
-        'height': _surfaceSize.height,
-      },
+      'child_size': <String, double>{'width': _surfaceSize.width, 'height': _surfaceSize.height},
       'logical_size': <String, double>{
         'width': viewMetrics.logicalSize.width,
         'height': viewMetrics.logicalSize.height,
@@ -331,10 +283,8 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   Future<void> _captureValidViewMetrics() async {
     await _captureValidViewMetricsWithoutTimeout().timeout(
       _viewMetricsTimeout,
-      onTimeout: () => throw TimeoutException(
-        'The benchmark view did not report finite, nonzero metrics.',
-        _viewMetricsTimeout,
-      ),
+      onTimeout: () =>
+          throw TimeoutException('The benchmark view did not report finite, nonzero metrics.', _viewMetricsTimeout),
     );
   }
 
@@ -371,10 +321,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   Future<void> _waitForWorkloadReady() async {
     await _waitForWorkloadReadyWithoutTimeout().timeout(
       _viewMetricsTimeout,
-      onTimeout: () => throw TimeoutException(
-        'The benchmark workload did not become ready.',
-        _viewMetricsTimeout,
-      ),
+      onTimeout: () => throw TimeoutException('The benchmark workload did not become ready.', _viewMetricsTimeout),
     );
   }
 
@@ -408,9 +355,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       SchedulerBinding.instance.scheduleFrame();
       await SchedulerBinding.instance.endOfFrame;
     }
-    throw StateError(
-      'The benchmark was disposed before its workload was ready.',
-    );
+    throw StateError('The benchmark was disposed before its workload was ready.');
   }
 
   Future<void> _runInteractionPreflight() async {
@@ -463,10 +408,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   _collectSteadyTrial(int trial) async {
     for (var attempt = 1; attempt <= _maximumTrialAttempts; attempt += 1) {
       await _warmTrial();
-      final measurement = await _collectFrameWindow(
-        targetFrames: _measuredFrameCount,
-        measured: true,
-      );
+      final measurement = await _collectFrameWindow(targetFrames: _measuredFrameCount, measured: true);
       if (!measurement.interrupted) {
         return (
           attempt: attempt,
@@ -500,10 +442,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
 
   Future<void> _warmTrial() async {
     while (true) {
-      final warmup = await _collectFrameWindow(
-        targetFrames: _warmupFrameCount,
-        measured: false,
-      );
+      final warmup = await _collectFrameWindow(targetFrames: _warmupFrameCount, measured: false);
       if (!warmup.interrupted) return;
     }
   }
@@ -526,10 +465,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       double scrollStart,
     })
   >
-  _collectFrameWindow({
-    required int targetFrames,
-    required bool measured,
-  }) async {
+  _collectFrameWindow({required int targetFrames, required bool measured}) async {
     await _waitUntilInteractive();
     await _restoreInitialScrollOffset();
     await _flushReportedTimings();
@@ -570,16 +506,12 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       invalidReasons = _interruptionTracker.invalidReasons;
       interrupted = !completedNormally || invalidReasons.isNotEmpty;
       if (interrupted && invalidReasons.isEmpty) {
-        invalidReasons = const <String>[
-          'interaction_changed_during_window',
-        ];
+        invalidReasons = const <String>['interaction_changed_during_window'];
       }
     } finally {
       final scheduledGestureFrame = _scheduledGestureFrame;
       if (scheduledGestureFrame != null) {
-        SchedulerBinding.instance.cancelFrameCallbackWithId(
-          scheduledGestureFrame,
-        );
+        SchedulerBinding.instance.cancelFrameCallbackWithId(scheduledGestureFrame);
         _scheduledGestureFrame = null;
       }
       _interruptionTracker.endWindow();
@@ -588,15 +520,8 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       _windowInteractionChanged = null;
     }
 
-    final frames = List<FrameTiming>.generate(
-      _windowFrameCount,
-      (index) => _windowFrames[index]!,
-      growable: false,
-    );
-    final dispatchDurations = List<int>.of(
-      _windowDispatchDurations.take(_windowMoveCount),
-      growable: false,
-    );
+    final frames = List<FrameTiming>.generate(_windowFrameCount, (index) => _windowFrames[index]!, growable: false);
+    final dispatchDurations = List<int>.of(_windowDispatchDurations.take(_windowMoveCount), growable: false);
     final probeEnd = _InteractiveSwipeDismissBenchmarkProbeCounters.snapshot;
     final result = (
       dismissCallbacks: _dismissCallbackCount - _windowDismissCallbackStart,
@@ -621,9 +546,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   }
 
   void _scheduleGestureFrame() {
-    _scheduledGestureFrame = SchedulerBinding.instance.scheduleFrameCallback(
-      _driveGestureFrame,
-    );
+    _scheduledGestureFrame = SchedulerBinding.instance.scheduleFrameCallback(_driveGestureFrame);
   }
 
   void _driveGestureFrame(Duration timeStamp) {
@@ -653,10 +576,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
     if (_windowMoveCount < _windowTargetFrames) {
       _scheduleGestureFrame();
     }
-    _maximumTransientCallbacks = math.max(
-      _maximumTransientCallbacks,
-      SchedulerBinding.instance.transientCallbackCount,
-    );
+    _maximumTransientCallbacks = math.max(_maximumTransientCallbacks, SchedulerBinding.instance.transientCallbackCount);
     _completeWindowIfReady();
   }
 
@@ -665,9 +585,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
     final windowStart = _windowStartMicros;
     if (windowStart == null) return;
     for (final timing in timings) {
-      final buildStart = timing.timestampInMicroseconds(
-        ui.FramePhase.buildStart,
-      );
+      final buildStart = timing.timestampInMicroseconds(ui.FramePhase.buildStart);
       if (buildStart < windowStart) continue;
       if (_windowFrameCount >= _windowTargetFrames) break;
       _windowFrames[_windowFrameCount++] = timing;
@@ -713,10 +631,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
     );
   }
 
-  void _dispatchPointerMove({
-    required Offset target,
-    required Offset delta,
-  }) {
+  void _dispatchPointerMove({required Offset target, required Offset delta}) {
     final pointer = _activePointer;
     final viewId = _benchmarkViewId;
     if (pointer == null || viewId == null) return;
@@ -782,10 +697,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       try {
         await completer.future.timeout(_interactionTimeout);
       } on TimeoutException {
-        throw TimeoutException(
-          'The benchmark did not regain lifecycle and view focus.',
-          _interactionTimeout,
-        );
+        throw TimeoutException('The benchmark did not regain lifecycle and view focus.', _interactionTimeout);
       } finally {
         if (identical(_interactionChanged, completer)) {
           _interactionChanged = null;
@@ -879,10 +791,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
       if (missed) {
         anyOverBudget += 1;
         consecutiveMisses += 1;
-        longestConsecutiveMisses = math.max(
-          longestConsecutiveMisses,
-          consecutiveMisses,
-        );
+        longestConsecutiveMisses = math.max(longestConsecutiveMisses, consecutiveMisses);
       } else {
         consecutiveMisses = 0;
       }
@@ -975,10 +884,7 @@ class _InteractiveSwipeDismissBenchmarkState extends State<InteractiveSwipeDismi
   }
 
   int _percentile(List<int> sortedValues, double percentile) {
-    final index = ((sortedValues.length * percentile).ceil() - 1).clamp(
-      0,
-      sortedValues.length - 1,
-    );
+    final index = ((sortedValues.length * percentile).ceil() - 1).clamp(0, sortedValues.length - 1);
     return sortedValues[index];
   }
 

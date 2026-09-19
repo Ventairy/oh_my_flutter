@@ -1,7 +1,7 @@
 part of 'group.dart';
 
 class _RenderGroup extends RenderProxyBox {
-  _RenderGroup(this._link, this._zIndex);
+  new(this._link, this._zIndex);
 
   GroupLink _link;
   double _zIndex;

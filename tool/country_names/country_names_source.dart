@@ -10,7 +10,7 @@ part 'country_names_source_json.dart';
 /// Obtains complete, validated CLDR inputs for country-name generation.
 final class CountryNamesSource {
   /// Fetches the pinned CLDR release using an owned HTTP client.
-  CountryNamesSource()
+  new()
     : _client = HttpClient(),
       _repositoryBase = Uri.parse(repositoryUrl),
       _treeUri = Uri.parse(treeUrl),
@@ -20,7 +20,7 @@ final class CountryNamesSource {
 
   /// Fetches fixture sources, taking ownership of the HTTP client.
   @visibleForTesting
-  CountryNamesSource.test({
+  new test({
     required this._client,
     required this._repositoryBase,
     required this._treeUri,

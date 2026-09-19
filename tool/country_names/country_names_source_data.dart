@@ -3,7 +3,7 @@ part of 'country_names_source.dart';
 /// Validated CLDR catalogs and metadata used to generate country-name lookups.
 final class CountryNamesSourceData {
   /// Keeps an immutable copy of each catalog and its source metadata.
-  CountryNamesSourceData({
+  new({
     required Map<String, Map<String, String>> catalogs,
     required List<String> availableLocales,
     required Map<String, String> parentLocales,

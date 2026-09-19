@@ -1,7 +1,7 @@
 part of 'device_display.dart';
 
 final class _DeviceDisplayMetricsEpoch with WidgetsBindingObserver {
-  _DeviceDisplayMetricsEpoch() {
+  new() {
     WidgetsBinding.instance.addObserver(this);
   }
 

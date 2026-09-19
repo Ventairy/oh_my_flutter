@@ -3,7 +3,7 @@ import 'dart:ui';
 /// Tracks lifecycle and focus changes during one swipe timing window.
 final class InteractiveSwipeDismissBenchmarkInterruptionTracker {
   /// Creates a tracker with the binding's currently known lifecycle state.
-  InteractiveSwipeDismissBenchmarkInterruptionTracker(this._lifecycleState);
+  new(this._lifecycleState);
 
   AppLifecycleState? _lifecycleState;
   ViewFocusState? _viewFocusState;
@@ -55,9 +55,7 @@ final class InteractiveSwipeDismissBenchmarkInterruptionTracker {
     final previous = _lifecycleState;
     if (previous == state) return false;
     _lifecycleState = state;
-    _invalidate(
-      'app_lifecycle:${previous?.name ?? 'unknown'}->${state.name}',
-    );
+    _invalidate('app_lifecycle:${previous?.name ?? 'unknown'}->${state.name}');
     return true;
   }
 
@@ -67,9 +65,7 @@ final class InteractiveSwipeDismissBenchmarkInterruptionTracker {
     final previous = _viewFocusState;
     if (previous == event.state) return false;
     _viewFocusState = event.state;
-    _invalidate(
-      'view_focus:${previous?.name ?? 'unknown'}->${event.state.name}',
-    );
+    _invalidate('view_focus:${previous?.name ?? 'unknown'}->${event.state.name}');
     return true;
   }
 

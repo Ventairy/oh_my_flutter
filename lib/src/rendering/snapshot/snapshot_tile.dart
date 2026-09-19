@@ -2,7 +2,7 @@ part of 'raster_snapshot.dart';
 
 @internal
 final class SnapshotTile {
-  const SnapshotTile({
+  const new({
     required this.atlas,
     required this.sourceRect,
     required this.destinationRect,

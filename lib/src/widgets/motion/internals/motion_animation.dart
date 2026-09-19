@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Read-only animation driven by the shared motion scheduler.
 class _MotionAnimation extends Animation<double> {
-  _MotionAnimation(
+  new(
     this._group,
     Duration duration,
     this._curve,

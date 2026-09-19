@@ -1,7 +1,7 @@
 part of '../morph_registered_descendant_test.dart';
 
 class _SnapshotFlightHarness extends StatefulWidget {
-  const _SnapshotFlightHarness({
+  const new({
     this.delegate = const _SnapshotFlightDelegate(),
     this.curve = Curves.linear,
     this.sharedDescendant = false,

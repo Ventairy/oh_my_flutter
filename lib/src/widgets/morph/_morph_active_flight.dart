@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphActiveFlight {
-  _MorphActiveFlight({
+  new({
     required this.coordinator,
     required this.tag,
     required this.sourceHandle,

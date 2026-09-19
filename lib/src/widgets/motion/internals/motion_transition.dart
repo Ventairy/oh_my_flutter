@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Applies shared motion effects to one widget subtree.
 class _MotionTransition extends SingleChildRenderObjectWidget {
-  const _MotionTransition({
+  const new({
     required this.applications,
     required super.child,
   });

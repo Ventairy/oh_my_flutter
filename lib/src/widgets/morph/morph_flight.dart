@@ -6,7 +6,7 @@ part of 'morph.dart';
 /// for custom transition examples.
 final class MorphFlight<T> {
   /// Creates the values passed to [MorphFlightDelegate.buildFlight].
-  MorphFlight({
+  new({
     required MorphEndpoint<T> source,
     required MorphEndpoint<T> destination,
     required this.kind,

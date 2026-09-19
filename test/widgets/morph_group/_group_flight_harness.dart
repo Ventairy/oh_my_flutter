@@ -1,7 +1,7 @@
 part of '../morph_group_test.dart';
 
 class _GroupFlightHarness extends StatefulWidget {
-  const _GroupFlightHarness({
+  const new({
     super.key,
     this.reducedMotion = false,
     this.emptyDestination = false,

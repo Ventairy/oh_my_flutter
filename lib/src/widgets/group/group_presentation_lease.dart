@@ -3,7 +3,7 @@ part of 'group.dart';
 /// Package-internal ownership of a group's temporary presentation suppression.
 @internal
 final class GroupPresentationLease {
-  GroupPresentationLease._(this._link) {
+  new _(this._link) {
     _link._leases.add(this);
     _link._members.forEach(_attach);
   }

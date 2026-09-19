@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListScrollController extends ScrollController {
-  _SnapListScrollController(this.motion);
+  new(this.motion);
   final _SnapListMotion motion;
 
   @override

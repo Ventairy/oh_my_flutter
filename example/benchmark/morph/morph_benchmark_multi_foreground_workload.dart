@@ -4,13 +4,8 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Builds independently projected controls for multi-foreground benchmarks.
 final class MorphBenchmarkMultiForegroundWorkload extends StatelessWidget {
   /// Creates a static workload or one whose last control repaints live.
-  const MorphBenchmarkMultiForegroundWorkload({
-    required this.target,
-    required this.count,
-    required this.mixed,
-    required this.livePainter,
-    super.key,
-  }) : assert(count > 0, 'count must be at least one');
+  const new({required this.target, required this.count, required this.mixed, required this.livePainter, super.key})
+    : assert(count > 0, 'count must be at least one');
 
   /// Appearance whose foreground controls accompany its flight.
   final MorphTarget target;
@@ -48,12 +43,7 @@ final class MorphBenchmarkMultiForegroundWorkload extends StatelessWidget {
       child: DecoratedBox(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.all(Radius.circular(30)),
-          boxShadow: <BoxShadow>[
-            BoxShadow(
-              color: Color(0x33000000),
-              blurRadius: 24,
-            ),
-          ],
+          boxShadow: <BoxShadow>[BoxShadow(color: Color(0x33000000), blurRadius: 24)],
         ),
         child: Material(
           color: Color(0xFFFFFFFF),
@@ -69,11 +59,7 @@ final class MorphBenchmarkMultiForegroundWorkload extends StatelessWidget {
                   'Address',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Color(0xFF737A86),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: TextStyle(color: Color(0xFF737A86), fontSize: 14, fontWeight: FontWeight.w600),
                 ),
               ),
               SizedBox(width: 14),

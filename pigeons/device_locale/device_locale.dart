@@ -16,7 +16,6 @@ import 'package:pigeon/pigeon.dart';
 )
 @HostApi()
 // Pigeon requires an abstract host API even for a single operation.
-// ignore: one_member_abstracts
 abstract class DeviceLocaleHostApi {
   /// Returns the configured region identifier when available.
   String? getCountry();

@@ -83,10 +83,7 @@ void main() {
     for (var trial = 1; trial <= 2; trial += 1) {
       final Map<String, num> buildStatistics;
       if (corruptBuildStatistics) {
-        buildStatistics = <String, num>{
-          ...timingStatistics,
-          'p99_us': 2000,
-        };
+        buildStatistics = <String, num>{...timingStatistics, 'p99_us': 2000};
       } else {
         buildStatistics = timingStatistics;
       }
@@ -192,9 +189,7 @@ void main() {
     return emitted.map((line) => 'I/flutter: $line').join('\n');
   }
 
-  InteractiveSwipeDismissBenchmarkLogValidator validator({
-    bool requireRetainedPaint = false,
-  }) {
+  InteractiveSwipeDismissBenchmarkLogValidator validator({bool requireRetainedPaint = false}) {
     return InteractiveSwipeDismissBenchmarkLogValidator(
       expectedRunId: expectedRunId,
       expectedRenderer: renderer,
@@ -207,112 +202,68 @@ void main() {
   }
 
   group('InteractiveSwipeDismissBenchmarkLogValidator', () {
-    test(
-      'when dismissal distance uses the screen, it should reject the log',
-      () {
-        final log = buildLog().replaceAll(
-          '"dismiss_distance_px":150.0',
-          '"dismiss_distance_px":200.0',
-        );
-        expect(validator().validate(log).passed, isFalse);
-      },
-    );
+    test('when dismissal distance uses the screen, it should reject the log', () {
+      final log = buildLog().replaceAll('"dismiss_distance_px":150.0', '"dismiss_distance_px":200.0');
+      expect(validator().validate(log).passed, isFalse);
+    });
 
-    test(
-      'when a complete baseline log passes, it should accept diagnostic paints',
-      () {
-        final validation = validator().validate(buildLog());
+    test('when a complete baseline log passes, it should accept diagnostic paints', () {
+      final validation = validator().validate(buildLog());
 
-        expect(validation.passed, isTrue);
-      },
-    );
+      expect(validation.passed, isTrue);
+    });
 
-    test(
-      'when retained painting is required and zero, it should accept the log',
-      () {
-        final validation = validator(requireRetainedPaint: true).validate(
-          buildLog(requireRetainedPaint: true),
-        );
+    test('when retained painting is required and zero, it should accept the log', () {
+      final validation = validator(requireRetainedPaint: true).validate(buildLog(requireRetainedPaint: true));
 
-        expect(validation.passed, isTrue);
-      },
-    );
+      expect(validation.passed, isTrue);
+    });
 
-    test(
-      'when retained painting is required but a child paints, '
-      'it should reject the log',
-      () {
-        final validation = validator(requireRetainedPaint: true).validate(
-          buildLog(requireRetainedPaint: true, probePaints: 1),
-        );
+    test('when retained painting is required but a child paints, '
+        'it should reject the log', () {
+      final validation = validator(requireRetainedPaint: true)
+          .validate(buildLog(requireRetainedPaint: true, probePaints: 1));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a raw distribution has the wrong frame count, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(rawFrameCount: frames - 1),
-        );
+    test('when a raw distribution has the wrong frame count, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(rawFrameCount: frames - 1));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when reported statistics disagree with raw timings, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(corruptBuildStatistics: true),
-        );
+    test('when reported statistics disagree with raw timings, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(corruptBuildStatistics: true));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when the scrolled body drifts, it should reject the log',
-      () {
-        final validation = validator().validate(buildLog(scrollEnd: 601));
+    test('when the scrolled body drifts, it should reject the log', () {
+      final validation = validator().validate(buildLog(scrollEnd: 601));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a below-threshold cycle invokes dismissal, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(dismissCallbacks: 1),
-        );
+    test('when a below-threshold cycle invokes dismissal, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(dismissCallbacks: 1));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when records use a stale run identifier, it should reject the log',
-      () {
-        final validation = validator().validate(buildLog(runId: 'stale'));
+    test('when records use a stale run identifier, it should reject the log', () {
+      final validation = validator().validate(buildLog(runId: 'stale'));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a valid record is chunked, it should reconstruct and accept it',
-      () {
-        final validation = validator().validate(
-          buildLog(chunkEnvironment: true),
-        );
+    test('when a valid record is chunked, it should reconstruct and accept it', () {
+      final validation = validator().validate(buildLog(chunkEnvironment: true));
 
-        expect(validation.passed, isTrue);
-      },
-    );
+      expect(validation.passed, isTrue);
+    });
   });
 }

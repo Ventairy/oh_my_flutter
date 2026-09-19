@@ -1,7 +1,7 @@
 part of 'native_selectable_text.dart';
 
 final class _NativeSelectableTextBrowserContextMenu {
-  _NativeSelectableTextBrowserContextMenu._();
+  new _();
 
   static final instance = _NativeSelectableTextBrowserContextMenu._();
 

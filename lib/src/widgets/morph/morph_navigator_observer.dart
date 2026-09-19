@@ -13,7 +13,7 @@ part of 'morph.dart';
 /// for Navigator and router setup.
 class MorphNavigatorObserver extends NavigatorObserver {
   /// Creates an observer for one Navigator containing Morph appearances.
-  MorphNavigatorObserver();
+  new();
 
   final List<WeakReference<_MorphCoordinator>> _coordinators = [];
   Route<Object?>? _currentRoute;

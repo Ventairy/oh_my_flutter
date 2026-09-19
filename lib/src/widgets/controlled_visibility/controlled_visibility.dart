@@ -41,7 +41,7 @@ part 'visibility_controller.dart';
 /// for lifecycle, transition, and unmounting behavior.
 class ControlledVisibility extends StatefulWidget {
   /// Creates a controller-driven visibility wrapper around [child].
-  const ControlledVisibility({
+  const new({
     required this.controller,
     required this.child,
     this.showTransition,

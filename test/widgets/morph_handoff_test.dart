@@ -502,7 +502,7 @@ void main() {
 }
 
 class _HandoffTestApp extends StatefulWidget {
-  const _HandoffTestApp({
+  const new({
     required this.sourceOffstage,
     required this.destinationOffstage,
     this.navigatorKey,
@@ -618,7 +618,7 @@ class _HandoffTestAppState extends State<_HandoffTestApp> {
 }
 
 class _FocusedSnapshotSurface extends StatelessWidget {
-  const _FocusedSnapshotSurface({
+  const new({
     required this.fieldKey,
     required this.focusNode,
     required this.textController,

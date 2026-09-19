@@ -9,7 +9,7 @@ import 'package:oh_my_flutter/src/widgets/morph/morph.dart'
     show MorphColumnFlightDelegate, MorphColumnProperties, MorphTextFlightDelegate, MorphTextProperties;
 
 class _MorphColumnPropertiesHarness extends StatelessWidget {
-  const _MorphColumnPropertiesHarness({required this.properties});
+  const new({required this.properties});
 
   final MorphColumnProperties properties;
 
@@ -37,7 +37,7 @@ class _MorphColumnPropertiesHarness extends StatelessWidget {
 }
 
 class _MorphTextFlightHarness extends StatelessWidget {
-  const _MorphTextFlightHarness({required this.properties});
+  const new({required this.properties});
 
   final MorphTextProperties properties;
 
@@ -66,7 +66,7 @@ class _MorphTextFlightHarness extends StatelessWidget {
 }
 
 class _AnimatedMorphTextFlightHarness extends StatelessWidget {
-  const _AnimatedMorphTextFlightHarness({
+  const new({
     required this.source,
     required this.destination,
     required this.animation,
@@ -2364,7 +2364,7 @@ void main() {
 }
 
 class _RtlTextMorphTestApp extends StatefulWidget {
-  const _RtlTextMorphTestApp({
+  const new({
     this.sourceWidth = 180,
     this.destinationWidth = 300,
   });
@@ -2380,7 +2380,7 @@ class _RtlTextMorphTestApp extends StatefulWidget {
 }
 
 class _RetainedTextGeometryApp extends StatefulWidget {
-  const _RetainedTextGeometryApp();
+  const new();
 
   static const sourceKey = ValueKey<String>('retained-text-source');
   static const destinationKey = ValueKey<String>(
@@ -2447,7 +2447,7 @@ class _RetainedTextGeometryAppState extends State<_RetainedTextGeometryApp> {
 }
 
 class _OverflowTextMorphTestApp extends StatefulWidget {
-  const _OverflowTextMorphTestApp({required this.overflow});
+  const new({required this.overflow});
 
   static const text = 'Non-wrapping overflow text that is much wider than its endpoint';
   static const toggleKey = ValueKey<String>('overflow-text-toggle');

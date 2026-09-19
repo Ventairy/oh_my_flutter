@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListDrag implements Drag {
-  _SnapListDrag(this.delegate, this.motion);
+  new(this.delegate, this.motion);
   final Drag delegate;
   final _SnapListMotion motion;
 

@@ -6,18 +6,14 @@ import 'morph_benchmark_scenario.dart';
 /// Runs host-side validation for a captured Morph benchmark log.
 final class MorphBenchmarkValidationCommand {
   /// Creates the Morph benchmark validation command.
-  const MorphBenchmarkValidationCommand();
+  const new();
 
   static const _jsonLinesFileName = 'morph_benchmark.jsonl';
   static const _summaryFileName = 'morph_benchmark_summary.txt';
 
   /// Validates [arguments], writes validation artifacts, and returns a process
   /// exit code.
-  Future<int> run(
-    List<String> arguments, {
-    StringSink? output,
-    StringSink? errors,
-  }) async {
+  Future<int> run(List<String> arguments, {StringSink? output, StringSink? errors}) async {
     final outputSink = output ?? stdout;
     final errorSink = errors ?? stderr;
     try {
@@ -92,19 +88,13 @@ final class MorphBenchmarkValidationCommand {
     }
 
     if (logPath == null) {
-      throw const FormatException(
-        '--log, --output-directory, and --expected-scenarios are required.',
-      );
+      throw const FormatException('--log, --output-directory, and --expected-scenarios are required.');
     }
     if (outputDirectory == null) {
-      throw const FormatException(
-        '--log, --output-directory, and --expected-scenarios are required.',
-      );
+      throw const FormatException('--log, --output-directory, and --expected-scenarios are required.');
     }
     if (expectedScenarios == null) {
-      throw const FormatException(
-        '--log, --output-directory, and --expected-scenarios are required.',
-      );
+      throw const FormatException('--log, --output-directory, and --expected-scenarios are required.');
     }
     if (minimumFrames < 1) {
       throw const FormatException('--minimum-frames must be at least one.');
@@ -133,9 +123,7 @@ final class MorphBenchmarkValidationCommand {
       throw const FormatException('--expected-scenarios must not be empty.');
     }
     if (scenarioIds.toSet().length != scenarioIds.length) {
-      throw const FormatException(
-        '--expected-scenarios must not contain duplicates.',
-      );
+      throw const FormatException('--expected-scenarios must not contain duplicates.');
     }
     scenarioIds.forEach(MorphBenchmarkScenario.fromId);
 
@@ -149,11 +137,7 @@ final class MorphBenchmarkValidationCommand {
     );
   }
 
-  String _followingValue(
-    List<String> arguments,
-    int index,
-    String option,
-  ) {
+  String _followingValue(List<String> arguments, int index, String option) {
     if (index >= arguments.length || arguments[index].startsWith('--')) {
       throw FormatException('$option requires a value.');
     }

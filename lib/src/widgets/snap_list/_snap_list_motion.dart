@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListMotion extends ChangeNotifier {
-  _SnapListMotion({
+  new({
     required this.commitThreshold,
     required this.duration,
     required this.reverseDuration,

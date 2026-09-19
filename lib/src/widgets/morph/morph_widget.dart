@@ -40,7 +40,7 @@ part of 'morph.dart';
 /// for endpoint setup, automatic transitions, and customization.
 class Morph extends StatefulWidget {
   /// Creates an appearance that can transition to another with an equal tag.
-  const Morph({
+  const new({
     required this.target,
     required this.child,
     this.flightConfig = const MorphFlightConfig.auto(),

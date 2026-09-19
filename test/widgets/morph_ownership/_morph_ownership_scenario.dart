@@ -1,7 +1,7 @@
 part of '../morph_ownership_test.dart';
 
 final class _MorphOwnershipScenario {
-  _MorphOwnershipScenario({this.curve = Curves.linear}) {
+  new({this.curve = Curves.linear}) {
     addTearDown(appearances.dispose);
     addTearDown(revision.dispose);
   }

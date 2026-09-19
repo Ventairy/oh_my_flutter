@@ -8,7 +8,7 @@ import 'pigeon_device_display.dart';
 /// Selects the mobile device-display implementation for this process.
 final class DeviceDisplayPlatformImplementation extends DeviceDisplayPlatform {
   /// Creates the implementation for the current operating system.
-  DeviceDisplayPlatformImplementation() : _platform = _createPlatform();
+  new() : _platform = _createPlatform();
 
   final DeviceDisplayPlatform _platform;
 

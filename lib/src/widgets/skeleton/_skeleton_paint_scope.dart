@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonPaintScope {
-  _SkeletonPaintScope({
+  new({
     required this.bounds,
     required this.deferredPaintLevels,
     required this.ignoreAnnotations,

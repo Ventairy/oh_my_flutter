@@ -8,7 +8,7 @@ import 'device_locale_platform.dart';
 /// for usage and platform availability.
 interface class DeviceLocale {
   /// Creates a utility for accessing device locale preferences.
-  const DeviceLocale();
+  const new();
 
   /// Reads the configured country or region.
   ///

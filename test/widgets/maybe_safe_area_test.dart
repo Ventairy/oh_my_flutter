@@ -2368,7 +2368,7 @@ void main() {
 }
 
 class _StatefulChild extends StatefulWidget {
-  const _StatefulChild({required this.onInit});
+  const new({required this.onInit});
 
   final VoidCallback onInit;
 
@@ -2388,7 +2388,7 @@ class _StatefulChildState extends State<_StatefulChild> {
 }
 
 class _CountingPainter extends CustomPainter {
-  const _CountingPainter({required this.onPaint});
+  const new({required this.onPaint});
 
   final VoidCallback onPaint;
 

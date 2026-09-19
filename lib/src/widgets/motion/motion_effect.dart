@@ -23,7 +23,7 @@ part of 'motion.dart';
 @immutable
 abstract class MotionEffect {
   /// Creates a motion effect with its playback configuration.
-  const MotionEffect({
+  const new({
     this.delay = Duration.zero,
     this.duration = const Duration(milliseconds: 300),
     this.curve = Curves.linear,

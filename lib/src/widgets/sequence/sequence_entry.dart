@@ -1,7 +1,7 @@
 part of 'sequence.dart';
 
 class _SequenceEntry {
-  _SequenceEntry({
+  new({
     required this.identity,
     required this.index,
     required this.child,

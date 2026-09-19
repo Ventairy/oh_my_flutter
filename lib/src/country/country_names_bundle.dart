@@ -8,7 +8,7 @@ import 'country_names_lzma.dart';
 
 /// Reads the compact CLDR fallback used where system translations are absent.
 final class CountryNamesBundle {
-  CountryNamesBundle._(this._bytes) {
+  new _(this._bytes) {
     if (_bytes.length < 4 || _bytes[0] != 67 || _bytes[1] != 78 || _bytes[2] != 1 || _bytes[3] != 0) {
       throw const FormatException('Unsupported country-name bundle');
     }
@@ -45,7 +45,7 @@ final class CountryNamesBundle {
 
   /// Reads a raw grid for exhaustive generator verification and fixture tests.
   @visibleForTesting
-  CountryNamesBundle.test(Uint8List bytes) : this._(bytes);
+  new test(Uint8List bytes) : this._(bytes);
 
   /// The lazily decoded bundled catalogs.
   static final instance = CountryNamesBundle._(

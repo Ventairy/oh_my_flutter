@@ -4,7 +4,7 @@ class _RenderMorphHybridColumnFlight extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, ContainerBoxParentData<RenderBox>>,
         RenderBoxContainerDefaultsMixin<RenderBox, ContainerBoxParentData<RenderBox>> {
-  _RenderMorphHybridColumnFlight(
+  new(
     this._animation,
     this._plan,
     this._sourceBounds,

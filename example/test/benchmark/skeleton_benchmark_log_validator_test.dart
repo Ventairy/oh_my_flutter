@@ -78,11 +78,7 @@ void main() {
       'invalid_trial_attempts': 0,
       'retried_trials': 0,
     });
-    return records
-        .map(
-          (record) => 'flutter: SKELETON_BENCHMARK ${jsonEncode(record)}',
-        )
-        .join('\n');
+    return records.map((record) => 'flutter: SKELETON_BENCHMARK ${jsonEncode(record)}').join('\n');
   }
 
   SkeletonBenchmarkLogValidator validator() {
@@ -106,50 +102,32 @@ void main() {
       expect(validation.passed, isTrue);
     });
 
-    test(
-      'when platform animations are disabled, it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(animationsDisabled: true),
-        );
+    test('when platform animations are disabled, it should reject the log', () {
+      final validation = validator().validate(buildLog(animationsDisabled: true));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when descendants repaint during steady animation, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(buildLog(probePaints: 1));
+    test('when descendants repaint during steady animation, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(probePaints: 1));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when Skeletons use more than one animation callback, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(transientCallbacks: 16),
-        );
+    test('when Skeletons use more than one animation callback, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(transientCallbacks: 16));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when the structural result disagrees with its measurements, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(structuralInvariantsPassed: false),
-        );
+    test('when the structural result disagrees with its measurements, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(structuralInvariantsPassed: false));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
   });
 }
 

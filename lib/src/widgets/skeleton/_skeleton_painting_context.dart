@@ -4,7 +4,7 @@ class _SkeletonPaintingContext extends PaintingContext {
   // Both values are retained locally, so neither positional argument can be a
   // super parameter without duplicating the container-layer reference.
   // ignore: use_super_parameters
-  _SkeletonPaintingContext(
+  new(
     ContainerLayer containerLayer,
     Rect estimatedBounds,
     this._paintState,

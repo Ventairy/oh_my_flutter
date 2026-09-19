@@ -13,7 +13,7 @@ part of 'controlled_visibility.dart';
 /// ```
 class VisibilityController {
   /// Creates a controller for one [ControlledVisibility] widget.
-  VisibilityController();
+  new();
 
   void Function({required bool visible})? _onChanged;
   bool? _pendingVisibility;

@@ -110,7 +110,7 @@ enum MorphBenchmarkScenario {
   /// child.
   decoratedForeground('decorated_foreground');
 
-  const MorphBenchmarkScenario(this.id);
+  new(this.id);
 
   /// Stable identifier accepted by `MORPH_SCENARIO` and emitted in benchmark
   /// JSON.
@@ -178,10 +178,7 @@ enum MorphBenchmarkScenario {
   }
 
   /// Returns the stable child identity for one endpoint state.
-  String endpointIdentity({
-    required String child,
-    required bool destination,
-  }) {
+  String endpointIdentity({required String child, required bool destination}) {
     final state = destination ? 'destination' : 'source';
     return 'benchmark-$id-$child-$state';
   }

@@ -47,7 +47,7 @@ void main() {
 }
 
 class _MorphGoldenHarness extends StatefulWidget {
-  const _MorphGoldenHarness({super.key});
+  const new({super.key});
 
   @override
   State<_MorphGoldenHarness> createState() => _MorphGoldenHarnessState();

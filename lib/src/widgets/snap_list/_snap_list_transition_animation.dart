@@ -1,8 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListTransitionAnimation extends Animation<double> with ChangeNotifier, AnimationLocalStatusListenersMixin {
-  _SnapListTransitionAnimation(this._value)
-    : _status = _value == 1 ? AnimationStatus.completed : AnimationStatus.dismissed;
+  new(this._value) : _status = _value == 1 ? AnimationStatus.completed : AnimationStatus.dismissed;
 
   double _value;
   AnimationStatus _status;

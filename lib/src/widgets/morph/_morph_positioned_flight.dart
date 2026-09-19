@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphPositionedFlight extends SingleChildRenderObjectWidget {
-  const _MorphPositionedFlight({
+  const new({
     required this.animation,
     required this.geometry,
     required this.sourceBounds,

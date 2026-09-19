@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphSiblingPaint extends RenderBox {
-  _RenderMorphSiblingPaint({required this._handle});
+  new({required this._handle});
 
   static final Matrix4 _hiddenLayerTransform = Matrix4.zero();
 

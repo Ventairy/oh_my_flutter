@@ -24,7 +24,7 @@ void main() => runApp(const UtilityExample());
 /// A small gallery for the public utility APIs.
 class UtilityExample extends StatefulWidget {
   /// Creates the utility example.
-  const UtilityExample({super.key});
+  const new({super.key});
 
   @override
   State<UtilityExample> createState() => _UtilityExampleState();
@@ -119,19 +119,12 @@ class _UtilityExampleState extends State<UtilityExample> {
                 ),
               ),
             ),
-            const Positioned(
-              top: 0,
-              right: 24,
-              child: MaybeSafeAreaExample(),
-            ),
+            const Positioned(top: 0, right: 24, child: MaybeSafeAreaExample()),
           ],
         ),
       ),
     );
   }
 
-  static const _sectionStyle = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w700,
-  );
+  static const _sectionStyle = TextStyle(fontSize: 18, fontWeight: FontWeight.w700);
 }

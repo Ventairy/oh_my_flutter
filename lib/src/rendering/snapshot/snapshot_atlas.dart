@@ -2,7 +2,7 @@ part of 'raster_snapshot.dart';
 
 @internal
 final class SnapshotAtlas {
-  SnapshotAtlas(this.image) {
+  new(this.image) {
     _scheduleDisposalIfUnused(afterFrame: false);
   }
 

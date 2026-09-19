@@ -3,7 +3,7 @@ part of 'phone_number_text_input_formatter.dart';
 /// Supplies the complete outcome of formatting phone-number input.
 @immutable
 final class PhoneNumberTextInputFormatterResult {
-  const PhoneNumberTextInputFormatterResult._({
+  const new _({
     required this.textEditingValue,
     required this.country,
     required this.internationalValue,

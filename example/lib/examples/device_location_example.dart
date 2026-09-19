@@ -4,13 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Demonstrates automatic and manually managed foreground location access.
 class DeviceLocationExample extends StatefulWidget {
   /// Creates the DeviceLocation example.
-  const DeviceLocationExample({
-    this.checkPermission,
-    this.requestPermission,
-    this.getCoordinates,
-    this.openLocationSettings,
-    super.key,
-  });
+  const new({this.checkPermission, this.requestPermission, this.getCoordinates, this.openLocationSettings, super.key});
 
   /// Overrides the permission-status operation for deterministic tests.
   final Future<DeviceLocationPermissionStatus> Function()? checkPermission;
@@ -19,10 +13,7 @@ class DeviceLocationExample extends StatefulWidget {
   final Future<DeviceLocationPermissionStatus> Function()? requestPermission;
 
   /// Overrides coordinate acquisition for deterministic tests.
-  final Future<DeviceLocationCoordinates> Function({
-    bool prompt,
-  })?
-  getCoordinates;
+  final Future<DeviceLocationCoordinates> Function({bool prompt})? getCoordinates;
 
   /// Overrides settings navigation for deterministic tests.
   final Future<bool> Function()? openLocationSettings;
@@ -78,9 +69,7 @@ class _DeviceLocationExampleState extends State<DeviceLocationExample> {
   Future<String> _getCoordinates({required bool requestPermission}) async {
     final request = widget.getCoordinates;
     final coordinates = request == null
-        ? await _location.getCurrentCoordinates(
-            requestPermission: requestPermission,
-          )
+        ? await _location.getCurrentCoordinates(requestPermission: requestPermission)
         : await request(prompt: requestPermission);
     return '${coordinates.latitude}, ${coordinates.longitude} '
         '(±${coordinates.accuracy} m)';
@@ -122,11 +111,7 @@ class _DeviceLocationExampleState extends State<DeviceLocationExample> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         FilledButton(
-          onPressed: _working
-              ? null
-              : () => _run(
-                  () => _getCoordinates(requestPermission: true),
-                ),
+          onPressed: _working ? null : () => _run(() => _getCoordinates(requestPermission: true)),
           child: const Text('Use current location'),
         ),
         const SizedBox(height: 8),
@@ -143,11 +128,7 @@ class _DeviceLocationExampleState extends State<DeviceLocationExample> {
               child: const Text('Request permission'),
             ),
             OutlinedButton(
-              onPressed: _working
-                  ? null
-                  : () => _run(
-                      () => _getCoordinates(requestPermission: false),
-                    ),
+              onPressed: _working ? null : () => _run(() => _getCoordinates(requestPermission: false)),
               child: const Text('Use without prompting'),
             ),
             OutlinedButton(

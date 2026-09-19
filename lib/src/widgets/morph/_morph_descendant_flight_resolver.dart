@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphDescendantFlightResolver extends ChangeNotifier {
-  _MorphDescendantFlightResolver({
+  new({
     required _MorphDescendantCapture capture,
     required this._subtree,
   }) : _capture = capture {

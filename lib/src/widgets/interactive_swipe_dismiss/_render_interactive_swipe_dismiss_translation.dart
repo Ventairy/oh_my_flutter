@@ -1,7 +1,7 @@
 part of 'interactive_swipe_dismiss.dart';
 
 class _RenderInteractiveSwipeDismissTranslation extends RenderProxyBox {
-  _RenderInteractiveSwipeDismissTranslation(
+  new(
     _InteractiveSwipeDismissTranslationController controller,
   ) : _controller = controller,
       _dx = controller.dx,

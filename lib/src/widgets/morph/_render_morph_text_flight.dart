@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphTextFlight extends RenderBox {
-  _RenderMorphTextFlight(
+  new(
     this._delegate,
     this._flight,
     this._devicePixelRatio,

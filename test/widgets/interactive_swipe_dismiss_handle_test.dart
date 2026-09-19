@@ -287,7 +287,7 @@ void main() {
 }
 
 class _HandleTestApp extends StatelessWidget {
-  const _HandleTestApp({required this.child});
+  const new({required this.child});
 
   final Widget child;
 

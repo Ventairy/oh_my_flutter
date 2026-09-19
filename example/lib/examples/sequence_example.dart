@@ -4,7 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Shows controller-driven navigation through a Sequence.
 class SequenceExample extends StatefulWidget {
   /// Creates the Sequence example.
-  const SequenceExample({super.key});
+  const new({super.key});
 
   @override
   State<SequenceExample> createState() => _SequenceExampleState();
@@ -25,19 +25,9 @@ class _SequenceExampleState extends State<SequenceExample> {
       children: [
         Sequence(
           controller: _controller,
-          nextTransition: (child, animation) => FadeTransition(
-            opacity: animation,
-            child: child,
-          ),
-          previousTransition: (child, animation) => ScaleTransition(
-            scale: animation,
-            child: child,
-          ),
-          children: const [
-            Text('Sequence step one'),
-            Text('Sequence step two'),
-            Text('Sequence step three'),
-          ],
+          nextTransition: (child, animation) => FadeTransition(opacity: animation, child: child),
+          previousTransition: (child, animation) => ScaleTransition(scale: animation, child: child),
+          children: const [Text('Sequence step one'), Text('Sequence step two'), Text('Sequence step three')],
         ),
         const SizedBox(height: 12),
         AnimatedBuilder(

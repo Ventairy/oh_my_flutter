@@ -1,7 +1,7 @@
 part of 'maybe_safe_area.dart';
 
 class _RenderSafeAreaObserver extends RenderProxyBox {
-  _RenderSafeAreaObserver({
+  new({
     required this._handle,
     required this._padding,
     required this._viewSize,

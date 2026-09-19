@@ -1,7 +1,7 @@
 part of 'interactive_swipe_dismiss.dart';
 
 class _InteractiveSwipeDismissScope extends InheritedWidget {
-  const _InteractiveSwipeDismissScope({
+  const new({
     required this.coordinator,
     required super.child,
   });

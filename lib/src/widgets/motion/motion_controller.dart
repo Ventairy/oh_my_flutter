@@ -7,7 +7,7 @@ part of 'motion.dart';
 /// none are attached does nothing.
 class MotionController {
   /// Creates a motion controller.
-  MotionController();
+  new();
 
   final Set<VoidCallback> _playbacks = <VoidCallback>{};
 

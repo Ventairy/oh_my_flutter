@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Paints every text effect through one cached atlas draw operation.
 class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
-  _RenderOptimizedTextMotion({
+  new({
     required this._graphemes,
     required this._applications,
     required this._style,

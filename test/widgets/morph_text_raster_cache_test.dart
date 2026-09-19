@@ -12,7 +12,7 @@ import 'package:oh_my_flutter/src/widgets/morph/morph_test_configuration.dart';
 part 'morph_text_raster_cache/_wrapping_column_raster_route.dart';
 
 final class _InterceptedPictureRecorder implements ui.PictureRecorder {
-  _InterceptedPictureRecorder(this.delegate, this.binding);
+  new(this.delegate, this.binding);
 
   final ui.PictureRecorder delegate;
   final _MorphRasterBinding binding;
@@ -27,7 +27,7 @@ final class _InterceptedPictureRecorder implements ui.PictureRecorder {
 }
 
 final class _InterceptedPicture implements ui.Picture {
-  _InterceptedPicture(this.delegate, this.binding);
+  new(this.delegate, this.binding);
 
   final ui.Picture delegate;
   final _MorphRasterBinding binding;
@@ -64,7 +64,7 @@ final class _InterceptedPicture implements ui.Picture {
 }
 
 final class _MorphRasterBinding extends LiveTestWidgetsFlutterBinding {
-  _MorphRasterBinding() {
+  new() {
     framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.onlyPumps;
   }
 
@@ -97,14 +97,14 @@ final class _MorphRasterBinding extends LiveTestWidgetsFlutterBinding {
 final _MorphRasterBinding _binding = _MorphRasterBinding();
 
 class _RasterSegmentCurve extends Curve {
-  const _RasterSegmentCurve();
+  const new();
 
   @override
   double transformInternal(double t) => t < 0.5 ? 0.25 : 0.75;
 }
 
 class _TextFlightHarness extends StatelessWidget {
-  const _TextFlightHarness({
+  const new({
     required this.source,
     required this.destination,
     required this.animation,
@@ -162,7 +162,7 @@ class _TextFlightHarness extends StatelessWidget {
 }
 
 class _CrossFlightRasterApp extends StatefulWidget {
-  const _CrossFlightRasterApp({super.key});
+  const new({super.key});
 
   @override
   State<_CrossFlightRasterApp> createState() => _CrossFlightRasterAppState();
@@ -244,7 +244,7 @@ class _CrossFlightRasterAppState extends State<_CrossFlightRasterApp> {
 }
 
 class _ColumnRasterWorkingSetApp extends StatefulWidget {
-  const _ColumnRasterWorkingSetApp({
+  const new({
     this.childCount = 4,
     this.duplicateLast = false,
     this.duplicateTail = false,
@@ -360,7 +360,7 @@ class _ColumnRasterWorkingSetAppState extends State<_ColumnRasterWorkingSetApp> 
 }
 
 class _StaggeredRasterLeaseApp extends StatefulWidget {
-  const _StaggeredRasterLeaseApp({
+  const new({
     required this.childCount,
     required this.endpointSize,
     required this.sourceFontSize,
@@ -445,7 +445,7 @@ class _StaggeredRasterLeaseAppState extends State<_StaggeredRasterLeaseApp> {
 }
 
 class _WrappingColumnRasterApp extends StatefulWidget {
-  const _WrappingColumnRasterApp({super.key});
+  const new({super.key});
 
   @override
   State<_WrappingColumnRasterApp> createState() => _WrappingColumnRasterAppState();
@@ -705,7 +705,7 @@ Future<ui.Image> _toggleAndWaitForRaster(
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 1));
   await tester.pump(const Duration(milliseconds: 60));
-  return _waitForRaster(
+  return await _waitForRaster(
     tester,
     pumpAfterReady: pumpAfterReady,
   );
@@ -718,7 +718,7 @@ Future<ui.Image> _popAndWaitForRaster(
   state.pop();
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 60));
-  return _waitForRaster(tester);
+  return await _waitForRaster(tester);
 }
 
 ({int entries, int pixels, int creates, int hits}) _poolStats(
@@ -765,7 +765,7 @@ Future<({int entries, int pixels, int creates, int hits})> _pushAndPopulateColum
     minimumEntries: firstSegmentEntries,
   );
   await tester.pump(const Duration(milliseconds: 800));
-  return _waitForPoolEntries(
+  return await _waitForPoolEntries(
     tester,
     minimumEntries: secondSegmentEntries,
   );
@@ -785,7 +785,7 @@ Future<({int entries, int pixels, int creates, int hits})> _popAndPopulateColumn
     minimumEntries: firstSegmentEntries,
   );
   await tester.pump(const Duration(milliseconds: 800));
-  return _waitForPoolEntries(
+  return await _waitForPoolEntries(
     tester,
     minimumEntries: secondSegmentEntries,
   );

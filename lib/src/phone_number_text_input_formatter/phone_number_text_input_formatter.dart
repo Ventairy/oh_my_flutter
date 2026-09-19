@@ -18,7 +18,7 @@ final class PhoneNumberTextInputFormatter extends TextInputFormatter {
   /// Creates a formatter for [country].
   ///
   /// The country must have a calling code.
-  PhoneNumberTextInputFormatter({required this.country})
+  new({required this.country})
     : assert(
         country.callingCode != null,
         'country must have a calling code.',

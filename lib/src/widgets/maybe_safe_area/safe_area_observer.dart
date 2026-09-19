@@ -9,7 +9,7 @@ part of 'maybe_safe_area.dart';
 /// See the [SafeAreaObserver guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/safe_area_observer.md).
 class SafeAreaObserver extends SingleChildRenderObjectWidget {
   /// Observes the enabled unsafe edges of [child].
-  const SafeAreaObserver({
+  const new({
     required this.handle,
     required super.child,
     this.left = true,

@@ -6,11 +6,11 @@ import 'device_locale_platform.dart';
 /// Reads locale information through the native host API.
 final class PigeonDeviceLocalePlatform extends DeviceLocalePlatform {
   /// Creates the native locale implementation.
-  PigeonDeviceLocalePlatform() : _api = DeviceLocaleHostApi();
+  new() : _api = DeviceLocaleHostApi();
 
   /// Creates an implementation backed by a test host API.
   @visibleForTesting
-  PigeonDeviceLocalePlatform.test(this._api);
+  new test(this._api);
 
   final DeviceLocaleHostApi _api;
 

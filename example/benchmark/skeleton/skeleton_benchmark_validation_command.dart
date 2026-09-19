@@ -5,18 +5,14 @@ import 'skeleton_benchmark_log_validator.dart';
 /// Runs host-side validation for a captured Skeleton benchmark log.
 final class SkeletonBenchmarkValidationCommand {
   /// Creates the Skeleton benchmark validation command.
-  const SkeletonBenchmarkValidationCommand();
+  const new();
 
   static const String _jsonLinesFileName = 'skeleton_benchmark.jsonl';
   static const String _summaryFileName = 'skeleton_benchmark_summary.txt';
 
   /// Validates [arguments], writes validation artifacts, and returns an exit
   /// code suitable for an acceptance gate.
-  Future<int> run(
-    List<String> arguments, {
-    StringSink? output,
-    StringSink? errors,
-  }) async {
+  Future<int> run(List<String> arguments, {StringSink? output, StringSink? errors}) async {
     final outputSink = output ?? stdout;
     final errorSink = errors ?? stderr;
     try {
@@ -39,9 +35,7 @@ final class SkeletonBenchmarkValidationCommand {
       ).validate(log);
       final outputDirectory = Directory(options.outputDirectory);
       await outputDirectory.create(recursive: true);
-      final jsonLinesFile = File(
-        '${outputDirectory.path}/$_jsonLinesFileName',
-      );
+      final jsonLinesFile = File('${outputDirectory.path}/$_jsonLinesFileName');
       final summaryFile = File('${outputDirectory.path}/$_summaryFileName');
       await jsonLinesFile.writeAsString(validation.extractedJsonLines);
       await summaryFile.writeAsString(validation.summary);
@@ -86,10 +80,7 @@ final class SkeletonBenchmarkValidationCommand {
       '--expected-warmup-frames',
       '--expected-frames-per-trial',
     };
-    const flagOptions = <String>{
-      '--require-budget-pass',
-      '--require-enforced',
-    };
+    const flagOptions = <String>{'--require-budget-pass', '--require-enforced'};
 
     for (var index = 0; index < arguments.length; index += 1) {
       final argument = arguments[index];
@@ -117,14 +108,8 @@ final class SkeletonBenchmarkValidationCommand {
       throw FormatException('Missing required options: ${missing.join(', ')}.');
     }
 
-    final expectedCardCount = _positiveInteger(
-      values['--expected-card-count']!,
-      '--expected-card-count',
-    );
-    final expectedWarmupFrames = _positiveInteger(
-      values['--expected-warmup-frames']!,
-      '--expected-warmup-frames',
-    );
+    final expectedCardCount = _positiveInteger(values['--expected-card-count']!, '--expected-card-count');
+    final expectedWarmupFrames = _positiveInteger(values['--expected-warmup-frames']!, '--expected-warmup-frames');
     final expectedFramesPerTrial = _positiveInteger(
       values['--expected-frames-per-trial']!,
       '--expected-frames-per-trial',
@@ -135,18 +120,10 @@ final class SkeletonBenchmarkValidationCommand {
     }
     final expectedTopology = values['--expected-topology']!;
     if (expectedTopology != 'single' && expectedTopology != 'many') {
-      throw const FormatException(
-        '--expected-topology must be single or many.',
-      );
+      throw const FormatException('--expected-topology must be single or many.');
     }
-    _requireNonPlaceholder(
-      values['--expected-run-id']!,
-      '--expected-run-id',
-    );
-    _requireNonPlaceholder(
-      values['--expected-renderer']!,
-      '--expected-renderer',
-    );
+    _requireNonPlaceholder(values['--expected-run-id']!, '--expected-run-id');
+    _requireNonPlaceholder(values['--expected-renderer']!, '--expected-renderer');
 
     return (
       expectedCardCount: expectedCardCount,
@@ -163,11 +140,7 @@ final class SkeletonBenchmarkValidationCommand {
     );
   }
 
-  String _followingValue(
-    List<String> arguments,
-    int index,
-    String option,
-  ) {
+  String _followingValue(List<String> arguments, int index, String option) {
     if (index >= arguments.length || arguments[index].startsWith('--')) {
       throw FormatException('$option requires a value.');
     }

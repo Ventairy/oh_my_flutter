@@ -1,7 +1,7 @@
 part of 'device_location_test.dart';
 
 class _FakeDeviceLocation implements DeviceLocation {
-  const _FakeDeviceLocation();
+  const new();
 
   @override
   Future<DeviceLocationPermissionStatus> get permissionStatus async {

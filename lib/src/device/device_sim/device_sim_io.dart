@@ -7,8 +7,7 @@ import 'pigeon_device_sim.dart';
 /// Selects the SIM implementation for the current operating system.
 final class DeviceSimPlatformImplementation extends DeviceSimPlatform {
   /// Creates the implementation for this process.
-  DeviceSimPlatformImplementation()
-    : _platform = Platform.isAndroid ? PigeonDeviceSimPlatform() : unsupported.DeviceSimPlatformImplementation();
+  new() : _platform = Platform.isAndroid ? PigeonDeviceSimPlatform() : unsupported.DeviceSimPlatformImplementation();
 
   final DeviceSimPlatform _platform;
 

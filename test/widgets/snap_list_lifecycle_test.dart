@@ -7,7 +7,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'snap_list_test.dart' show SnapListTestHost;
 
 class _Counter extends StatefulWidget {
-  const _Counter({required this.index, super.key});
+  const new({required this.index, super.key});
   final int index;
   @override
   State<_Counter> createState() => _CounterState();

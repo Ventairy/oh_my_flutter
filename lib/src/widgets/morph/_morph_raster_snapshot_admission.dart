@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphRasterSnapshotAdmission<K, V> {
-  _MorphRasterSnapshotAdmission({
+  new({
     required this.key,
     required this.generation,
   });

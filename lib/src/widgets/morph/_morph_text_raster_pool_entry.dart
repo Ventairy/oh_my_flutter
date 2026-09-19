@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTextRasterPoolEntry {
-  _MorphTextRasterPoolEntry({
+  new({
     required this.key,
     required this.image,
   });

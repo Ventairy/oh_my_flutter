@@ -5,32 +5,20 @@ import 'morph_benchmark_scenario.dart';
 /// Validates the machine-readable records emitted by the Morph benchmark.
 final class MorphBenchmarkLogValidator {
   /// Creates a validator for one exact benchmark workload.
-  MorphBenchmarkLogValidator({
+  new({
     required Iterable<String> expectedScenarioIds,
     this.minimumFrames = 150,
     this.requireBudgetPass = false,
     this.requireEnforcedBudget = false,
   }) : _expectedScenarioIds = List<String>.unmodifiable(expectedScenarioIds) {
     if (_expectedScenarioIds.isEmpty) {
-      throw ArgumentError.value(
-        expectedScenarioIds,
-        'expectedScenarioIds',
-        'must contain at least one scenario',
-      );
+      throw ArgumentError.value(expectedScenarioIds, 'expectedScenarioIds', 'must contain at least one scenario');
     }
     if (_expectedScenarioIds.toSet().length != _expectedScenarioIds.length) {
-      throw ArgumentError.value(
-        expectedScenarioIds,
-        'expectedScenarioIds',
-        'must not contain duplicates',
-      );
+      throw ArgumentError.value(expectedScenarioIds, 'expectedScenarioIds', 'must not contain duplicates');
     }
     if (minimumFrames < 1) {
-      throw ArgumentError.value(
-        minimumFrames,
-        'minimumFrames',
-        'must be at least one',
-      );
+      throw ArgumentError.value(minimumFrames, 'minimumFrames', 'must be at least one');
     }
   }
 
@@ -55,12 +43,7 @@ final class MorphBenchmarkLogValidator {
   /// The returned JSON Lines string contains only successfully parsed benchmark
   /// records. The summary always describes invalid attempts and completed
   /// retries, even when the final acceptance result is valid.
-  ({
-    String extractedJsonLines,
-    bool passed,
-    String summary,
-  })
-  validate(String flutterLog) {
+  ({String extractedJsonLines, bool passed, String summary}) validate(String flutterLog) {
     final issues = <String>[];
     final records = <Map<String, Object?>>[];
     final chunkCounts = <int, int>{};
@@ -94,18 +77,11 @@ final class MorphBenchmarkLogValidator {
         }
         records.add(Map<String, Object?>.unmodifiable(decoded));
       } on FormatException catch (error) {
-        issues.add(
-          'Record $markedLineCount contains invalid JSON: ${error.message}.',
-        );
+        issues.add('Record $markedLineCount contains invalid JSON: ${error.message}.');
       }
     }
 
-    _decodeChunks(
-      counts: chunkCounts,
-      payloads: chunkPayloads,
-      records: records,
-      issues: issues,
-    );
+    _decodeChunks(counts: chunkCounts, payloads: chunkPayloads, records: records, issues: issues);
 
     if (markedLineCount == 0) {
       issues.add('The log contains no MORPH_BENCHMARK records.');
@@ -177,11 +153,7 @@ final class MorphBenchmarkLogValidator {
       completedRetryRecords: completedRetryRecords,
       issues: issues,
     );
-    return (
-      extractedJsonLines: extracted.isEmpty ? '' : '$extracted\n',
-      passed: issues.isEmpty,
-      summary: summary,
-    );
+    return (extractedJsonLines: extracted.isEmpty ? '' : '$extracted\n', passed: issues.isEmpty, summary: summary);
   }
 
   void _collectChunk({
@@ -217,19 +189,14 @@ final class MorphBenchmarkLogValidator {
         return;
       }
       counts[record] = count;
-      final parts = payloads.putIfAbsent(
-        record,
-        () => List<String?>.filled(count, null),
-      );
+      final parts = payloads.putIfAbsent(record, () => List<String?>.filled(count, null));
       if (parts[index] != null) {
         issues.add('Chunked record $record repeats index $index.');
         return;
       }
       parts[index] = chunkPayload;
     } on FormatException catch (error) {
-      issues.add(
-        'Chunk $markedLineCount contains invalid JSON: ${error.message}.',
-      );
+      issues.add('Chunk $markedLineCount contains invalid JSON: ${error.message}.');
     }
   }
 
@@ -260,17 +227,12 @@ final class MorphBenchmarkLogValidator {
         }
         records.add(Map<String, Object?>.unmodifiable(decoded));
       } on FormatException catch (error) {
-        issues.add(
-          'Chunked record $record has invalid payload: ${error.message}.',
-        );
+        issues.add('Chunked record $record has invalid payload: ${error.message}.');
       }
     }
   }
 
-  List<Map<String, Object?>> _recordsAtPath(
-    List<Map<String, Object?>> records,
-    String path,
-  ) {
+  List<Map<String, Object?>> _recordsAtPath(List<Map<String, Object?>> records, String path) {
     return records
         .where((record) {
           return record['path'] == path;
@@ -278,16 +240,11 @@ final class MorphBenchmarkLogValidator {
         .toList(growable: false);
   }
 
-  void _validateEnvironment(
-    Map<String, Object?>? environment,
-    List<String> issues,
-  ) {
+  void _validateEnvironment(Map<String, Object?>? environment, List<String> issues) {
     if (environment == null) return;
 
     if (environment['mode'] != 'profile') {
-      issues.add(
-        'Environment mode must be profile, got ${environment['mode']}.',
-      );
+      issues.add('Environment mode must be profile, got ${environment['mode']}.');
     }
     final renderer = environment['renderer'];
     final rendererIsMissing = renderer is! String || renderer.trim().isEmpty;
@@ -296,9 +253,7 @@ final class MorphBenchmarkLogValidator {
       rendererIsUnspecified = renderer.trim().toLowerCase() == 'unspecified';
     }
     if (rendererIsMissing || rendererIsUnspecified) {
-      issues.add(
-        'Environment renderer must be a verified, non-unspecified label.',
-      );
+      issues.add('Environment renderer must be a verified, non-unspecified label.');
     }
     final refreshRate = environment['refresh_rate_hz'];
     if (refreshRate is! num || !refreshRate.isFinite || refreshRate <= 0) {
@@ -342,10 +297,7 @@ final class MorphBenchmarkLogValidator {
     }
   }
 
-  void _validateSteadyGates(
-    List<Map<String, Object?>> records,
-    List<String> issues,
-  ) {
+  void _validateSteadyGates(List<Map<String, Object?>> records, List<String> issues) {
     final expectedPaths = <String>{};
     for (final scenario in _expectedScenarioIds) {
       for (var trial = 1; trial <= _expectedSteadyTrials; trial += 1) {
@@ -382,15 +334,11 @@ final class MorphBenchmarkLogValidator {
             );
           }
           if (requireBudgetPass && result['work_p99_within_budget'] != true) {
-            issues.add(
-              'Steady result $path did not pass its build/raster p99 budget.',
-            );
+            issues.add('Steady result $path did not pass its build/raster p99 budget.');
           }
           final attempt = result['attempt'];
           if (attempt is! int || attempt < 1) {
-            issues.add(
-              'Steady result $path must contain a positive attempt number.',
-            );
+            issues.add('Steady result $path must contain a positive attempt number.');
           }
           if (result['retried'] != (attempt is int && attempt > 1)) {
             issues.add(
@@ -411,16 +359,12 @@ final class MorphBenchmarkLogValidator {
     for (final record in records) {
       final scenario = record['scenario'];
       if (scenario is String && !_expectedScenarioIds.contains(scenario)) {
-        issues.add(
-          'Unexpected scenario $scenario at ${record['path'] ?? 'unknown'}.',
-        );
+        issues.add('Unexpected scenario $scenario at ${record['path'] ?? 'unknown'}.');
       }
       if (record['phase'] != 'steady' || record['gate'] != true) continue;
       final path = record['path'];
       if (path is! String || !expectedPaths.contains(path)) {
-        issues.add(
-          'Unexpected steady gate record at ${path ?? 'an unknown path'}.',
-        );
+        issues.add('Unexpected steady gate record at ${path ?? 'an unknown path'}.');
       }
     }
   }
@@ -435,9 +379,7 @@ final class MorphBenchmarkLogValidator {
       final reportsRefreshes = result.containsKey('snapshot_refreshes');
       final reportsPass = result.containsKey('snapshot_invariants_passed');
       if (reportsRefreshes || reportsPass) {
-        issues.add(
-          'Steady result $path must not report watched snapshot gates.',
-        );
+        issues.add('Steady result $path must not report watched snapshot gates.');
       }
       return;
     }
@@ -445,9 +387,7 @@ final class MorphBenchmarkLogValidator {
     final transitionCount = result['transitions'];
     final refreshes = result['snapshot_refreshes'];
     if (transitionCount is! int || transitionCount < 1) {
-      issues.add(
-        'Steady result $path must report a positive transition count.',
-      );
+      issues.add('Steady result $path must report a positive transition count.');
       return;
     }
     if (refreshes is! List<Object?> || refreshes.length != transitionCount) {
@@ -463,9 +403,7 @@ final class MorphBenchmarkLogValidator {
     for (var index = 0; index < refreshes.length; index += 1) {
       final refresh = refreshes[index];
       if (refresh is! Map<String, Object?>) {
-        issues.add(
-          'Steady result $path snapshot refresh $index must be a JSON object.',
-        );
+        issues.add('Steady result $path snapshot refresh $index must be a JSON object.');
         allRefreshesPass = false;
         continue;
       }
@@ -482,12 +420,8 @@ final class MorphBenchmarkLogValidator {
           expectedGenerations.add(start + batch * expectedMutations);
         }
       }
-      final reportedGenerations = _intList(
-        refresh['expected_captured_generations'],
-      );
-      final capturedGenerations = _intList(
-        refresh['dirty_captured_generations'],
-      );
+      final reportedGenerations = _intList(refresh['expected_captured_generations']);
+      final capturedGenerations = _intList(refresh['dirty_captured_generations']);
       final dirtyCapturePaints = refresh['dirty_capture_paints'];
       final cleanCapturePaints = refresh['unchanged_capture_paints'];
       final dirtyMax = refresh['dirty_max_capture_paints_per_frame'];
@@ -504,10 +438,7 @@ final class MorphBenchmarkLogValidator {
       }
       var generationSequencePass = false;
       if (capturedGenerations != null) {
-        generationSequencePass = _sameIntLists(
-          capturedGenerations,
-          expectedGenerations,
-        );
+        generationSequencePass = _sameIntLists(capturedGenerations, expectedGenerations);
       }
       final expectedCapturePaints = expectedGenerations.length;
       var dirtyCapturePass = false;
@@ -553,9 +484,7 @@ final class MorphBenchmarkLogValidator {
     }
 
     if (result['snapshot_invariants_passed'] != allRefreshesPass) {
-      issues.add(
-        'Steady result $path has inconsistent snapshot_invariants_passed.',
-      );
+      issues.add('Steady result $path has inconsistent snapshot_invariants_passed.');
     }
     if (!allRefreshesPass) {
       issues.add('Steady result $path did not pass its watched snapshot gate.');
@@ -577,10 +506,7 @@ final class MorphBenchmarkLogValidator {
     return true;
   }
 
-  void _validateAcceptance(
-    Map<String, Object?>? acceptance,
-    List<String> issues,
-  ) {
+  void _validateAcceptance(Map<String, Object?>? acceptance, List<String> issues) {
     if (acceptance == null) return;
     if (acceptance['passed'] != true) {
       issues.add('Application acceptance is not true.');
@@ -624,28 +550,20 @@ final class MorphBenchmarkLogValidator {
         );
       }
       if (reasons == null || reasons.isEmpty) {
-        issues.add(
-          'Invalid-attempt record ${record['path']} has no invalid_reasons.',
-        );
+        issues.add('Invalid-attempt record ${record['path']} has no invalid_reasons.');
       }
       if (record['retrying'] != true) {
-        issues.add(
-          'Invalid-attempt record ${record['path']} did not schedule a retry.',
-        );
+        issues.add('Invalid-attempt record ${record['path']} did not schedule a retry.');
       }
       if (attempt == 1 && record['retrying'] == true) {
-        retriedTrialIds.add(
-          '${record['scenario']}|${record['phase']}|${record['trial'] ?? 0}',
-        );
+        retriedTrialIds.add('${record['scenario']}|${record['phase']}|${record['trial'] ?? 0}');
       }
     }
 
     for (final record in completedRetryRecords) {
       final attempt = record['attempt'];
       if (attempt is! int || attempt <= 1 || record['retried'] != true) {
-        issues.add(
-          'Completed result ${record['path']} has inconsistent retry metadata.',
-        );
+        issues.add('Completed result ${record['path']} has inconsistent retry metadata.');
       }
     }
 
@@ -676,11 +594,7 @@ final class MorphBenchmarkLogValidator {
     required List<Map<String, Object?>> completedRetryRecords,
     required List<String> issues,
   }) {
-    final steadyGateCount = records
-        .where(
-          (record) => record['phase'] == 'steady' && record['gate'] == true,
-        )
-        .length;
+    final steadyGateCount = records.where((record) => record['phase'] == 'steady' && record['gate'] == true).length;
     final gatesPerScenario = _expectedSteadyTrials * _directions.length;
     final expectedGateCount = _expectedScenarioIds.length * gatesPerScenario;
     var workBudgetRequirement = 'reported only';
@@ -688,9 +602,7 @@ final class MorphBenchmarkLogValidator {
     var enforcementRequirement = 'optional';
     if (requireEnforcedBudget) enforcementRequirement = 'required';
     final summary = StringBuffer()
-      ..writeln(
-        'Morph benchmark host validation: ${issues.isEmpty ? 'PASS' : 'FAIL'}',
-      )
+      ..writeln('Morph benchmark host validation: ${issues.isEmpty ? 'PASS' : 'FAIL'}')
       ..writeln('Records: ${records.length}')
       ..writeln(
         'Environment: mode=${environment?['mode'] ?? 'missing'}; '
@@ -722,9 +634,7 @@ final class MorphBenchmarkLogValidator {
     if (invalidAttemptRecords.isNotEmpty) {
       summary.writeln('Invalid attempt details:');
       for (final record in invalidAttemptRecords) {
-        final reasons = _stringList(
-          record['invalid_reasons'],
-        )?.join(', ');
+        final reasons = _stringList(record['invalid_reasons'])?.join(', ');
         summary.writeln(
           '- ${record['path']}: direction=${record['invalid_direction']}; '
           'reasons=${reasons ?? 'missing'}',

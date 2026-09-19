@@ -1,7 +1,7 @@
 part of '../morph_ownership_test.dart';
 
 class _MorphOwnershipApp extends StatefulWidget {
-  const _MorphOwnershipApp(this.scenario);
+  const new(this.scenario);
 
   final _MorphOwnershipScenario scenario;
 

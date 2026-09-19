@@ -8,7 +8,7 @@ part of '../motion.dart';
 /// for combining scale with other effects and controlling playback.
 class ScaleOutMotionEffect extends MotionEffect {
   /// Creates an effect that scales from `1.0` to [scale].
-  const ScaleOutMotionEffect({
+  const new({
     this.scale = 0,
     super.delay = Duration.zero,
     super.duration = const Duration(milliseconds: 300),

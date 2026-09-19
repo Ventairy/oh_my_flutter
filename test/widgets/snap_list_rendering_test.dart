@@ -5,7 +5,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'snap_list_test.dart' show SnapListTestHost;
 
 class _Probe extends SingleChildRenderObjectWidget {
-  const _Probe({required this.layout, required this.paint});
+  const new({required this.layout, required this.paint});
   final VoidCallback layout;
   final VoidCallback paint;
   @override
@@ -13,7 +13,7 @@ class _Probe extends SingleChildRenderObjectWidget {
 }
 
 class _RenderProbe extends RenderBox {
-  _RenderProbe(this.onLayout, this.onPaint);
+  new(this.onLayout, this.onPaint);
   final VoidCallback onLayout;
   final VoidCallback onPaint;
   @override

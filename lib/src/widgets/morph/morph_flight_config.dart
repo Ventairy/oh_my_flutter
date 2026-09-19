@@ -8,7 +8,7 @@ part of 'morph.dart';
 /// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md)
 /// for automatic and custom transitions.
 sealed class MorphFlightConfig {
-  const MorphFlightConfig._();
+  const new _();
 
   /// Animates supported widgets automatically and configures child replacement.
   ///
@@ -21,7 +21,7 @@ sealed class MorphFlightConfig {
   /// content inside supported widgets. Its animation moves from 1 to 0 for
   /// departing content and from 0 to 1 for arriving content. When omitted,
   /// content switches immediately. Nested Morphs animate independently.
-  const factory MorphFlightConfig.auto({
+  const factory auto({
     double childSwitchAt,
     Widget Function(Widget child, Animation<double> animation)? childTransition,
   }) = _MorphAutoFlightConfiguration;
@@ -31,7 +31,7 @@ sealed class MorphFlightConfig {
   /// Use the same delegate runtime type and the same endpoint property type at
   /// both endpoints. The departing delegate controls the transition, including
   /// any child replacement effects.
-  const factory MorphFlightConfig.custom(
+  const factory custom(
     MorphFlightDelegate<Object?> delegate,
   ) = _MorphCustomFlightConfiguration;
 }

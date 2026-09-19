@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 
 class SnapshotPaintingContext extends PaintingContext {
-  SnapshotPaintingContext({required ContainerLayer layer, required Rect bounds}) : super(layer, bounds);
+  new({required ContainerLayer layer, required Rect bounds}) : super(layer, bounds);
 
   static ui.Image capture(RenderBox box, Offset offset) {
     final layer = OffsetLayer();

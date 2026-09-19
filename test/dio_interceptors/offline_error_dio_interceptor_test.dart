@@ -9,7 +9,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 import '../mocks.dart';
 
 class _ThrowingAdapter implements HttpClientAdapter {
-  _ThrowingAdapter(this.exception);
+  new(this.exception);
 
   final DioException exception;
 

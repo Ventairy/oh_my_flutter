@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTagStatusListenable extends ChangeNotifier implements ValueListenable<MorphTagStatus> {
-  _MorphTagStatusListenable(this.observer, this.tag) : _lastValue = observer._tagStatusValue(tag);
+  new(this.observer, this.tag) : _lastValue = observer._tagStatusValue(tag);
 
   final MorphNavigatorObserver observer;
   final Object tag;

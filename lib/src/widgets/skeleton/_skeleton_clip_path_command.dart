@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonClipPathCommand implements _SkeletonBoneCommand {
-  _SkeletonClipPathCommand({required Path path, required this.doAntiAlias}) : path = Path.from(path);
+  new({required Path path, required this.doAntiAlias}) : path = Path.from(path);
 
   final Path path;
   final bool doAntiAlias;

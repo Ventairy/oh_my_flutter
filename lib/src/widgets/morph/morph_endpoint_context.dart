@@ -6,7 +6,7 @@ part of 'morph.dart';
 /// look at this location.
 @immutable
 final class MorphEndpointContext {
-  const MorphEndpointContext._({
+  const new _({
     required this.context,
     required this.child,
     required RenderBox internalRenderObject,

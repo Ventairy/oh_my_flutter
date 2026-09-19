@@ -18,7 +18,6 @@ import 'package:pigeon/pigeon.dart';
 /// Defines the host operations used by the display implementation.
 @HostApi()
 // Pigeon host APIs must be abstract even when they expose a single operation.
-// ignore: one_member_abstracts
 abstract class DeviceDisplayHostApi {
   /// Returns the current display corner radii in physical pixels.
   DeviceDisplayCornerRadiiMessage? getCornerRadii(
@@ -29,7 +28,7 @@ abstract class DeviceDisplayHostApi {
 /// Identifies the Flutter view geometry requesting platform display evidence.
 class DeviceDisplayGeometryMessage {
   /// Creates a physical-pixel geometry snapshot.
-  DeviceDisplayGeometryMessage({
+  new({
     required this.displayWidth,
     required this.displayHeight,
     required this.viewWidth,
@@ -52,7 +51,7 @@ class DeviceDisplayGeometryMessage {
 /// Carries platform display corner radii across the platform channel.
 class DeviceDisplayCornerRadiiMessage {
   /// Creates a message with current-orientation physical-pixel radii.
-  DeviceDisplayCornerRadiiMessage({
+  new({
     required this.topLeft,
     required this.topRight,
     required this.bottomRight,

@@ -1,7 +1,7 @@
 part of '../morph_registered_descendant_test.dart';
 
 class _SnapshotFlightDelegate extends MorphFlightDelegate<Widget> {
-  const _SnapshotFlightDelegate({
+  const new({
     this.switchAt = 0.8,
     this.register = true,
     this.usesUncurvedAnimation = false,

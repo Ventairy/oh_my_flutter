@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphCapturedEnvironment {
-  _MorphCapturedEnvironment(this._context);
+  new(this._context);
 
   final BuildContext _context;
 

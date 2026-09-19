@@ -3,7 +3,7 @@ part of 'morph.dart';
 /// Defines a container-specific Morph transition.
 final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContainerProperties> {
   /// Creates a transition for containers and decorated boxes.
-  const MorphContainerFlightDelegate({
+  const new({
     this.switchThreshold = 0.5,
     this.switchTransition,
   }) : assert(

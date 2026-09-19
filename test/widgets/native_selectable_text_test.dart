@@ -73,7 +73,7 @@ void _setTargetPlatform(TargetPlatform platform) {
 void _restoreTargetPlatform() => debugDefaultTargetPlatformOverride = null;
 
 final class _NativeMenuHost {
-  _NativeMenuHost({
+  new({
     this.acceptsPresentation = true,
     bool? acceptsUpdates,
     bool? acceptsGeometryUpdates,
@@ -110,7 +110,7 @@ final class _NativeMenuHost {
       (message) async {
         final arguments = message! as List<Object?>;
         showRequests.add(arguments.single! as NativeSelectableTextMenuRequestMessage);
-        return _respond(
+        return await _respond(
           accepted: acceptsPresentation,
           deferred: deferShowResponses,
         );
@@ -124,7 +124,7 @@ final class _NativeMenuHost {
       (message) async {
         final arguments = message! as List<Object?>;
         updateRequests.add(arguments.single! as NativeSelectableTextMenuRequestMessage);
-        return _respond(
+        return await _respond(
           accepted: acceptsUpdates,
           deferred: deferUpdateResponses,
         );
@@ -138,7 +138,7 @@ final class _NativeMenuHost {
       (message) async {
         final arguments = message! as List<Object?>;
         geometryUpdates.add((arguments[0]! as int, arguments[1]! as Float64List));
-        return _respond(
+        return await _respond(
           accepted: acceptsGeometryUpdates,
           deferred: deferGeometryUpdateResponses,
         );
@@ -209,7 +209,7 @@ final class _NativeMenuHost {
 }
 
 final class _LocalizedMenuDelegate extends LocalizationsDelegate<MaterialLocalizations> {
-  const _LocalizedMenuDelegate();
+  const new();
 
   @override
   bool isSupported(Locale locale) => true;
@@ -226,7 +226,7 @@ final class _LocalizedMenuDelegate extends LocalizationsDelegate<MaterialLocaliz
 }
 
 final class _LocalizedMenuLabels extends DefaultMaterialLocalizations {
-  const _LocalizedMenuLabels();
+  const new();
 
   @override
   String get copyButtonLabel => 'Copiar texto';
@@ -236,7 +236,7 @@ final class _LocalizedMenuLabels extends DefaultMaterialLocalizations {
 }
 
 final class _LocalizedCupertinoDelegate extends LocalizationsDelegate<CupertinoLocalizations> {
-  const _LocalizedCupertinoDelegate();
+  const new();
 
   @override
   bool isSupported(Locale locale) => true;
@@ -253,7 +253,7 @@ final class _LocalizedCupertinoDelegate extends LocalizationsDelegate<CupertinoL
 }
 
 final class _CountingMenuDelegate extends LocalizationsDelegate<MaterialLocalizations> {
-  const _CountingMenuDelegate(this.labels);
+  const new(this.labels);
 
   final _CountingMenuLabels labels;
 

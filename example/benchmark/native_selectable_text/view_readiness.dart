@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 /// Describes whether a benchmark view can produce attributable frame timings.
 final class NativeSelectableTextBenchmarkViewReadiness {
   /// Creates one immutable observation of lifecycle and display state.
-  const NativeSelectableTextBenchmarkViewReadiness({
+  const new({
     required this.lifecycleState,
     required this.logicalSize,
     required this.physicalSize,

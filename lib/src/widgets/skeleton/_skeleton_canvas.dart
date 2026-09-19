@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonCanvas implements Canvas {
-  _SkeletonCanvas({
+  new({
     required this._parent,
     required this._commands,
     required this._paintState,

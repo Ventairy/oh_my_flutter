@@ -1,7 +1,7 @@
 part of 'native_selectable_text.dart';
 
 final class _NativeSelectableTextMenuCoordinator implements NativeSelectableTextMenuFlutterApi {
-  _NativeSelectableTextMenuCoordinator._();
+  new _();
 
   static final instance = _NativeSelectableTextMenuCoordinator._();
   final NativeSelectableTextMenuHostApi _hostApi = NativeSelectableTextMenuHostApi();

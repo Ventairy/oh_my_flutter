@@ -4,7 +4,7 @@ part of 'morph.dart';
 /// Visual values for a container at one end of a Morph transition.
 final class MorphContainerProperties {
   /// Creates the visual values for a container.
-  const MorphContainerProperties({
+  const new({
     required this.alignment,
     required this.padding,
     required this.decoration,

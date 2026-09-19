@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphColumnFlight extends StatefulWidget {
-  const _MorphColumnFlight({
+  const new({
     required this.delegate,
     required this.flight,
     required this.switchTransition,

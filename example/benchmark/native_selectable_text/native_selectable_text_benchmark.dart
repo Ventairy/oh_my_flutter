@@ -14,42 +14,16 @@ import 'record_buffer.dart';
 import 'scenario.dart';
 import 'view_readiness.dart';
 
-const bool _enforceFrameBudget = bool.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_ENFORCE_FRAME_BUDGET',
-);
+const bool _enforceFrameBudget = bool.fromEnvironment('NATIVE_SELECTABLE_TEXT_ENFORCE_FRAME_BUDGET');
 
-const int _warmupFrameCount = int.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_WARMUP_FRAMES',
-  defaultValue: 180,
-);
-const int _measuredFrameCount = int.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_MEASURED_FRAMES',
-  defaultValue: 600,
-);
-const int _itemCount = int.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_ITEM_COUNT',
-  defaultValue: 240,
-);
-const String _scenarioName = String.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_SCENARIO',
-  defaultValue: 'selection',
-);
-const String _widgetName = String.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_WIDGET',
-  defaultValue: 'native',
-);
-const String _textCaseName = String.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_TEXT_CASE',
-  defaultValue: 'paragraph',
-);
-const String _rendererName = String.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_RENDERER',
-  defaultValue: 'unspecified',
-);
-const String _runId = String.fromEnvironment(
-  'NATIVE_SELECTABLE_TEXT_RUN_ID',
-  defaultValue: 'unspecified',
-);
+const int _warmupFrameCount = int.fromEnvironment('NATIVE_SELECTABLE_TEXT_WARMUP_FRAMES', defaultValue: 180);
+const int _measuredFrameCount = int.fromEnvironment('NATIVE_SELECTABLE_TEXT_MEASURED_FRAMES', defaultValue: 600);
+const int _itemCount = int.fromEnvironment('NATIVE_SELECTABLE_TEXT_ITEM_COUNT', defaultValue: 240);
+const String _scenarioName = String.fromEnvironment('NATIVE_SELECTABLE_TEXT_SCENARIO', defaultValue: 'selection');
+const String _widgetName = String.fromEnvironment('NATIVE_SELECTABLE_TEXT_WIDGET', defaultValue: 'native');
+const String _textCaseName = String.fromEnvironment('NATIVE_SELECTABLE_TEXT_TEXT_CASE', defaultValue: 'paragraph');
+const String _rendererName = String.fromEnvironment('NATIVE_SELECTABLE_TEXT_RENDERER', defaultValue: 'unspecified');
+const String _runId = String.fromEnvironment('NATIVE_SELECTABLE_TEXT_RUN_ID', defaultValue: 'unspecified');
 
 const String _shortSelectionText =
     'Copy this native selection '
@@ -89,11 +63,7 @@ enum _BenchmarkWidget {
     return switch (value) {
       'native' => native,
       'selectable' => selectable,
-      _ => throw ArgumentError.value(
-        value,
-        'widget',
-        'must be native or selectable',
-      ),
+      _ => throw ArgumentError.value(value, 'widget', 'must be native or selectable'),
     };
   }
 }
@@ -110,11 +80,7 @@ enum _BenchmarkTextCase {
       'paragraph' => paragraph,
       'long' => long,
       'rich' => rich,
-      _ => throw ArgumentError.value(
-        value,
-        'textCase',
-        'must be short, paragraph, long, or rich',
-      ),
+      _ => throw ArgumentError.value(value, 'textCase', 'must be short, paragraph, long, or rich'),
     };
   }
 }
@@ -122,7 +88,7 @@ enum _BenchmarkTextCase {
 /// Runs profile-mode scrolling and active-selection workloads.
 class NativeSelectableTextBenchmark extends StatefulWidget {
   /// Creates the benchmark application.
-  const NativeSelectableTextBenchmark({super.key});
+  const new({super.key});
 
   @override
   State<NativeSelectableTextBenchmark> createState() {
@@ -131,15 +97,12 @@ class NativeSelectableTextBenchmark extends StatefulWidget {
 }
 
 // The formatter keeps this declaration on one line at its 120-column width.
-// ignore: lines_longer_than_80_chars
 class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenchmark>
     with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   static const int _trialCount = 2;
   static const Duration _timingsTimeout = Duration(minutes: 2);
   static const Duration _viewReadinessTimeout = Duration(seconds: 30);
-  static const Duration _menuPresentationSettleDuration = Duration(
-    milliseconds: 250,
-  );
+  static const Duration _menuPresentationSettleDuration = Duration(milliseconds: 250);
 
   final GlobalKey _selectionKey = GlobalKey();
   final ScrollController _scrollController = ScrollController();
@@ -176,16 +139,11 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
       _BenchmarkTextCase.short => (_shortSelectionText, null),
       _BenchmarkTextCase.paragraph => (_paragraphSelectionText, null),
       _BenchmarkTextCase.long => (_longSelectionText, null),
-      _BenchmarkTextCase.rich => (
-        _richSelectionText.toPlainText(),
-        _richSelectionText,
-      ),
+      _BenchmarkTextCase.rich => (_richSelectionText.toPlainText(), _richSelectionText),
     };
     _plainText = content.$1;
     _richText = content.$2;
-    _recordBuffer = NativeSelectableTextBenchmarkRecordBuffer(
-      (message) => debugPrint(message, wrapWidth: 4000),
-    );
+    _recordBuffer = NativeSelectableTextBenchmarkRecordBuffer((message) => debugPrint(message, wrapWidth: 4000));
     _ticker = createTicker(_handleWorkloadTick);
     final lifecycleState = WidgetsBinding.instance.lifecycleState;
     _isInteractive = lifecycleState == AppLifecycleState.resumed;
@@ -222,14 +180,8 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
       await _prepareWorkload();
       _printEnvironment();
       for (var trial = 1; trial <= _trialCount; trial += 1) {
-        await _collectGuardedFrames(
-          _warmupFrameCount,
-          window: 'trial $trial warmup window',
-        );
-        final frames = await _collectGuardedFrames(
-          _measuredFrameCount,
-          window: 'trial $trial measured window',
-        );
+        await _collectGuardedFrames(_warmupFrameCount, window: 'trial $trial warmup window');
+        final frames = await _collectGuardedFrames(_measuredFrameCount, window: 'trial $trial measured window');
         _printTrial(trial, frames);
       }
       passed = _failedTrialPaths.isEmpty;
@@ -274,9 +226,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
       throw StateError('Set NATIVE_SELECTABLE_TEXT_RUN_ID to a fresh value.');
     }
     if (_rendererName.trim().isEmpty || _rendererName == 'unspecified') {
-      throw StateError(
-        'Set NATIVE_SELECTABLE_TEXT_RENDERER after verifying startup logs.',
-      );
+      throw StateError('Set NATIVE_SELECTABLE_TEXT_RENDERER after verifying startup logs.');
     }
     if (_warmupFrameCount < 1 || _measuredFrameCount < 1) {
       throw StateError('Warmup and measured frame counts must be positive.');
@@ -288,9 +238,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
 
   Future<NativeSelectableTextBenchmarkViewReadiness> _waitForReadyView() async {
     try {
-      return await _waitLoop().timeout(
-        _viewReadinessTimeout,
-      );
+      return await _waitLoop().timeout(_viewReadinessTimeout);
     } on TimeoutException {
       final observation = _startupObservation;
       final diagnostic = observation?.diagnostic ?? 'no observation';
@@ -375,9 +323,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
         throw StateError('The scrolling workload has no scroll position.');
       }
       if (_scrollController.position.maxScrollExtent <= 0) {
-        throw StateError(
-          'The scrolling workload did not produce a scroll extent.',
-        );
+        throw StateError('The scrolling workload did not produce a scroll extent.');
       }
       return;
     }
@@ -388,9 +334,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
     final editableTextState = _findEditableTextState();
     _editableTextState = editableTextState;
     editableTextState.userUpdateTextEditingValue(
-      editableTextState.textEditingValue.copyWith(
-        selection: const TextSelection(baseOffset: 0, extentOffset: 12),
-      ),
+      editableTextState.textEditingValue.copyWith(selection: const TextSelection(baseOffset: 0, extentOffset: 12)),
       SelectionChangedCause.longPress,
     );
     await SchedulerBinding.instance.endOfFrame;
@@ -456,9 +400,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
       await started.future.timeout(_timingsTimeout);
       await _windowFramesReady!.future.timeout(_timingsTimeout);
       if (!_isInteractive) {
-        throw StateError(
-          'The benchmark lost lifecycle focus during a frame window.',
-        );
+        throw StateError('The benchmark lost lifecycle focus during a frame window.');
       }
       return List<ui.FrameTiming>.of(_windowFrames, growable: false);
     } finally {
@@ -470,10 +412,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
     }
   }
 
-  Future<List<ui.FrameTiming>> _collectGuardedFrames(
-    int targetFrames, {
-    required String window,
-  }) async {
+  Future<List<ui.FrameTiming>> _collectGuardedFrames(int targetFrames, {required String window}) async {
     _requireNativeMenu('before the $window');
     final frames = await _collectFrames(targetFrames);
     _requireNativeMenu('after the $window');
@@ -484,9 +423,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
     if (_benchmarkWidget != _BenchmarkWidget.native || !_scenario.opensMenu) {
       return;
     }
-    NativeSelectableTextBenchmarkMenuReadiness.inspect(
-      context as Element,
-    ).requireNativeMenu(checkpoint: checkpoint);
+    NativeSelectableTextBenchmarkMenuReadiness.inspect(context as Element).requireNativeMenu(checkpoint: checkpoint);
   }
 
   void _handleWorkloadTick(Duration _) {
@@ -518,9 +455,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
     final maximumExtent = _plainText.length - 1;
     final extent = 2 + (_workloadStep % (maximumExtent - 1));
     editableTextState.userUpdateTextEditingValue(
-      editableTextState.textEditingValue.copyWith(
-        selection: TextSelection(baseOffset: 0, extentOffset: extent),
-      ),
+      editableTextState.textEditingValue.copyWith(selection: TextSelection(baseOffset: 0, extentOffset: extent)),
       SelectionChangedCause.drag,
     );
   }
@@ -530,9 +465,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
     final windowStart = _windowStartMicros;
     if (windowStart == null) return;
     for (final timing in timings) {
-      final buildStart = timing.timestampInMicroseconds(
-        ui.FramePhase.buildStart,
-      );
+      final buildStart = timing.timestampInMicroseconds(ui.FramePhase.buildStart);
       if (buildStart < windowStart) continue;
       if (_windowFrames.length >= _windowTargetFrames) break;
       _windowFrames.add(timing);
@@ -574,14 +507,8 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
       'inline_span_count': _richText?.children?.length ?? 1,
       'refresh_rate_hz': refreshRate,
       'frame_budget_us': frameBudgetMicros,
-      'logical_size': <String, double>{
-        'width': readyView.logicalSize.width,
-        'height': readyView.logicalSize.height,
-      },
-      'physical_size': <String, double>{
-        'width': readyView.physicalSize.width,
-        'height': readyView.physicalSize.height,
-      },
+      'logical_size': <String, double>{'width': readyView.logicalSize.width, 'height': readyView.logicalSize.height},
+      'physical_size': <String, double>{'width': readyView.physicalSize.width, 'height': readyView.physicalSize.height},
       'device_pixel_ratio': readyView.devicePixelRatio,
       'warmup_frames': _warmupFrameCount,
       'measured_frames': _measuredFrameCount,
@@ -628,11 +555,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        body: SafeArea(
-          child: _buildWorkload(),
-        ),
-      ),
+      home: Scaffold(body: SafeArea(child: _buildWorkload())),
     );
   }
 
@@ -652,9 +575,7 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: _richText == null
-              ? _buildSelectable(
-                  text: 'Selectable row $index: $_plainText',
-                )
+              ? _buildSelectable(text: 'Selectable row $index: $_plainText')
               : _buildSelectable(
                   textSpan: TextSpan(
                     children: <TextSpan>[
@@ -688,17 +609,10 @@ class _NativeSelectableTextBenchmarkState extends State<NativeSelectableTextBenc
         ),
       };
     }
-    final plainText =
-        text ??
-        (throw StateError(
-          'A benchmark text representation is required.',
-        ));
+    final plainText = text ?? (throw StateError('A benchmark text representation is required.'));
     return switch (_benchmarkWidget) {
       _BenchmarkWidget.native => NativeSelectableText(plainText),
-      _BenchmarkWidget.selectable => SelectableText(
-        plainText,
-        contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-      ),
+      _BenchmarkWidget.selectable => SelectableText(plainText, contextMenuBuilder: (_, _) => const SizedBox.shrink()),
     };
   }
 }

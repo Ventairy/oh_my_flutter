@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _RenderSkeletonDescendant extends RenderProxyBox {
-  _RenderSkeletonDescendant(this._behavior);
+  new(this._behavior);
 
   SkeletonDescendantBehavior _behavior;
 

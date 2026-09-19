@@ -1,8 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphGroupCapture extends ChangeNotifier {
-  _MorphGroupCapture(this.link, this.snapshot, this.reference)
-    : revision = GroupCaptureAccess.revision(link, reference);
+  new(this.link, this.snapshot, this.reference) : revision = GroupCaptureAccess.revision(link, reference);
   final RenderBox reference;
   int? revision;
   bool get isCurrent => revision == GroupCaptureAccess.revision(link, reference);

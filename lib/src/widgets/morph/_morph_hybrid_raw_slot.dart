@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphHybridRawSlot extends StatefulWidget {
-  const _MorphHybridRawSlot({
+  const new({
     required this.animation,
     required this.plan,
     required this.transitionBuilder,

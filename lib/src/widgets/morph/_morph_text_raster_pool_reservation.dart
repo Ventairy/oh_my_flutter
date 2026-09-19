@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTextRasterPoolReservation {
-  _MorphTextRasterPoolReservation(this.key);
+  new(this.key);
 
   final _MorphTextRasterPoolKey key;
   ui.Image? image;

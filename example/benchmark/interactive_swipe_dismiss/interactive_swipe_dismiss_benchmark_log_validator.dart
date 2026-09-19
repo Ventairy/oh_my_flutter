@@ -6,7 +6,7 @@ import 'interactive_swipe_dismiss_benchmark_record_buffer.dart';
 /// Validates the machine-readable InteractiveSwipeDismiss benchmark records.
 final class InteractiveSwipeDismissBenchmarkLogValidator {
   /// Creates a validator for one exact benchmark run.
-  InteractiveSwipeDismissBenchmarkLogValidator({
+  new({
     required this.expectedRunId,
     required this.expectedRenderer,
     required this.expectedWarmupFrames,
@@ -18,18 +18,10 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     _requireNonPlaceholder(expectedRunId, 'expectedRunId');
     _requireNonPlaceholder(expectedRenderer, 'expectedRenderer');
     if (expectedWarmupFrames < 2) {
-      throw ArgumentError.value(
-        expectedWarmupFrames,
-        'expectedWarmupFrames',
-        'must be at least two',
-      );
+      throw ArgumentError.value(expectedWarmupFrames, 'expectedWarmupFrames', 'must be at least two');
     }
     if (expectedFramesPerTrial < 2) {
-      throw ArgumentError.value(
-        expectedFramesPerTrial,
-        'expectedFramesPerTrial',
-        'must be at least two',
-      );
+      throw ArgumentError.value(expectedFramesPerTrial, 'expectedFramesPerTrial', 'must be at least two');
     }
   }
 
@@ -41,9 +33,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
   static const double _scrollTolerance = 0.01;
   static const double _sensitivity = 0.37;
   static const double _dismissFraction = 0.25;
-  static final RegExp _invalidAttemptPath = RegExp(
-    r'^steady\.trial_([12])\.invalid\.attempt_([1-3])$',
-  );
+  static final RegExp _invalidAttemptPath = RegExp(r'^steady\.trial_([12])\.invalid\.attempt_([1-3])$');
 
   /// Fresh identifier supplied to both the application and validator.
   final String expectedRunId;
@@ -67,9 +57,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
   final bool requireRetainedPaint;
 
   /// Parses and validates all benchmark records in [flutterLog].
-  ({String extractedJsonLines, bool passed, String summary}) validate(
-    String flutterLog,
-  ) {
+  ({String extractedJsonLines, bool passed, String summary}) validate(String flutterLog) {
     final issues = <String>[];
     final records = <Map<String, Object?>>[];
     final chunkCounts = <int, int>{};
@@ -77,14 +65,11 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     var markedLineCount = 0;
 
     for (final line in const LineSplitter().convert(flutterLog)) {
-      final chunkMarkerIndex = line.indexOf(
-        InteractiveSwipeDismissBenchmarkRecordBuffer.chunkMarker,
-      );
+      final chunkMarkerIndex = line.indexOf(InteractiveSwipeDismissBenchmarkRecordBuffer.chunkMarker);
       if (chunkMarkerIndex >= 0) {
         markedLineCount += 1;
         // The configured formatter keeps this fully qualified marker
         // expression on one line.
-        // ignore: lines_longer_than_80_chars
         final payloadStart = chunkMarkerIndex + InteractiveSwipeDismissBenchmarkRecordBuffer.chunkMarker.length;
         _collectChunk(
           payload: line.substring(payloadStart).trim(),
@@ -95,14 +80,11 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
         );
         continue;
       }
-      final markerIndex = line.indexOf(
-        InteractiveSwipeDismissBenchmarkRecordBuffer.recordMarker,
-      );
+      final markerIndex = line.indexOf(InteractiveSwipeDismissBenchmarkRecordBuffer.recordMarker);
       if (markerIndex < 0) continue;
       markedLineCount += 1;
       // The configured formatter keeps this fully qualified marker expression
       // on one line.
-      // ignore: lines_longer_than_80_chars
       final payloadStart = markerIndex + InteractiveSwipeDismissBenchmarkRecordBuffer.recordMarker.length;
       _decodeRecord(
         payload: line.substring(payloadStart).trim(),
@@ -112,16 +94,9 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
       );
     }
 
-    _decodeChunks(
-      counts: chunkCounts,
-      payloads: chunkPayloads,
-      records: records,
-      issues: issues,
-    );
+    _decodeChunks(counts: chunkCounts, payloads: chunkPayloads, records: records, issues: issues);
     if (markedLineCount == 0) {
-      issues.add(
-        'The log contains no INTERACTIVE_SWIPE_DISMISS_BENCHMARK records.',
-      );
+      issues.add('The log contains no INTERACTIVE_SWIPE_DISMISS_BENCHMARK records.');
     }
 
     final environmentRecords = _recordsAtPath(records, 'environment');
@@ -163,10 +138,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     _validateRunIds(records, issues);
     final environment = _singleRecord(environmentRecords);
     final acceptance = _singleRecord(acceptanceRecords);
-    final expectedEnvironment = _validateEnvironment(
-      environment,
-      issues,
-    );
+    final expectedEnvironment = _validateEnvironment(environment, issues);
     final failedSteadyPaths = <String>[];
     for (final record in steadyRecords) {
       if (!_validateSteadyGate(
@@ -186,11 +158,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
           return path is String && _invalidAttemptPath.hasMatch(path);
         })
         .toList(growable: false);
-    _validateRetries(
-      steadyRecords: steadyRecords,
-      invalidAttemptRecords: invalidAttemptRecords,
-      issues: issues,
-    );
+    _validateRetries(steadyRecords: steadyRecords, invalidAttemptRecords: invalidAttemptRecords, issues: issues);
     _validateAcceptance(
       acceptance: acceptance,
       failedSteadyPaths: failedSteadyPaths,
@@ -207,11 +175,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
       invalidAttemptRecords: invalidAttemptRecords,
       issues: issues,
     );
-    return (
-      extractedJsonLines: extracted.isEmpty ? '' : '$extracted\n',
-      passed: issues.isEmpty,
-      summary: summary,
-    );
+    return (extractedJsonLines: extracted.isEmpty ? '' : '$extracted\n', passed: issues.isEmpty, summary: summary);
   }
 
   void _collectChunk({
@@ -247,10 +211,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
         return;
       }
       counts[record] = count;
-      final parts = payloads.putIfAbsent(
-        record,
-        () => List<String?>.filled(count, null),
-      );
+      final parts = payloads.putIfAbsent(record, () => List<String?>.filled(count, null));
       if (parts.length != count) {
         issues.add('Chunked record $record has inconsistent storage.');
         return;
@@ -261,9 +222,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
       }
       parts[index] = chunkPayload;
     } on FormatException catch (error) {
-      issues.add(
-        'Chunk $markedLineCount contains invalid JSON: ${error.message}.',
-      );
+      issues.add('Chunk $markedLineCount contains invalid JSON: ${error.message}.');
     }
   }
 
@@ -285,19 +244,10 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
         continue;
       }
       try {
-        final payload = utf8.decode(
-          base64Decode(parts.cast<String>().join()),
-        );
-        _decodeRecord(
-          payload: payload,
-          label: 'Chunked record $record',
-          records: records,
-          issues: issues,
-        );
+        final payload = utf8.decode(base64Decode(parts.cast<String>().join()));
+        _decodeRecord(payload: payload, label: 'Chunked record $record', records: records, issues: issues);
       } on FormatException catch (error) {
-        issues.add(
-          'Chunked record $record has invalid payload: ${error.message}.',
-        );
+        issues.add('Chunked record $record has invalid payload: ${error.message}.');
       }
     }
   }
@@ -320,17 +270,8 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     }
   }
 
-  void _validateExactRecordSet(
-    List<Map<String, Object?>> records,
-    List<String> issues,
-  ) {
-    const fixedPaths = <String>{
-      'environment',
-      'steady.trial_1',
-      'steady.trial_2',
-      'acceptance',
-      'error',
-    };
+  void _validateExactRecordSet(List<Map<String, Object?>> records, List<String> issues) {
+    const fixedPaths = <String>{'environment', 'steady.trial_1', 'steady.trial_2', 'acceptance', 'error'};
     final pathCounts = <String, int>{};
     for (final record in records) {
       final path = record['path'];
@@ -353,10 +294,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     }
   }
 
-  void _validateRunIds(
-    List<Map<String, Object?>> records,
-    List<String> issues,
-  ) {
+  void _validateRunIds(List<Map<String, Object?>> records, List<String> issues) {
     for (final record in records) {
       if (record['run_id'] != expectedRunId) {
         issues.add(
@@ -367,23 +305,12 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     }
   }
 
-  ({
-    double dismissDistance,
-    int frameBudget,
-    double maximumRawPrimary,
-  })?
-  _validateEnvironment(
+  ({double dismissDistance, int frameBudget, double maximumRawPrimary})? _validateEnvironment(
     Map<String, Object?>? environment,
     List<String> issues,
   ) {
     if (environment == null) return null;
-    _expectEqual(
-      record: environment,
-      field: 'mode',
-      expected: 'profile',
-      label: 'Environment',
-      issues: issues,
-    );
+    _expectEqual(record: environment, field: 'mode', expected: 'profile', label: 'Environment', issues: issues);
     _expectEqual(
       record: environment,
       field: 'renderer',
@@ -408,13 +335,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
       'steady_frames_per_trial': expectedFramesPerTrial,
       'maximum_trial_attempts': _maximumTrialAttempts,
     }.entries) {
-      _expectEqual(
-        record: environment,
-        field: entry.key,
-        expected: entry.value,
-        label: 'Environment',
-        issues: issues,
-      );
+      _expectEqual(record: environment, field: entry.key, expected: entry.value, label: 'Environment', issues: issues);
     }
 
     final refreshRate = environment['refresh_rate_hz'];
@@ -431,26 +352,12 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
         );
       }
     }
-    final logicalHeight = _validatePositiveSize(
-      environment['logical_size'],
-      'Environment logical_size',
-      issues,
-    );
-    _validatePositiveSize(
-      environment['physical_size'],
-      'Environment physical_size',
-      issues,
-    );
+    final logicalHeight = _validatePositiveSize(environment['logical_size'], 'Environment logical_size', issues);
+    _validatePositiveSize(environment['physical_size'], 'Environment physical_size', issues);
     if (!_isPositiveFiniteNumber(environment['device_pixel_ratio'])) {
-      issues.add(
-        'Environment device_pixel_ratio must be finite and positive.',
-      );
+      issues.add('Environment device_pixel_ratio must be finite and positive.');
     }
-    final childHeight = _validatePositiveSize(
-      environment['child_size'],
-      'Environment child_size',
-      issues,
-    );
+    final childHeight = _validatePositiveSize(environment['child_size'], 'Environment child_size', issues);
     if (childHeight == null) return null;
     if (logicalHeight == null || expectedBudget == null) return null;
     return (
@@ -460,11 +367,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     );
   }
 
-  double? _validatePositiveSize(
-    Object? value,
-    String label,
-    List<String> issues,
-  ) {
+  double? _validatePositiveSize(Object? value, String label, List<String> issues) {
     if (value is! Map<String, Object?>) {
       issues.add('$label must be a JSON object.');
       return null;
@@ -580,23 +483,14 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     final rasterPass = raster != null && _percentile(raster, 0.99) <= budget;
     final workPass = buildPass && rasterPass;
     if (record['work_p99_within_budget'] != workPass) {
-      issues.add(
-        'Steady record $path has inconsistent work_p99_within_budget.',
-      );
+      issues.add('Steady record $path has inconsistent work_p99_within_budget.');
     }
     if (requireBudgetPass && !workPass) {
-      issues.add(
-        'Steady record $path did not pass its build/raster p99 gate.',
-      );
+      issues.add('Steady record $path did not pass its build/raster p99 gate.');
     }
 
     if (build != null && raster != null && totalSpan != null) {
-      final computedBudgetMetrics = _budgetMetrics(
-        build: build,
-        raster: raster,
-        totalSpan: totalSpan,
-        budget: budget,
-      );
+      final computedBudgetMetrics = _budgetMetrics(build: build, raster: raster, totalSpan: totalSpan, budget: budget);
       for (final entry in computedBudgetMetrics.entries) {
         _expectEqual(
           record: record,
@@ -738,10 +632,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
       if (buildMissed || rasterMissed || totalSpanMissed) {
         anyOverBudget += 1;
         consecutiveMisses += 1;
-        longestConsecutiveMisses = math.max(
-          longestConsecutiveMisses,
-          consecutiveMisses,
-        );
+        longestConsecutiveMisses = math.max(longestConsecutiveMisses, consecutiveMisses);
       } else {
         consecutiveMisses = 0;
       }
@@ -795,9 +686,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
             record['valid'] != false ||
             record['retrying'] != true ||
             record['maximum_trial_attempts'] != _maximumTrialAttempts) {
-          issues.add(
-            'Invalid attempt record $path has inconsistent metadata.',
-          );
+          issues.add('Invalid attempt record $path has inconsistent metadata.');
         }
         final reasons = record['invalid_reasons'];
         if (reasons is! List<Object?> ||
@@ -805,26 +694,17 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
             reasons.any((reason) => reason is! String || reason.isEmpty)) {
           issues.add('Invalid attempt record $path must name its reasons.');
         }
-        for (final field in const <String>[
-          'collected_frames',
-          'pointer_moves',
-        ]) {
+        for (final field in const <String>['collected_frames', 'pointer_moves']) {
           final value = record[field];
           if (value is! int || value < 0 || value > expectedFramesPerTrial) {
-            issues.add(
-              'Invalid attempt record $path has invalid $field $value.',
-            );
+            issues.add('Invalid attempt record $path has invalid $field $value.');
           }
         }
       }
-      final matchingSteady = steadyRecords.where(
-        (record) => record['trial'] == trial,
-      );
+      final matchingSteady = steadyRecords.where((record) => record['trial'] == trial);
       final steady = matchingSteady.isEmpty ? null : matchingSteady.first;
       if (steady != null && steady['attempt'] != invalidForTrial.length + 1) {
-        issues.add(
-          'Steady trial $trial attempt must follow its invalid attempts.',
-        );
+        issues.add('Steady trial $trial attempt must follow its invalid attempts.');
       }
     }
   }
@@ -843,17 +723,9 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
       'maximum_trial_attempts': _maximumTrialAttempts,
       'invalid_trial_attempts': invalidAttemptRecords.length,
     }.entries) {
-      _expectEqual(
-        record: acceptance,
-        field: entry.key,
-        expected: entry.value,
-        label: 'Acceptance',
-        issues: issues,
-      );
+      _expectEqual(record: acceptance, field: entry.key, expected: entry.value, label: 'Acceptance', issues: issues);
     }
-    final retriedTrials = <Object?>{
-      for (final record in invalidAttemptRecords) record['trial'],
-    }.length;
+    final retriedTrials = <Object?>{for (final record in invalidAttemptRecords) record['trial']}.length;
     _expectEqual(
       record: acceptance,
       field: 'retried_trials',
@@ -876,9 +748,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     final allSteadyPresent = steadyRecords.length == _expectedSteadyTrials;
     final expectedPass = allSteadyPresent && failedSteadyPaths.isEmpty;
     if (acceptance['passed'] != expectedPass) {
-      issues.add(
-        'Acceptance passed is inconsistent with its steady gates.',
-      );
+      issues.add('Acceptance passed is inconsistent with its steady gates.');
     }
     if (acceptance['passed'] != true) {
       issues.add('Application acceptance did not pass.');
@@ -965,10 +835,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
 
   int _percentile(List<int> sortedValues, double percentile) {
     final sorted = List<int>.of(sortedValues, growable: false)..sort();
-    final index = ((sorted.length * percentile).ceil() - 1).clamp(
-      0,
-      sorted.length - 1,
-    );
+    final index = ((sorted.length * percentile).ceil() - 1).clamp(0, sorted.length - 1);
     return sorted[index];
   }
 
@@ -1011,10 +878,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
     }
   }
 
-  List<Map<String, Object?>> _recordsAtPath(
-    List<Map<String, Object?>> records,
-    String path,
-  ) {
+  List<Map<String, Object?>> _recordsAtPath(List<Map<String, Object?>> records, String path) {
     return records
         .where((record) {
           return record['path'] == path;
@@ -1022,9 +886,7 @@ final class InteractiveSwipeDismissBenchmarkLogValidator {
         .toList(growable: false);
   }
 
-  Map<String, Object?>? _singleRecord(
-    List<Map<String, Object?>> records,
-  ) {
+  Map<String, Object?>? _singleRecord(List<Map<String, Object?>> records) {
     return records.length == 1 ? records.single : null;
   }
 

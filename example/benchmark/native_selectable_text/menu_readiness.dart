@@ -3,7 +3,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 /// Reports whether the benchmark target still owns an open native-menu session.
 final class NativeSelectableTextBenchmarkMenuReadiness {
-  const NativeSelectableTextBenchmarkMenuReadiness._({
+  const new _({
     required this.nativeTargetCount,
     required this.editableTargetCount,
     required this.hasValidSelection,
@@ -12,7 +12,7 @@ final class NativeSelectableTextBenchmarkMenuReadiness {
   });
 
   /// Inspects the active widget tree below [root].
-  factory NativeSelectableTextBenchmarkMenuReadiness.inspect(Element root) {
+  factory inspect(Element root) {
     var nativeTargetCount = 0;
     var editableTargetCount = 0;
     var hasValidSelection = false;
@@ -45,12 +45,7 @@ final class NativeSelectableTextBenchmarkMenuReadiness {
       if (element.widget is AdaptiveTextSelectionToolbar) {
         adaptiveToolbarDetected = true;
       }
-      element.visitChildElements(
-        (child) => visit(
-          child,
-          belowNativeTarget: isBelowNativeTarget,
-        ),
-      );
+      element.visitChildElements((child) => visit(child, belowNativeTarget: isBelowNativeTarget));
     }
 
     visit(root);

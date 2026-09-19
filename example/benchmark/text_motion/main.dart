@@ -13,33 +13,19 @@ const int _engineWarmupFrames = 180;
 const int _coldFrames = 30;
 const int _steadyWarmupFrames = 90;
 const int _steadyFramesPerTrial = 300;
-const bool _enforceFrameBudget = bool.fromEnvironment(
-  'TEXT_MOTION_ENFORCE_FRAME_BUDGET',
-);
-const int _instanceCount = int.fromEnvironment(
-  'TEXT_MOTION_INSTANCE_COUNT',
-  defaultValue: 1,
-);
+const bool _enforceFrameBudget = bool.fromEnvironment('TEXT_MOTION_ENFORCE_FRAME_BUDGET');
+const int _instanceCount = int.fromEnvironment('TEXT_MOTION_INSTANCE_COUNT', defaultValue: 1);
 
 void main() {
   if (_instanceCount < 1) {
-    throw ArgumentError.value(
-      _instanceCount,
-      'TEXT_MOTION_INSTANCE_COUNT',
-      'must be at least one',
-    );
+    throw ArgumentError.value(_instanceCount, 'TEXT_MOTION_INSTANCE_COUNT', 'must be at least one');
   }
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(
-    const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: _TextMotionBenchmarkView(),
-    ),
-  );
+  runApp(const MaterialApp(debugShowCheckedModeBanner: false, home: _TextMotionBenchmarkView()));
 }
 
 class _TextMotionBenchmarkView extends StatefulWidget {
-  const _TextMotionBenchmarkView();
+  const new();
 
   @override
   State<_TextMotionBenchmarkView> createState() {
@@ -49,31 +35,17 @@ class _TextMotionBenchmarkView extends StatefulWidget {
 
 class _TextMotionBenchmarkViewState extends State<_TextMotionBenchmarkView> {
   static const String _text = 'Galaxy J5 • 0123456789 • smooth';
-  static const TextStyle _style = TextStyle(
-    color: Colors.white,
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-  );
+  static const TextStyle _style = TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600);
   static const List<MotionEffect> _builtInEffects = <MotionEffect>[
-    FadeInMotionEffect(
-      duration: Duration(milliseconds: 1200),
-      playback: MotionPlayback.loop,
-    ),
+    FadeInMotionEffect(duration: Duration(milliseconds: 1200), playback: MotionPlayback.loop),
     MoveMotionEffect(
       begin: Offset(0, 6),
       end: Offset.zero,
       duration: Duration(milliseconds: 1200),
       playback: MotionPlayback.loop,
     ),
-    ScaleInMotionEffect(
-      scale: 0.92,
-      duration: Duration(milliseconds: 1200),
-      playback: MotionPlayback.loop,
-    ),
-    FloatingMotionEffect(
-      distance: 3,
-      duration: Duration(milliseconds: 1200),
-    ),
+    ScaleInMotionEffect(scale: 0.92, duration: Duration(milliseconds: 1200), playback: MotionPlayback.loop),
+    FloatingMotionEffect(distance: 3, duration: Duration(milliseconds: 1200)),
   ];
   final List<FrameTiming> _samples = <FrameTiming>[];
   final List<FrameTiming> _optimizedSteadySamples = <FrameTiming>[];
@@ -123,10 +95,7 @@ class _TextMotionBenchmarkViewState extends State<_TextMotionBenchmarkView> {
             alignment: Alignment.center,
             children: [
               Text(_text, maxLines: 1, style: _style),
-              Motion(
-                effect: FloatingMotionEffect(),
-                child: SizedBox.square(dimension: 20),
-              ),
+              Motion(effect: FloatingMotionEffect(), child: SizedBox.square(dimension: 20)),
             ],
           ),
           growable: false,
@@ -195,10 +164,7 @@ class _TextMotionBenchmarkViewState extends State<_TextMotionBenchmarkView> {
       case _TextMotionBenchmarkStage.optimizedWarmupFirst:
         _stage = _TextMotionBenchmarkStage.optimizedSteadyFirst;
       case _TextMotionBenchmarkStage.optimizedSteadyFirst:
-        _switchRenderedPath(
-          _TextMotionBenchmarkStage.optimizedWarmupSecond,
-          warmup: true,
-        );
+        _switchRenderedPath(_TextMotionBenchmarkStage.optimizedWarmupSecond, warmup: true);
       case _TextMotionBenchmarkStage.optimizedWarmupSecond:
         _stage = _TextMotionBenchmarkStage.optimizedSteadySecond;
       case _TextMotionBenchmarkStage.optimizedSteadySecond:
@@ -208,10 +174,7 @@ class _TextMotionBenchmarkViewState extends State<_TextMotionBenchmarkView> {
     }
   }
 
-  void _switchRenderedPath(
-    _TextMotionBenchmarkStage stage, {
-    bool warmup = false,
-  }) {
+  void _switchRenderedPath(_TextMotionBenchmarkStage stage, {bool warmup = false}) {
     setState(() {
       _stage = stage;
       _textMotionGeneration += 1;
@@ -227,10 +190,7 @@ class _TextMotionBenchmarkViewState extends State<_TextMotionBenchmarkView> {
   void _finish() {
     _stage = _TextMotionBenchmarkStage.finished;
     WidgetsBinding.instance.removeTimingsCallback(_handleTimings);
-    final optimized = _result(
-      'optimized_steady_combined',
-      _optimizedSteadySamples,
-    );
+    final optimized = _result('optimized_steady_combined', _optimizedSteadySamples);
     _print(optimized);
     final optimizedBuild = optimized['build_us']! as Map<String, num>;
     final optimizedRaster = optimized['raster_us']! as Map<String, num>;
@@ -297,9 +257,6 @@ class _TextMotionBenchmarkViewState extends State<_TextMotionBenchmarkView> {
   }
 
   void _print(Map<String, Object> result) {
-    debugPrint(
-      'TEXT_MOTION_BENCHMARK ${jsonEncode(result)}',
-      wrapWidth: 4000,
-    );
+    debugPrint('TEXT_MOTION_BENCHMARK ${jsonEncode(result)}', wrapWidth: 4000);
   }
 }

@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonClipRSuperellipseCommand implements _SkeletonBoneCommand {
-  const _SkeletonClipRSuperellipseCommand({
+  const new({
     required this.rsuperellipse,
     required this.doAntiAlias,
   });

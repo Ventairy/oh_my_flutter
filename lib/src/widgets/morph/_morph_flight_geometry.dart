@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphFlightGeometry extends ChangeNotifier {
-  _MorphFlightGeometry({
+  new({
     required MorphEndpoint<Object?> source,
     required MorphEndpoint<Object?> destination,
   }) : _sourceSnapshot = source,

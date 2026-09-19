@@ -254,7 +254,7 @@ void main() {
 }
 
 class _TickingChild extends StatefulWidget {
-  const _TickingChild({required this.onTick, this.onInit});
+  const new({required this.onTick, this.onInit});
 
   final VoidCallback onTick;
   final VoidCallback? onInit;

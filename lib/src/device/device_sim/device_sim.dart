@@ -8,7 +8,7 @@ import 'device_sim_platform.dart';
 /// for usage and platform availability.
 interface class DeviceSim {
   /// Creates a utility for accessing the device's SIM capabilities.
-  const DeviceSim();
+  const new();
 
   /// Finds the SIM provider's country.
   ///

@@ -145,7 +145,7 @@ void main() {
 }
 
 class _SampledMotionEffect extends MotionEffect {
-  const _SampledMotionEffect();
+  const new();
 
   @override
   void apply(double progress, MotionEffectTransform transform) {
@@ -154,7 +154,7 @@ class _SampledMotionEffect extends MotionEffect {
 }
 
 class _AliasedMotionEffect extends MotionEffect {
-  const _AliasedMotionEffect();
+  const new();
 
   @override
   MotionEffectBounds get bounds => const MotionEffectBounds(
@@ -172,7 +172,7 @@ class _AliasedMotionEffect extends MotionEffect {
 }
 
 class _UnderdeclaredMotionEffect extends MotionEffect {
-  const _UnderdeclaredMotionEffect();
+  const new();
 
   @override
   MotionEffectBounds get bounds => const MotionEffectBounds(
@@ -187,7 +187,7 @@ class _UnderdeclaredMotionEffect extends MotionEffect {
 }
 
 class _AliasedScaleMotionEffect extends MotionEffect {
-  const _AliasedScaleMotionEffect();
+  const new();
 
   @override
   MotionEffectBounds get bounds => const MotionEffectBounds(maximumScale: 2);
@@ -199,7 +199,7 @@ class _AliasedScaleMotionEffect extends MotionEffect {
 }
 
 class _BoundedMotionEffect extends MotionEffect {
-  const _BoundedMotionEffect(this._bounds);
+  const new(this._bounds);
 
   final MotionEffectBounds _bounds;
 

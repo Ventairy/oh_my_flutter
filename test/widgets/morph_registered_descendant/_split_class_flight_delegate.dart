@@ -1,7 +1,7 @@
 part of '../morph_registered_descendant_test.dart';
 
 class _SplitClassFlightDelegate extends MorphFlightDelegate<_SplitFlightProperties> {
-  const _SplitClassFlightDelegate();
+  const new();
 
   @override
   _SplitFlightProperties properties(MorphEndpointContext endpoint) {

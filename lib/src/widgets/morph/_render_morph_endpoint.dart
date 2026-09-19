@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphEndpoint extends RenderProxyBox {
-  _RenderMorphEndpoint(
+  new(
     this._visibility,
     this.onPaint,
     this.onPresented,

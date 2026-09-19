@@ -13,7 +13,7 @@ part of 'morph.dart';
 /// for usage and constraints.
 class MorphSibling extends StatefulWidget {
   /// Creates content coordinated with the Morph identified by [target].
-  const MorphSibling({
+  const new({
     required this.target,
     required this.child,
     this.paintOnTop = true,

@@ -4,10 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Demonstrates reading trustworthy display corner radii when available.
 class DeviceDisplayExample extends StatefulWidget {
   /// Creates the device display example.
-  const DeviceDisplayExample({
-    this.cornerRadii,
-    super.key,
-  });
+  const new({this.cornerRadii, super.key});
 
   /// Overrides the corner-radii operation for deterministic tests.
   final Future<BorderRadius?> Function(BuildContext context)? cornerRadii;
@@ -65,10 +62,7 @@ class _DeviceDisplayExampleState extends State<DeviceDisplayExample> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        FilledButton(
-          onPressed: _working ? null : _readCornerRadii,
-          child: const Text('Read corner radii'),
-        ),
+        FilledButton(onPressed: _working ? null : _readCornerRadii, child: const Text('Read corner radii')),
         const SizedBox(height: 8),
         const Text(
           'Returns Flutter or native platform data when trustworthy '
@@ -82,10 +76,7 @@ class _DeviceDisplayExampleState extends State<DeviceDisplayExample> {
           ),
           child: SizedBox(
             width: double.infinity,
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(_working ? 'Reading…' : _status),
-            ),
+            child: Padding(padding: const EdgeInsets.all(24), child: Text(_working ? 'Reading…' : _status)),
           ),
         ),
       ],

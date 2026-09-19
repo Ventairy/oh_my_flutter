@@ -8,7 +8,7 @@ part 'country_names_encoded_data.dart';
 /// Produces reproducible, compressed country catalogs without reducing coverage.
 final class CountryNamesEncoder {
   /// Creates a stateless encoder for validated CLDR country-name inputs.
-  const CountryNamesEncoder();
+  const new();
 
   /// Encodes every catalog, lookup alias, and explicit locale parent.
   ///

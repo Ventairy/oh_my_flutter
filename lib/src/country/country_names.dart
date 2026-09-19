@@ -7,11 +7,11 @@ import 'country_names_io.dart' if (dart.library.js_interop) 'country_names_brows
 
 /// Supplies offline country names with bounded reuse of the selected locale.
 final class CountryNames {
-  CountryNames._(this._lookup);
+  new _(this._lookup);
 
   /// Replaces the platform lookup for focused tests.
   @visibleForTesting
-  CountryNames.test({required String? Function(String, String) lookup}) : this._(lookup);
+  new test({required String? Function(String, String) lookup}) : this._(lookup);
 
   /// Shared lookup used by the country API.
   static final instance = CountryNames._(CountryNamesPlatform.displayName);

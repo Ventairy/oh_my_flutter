@@ -1,7 +1,7 @@
 part of 'interactive_swipe_dismiss.dart';
 
 final class _InteractiveSwipeDismissHandleGestureRecognizer extends OneSequenceGestureRecognizer {
-  _InteractiveSwipeDismissHandleGestureRecognizer({
+  new({
     required this._coordinator,
     super.debugOwner,
   });

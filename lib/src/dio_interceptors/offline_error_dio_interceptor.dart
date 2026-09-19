@@ -34,16 +34,16 @@ import '../exceptions/offline_connection_dio_exception.dart';
 /// for setup, handling, and error-classification details.
 class OfflineErrorDioInterceptor extends Interceptor {
   /// Creates an [OfflineErrorDioInterceptor] that probes real connectivity
-  factory OfflineErrorDioInterceptor() {
+  factory() {
     return OfflineErrorDioInterceptor._(InternetConnection.createInstance());
   }
 
-  const OfflineErrorDioInterceptor._(this._internetConnection);
+  const new _(this._internetConnection);
 
   /// Creates an [OfflineErrorDioInterceptor] with a controllable
   /// [internetConnection] for testing.
   @visibleForTesting
-  factory OfflineErrorDioInterceptor.test({
+  factory test({
     required InternetConnection internetConnection,
   }) {
     return OfflineErrorDioInterceptor._(internetConnection);

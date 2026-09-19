@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonTranslateCommand implements _SkeletonBoneCommand {
-  const _SkeletonTranslateCommand(this.dx, this.dy);
+  const new(this.dx, this.dy);
 
   final double dx;
   final double dy;

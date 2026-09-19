@@ -10,11 +10,11 @@ import 'country_names_source.dart';
 /// Updates generated country data only after every source has been validated.
 final class CountryNamesGenerator {
   /// Downloads all country-name inputs from the pinned CLDR release.
-  CountryNamesGenerator() : _load = _loadSource;
+  new() : _load = _loadSource;
 
   /// Supplies fixture data and failures without making network requests.
   @visibleForTesting
-  CountryNamesGenerator.test({required this._load});
+  new test({required this._load});
 
   final Future<CountryNamesSourceData> Function(List<String>) _load;
 

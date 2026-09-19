@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphHybridColumnFlight extends StatelessWidget {
-  const _MorphHybridColumnFlight({
+  const new({
     required this.animation,
     required this.plan,
     required this.transitionBuilder,

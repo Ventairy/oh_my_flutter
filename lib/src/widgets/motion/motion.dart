@@ -54,7 +54,7 @@ part 'text_motion.dart';
 /// for effects, playback, controllers, and reduced-motion behavior.
 class Motion extends StatelessWidget {
   /// Creates a widget that applies one [effect] to [child].
-  const Motion({
+  const new({
     required this.effect,
     required this.child,
     this.controller,
@@ -69,7 +69,7 @@ class Motion extends StatelessWidget {
   /// The first effect is applied first and each following effect composes
   /// around the result. The list must contain at least one effect and must not
   /// be mutated after being passed to this constructor.
-  const Motion.list({
+  const new list({
     required this.effects,
     required this.child,
     this.controller,

@@ -59,7 +59,7 @@ void main() {
 }
 
 class _MorphDescendantGoldenHarness extends StatefulWidget {
-  const _MorphDescendantGoldenHarness({
+  const new({
     required this.behavior,
     this.multipleSnapshots = false,
     super.key,

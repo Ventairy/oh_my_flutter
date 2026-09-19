@@ -1,7 +1,7 @@
 part of '../morph_endpoint_context_test.dart';
 
 class _RegistrationDelegate extends MorphFlightDelegate<Widget> {
-  const _RegistrationDelegate({required this.onRegister});
+  const new({required this.onRegister});
 
   final void Function(MorphEndpointContext endpoint, Widget registered) onRegister;
 

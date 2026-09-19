@@ -12,7 +12,7 @@ part of 'skeleton.dart';
 /// for behavior examples and nesting guidance.
 class SkeletonDescendant extends SingleChildRenderObjectWidget {
   /// Creates a skeleton annotation around [child].
-  const SkeletonDescendant({
+  const new({
     required this.behavior,
     required super.child,
     super.key,

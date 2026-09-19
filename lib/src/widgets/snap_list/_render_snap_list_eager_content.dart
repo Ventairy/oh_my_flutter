@@ -4,7 +4,7 @@ class _RenderSnapListEagerContent extends RenderBox
     with
         ContainerRenderObjectMixin<RenderBox, _SnapListParentData>,
         RenderBoxContainerDefaultsMixin<RenderBox, _SnapListParentData> {
-  _RenderSnapListEagerContent(this.motion, this.direction, this.extent, this.leading);
+  new(this.motion, this.direction, this.extent, this.leading);
   final _SnapListMotion motion;
   AxisDirection direction;
   double extent;

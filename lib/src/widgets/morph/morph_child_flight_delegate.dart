@@ -3,7 +3,7 @@ part of 'morph.dart';
 /// Utilities for transitioning children inside containers and columns.
 final class MorphChildFlightDelegate {
   /// Prevents instances of this utility class.
-  const MorphChildFlightDelegate._();
+  const new _();
 
   /// Returns the visual values used to transition [widget].
   static MorphChildProperties properties({

@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _RenderMorphHybridContainerFlight extends RenderBox with RenderObjectWithChildMixin<RenderBox> {
-  _RenderMorphHybridContainerFlight(
+  new(
     this._animation,
     this._plan,
     this._sourceBounds,

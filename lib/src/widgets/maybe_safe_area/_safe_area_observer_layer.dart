@@ -1,7 +1,7 @@
 part of 'maybe_safe_area.dart';
 
 class _SafeAreaObserverLayer extends ContainerLayer {
-  _SafeAreaObserverLayer(this.onComposite);
+  new(this.onComposite);
 
   final VoidCallback onComposite;
 

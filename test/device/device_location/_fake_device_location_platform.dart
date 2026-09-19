@@ -67,7 +67,7 @@ class _FakeDeviceLocationPlatform extends DeviceLocationPlatform {
   Future<DeviceLocationPermissionStatus> requestPermission() async {
     permissionRequests += 1;
     if (permissionRequestError case final error?) throw error;
-    if (permissionCompleter case final completer?) return completer.future;
+    if (permissionCompleter case final completer?) return await completer.future;
     return requestedPermission;
   }
 
@@ -76,7 +76,7 @@ class _FakeDeviceLocationPlatform extends DeviceLocationPlatform {
     coordinatesRequests += 1;
     if (coordinatesError case final error?) throw error;
     if (coordinatesErrorObject case final error?) throw error;
-    if (coordinatesCompleter case final completer?) return completer.future;
+    if (coordinatesCompleter case final completer?) return await completer.future;
     return coordinates;
   }
 
@@ -89,7 +89,7 @@ class _FakeDeviceLocationPlatform extends DeviceLocationPlatform {
     this.localeIdentifier = localeIdentifier;
     if (addressError case final error?) throw error;
     if (addressErrorObject case final error?) throw error;
-    if (addressCompleter case final completer?) return completer.future;
+    if (addressCompleter case final completer?) return await completer.future;
     return address;
   }
 

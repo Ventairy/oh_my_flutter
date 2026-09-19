@@ -5,18 +5,14 @@ import 'interactive_swipe_dismiss_benchmark_log_validator.dart';
 /// Runs host-side validation for a captured swipe benchmark log.
 final class InteractiveSwipeDismissBenchmarkValidationCommand {
   /// Creates the validation command.
-  const InteractiveSwipeDismissBenchmarkValidationCommand();
+  const new();
 
   static const String _fileNamePrefix = 'interactive_swipe_dismiss_benchmark';
   static const String _jsonLinesFileName = '$_fileNamePrefix.jsonl';
   static const String _summaryFileName = '${_fileNamePrefix}_summary.txt';
 
   /// Validates [arguments], writes artifacts, and returns a process exit code.
-  Future<int> run(
-    List<String> arguments, {
-    StringSink? output,
-    StringSink? errors,
-  }) async {
+  Future<int> run(List<String> arguments, {StringSink? output, StringSink? errors}) async {
     final outputSink = output ?? stdout;
     final errorSink = errors ?? stderr;
     try {
@@ -37,9 +33,7 @@ final class InteractiveSwipeDismissBenchmarkValidationCommand {
       ).validate(log);
       final outputDirectory = Directory(options.outputDirectory);
       await outputDirectory.create(recursive: true);
-      final jsonLinesFile = File(
-        '${outputDirectory.path}/$_jsonLinesFileName',
-      );
+      final jsonLinesFile = File('${outputDirectory.path}/$_jsonLinesFileName');
       final summaryFile = File('${outputDirectory.path}/$_summaryFileName');
       await jsonLinesFile.writeAsString(validation.extractedJsonLines);
       await summaryFile.writeAsString(validation.summary);
@@ -81,11 +75,7 @@ final class InteractiveSwipeDismissBenchmarkValidationCommand {
       '--expected-warmup-frames',
       '--expected-frames-per-trial',
     };
-    const flagOptions = <String>{
-      '--require-budget-pass',
-      '--require-enforced',
-      '--require-retained-paint',
-    };
+    const flagOptions = <String>{'--require-budget-pass', '--require-enforced', '--require-retained-paint'};
 
     for (var index = 0; index < arguments.length; index += 1) {
       final argument = arguments[index];
@@ -112,25 +102,13 @@ final class InteractiveSwipeDismissBenchmarkValidationCommand {
     if (missing.isNotEmpty) {
       throw FormatException('Missing required options: ${missing.join(', ')}.');
     }
-    _requireNonPlaceholder(
-      values['--expected-run-id']!,
-      '--expected-run-id',
-    );
-    _requireNonPlaceholder(
-      values['--expected-renderer']!,
-      '--expected-renderer',
-    );
+    _requireNonPlaceholder(values['--expected-run-id']!, '--expected-run-id');
+    _requireNonPlaceholder(values['--expected-renderer']!, '--expected-renderer');
     return (
-      expectedFramesPerTrial: _integerAtLeastTwo(
-        values['--expected-frames-per-trial']!,
-        '--expected-frames-per-trial',
-      ),
+      expectedFramesPerTrial: _integerAtLeastTwo(values['--expected-frames-per-trial']!, '--expected-frames-per-trial'),
       expectedRenderer: values['--expected-renderer']!,
       expectedRunId: values['--expected-run-id']!,
-      expectedWarmupFrames: _integerAtLeastTwo(
-        values['--expected-warmup-frames']!,
-        '--expected-warmup-frames',
-      ),
+      expectedWarmupFrames: _integerAtLeastTwo(values['--expected-warmup-frames']!, '--expected-warmup-frames'),
       logPath: values['--log']!,
       outputDirectory: values['--output-directory']!,
       requireBudgetPass: flags.contains('--require-budget-pass'),
@@ -139,11 +117,7 @@ final class InteractiveSwipeDismissBenchmarkValidationCommand {
     );
   }
 
-  String _followingValue(
-    List<String> arguments,
-    int index,
-    String option,
-  ) {
+  String _followingValue(List<String> arguments, int index, String option) {
     if (index >= arguments.length || arguments[index].startsWith('--')) {
       throw FormatException('$option requires a value.');
     }

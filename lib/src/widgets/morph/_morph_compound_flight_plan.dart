@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphCompoundFlightPlan extends ChangeNotifier {
-  _MorphCompoundFlightPlan._({
+  new _({
     required this.textDirection,
     required this.sourceChild,
     required this.destinationChild,

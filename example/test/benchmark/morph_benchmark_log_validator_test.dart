@@ -20,16 +20,7 @@ void main() {
     int dynamicUnchangedCapturePaints = 0,
     int staticDirtyCapturePaints = 0,
     int staticTemporalImages = 0,
-    List<int> fallbackCapturedGenerations = const <int>[
-      11,
-      12,
-      13,
-      14,
-      15,
-      16,
-      17,
-      18,
-    ],
+    List<int> fallbackCapturedGenerations = const <int>[11, 12, 13, 14, 15, 16, 17, 18],
   }) {
     final records = <Map<String, Object?>>[
       <String, Object?>{
@@ -109,20 +100,7 @@ void main() {
               mutationBatches = 12;
               mutationsPerBatch = 1;
               requestedGeneration = 22;
-              expectedGenerations = const <int>[
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-                19,
-                20,
-                21,
-                22,
-              ];
+              expectedGenerations = const <int>[11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22];
               dirtyCapturePaints = 12;
               capturedGenerations = expectedGenerations;
               finalCapturedGeneration = 22;
@@ -133,16 +111,7 @@ void main() {
               mutationBatches = 8;
               mutationsPerBatch = 1;
               requestedGeneration = 18;
-              expectedGenerations = const <int>[
-                11,
-                12,
-                13,
-                14,
-                15,
-                16,
-                17,
-                18,
-              ];
+              expectedGenerations = const <int>[11, 12, 13, 14, 15, 16, 17, 18];
               dirtyCapturePaints = 8;
               capturedGenerations = fallbackCapturedGenerations;
               finalCapturedGeneration = 18;
@@ -214,16 +183,10 @@ void main() {
       'invalid_trial_attempts': retried ? 1 : 0,
       'retried_trials': retried ? 1 : 0,
     });
-    return records
-        .map(
-          (record) => 'flutter: MORPH_BENCHMARK ${jsonEncode(record)}',
-        )
-        .join('\n');
+    return records.map((record) => 'flutter: MORPH_BENCHMARK ${jsonEncode(record)}').join('\n');
   }
 
-  MorphBenchmarkLogValidator validator({
-    List<String> scenarios = const <String>['text', 'surface'],
-  }) {
+  MorphBenchmarkLogValidator validator({List<String> scenarios = const <String>['text', 'surface']}) {
     return MorphBenchmarkLogValidator(
       expectedScenarioIds: scenarios,
       requireBudgetPass: true,
@@ -238,51 +201,33 @@ void main() {
       expect(validation.passed, isTrue);
     });
 
-    test(
-      'when application acceptance is false despite shell success, '
-      'it should reject the log',
-      () {
-        final validation = validator().validate(
-          buildLog(acceptancePassed: false),
-        );
+    test('when application acceptance is false despite shell success, '
+        'it should reject the log', () {
+      final validation = validator().validate(buildLog(acceptancePassed: false));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a complete record is emitted in bounded chunks, '
-      'it should reconstruct and validate it',
-      () {
-        final ordinaryLog = buildLog();
-        final acceptanceLine = ordinaryLog.split('\n').last;
-        final acceptance = Map<String, Object>.from(
-          jsonDecode(
-            acceptanceLine.substring(
-              acceptanceLine.indexOf('{'),
-            ),
-          ) as Map<String, Object?>,
-        );
-        acceptance['diagnostic_padding'] = List<String>.filled(
-          5000,
-          'x',
-        ).join();
-        final emitted = <String>[];
-        MorphBenchmarkRecordBuffer(emitted.add)
-          ..add(acceptance)
-          ..flush();
-        final lines = ordinaryLog.split('\n');
-        final withoutAcceptance = lines.take(lines.length - 1).join('\n');
-        final chunkedLog = <String>[
-          withoutAcceptance,
-          ...emitted.map((line) => 'flutter: $line'),
-        ].join('\n');
+    test('when a complete record is emitted in bounded chunks, '
+        'it should reconstruct and validate it', () {
+      final ordinaryLog = buildLog();
+      final acceptanceLine = ordinaryLog.split('\n').last;
+      final acceptance = Map<String, Object>.from(
+        jsonDecode(acceptanceLine.substring(acceptanceLine.indexOf('{'))) as Map<String, Object?>,
+      );
+      acceptance['diagnostic_padding'] = List<String>.filled(5000, 'x').join();
+      final emitted = <String>[];
+      MorphBenchmarkRecordBuffer(emitted.add)
+        ..add(acceptance)
+        ..flush();
+      final lines = ordinaryLog.split('\n');
+      final withoutAcceptance = lines.take(lines.length - 1).join('\n');
+      final chunkedLog = <String>[withoutAcceptance, ...emitted.map((line) => 'flutter: $line')].join('\n');
 
-        final validation = validator().validate(chunkedLog);
+      final validation = validator().validate(chunkedLog);
 
-        expect(validation.passed, isTrue);
-      },
-    );
+      expect(validation.passed, isTrue);
+    });
 
     test('when required records are missing, it should reject the log', () {
       final validation = validator().validate('flutter run exited normally');
@@ -290,19 +235,14 @@ void main() {
       expect(validation.passed, isFalse);
     });
 
-    test(
-      'when the application mode is not profile, it should reject the log',
-      () {
-        final validation = validator().validate(buildLog(mode: 'debug'));
+    test('when the application mode is not profile, it should reject the log', () {
+      final validation = validator().validate(buildLog(mode: 'debug'));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
     test('when the exact scenario set differs, it should reject the log', () {
-      final validation = validator().validate(
-        buildLog(scenarios: const <String>['text']),
-      );
+      final validation = validator().validate(buildLog(scenarios: const <String>['text']));
 
       expect(validation.passed, isFalse);
     });
@@ -313,211 +253,111 @@ void main() {
       expect(validation.passed, isFalse);
     });
 
-    test(
-      'when an interrupted trial succeeds on retry, '
-      'it should surface both events',
-      () {
-        final validation = validator().validate(buildLog(retried: true));
+    test('when an interrupted trial succeeds on retry, '
+        'it should surface both events', () {
+      final validation = validator().validate(buildLog(retried: true));
 
-        expect(
-          (
-            passed: validation.passed,
-            invalidSurfaced: validation.summary.contains(
-              'Invalid attempt details:',
-            ),
-            retrySurfaced: validation.summary.contains(
-              'Completed retry details:',
-            ),
-          ),
-          (passed: true, invalidSurfaced: true, retrySurfaced: true),
-        );
-      },
-    );
+      expect(
+        (
+          passed: validation.passed,
+          invalidSurfaced: validation.summary.contains('Invalid attempt details:'),
+          retrySurfaced: validation.summary.contains('Completed retry details:'),
+        ),
+        (passed: true, invalidSurfaced: true, retrySurfaced: true),
+      );
+    });
 
-    test(
-      'when dynamic watched snapshot refreshes match every mutation batch, '
-      'it should accept the structural gate',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_dynamic'],
-            ).validate(
-              buildLog(scenarios: const <String>['watch_snapshot_dynamic']),
-            );
+    test('when dynamic watched snapshot refreshes match every mutation batch, '
+        'it should accept the structural gate', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_dynamic'])
+          .validate(buildLog(scenarios: const <String>['watch_snapshot_dynamic']));
 
-        expect(validation.passed, isTrue);
-      },
-    );
+      expect(validation.passed, isTrue);
+    });
 
-    test(
-      'when temporal image creation differs from capture paints, '
-      'it should remain diagnostic',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_dynamic'],
-            ).validate(
-              buildLog(
-                scenarios: const <String>['watch_snapshot_dynamic'],
-                dynamicTemporalImages: 3,
-              ),
-            );
+    test('when temporal image creation differs from capture paints, '
+        'it should remain diagnostic', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_dynamic'])
+          .validate(buildLog(scenarios: const <String>['watch_snapshot_dynamic'], dynamicTemporalImages: 3));
 
-        expect(validation.passed, isTrue);
-      },
-    );
+      expect(validation.passed, isTrue);
+    });
 
-    test(
-      'when one dynamic mutation batch does not paint a capture, '
-      'it should reject the structural gate',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_dynamic'],
-            ).validate(
-              buildLog(
-                scenarios: const <String>['watch_snapshot_dynamic'],
-                dynamicDirtyCapturePaints: 3,
-              ),
-            );
+    test('when one dynamic mutation batch does not paint a capture, '
+        'it should reject the structural gate', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_dynamic'])
+          .validate(buildLog(scenarios: const <String>['watch_snapshot_dynamic'], dynamicDirtyCapturePaints: 3));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a dynamic watched snapshot captures a stale generation, '
-      'it should reject the structural gate',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_dynamic'],
-            ).validate(
-              buildLog(
-                scenarios: const <String>['watch_snapshot_dynamic'],
-                dynamicFinalCapturedGeneration: 19,
-              ),
-            );
+    test('when a dynamic watched snapshot captures a stale generation, '
+        'it should reject the structural gate', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_dynamic'])
+          .validate(buildLog(scenarios: const <String>['watch_snapshot_dynamic'], dynamicFinalCapturedGeneration: 19));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a dynamic watched snapshot skips an intermediate generation, '
-      'it should reject the structural gate',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_dynamic'],
-            ).validate(
-              buildLog(
-                scenarios: const <String>['watch_snapshot_dynamic'],
-                dynamicCapturedGenerations: const <int>[13, 13, 19, 22],
-              ),
-            );
+    test('when a dynamic watched snapshot skips an intermediate generation, '
+        'it should reject the structural gate', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_dynamic']).validate(
+        buildLog(
+          scenarios: const <String>['watch_snapshot_dynamic'],
+          dynamicCapturedGenerations: const <int>[13, 13, 19, 22],
+        ),
+      );
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a nested fallback reports intermediate generations out of order, '
-      'it should reject the structural gate',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_nested_fallback'],
-            ).validate(
-              buildLog(
-                scenarios: const <String>['watch_snapshot_nested_fallback'],
-                fallbackCapturedGenerations: const <int>[
-                  11,
-                  13,
-                  12,
-                  14,
-                  15,
-                  16,
-                  17,
-                  18,
-                ],
-              ),
-            );
+    test('when a nested fallback reports intermediate generations out of order, '
+        'it should reject the structural gate', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_nested_fallback']).validate(
+        buildLog(
+          scenarios: const <String>['watch_snapshot_nested_fallback'],
+          fallbackCapturedGenerations: const <int>[11, 13, 12, 14, 15, 16, 17, 18],
+        ),
+      );
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a dynamic watched snapshot repaints an unchanged descendant, '
-      'it should reject the structural gate',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_dynamic'],
-            ).validate(
-              buildLog(
-                scenarios: const <String>['watch_snapshot_dynamic'],
-                dynamicUnchangedCapturePaints: 1,
-              ),
-            );
+    test('when a dynamic watched snapshot repaints an unchanged descendant, '
+        'it should reject the structural gate', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_dynamic'])
+          .validate(buildLog(scenarios: const <String>['watch_snapshot_dynamic'], dynamicUnchangedCapturePaints: 1));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a dynamic watched snapshot paints twice in one frame, '
-      'it should reject the structural gate',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_dynamic'],
-            ).validate(
-              buildLog(
-                scenarios: const <String>['watch_snapshot_dynamic'],
-                dynamicMaxPaintsPerFrame: 2,
-              ),
-            );
+    test('when a dynamic watched snapshot paints twice in one frame, '
+        'it should reject the structural gate', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_dynamic'])
+          .validate(buildLog(scenarios: const <String>['watch_snapshot_dynamic'], dynamicMaxPaintsPerFrame: 2));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
-    test(
-      'when a static watched snapshot refreshes after onStart, '
-      'it should reject the structural gate',
-      () {
-        final validation =
-            validator(
-              scenarios: const <String>['watch_snapshot_dense'],
-            ).validate(
-              buildLog(
-                scenarios: const <String>['watch_snapshot_dense'],
-                staticDirtyCapturePaints: 1,
-              ),
-            );
+    test('when a static watched snapshot refreshes after onStart, '
+        'it should reject the structural gate', () {
+      final validation = validator(scenarios: const <String>['watch_snapshot_dense'])
+          .validate(buildLog(scenarios: const <String>['watch_snapshot_dense'], staticDirtyCapturePaints: 1));
 
-        expect(validation.passed, isFalse);
-      },
-    );
+      expect(validation.passed, isFalse);
+    });
 
     for (final scenario in const <String>[
       'watch_snapshot_geometry_only',
       'watch_snapshot_full_surface',
       'watch_snapshot_nested_fallback',
     ]) {
-      test(
-        'when $scenario reports its expected paints, '
-        'it should accept the structural gate',
-        () {
-          final validation = validator(
-            scenarios: <String>[scenario],
-          ).validate(buildLog(scenarios: <String>[scenario]));
+      test('when $scenario reports its expected paints, '
+          'it should accept the structural gate', () {
+        final validation = validator(scenarios: <String>[scenario]).validate(buildLog(scenarios: <String>[scenario]));
 
-          expect(validation.passed, isTrue);
-        },
-      );
+        expect(validation.passed, isTrue);
+      });
     }
   });
 }

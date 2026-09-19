@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonScaleCommand implements _SkeletonBoneCommand {
-  const _SkeletonScaleCommand(this.sx, this.sy);
+  const new(this.sx, this.sy);
 
   final double sx;
   final double? sy;

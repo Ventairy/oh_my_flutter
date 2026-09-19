@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 class _MorphTransitionTestApp extends StatefulWidget {
-  const _MorphTransitionTestApp({required this.transitionBuilder});
+  const new({required this.transitionBuilder});
 
   final AnimatedSwitcherTransitionBuilder transitionBuilder;
 
@@ -53,7 +53,7 @@ class _MorphTransitionTestAppState extends State<_MorphTransitionTestApp> {
 }
 
 class _MorphTextSwitchTransitionTestApp extends StatefulWidget {
-  const _MorphTextSwitchTransitionTestApp();
+  const new();
 
   @override
   State<_MorphTextSwitchTransitionTestApp> createState() => _MorphTextSwitchTransitionTestAppState();

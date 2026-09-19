@@ -1,7 +1,7 @@
 part of 'native_selectable_text.dart';
 
 final class _NativeSelectableTextMenuBridge extends StatefulWidget {
-  const _NativeSelectableTextMenuBridge({
+  const new({
     required this.editableTextState,
     required this.onExternalDismissed,
     super.key,

@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphSiblingPaint extends LeafRenderObjectWidget {
-  const _MorphSiblingPaint({required this.handle});
+  const new({required this.handle});
 
   final _MorphSiblingHandle handle;
 

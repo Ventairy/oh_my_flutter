@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAutomaticProperties> {
-  const _MorphAutomaticFlightDelegate({
+  const new({
     required this.switchThreshold,
     required this.switchTransition,
   });

@@ -4,7 +4,7 @@ part of 'morph.dart';
 /// Visual values for a child inside a container or column transition.
 final class MorphChildProperties {
   /// Creates the visual values for a child.
-  const MorphChildProperties({
+  const new({
     required this.widget,
     required this.rect,
     required this.padding,

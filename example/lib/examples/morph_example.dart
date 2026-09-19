@@ -4,7 +4,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Shows same-screen and cross-route Morph ownership transfers.
 class MorphExample extends StatefulWidget {
   /// Creates the Morph example.
-  const MorphExample({super.key});
+  const new({super.key});
 
   @override
   State<MorphExample> createState() => _MorphExampleState();
@@ -40,10 +40,7 @@ class _MorphExampleState extends State<MorphExample> {
                         target: destination,
                         child: const Text(
                           'Route destination',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ),
@@ -99,23 +96,15 @@ class _MorphExampleState extends State<MorphExample> {
               return FadeTransition(opacity: animation, child: child);
             },
           ),
-          child: Text(
-            _expanded ? 'Arriving Text fades in' : 'Departing Text fades out',
-          ),
+          child: Text(_expanded ? 'Arriving Text fades in' : 'Departing Text fades out'),
         ),
         TextButton(
           onPressed: () => setState(() => _expanded = !_expanded),
-          child: Text(
-            _expanded ? 'Collapse Morphs' : 'Expand Morphs',
-          ),
+          child: Text(_expanded ? 'Collapse Morphs' : 'Expand Morphs'),
         ),
         FilledButton.tonal(
           onPressed: _openRoute,
-          child: Morph(
-            animateChildChanges: true,
-            target: _routeSource,
-            child: const Text('Open route Morph'),
-          ),
+          child: Morph(animateChildChanges: true, target: _routeSource, child: const Text('Open route Morph')),
         ),
       ],
     );
@@ -147,10 +136,7 @@ class _MorphExampleState extends State<MorphExample> {
               target: target,
               duration: const Duration(milliseconds: 900),
               child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(_expanded ? 32 : 16),
-                ),
+                decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(_expanded ? 32 : 16)),
                 child: MorphDescendant(
                   flightBehavior: behavior,
                   child: Padding(
@@ -160,11 +146,7 @@ class _MorphExampleState extends State<MorphExample> {
                         final width = constraints.maxWidth.toStringAsFixed(0);
                         return Text(
                           '$text\nCurrent layout width: $width',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                          ),
+                          style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700),
                         );
                       },
                     ),

@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphTextFlight extends LeafRenderObjectWidget {
-  const _MorphTextFlight({
+  const new({
     required this.delegate,
     required this.flight,
     this.rasterPool,

@@ -4,10 +4,7 @@ import 'dart:ui';
 /// Produces one bounded, repeating free-drag path below dismissal distance.
 final class InteractiveSwipeDismissBenchmarkMotion {
   /// Creates a deterministic drag path within [viewportSize].
-  const InteractiveSwipeDismissBenchmarkMotion({
-    required this.origin,
-    required this.viewportSize,
-  });
+  const new({required this.origin, required this.viewportSize});
 
   /// Frames in one complete forward-and-reverse drag cycle.
   static const int framesPerCycle = 48;

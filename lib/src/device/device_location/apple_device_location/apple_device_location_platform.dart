@@ -19,7 +19,7 @@ part 'apple_device_location_native_types.dart';
 /// Retrieves foreground device location through iOS Core Location.
 final class AppleDeviceLocationPlatform extends DeviceLocationPlatform {
   /// Creates the Core Location implementation.
-  AppleDeviceLocationPlatform()
+  new()
     : this._(
         isServiceEnabled: () => _requestValue(_nativeIsServiceEnabled),
         checkPermission: () => _requestValue(_nativeCheckPermission),
@@ -31,7 +31,7 @@ final class AppleDeviceLocationPlatform extends DeviceLocationPlatform {
 
   /// Creates an implementation with replaceable operations for tests.
   @visibleForTesting
-  factory AppleDeviceLocationPlatform.test({
+  factory test({
     required Future<({int value, int failure})> Function() isServiceEnabled,
     required Future<({int value, int failure})> Function() checkPermission,
     required Future<({int value, int failure})> Function() requestPermission,
@@ -94,7 +94,7 @@ final class AppleDeviceLocationPlatform extends DeviceLocationPlatform {
     );
   }
 
-  const AppleDeviceLocationPlatform._({
+  const new _({
     required Future<({int value, int failure})> Function() isServiceEnabled,
     required Future<({int value, int failure})> Function() checkPermission,
     required Future<({int value, int failure})> Function() requestPermission,

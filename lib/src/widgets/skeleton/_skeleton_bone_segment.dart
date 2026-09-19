@@ -1,7 +1,7 @@
 part of 'skeleton.dart';
 
 class _SkeletonBoneSegment {
-  _SkeletonBoneSegment({required this.bounds});
+  new({required this.bounds});
 
   final Rect bounds;
   final _SkeletonBoneCommands commands = _SkeletonBoneCommands();

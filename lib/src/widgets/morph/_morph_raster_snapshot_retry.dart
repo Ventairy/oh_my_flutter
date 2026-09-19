@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphRasterSnapshotRetry<K> {
-  _MorphRasterSnapshotRetry({
+  new({
     required this.key,
     required this.generation,
   });

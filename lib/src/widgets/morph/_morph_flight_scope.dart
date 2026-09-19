@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphFlightScope extends InheritedNotifier<_MorphCoordinator> {
-  const _MorphFlightScope({
+  const new({
     required this.coordinator,
     required this.registeredCaptures,
     required super.child,

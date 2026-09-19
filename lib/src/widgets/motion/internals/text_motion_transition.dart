@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Builds the text paragraph after every effect application is collected.
 class _TextMotionTransition extends StatelessWidget {
-  factory _TextMotionTransition.initial(Text text) {
+  factory initial(Text text) {
     final graphemes = text.data!.characters.toList(growable: false);
     var animatedCharacterCount = 0;
     for (final grapheme in graphemes) {
@@ -18,7 +18,7 @@ class _TextMotionTransition extends StatelessWidget {
     );
   }
 
-  const _TextMotionTransition._({
+  const new _({
     required this.text,
     required this.graphemes,
     required this.animatedCharacterCount,

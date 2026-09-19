@@ -1,7 +1,7 @@
 part of '../morph_text_raster_cache_test.dart';
 
 class _WrappingColumnRasterRoute extends PageRouteBuilder<void> {
-  _WrappingColumnRasterRoute({required super.pageBuilder})
+  new({required super.pageBuilder})
     : super(
         transitionDuration: const Duration(milliseconds: 400),
         reverseTransitionDuration: const Duration(milliseconds: 400),

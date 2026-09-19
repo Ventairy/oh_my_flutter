@@ -2,7 +2,7 @@ part of '../motion.dart';
 
 /// Precomputes one effect's animation timeline and paint bounds.
 class _MotionRenderEffect {
-  _MotionRenderEffect._({
+  new _({
     required this.animation,
     required this.effect,
     required this.usesTextTimeline,
@@ -19,7 +19,7 @@ class _MotionRenderEffect {
     bounds = _sampleBounds(effect, isLinear: isLinear);
   }
 
-  factory _MotionRenderEffect.forMotion(_MotionApplication application) {
+  factory forMotion(_MotionApplication application) {
     final effect = application.effect;
     return _MotionRenderEffect._(
       animation: application.animation,
@@ -32,7 +32,7 @@ class _MotionRenderEffect {
     );
   }
 
-  factory _MotionRenderEffect.forText(
+  factory forText(
     _TextMotionApplication application,
   ) {
     final effect = application.effect;

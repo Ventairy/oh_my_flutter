@@ -4,7 +4,7 @@ part of 'skeleton.dart';
 // and colors. Sharing their immutable Paint/Shader for the duration of a frame
 // avoids rebuilding the same native gradient once per Skeleton instance.
 class _SkeletonEffectFrameCache {
-  _SkeletonEffectFrameCache._();
+  new _();
 
   static final _SkeletonEffectFrameCache instance = _SkeletonEffectFrameCache._();
 

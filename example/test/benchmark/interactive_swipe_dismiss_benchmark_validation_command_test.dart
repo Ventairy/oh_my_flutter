@@ -128,10 +128,7 @@ void main() {
         .join('\n');
   }
 
-  List<String> arguments({
-    required String logPath,
-    required String outputDirectory,
-  }) {
+  List<String> arguments({required String logPath, required String outputDirectory}) {
     return <String>[
       '--log',
       logPath,
@@ -152,117 +149,75 @@ void main() {
   }
 
   group('InteractiveSwipeDismissBenchmarkValidationCommand', () {
-    test(
-      'when the retained workload passes, '
-      'it should write artifacts and exit zero',
-      () async {
-        final temporaryDirectory = await Directory.systemTemp.createTemp(
-          'interactive-swipe-dismiss-validator-test.',
-        );
-        addTearDown(() => temporaryDirectory.delete(recursive: true));
-        final logFile = File('${temporaryDirectory.path}/flutter.log');
-        await logFile.writeAsString(buildRetainedLog());
-        final artifactDirectory = Directory(
-          '${temporaryDirectory.path}/artifacts',
-        );
-        final output = StringBuffer();
-        final errors = StringBuffer();
-        const command = InteractiveSwipeDismissBenchmarkValidationCommand();
-        final exitCode = await command.run(
-          arguments(
-            logPath: logFile.path,
-            outputDirectory: artifactDirectory.path,
+    test('when the retained workload passes, '
+        'it should write artifacts and exit zero', () async {
+      final temporaryDirectory = await Directory.systemTemp.createTemp('interactive-swipe-dismiss-validator-test.');
+      addTearDown(() => temporaryDirectory.delete(recursive: true));
+      final logFile = File('${temporaryDirectory.path}/flutter.log');
+      await logFile.writeAsString(buildRetainedLog());
+      final artifactDirectory = Directory('${temporaryDirectory.path}/artifacts');
+      final output = StringBuffer();
+      final errors = StringBuffer();
+      const command = InteractiveSwipeDismissBenchmarkValidationCommand();
+      final exitCode = await command.run(
+        arguments(logPath: logFile.path, outputDirectory: artifactDirectory.path),
+        output: output,
+        errors: errors,
+      );
+      final jsonLinesFile = File(
+        '${artifactDirectory.path}/'
+        'interactive_swipe_dismiss_benchmark.jsonl',
+      );
+      final summaryFile = File(
+        '${artifactDirectory.path}/'
+        'interactive_swipe_dismiss_benchmark_summary.txt',
+      );
+
+      expect(
+        <String, Object>{
+          'exit_code': exitCode,
+          'json_lines_exist': jsonLinesFile.existsSync(),
+          'summary_passed': (await summaryFile.readAsString()).startsWith(
+            'InteractiveSwipeDismiss benchmark host validation: PASS\n',
           ),
-          output: output,
-          errors: errors,
-        );
-        final jsonLinesFile = File(
-          '${artifactDirectory.path}/'
-          'interactive_swipe_dismiss_benchmark.jsonl',
-        );
-        final summaryFile = File(
-          '${artifactDirectory.path}/'
-          'interactive_swipe_dismiss_benchmark_summary.txt',
-        );
+          'errors': errors.toString(),
+        },
+        <String, Object>{'exit_code': 0, 'json_lines_exist': true, 'summary_passed': true, 'errors': ''},
+      );
+    });
 
-        expect(
-          <String, Object>{
-            'exit_code': exitCode,
-            'json_lines_exist': jsonLinesFile.existsSync(),
-            'summary_passed': (await summaryFile.readAsString()).startsWith(
-              'InteractiveSwipeDismiss benchmark host validation: PASS\n',
-            ),
-            'errors': errors.toString(),
-          },
-          <String, Object>{
-            'exit_code': 0,
-            'json_lines_exist': true,
-            'summary_passed': true,
-            'errors': '',
-          },
-        );
-      },
-    );
+    test('when help is requested, it should name every strict gate and exit zero', () async {
+      final output = StringBuffer();
+      final errors = StringBuffer();
+      const command = InteractiveSwipeDismissBenchmarkValidationCommand();
+      final exitCode = await command.run(<String>['--help'], output: output, errors: errors);
 
-    test(
-      'when help is requested, it should name every strict gate and exit zero',
-      () async {
-        final output = StringBuffer();
-        final errors = StringBuffer();
-        const command = InteractiveSwipeDismissBenchmarkValidationCommand();
-        final exitCode = await command.run(
-          <String>['--help'],
-          output: output,
-          errors: errors,
-        );
+      expect(
+        <String, Object>{
+          'exit_code': exitCode,
+          'retained_gate': output.toString().contains('--require-retained-paint'),
+          'run_id': output.toString().contains('--expected-run-id'),
+          'errors': errors.toString(),
+        },
+        <String, Object>{'exit_code': 0, 'retained_gate': true, 'run_id': true, 'errors': ''},
+      );
+    });
 
-        expect(
-          <String, Object>{
-            'exit_code': exitCode,
-            'retained_gate': output.toString().contains(
-              '--require-retained-paint',
-            ),
-            'run_id': output.toString().contains('--expected-run-id'),
-            'errors': errors.toString(),
-          },
-          <String, Object>{
-            'exit_code': 0,
-            'retained_gate': true,
-            'run_id': true,
-            'errors': '',
-          },
-        );
-      },
-    );
+    test('when required options are missing, '
+        'it should reject the command before reading a log', () async {
+      final output = StringBuffer();
+      final errors = StringBuffer();
+      const command = InteractiveSwipeDismissBenchmarkValidationCommand();
+      final exitCode = await command.run(const <String>[], output: output, errors: errors);
 
-    test(
-      'when required options are missing, '
-      'it should reject the command before reading a log',
-      () async {
-        final output = StringBuffer();
-        final errors = StringBuffer();
-        const command = InteractiveSwipeDismissBenchmarkValidationCommand();
-        final exitCode = await command.run(
-          const <String>[],
-          output: output,
-          errors: errors,
-        );
-
-        expect(
-          <String, Object>{
-            'exit_code': exitCode,
-            'output': output.toString(),
-            'missing': errors.toString().contains(
-              'Missing required options:',
-            ),
-          },
-          <String, Object>{
-            'exit_code': 1,
-            'output': '',
-            'missing': true,
-          },
-        );
-      },
-    );
+      expect(
+        <String, Object>{
+          'exit_code': exitCode,
+          'output': output.toString(),
+          'missing': errors.toString().contains('Missing required options:'),
+        },
+        <String, Object>{'exit_code': 1, 'output': '', 'missing': true},
+      );
+    });
   });
 }

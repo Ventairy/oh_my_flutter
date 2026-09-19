@@ -4,7 +4,7 @@ import 'package:meta/meta.dart';
 @immutable
 final class DeviceLocationCoordinates {
   /// Creates device coordinates with their horizontal [accuracy].
-  const DeviceLocationCoordinates({
+  const new({
     required this.latitude,
     required this.longitude,
     required this.accuracy,

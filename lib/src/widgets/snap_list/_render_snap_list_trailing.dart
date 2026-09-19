@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _RenderSnapListTrailing extends RenderProxyBox {
-  _RenderSnapListTrailing(this.axis, this.extent, this.onExtentChanged);
+  new(this.axis, this.extent, this.onExtentChanged);
 
   Axis axis;
   double extent;

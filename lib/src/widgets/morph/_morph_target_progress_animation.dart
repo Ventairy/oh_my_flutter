@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphTargetProgressAnimation extends Animation<double> with AnimationWithParentMixin<double> {
-  _MorphTargetProgressAnimation({
+  new({
     required this.parent,
     required this.begin,
     required this.end,

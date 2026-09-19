@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphDescendantHandle {
-  _MorphDescendantHandle({required this.owner});
+  new({required this.owner});
 
   final _MorphDescendantState owner;
   _RenderMorphDescendant? _renderObject;

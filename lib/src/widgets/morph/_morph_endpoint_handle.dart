@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphEndpointHandle {
-  _MorphEndpointHandle({
+  new({
     required this.owner,
     required this.target,
     required this.visibility,

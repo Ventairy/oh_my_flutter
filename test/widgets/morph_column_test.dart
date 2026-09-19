@@ -3714,7 +3714,7 @@ Column _verticalColumn({required bool destination}) {
 }
 
 class _ColumnMorphTestApp extends StatefulWidget {
-  const _ColumnMorphTestApp({
+  const new({
     required this.builder,
     this.sourceWidth = 300,
     this.destinationWidth = 300,
@@ -3788,7 +3788,7 @@ class _ColumnMorphTestAppState extends State<_ColumnMorphTestApp> {
 }
 
 final class _ExtremeHybridOvershootCurve extends Curve {
-  const _ExtremeHybridOvershootCurve();
+  const new();
 
   @override
   double transformInternal(double t) {
@@ -3797,7 +3797,7 @@ final class _ExtremeHybridOvershootCurve extends Curve {
 }
 
 final class _CountingKey extends LocalKey {
-  const _CountingKey(this.value);
+  const new(this.value);
 
   static int comparisons = 0;
 

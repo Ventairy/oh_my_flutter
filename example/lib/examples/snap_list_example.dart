@@ -7,7 +7,7 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 /// Demonstrates scroll-driven effects, both axes, and app-owned pagination.
 class SnapListExample extends StatefulWidget {
   /// Creates an interactive snapping-list example.
-  const SnapListExample({super.key});
+  const new({super.key});
 
   @override
   State<SnapListExample> createState() => _SnapListExampleState();

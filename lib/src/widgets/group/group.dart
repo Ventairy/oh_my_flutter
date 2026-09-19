@@ -20,7 +20,7 @@ part 'group_snapshot.dart';
 /// See the [Group guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/group.md).
 class Group extends SingleChildRenderObjectWidget {
   /// Connects [child] to [link].
-  const Group({required this.link, required super.child, this.zIndex = 0, super.key});
+  const new({required this.link, required super.child, this.zIndex = 0, super.key});
 
   /// The shared connection identifying this child's group.
   final GroupLink link;

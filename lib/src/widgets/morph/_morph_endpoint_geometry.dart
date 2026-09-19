@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 class _MorphEndpointGeometry {
-  _MorphEndpointGeometry({
+  new({
     required this.renderObject,
     required this.localSize,
     required this.overlayBounds,

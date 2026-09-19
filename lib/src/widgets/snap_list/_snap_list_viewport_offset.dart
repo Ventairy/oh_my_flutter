@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListViewportOffset extends ViewportOffset {
-  _SnapListViewportOffset(this.motion, this.position) {
+  new(this.motion, this.position) {
     motion.addListener(notifyListeners);
     position.addListener(notifyListeners);
   }

@@ -12,11 +12,11 @@ import 'pigeon/android_device_location.g.dart';
 /// Retrieves Android location information through the generated host API.
 final class PigeonDeviceLocationPlatform extends DeviceLocationPlatform {
   /// Creates the Android device-location platform implementation.
-  PigeonDeviceLocationPlatform() : _api = AndroidDeviceLocationApi();
+  new() : _api = AndroidDeviceLocationApi();
 
   /// Creates an implementation backed by a test host API.
   @visibleForTesting
-  PigeonDeviceLocationPlatform.test(this._api);
+  new test(this._api);
 
   final AndroidDeviceLocationApi _api;
 

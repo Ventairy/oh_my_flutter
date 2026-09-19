@@ -8,7 +8,7 @@ import 'device_location_unsupported.dart' if (dart.library.io) 'device_location_
 /// Applications use `DeviceLocation` rather than this platform boundary.
 abstract class DeviceLocationPlatform {
   /// Creates a device-location platform implementation.
-  const DeviceLocationPlatform();
+  const new();
 
   /// The platform implementation used for device-location requests.
   ///

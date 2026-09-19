@@ -4,7 +4,7 @@ part of 'skeleton.dart';
 @immutable
 class SkeletonStyle {
   /// Creates a skeleton style with a neutral gray resting color.
-  const SkeletonStyle({
+  const new({
     this.color = const Color(0xFFE0E0E0),
     this.effect,
     this.radius = const Radius.circular(4),

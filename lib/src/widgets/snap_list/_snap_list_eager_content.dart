@@ -1,7 +1,7 @@
 part of 'snap_list.dart';
 
 class _SnapListEagerContent extends MultiChildRenderObjectWidget {
-  const _SnapListEagerContent({
+  const new({
     required this.motion,
     required this.direction,
     required this.extent,
