@@ -221,13 +221,19 @@ class _CrossFlightRasterAppState extends State<_CrossFlightRasterApp> {
           width: 300,
           height: 80,
           child: Morph(
-            animateChildChanges: true,
-            target: _morphTarget1.putIfAbsent((
-              'cross-flight-raster',
-              expanded,
-            ), () => MorphTarget(tag: 'cross-flight-raster')),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOutCubic,
+            key: ValueKey(expanded),
+
+            targets: [
+              _morphTarget1.putIfAbsent(
+                'cross-flight-raster',
+                () => MorphTarget(
+                  tag: 'cross-flight-raster',
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                ),
+              ),
+            ],
+
             child: Text(
               expanded ? 'Destination raster' : 'Source raster',
               style: TextStyle(
@@ -309,12 +315,18 @@ class _ColumnRasterWorkingSetAppState extends State<_ColumnRasterWorkingSetApp> 
         child: SizedBox(
           width: 180,
           child: Morph(
-            animateChildChanges: true,
-            target: _morphTarget2.putIfAbsent((
-              'column-raster-working-set',
-              expanded,
-            ), () => MorphTarget(tag: 'column-raster-working-set')),
-            curve: const _RasterSegmentCurve(),
+            key: const ValueKey(1),
+
+            targets: [
+              _morphTarget2.putIfAbsent(
+                'column-raster-working-set',
+                () => MorphTarget(
+                  tag: 'column-raster-working-set',
+                  curve: const _RasterSegmentCurve(),
+                ),
+              ),
+            ],
+
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -341,12 +353,18 @@ class _ColumnRasterWorkingSetAppState extends State<_ColumnRasterWorkingSetApp> 
         ),
       ),
       floatingActionButton: Morph(
-        animateChildChanges: true,
-        target: _morphTarget3.putIfAbsent((
-          'column-raster-pool-probe',
-          expanded,
-        ), () => MorphTarget(tag: 'column-raster-pool-probe')),
-        curve: Curves.linear,
+        key: ValueKey(expanded),
+
+        targets: [
+          _morphTarget3.putIfAbsent(
+            'column-raster-pool-probe',
+            () => MorphTarget(
+              tag: 'column-raster-pool-probe',
+              curve: Curves.linear,
+            ),
+          ),
+        ],
+
         child: Text(
           expanded ? 'Probe destination' : 'Probe source',
           style: const TextStyle(
@@ -413,15 +431,25 @@ class _StaggeredRasterLeaseAppState extends State<_StaggeredRasterLeaseApp> {
               child: SizedBox.fromSize(
                 size: widget.endpointSize,
                 child: Morph(
-                  animateChildChanges: true,
-                  target: _morphTarget4.putIfAbsent(
-                    'staggered-raster-$index',
-                    () => MorphTarget(tag: 'staggered-raster-$index'),
+                  key: ValueKey<Object>(
+                    ValueKey<String>(
+                      'staggered-raster-$index-$destination',
+                    ),
                   ),
-                  duration: widget.shortBatches.contains(batch)
-                      ? const Duration(milliseconds: 300)
-                      : const Duration(seconds: 10),
-                  curve: const _RasterSegmentCurve(),
+
+                  targets: [
+                    _morphTarget4.putIfAbsent(
+                      'staggered-raster-$index',
+                      () => MorphTarget(
+                        tag: 'staggered-raster-$index',
+                        duration: widget.shortBatches.contains(batch)
+                            ? const Duration(milliseconds: 300)
+                            : const Duration(seconds: 10),
+                        curve: const _RasterSegmentCurve(),
+                      ),
+                    ),
+                  ],
+
                   child: Text(
                     widget.duplicateText
                         ? '${destination ? 'Destination' : 'Source'} raster'
@@ -488,10 +516,10 @@ class _WrappingColumnRasterAppState extends State<_WrappingColumnRasterApp> {
         child: SizedBox(
           width: destination ? 240 : 700,
           child: Morph(
-            target: _morphTarget5.putIfAbsent((
-              'wrapping-column-raster',
-              destination,
-            ), () => MorphTarget(tag: 'wrapping-column-raster')),
+            key: ValueKey(destination),
+            targets: [
+              _morphTarget5.putIfAbsent('wrapping-column-raster', () => MorphTarget(tag: 'wrapping-column-raster')),
+            ],
             flightConfig: const .auto(
               childSwitchAt: 0.9,
             ),

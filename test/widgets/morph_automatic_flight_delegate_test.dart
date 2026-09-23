@@ -13,12 +13,18 @@ void main() {
   final snapshotPaints = find.byWidgetPredicate(
     (widget) => widget is CustomPaint && widget.painter.runtimeType.toString() == '_MorphContentSnapshotPainter',
   );
+  final flights = find.byWidgetPredicate(
+    (widget) => widget.runtimeType.toString() == '_MorphFlightBoundary',
+  );
 
   Future<void> startFlight(
     WidgetTester tester, {
     required Widget Function({required bool expanded}) contentBuilder,
   }) async {
-    final morphTarget1 = MorphTarget(tag: 'automatic-content');
+    final morphTarget1 = MorphTarget(
+      tag: 'automatic-content',
+      duration: const Duration(seconds: 1),
+    );
     final morphObserver1 = MorphNavigatorObserver();
 
     await tester.pumpWidget(
@@ -28,9 +34,10 @@ void main() {
           child: ValueListenableBuilder<int>(
             valueListenable: endpoint,
             builder: (context, value, _) => Morph(
-              animateChildChanges: true,
-              target: morphTarget1,
-              duration: const Duration(seconds: 1),
+              key: ValueKey(value),
+
+              targets: [morphTarget1],
+
               flightConfig: const .auto(childSwitchAt: 0.8),
               child: SizedBox(
                 key: ValueKey(value),
@@ -64,8 +71,114 @@ void main() {
   }
 
   const repeatedDescendant = MorphDescendant(
-    flightBehavior: .snapshot,
+    flightBehavior: .snapshot(),
     child: SizedBox.expand(child: ColoredBox(color: Colors.blue)),
+  );
+
+  testWidgets(
+    'when a watched automatic Container specializes, it should preserve endpoint property resolution',
+    (tester) async {
+      final target = MorphTarget(
+        tag: 'watched-automatic-container',
+        duration: const Duration(seconds: 1),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
+      var destination = false;
+      var destinationWidth = 160.0;
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [MorphNavigatorObserver()],
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Align(
+                  alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
+                  child: Morph(
+                    key: ValueKey(destination),
+                    targets: [target],
+                    child: Container(
+                      width: destination ? destinationWidth : 80,
+                      height: destination ? 120 : 80,
+                      color: destination ? Colors.blue : Colors.red,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      update(() => destination = true);
+      await tester.pump();
+      await tester.pump();
+      update(() => destinationWidth = 240);
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'when a watched automatic endpoint changes specialization, it should continue with dynamic properties',
+    (tester) async {
+      final target = MorphTarget(
+        tag: 'watched-automatic-shape-change',
+        duration: const Duration(seconds: 1),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
+      var destination = false;
+      var destinationUsesRawContent = false;
+      late StateSetter update;
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [MorphNavigatorObserver()],
+          home: Scaffold(
+            body: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Align(
+                  alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
+                  child: Morph(
+                    key: ValueKey(destination),
+                    targets: [target],
+                    child: destination && destinationUsesRawContent
+                        ? const SizedBox(
+                            width: 120,
+                            height: 60,
+                            child: ColoredBox(color: Colors.green),
+                          )
+                        : Container(
+                            width: destination ? 160 : 80,
+                            height: destination ? 120 : 80,
+                            color: destination ? Colors.blue : Colors.red,
+                          ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      update(() => destination = true);
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      update(() => destinationUsesRawContent = true);
+      await tester.pump();
+      await tester.pump();
+
+      expect((tester.takeException(), flights.evaluate().length), (null, 1));
+      await tester.pumpAndSettle();
+    },
   );
 
   testWidgets(
@@ -114,7 +227,7 @@ void main() {
                 SizedBox.fromSize(
                   size: expanded ? size * 1.5 : size,
                   child: MorphDescendant(
-                    flightBehavior: .snapshot,
+                    flightBehavior: const .snapshot(),
                     child: ColoredBox(color: expanded ? Colors.green : Colors.blue),
                   ),
                 ),

@@ -32,7 +32,6 @@ class _MorphOverlayState extends State<_MorphOverlay> {
                     key: ValueKey<Object>(flight.tag),
                     child: flight.build(context),
                   ),
-                  for (final sibling in widget.coordinator.siblingsAbove(flight)) sibling.overlayProjection,
                 ],
               ],
             );

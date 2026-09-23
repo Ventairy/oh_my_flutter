@@ -8,7 +8,7 @@ void main() {
   test('when a Morph omits its delegate, it should use the const automatic configuration', () {
     final morphTarget1 = MorphTarget(tag: 'default');
 
-    final morph = Morph(target: morphTarget1, child: const SizedBox());
+    final morph = Morph(targets: [morphTarget1], child: const SizedBox());
 
     expect(identical(morph.flightConfig, const MorphFlightConfig.auto()), isTrue);
   });

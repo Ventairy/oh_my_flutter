@@ -11,12 +11,6 @@ void main() {
         'text',
         'column',
         'surface',
-        'foreground_static',
-        'foreground_live',
-        'foreground_multi_static',
-        'foreground_multi_mixed',
-        'foreground_fallback_static',
-        'foreground_fallback_live',
         'watch_text',
         'watch_compound',
         'watch_custom',
@@ -26,6 +20,9 @@ void main() {
         'watch_snapshot_geometry_only',
         'watch_snapshot_dynamic',
         'watch_snapshot_full_surface',
+        'watch_group_keyboard',
+        'watch_group_stationary',
+        'watch_group_stationary_control',
         'watch_snapshot_nested_fallback',
         'resting_scroll',
         'raw_descendants',
@@ -121,6 +118,41 @@ void main() {
           scenario.mutatesSnapshotGeometry,
         ),
         (12, 1, true, true),
+      );
+    });
+
+    test('when the full-surface watched group scenario is inspected, '
+        'it should request twelve consecutive-frame refreshes', () {
+      const scenario = MorphBenchmarkScenario.watchGroupKeyboard;
+      expect(
+        (
+          scenario.snapshotMutationBatches,
+          scenario.snapshotMutationsPerBatch,
+          scenario.mutatesSnapshotPixels,
+          scenario.mutatesSnapshotGeometry,
+        ),
+        (12, 1, true, false),
+      );
+    });
+
+    test('when the stationary group A/B scenarios are inspected, '
+        'it should declare no requested or gated snapshot refreshes', () {
+      const scenarios = <MorphBenchmarkScenario>[
+        MorphBenchmarkScenario.watchGroupStationary,
+        MorphBenchmarkScenario.watchGroupStationaryControl,
+      ];
+      expect(
+        [
+          for (final scenario in scenarios)
+            (
+              scenario.gatesWatchedSnapshotRefresh,
+              scenario.snapshotMutationBatches,
+              scenario.snapshotMutationsPerBatch,
+              scenario.mutatesSnapshotPixels,
+              scenario.mutatesSnapshotGeometry,
+            ),
+        ],
+        const <(bool, int, int, bool, bool)>[(false, 0, 0, false, false), (false, 0, 0, false, false)],
       );
     });
 

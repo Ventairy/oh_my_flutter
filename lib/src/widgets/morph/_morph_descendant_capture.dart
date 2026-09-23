@@ -11,47 +11,48 @@ final class _MorphDescendantCapture extends ChangeNotifier {
   final List<_MorphGroupCapture> _groups = [];
   bool groupsReady = true;
   bool get hasGroups => _groups.isNotEmpty;
-  bool get groupsAreCurrent => _groups.every((group) => group.isCurrent);
+  int get groupRevisionSignature {
+    var signature = 0;
+    for (final group in _groups) {
+      signature = Object.hash(signature, group.currentRevision);
+    }
+    return signature;
+  }
+
+  bool get groupsAreCurrent {
+    for (final group in _groups) {
+      if (!group.isCurrent) return false;
+    }
+    return true;
+  }
+
   int _references = 0;
 
   Widget registerGroup(GroupLink link, MorphEndpointContext endpoint) {
     assert(acceptsRegistrations, 'Register groups synchronously from properties.');
     hasRegistrations = true;
-    final snapshot = _MorphSnapshotCapture.captureGroup(
+    final capture = _MorphSnapshotCapture.captureGroup(
       link,
       relativeTo: endpoint._renderObject,
       bounds: Offset.zero & endpoint.localSize,
       pixelRatio: View.of(endpoint.context).devicePixelRatio,
     );
-    if (snapshot == null) {
+    if (capture == null) {
       groupsReady = false;
       return const SizedBox.shrink();
     }
-    final group = _MorphGroupCapture(link, snapshot, endpoint._renderObject)
-      .._pixelRatio = View.of(endpoint.context).devicePixelRatio;
+    final snapshot = capture.snapshot;
+    final group = _MorphGroupCapture(
+      link,
+      snapshot,
+      endpoint._renderObject,
+      capture.revision,
+    );
     _groups.add(group);
     return SizedBox.fromSize(
       size: snapshot.size,
       child: CustomPaint(painter: _MorphGroupSnapshotPainter(group)),
     );
-  }
-
-  void refreshGroups() {
-    final replacements = <(_MorphGroupCapture, GroupSnapshot)>[];
-    for (final group in _groups) {
-      if (group.isCurrent) continue;
-      final snapshot = group.captureReplacement();
-      if (snapshot == null) {
-        for (final (_, value) in replacements) {
-          value.dispose();
-        }
-        return;
-      }
-      replacements.add((group, snapshot));
-    }
-    for (final (group, snapshot) in replacements) {
-      group.replaceSnapshot(snapshot);
-    }
   }
 
   VoidCallback beginGroupPresentation(_MorphVisibilityHandle? visibility) {

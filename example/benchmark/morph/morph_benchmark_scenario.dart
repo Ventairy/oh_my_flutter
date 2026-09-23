@@ -9,25 +9,6 @@ enum MorphBenchmarkScenario {
   /// Retained decorated Container flight.
   surface('surface'),
 
-  /// Static foreground control painted above a moving surface flight.
-  foregroundStatic('foreground_static'),
-
-  /// Continuously repainting foreground control above a moving surface flight.
-  foregroundLive('foreground_live'),
-
-  /// Multiple static foreground controls above a moving surface flight.
-  foregroundMultiStatic('foreground_multi_static'),
-
-  /// Multiple foreground controls with one paint-only live control.
-  foregroundMultiMixed('foreground_multi_mixed'),
-
-  /// Static foreground control above a fallback flight that repaints each tick.
-  foregroundFallbackStatic('foreground_fallback_static'),
-
-  /// Repainting foreground control above a fallback flight that repaints each
-  /// tick.
-  foregroundFallbackLive('foreground_fallback_live'),
-
   /// Retained Text whose watched destination continuously moves and resizes.
   watchText('watch_text'),
 
@@ -57,6 +38,15 @@ enum MorphBenchmarkScenario {
   /// A near-full-surface snapshot changing size and pixels on consecutive
   /// frames.
   watchSnapshotFullSurface('watch_snapshot_full_surface'),
+
+  /// A near-full-surface group whose footer moves on consecutive frames.
+  watchGroupKeyboard('watch_group_keyboard'),
+
+  /// A near-full-surface watched group whose destination remains unchanged.
+  watchGroupStationary('watch_group_stationary'),
+
+  /// The stationary near-full-surface group without destination watching.
+  watchGroupStationaryControl('watch_group_stationary_control'),
 
   /// Nested snapshot boundaries using conservative automatic refreshes.
   watchSnapshotNestedFallback('watch_snapshot_nested_fallback'),
@@ -124,6 +114,7 @@ enum MorphBenchmarkScenario {
       watchSnapshotDynamic ||
       registeredWatchSnapshotDynamic ||
       watchSnapshotFullSurface ||
+      watchGroupKeyboard ||
       watchSnapshotNestedFallback => true,
       _ => false,
     };
@@ -136,6 +127,7 @@ enum MorphBenchmarkScenario {
       watchSnapshotDynamic => 4,
       registeredWatchSnapshotDynamic => 4,
       watchSnapshotFullSurface => 12,
+      watchGroupKeyboard => 12,
       watchSnapshotNestedFallback => 8,
       _ => 0,
     };
@@ -147,7 +139,7 @@ enum MorphBenchmarkScenario {
       watchSnapshotGeometryOnly => 3,
       watchSnapshotDynamic => 3,
       registeredWatchSnapshotDynamic => 3,
-      watchSnapshotFullSurface || watchSnapshotNestedFallback => 1,
+      watchSnapshotFullSurface || watchGroupKeyboard || watchSnapshotNestedFallback => 1,
       _ => 0,
     };
   }
@@ -157,6 +149,7 @@ enum MorphBenchmarkScenario {
     return switch (this) {
       watchSnapshotDynamic || registeredWatchSnapshotDynamic => true,
       watchSnapshotFullSurface => true,
+      watchGroupKeyboard => true,
       watchSnapshotNestedFallback => true,
       _ => false,
     };

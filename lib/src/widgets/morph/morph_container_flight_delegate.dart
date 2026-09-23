@@ -31,7 +31,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       );
     }
     final child = endpoint.child;
-    final capturedEnvironment = _MorphCapturedEnvironment(endpoint.context);
+    final capturedEnvironment = _MorphCapturedEnvironment.of(endpoint.context);
     return switch (child) {
       Container() => _captureEndpointContainer(endpoint, child, capturedEnvironment),
       DecoratedBox() => _captureDecoratedBox(
@@ -92,7 +92,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       size: size,
       axisScale: axisScale,
       switchThreshold: switchThreshold,
-      capturedEnvironment: _MorphCapturedEnvironment(context),
+      capturedEnvironment: _MorphCapturedEnvironment.of(context),
       renderObject: renderObject,
     );
   }
@@ -151,7 +151,7 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
       size: size,
       axisScale: axisScale,
       switchThreshold: switchThreshold,
-      capturedEnvironment: _MorphCapturedEnvironment(context),
+      capturedEnvironment: _MorphCapturedEnvironment.of(context),
       renderObject: renderObject,
     );
   }
@@ -465,11 +465,12 @@ final class MorphContainerFlightDelegate extends MorphFlightDelegate<MorphContai
     MorphFlight<MorphContainerProperties> flight,
   ) {
     final textDirection = Directionality.of(context);
-    if (switchTransition == null ||
-        !MorphChildFlightDelegate._specializedTextChanges(
-          flight.source.properties,
-          flight.destination.properties,
-        )) {
+    if (flight._geometry == null &&
+        (switchTransition == null ||
+            !MorphChildFlightDelegate._specializedTextChanges(
+              flight.source.properties,
+              flight.destination.properties,
+            ))) {
       final plan = _MorphCompoundFlightPlan.forContainer(
         source: flight.source.properties,
         destination: flight.destination.properties,

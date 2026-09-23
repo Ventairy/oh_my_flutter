@@ -216,9 +216,9 @@ void main() {
     test('when no curve is provided, it should defer curve resolution', () {
       final morphTarget1 = MorphTarget(tag: 'default-curve');
 
-      final morph = Morph(target: morphTarget1, child: const Text('Text'));
+      final morph = Morph(targets: [morphTarget1], child: const Text('Text'));
 
-      expect(morph.curve, isNull);
+      expect(morph.targets.single.curve, isNull);
     });
 
     testWidgets(
@@ -232,8 +232,7 @@ void main() {
             navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                animateChildChanges: true,
-                target: morphTarget2,
+                targets: [morphTarget2],
                 child: const Text(
                   'Resting text',
                   style: TextStyle(fontSize: 16),
@@ -262,7 +261,11 @@ void main() {
     testWidgets(
       'when Text flies under a non-uniform scale, it should preserve the transformed vertical extent',
       (tester) async {
-        final morphTarget3 = MorphTarget(tag: 'non-uniform-text');
+        final morphTarget3 = MorphTarget(
+          tag: 'non-uniform-text',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -279,10 +282,10 @@ void main() {
                       alignment: Alignment.center,
                       transform: Matrix4.diagonal3Values(2, 1, 1),
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget3,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('non-uniform-text-$destination')),
+
+                        targets: [morphTarget3],
+
                         child: Text(
                           'Non-uniform scale',
                           key: ValueKey('non-uniform-text-$destination'),
@@ -319,7 +322,11 @@ void main() {
     testWidgets(
       'when scaled Text uses a forced strut, it should preserve the transformed strut height',
       (tester) async {
-        final morphTarget4 = MorphTarget(tag: 'scaled-strut');
+        final morphTarget4 = MorphTarget(
+          tag: 'scaled-strut',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -336,10 +343,10 @@ void main() {
                       alignment: Alignment.center,
                       transform: Matrix4.diagonal3Values(1, 2, 1),
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget4,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('scaled-strut-$destination')),
+
+                        targets: [morphTarget4],
+
                         child: Text(
                           'Forced strut',
                           key: ValueKey('scaled-strut-$destination'),
@@ -512,7 +519,11 @@ void main() {
     testWidgets(
       'when Text has an overflowing shadow, it should preserve the native shadow outside its layout bounds during flight',
       (tester) async {
-        final morphTarget5 = MorphTarget(tag: 'shadow-overflow');
+        final morphTarget5 = MorphTarget(
+          tag: 'shadow-overflow',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.devicePixelRatio = 1;
@@ -531,10 +542,10 @@ void main() {
                     update = setState;
                     return Center(
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget5,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('shadow-overflow-$destination')),
+
+                        targets: [morphTarget5],
+
                         child: Text(
                           'Shadow',
                           key: ValueKey('shadow-overflow-$destination'),
@@ -631,7 +642,7 @@ void main() {
             home: Scaffold(
               body: SizedBox(
                 width: 300,
-                child: Morph(target: morphTarget6, child: const Text('Bounded')),
+                child: Morph(targets: [morphTarget6], child: const Text('Bounded')),
               ),
             ),
           ),
@@ -653,8 +664,7 @@ void main() {
             navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                animateChildChanges: true,
-                target: morphTarget7,
+                targets: [morphTarget7],
                 child: const Text(
                   'Styled text',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
@@ -687,8 +697,9 @@ void main() {
                 update = setState;
                 return Center(
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget8,
+                    key: ValueKey(destination),
+
+                    targets: [morphTarget8],
                     flightConfig: const .auto(
                       childSwitchAt: 0.6,
                     ),
@@ -1671,7 +1682,11 @@ void main() {
     testWidgets(
       'when non-wrapping visible text flies, it should retain the native pixels outside its endpoint',
       (tester) async {
-        final morphTarget9 = MorphTarget(tag: 'visible-text');
+        final morphTarget9 = MorphTarget(
+          tag: 'visible-text',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.physicalSize = const Size(300, 180);
@@ -1698,10 +1713,14 @@ void main() {
                           top: 20,
                           width: 70,
                           child: Morph(
-                            animateChildChanges: true,
-                            target: morphTarget9,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.linear,
+                            key: ValueKey<Object>(
+                              ValueKey<String>(
+                                'visible-text-$destination',
+                              ),
+                            ),
+
+                            targets: [morphTarget9],
+
                             child: Text(
                               text,
                               key: ValueKey<String>(
@@ -2284,8 +2303,7 @@ void main() {
 
           expect(
             () => Morph(
-              animateChildChanges: true,
-              target: morphTarget10,
+              targets: [morphTarget10],
               flightConfig: .auto(
                 childSwitchAt: threshold,
               ),
@@ -2304,8 +2322,7 @@ void main() {
 
         expect(
           () => Morph(
-            animateChildChanges: true,
-            target: morphTarget11,
+            targets: [morphTarget11],
             flightConfig: .auto(
               childSwitchAt: -0.1,
             ),
@@ -2323,8 +2340,7 @@ void main() {
 
         expect(
           () => Morph(
-            animateChildChanges: true,
-            target: morphTarget12,
+            targets: [morphTarget12],
             flightConfig: .auto(
               childSwitchAt: 1.5,
             ),
@@ -2346,8 +2362,7 @@ void main() {
             navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                animateChildChanges: true,
-                target: morphTarget13,
+                targets: [morphTarget13],
                 flightConfig: const .auto(
                   childSwitchAt: 0.8,
                 ),
@@ -2395,7 +2410,11 @@ class _RetainedTextGeometryApp extends StatefulWidget {
 }
 
 class _RetainedTextGeometryAppState extends State<_RetainedTextGeometryApp> {
-  final _morphTarget14 = MorphTarget(tag: 'retained-text-geometry');
+  final _morphTarget14 = MorphTarget(
+    tag: 'retained-text-geometry',
+    duration: const Duration(milliseconds: 400),
+    curve: Curves.linear,
+  );
   final _morphObserver1 = MorphNavigatorObserver();
 
   bool _destination = false;
@@ -2414,10 +2433,12 @@ class _RetainedTextGeometryAppState extends State<_RetainedTextGeometryApp> {
                 child: SizedBox(
                   width: _destination ? 240 : 120,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: _morphTarget14,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.linear,
+                    key: ValueKey<Object>(
+                      _destination ? _RetainedTextGeometryApp.destinationKey : _RetainedTextGeometryApp.sourceKey,
+                    ),
+
+                    targets: [_morphTarget14],
+
                     child: Text(
                       _destination ? 'Destination text' : 'Source',
                       key: _destination ? _RetainedTextGeometryApp.destinationKey : _RetainedTextGeometryApp.sourceKey,
@@ -2478,13 +2499,19 @@ class _OverflowTextMorphTestAppState extends State<_OverflowTextMorphTestApp> {
               child: SizedBox(
                 width: _destination ? 140 : 100,
                 child: Morph(
-                  animateChildChanges: true,
-                  target: _morphTarget15.putIfAbsent(
-                    'overflow-text-${widget.overflow.name}',
-                    () => MorphTarget(tag: 'overflow-text-${widget.overflow.name}'),
-                  ),
-                  duration: const Duration(milliseconds: 400),
-                  curve: Curves.linear,
+                  key: ValueKey(_destination),
+
+                  targets: [
+                    _morphTarget15.putIfAbsent(
+                      'overflow-text-${widget.overflow.name}',
+                      () => MorphTarget(
+                        tag: 'overflow-text-${widget.overflow.name}',
+                        duration: const Duration(milliseconds: 400),
+                        curve: Curves.linear,
+                      ),
+                    ),
+                  ],
+
                   child: Text(
                     _OverflowTextMorphTestApp.text,
                     softWrap: false,
@@ -2514,7 +2541,11 @@ class _OverflowTextMorphTestAppState extends State<_OverflowTextMorphTestApp> {
 }
 
 class _RtlTextMorphTestAppState extends State<_RtlTextMorphTestApp> {
-  final _morphTarget16 = MorphTarget(tag: 'rtl-text');
+  final _morphTarget16 = MorphTarget(
+    tag: 'rtl-text',
+    duration: const Duration(milliseconds: 300),
+    curve: Curves.linear,
+  );
   final _morphObserver1 = MorphNavigatorObserver();
 
   bool _destination = false;
@@ -2533,10 +2564,10 @@ class _RtlTextMorphTestAppState extends State<_RtlTextMorphTestApp> {
                 child: SizedBox(
                   width: _destination ? widget.destinationWidth : widget.sourceWidth,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: _morphTarget16,
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.linear,
+                    key: ValueKey(_destination),
+
+                    targets: [_morphTarget16],
+
                     child: Text(
                       _destination ? 'יעד ארוך' : 'מקור',
                       textWidthBasis: TextWidthBasis.longestLine,

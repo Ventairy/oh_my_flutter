@@ -43,6 +43,19 @@ class _MorphDescendantState extends State<MorphDescendant> {
   int? _flightRecordsRevision;
   bool _inFlight = false;
   bool _insideNestedMorph = false;
+  Listenable? _subscribedSnapshotChanges;
+
+  void _handleSnapshotChanged() => _handle.markSnapshotDirty();
+
+  void _synchronizeSnapshotChanges() {
+    final changes = !_inFlight && _endpoint != null && widget.flightBehavior.usesSnapshot
+        ? widget.flightBehavior._snapshotChanges
+        : null;
+    if (identical(changes, _subscribedSnapshotChanges)) return;
+    _subscribedSnapshotChanges?.removeListener(_handleSnapshotChanged);
+    _subscribedSnapshotChanges = changes;
+    changes?.addListener(_handleSnapshotChanged);
+  }
 
   void _detachEndpoint() {
     _endpoint?._unregisterDescendant(_handle);
@@ -100,12 +113,15 @@ class _MorphDescendantState extends State<MorphDescendant> {
         : null;
     _attachFlightResolver(flightResolver);
     _synchronizeEndpoint();
+    _synchronizeSnapshotChanges();
   }
 
   @override
   void didUpdateWidget(MorphDescendant oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.flightBehavior != widget.flightBehavior) {
+    if (oldWidget.flightBehavior != widget.flightBehavior ||
+        !identical(oldWidget.flightBehavior._snapshotChanges, widget.flightBehavior._snapshotChanges) ||
+        (widget.flightBehavior._snapshotChanges != null && !identical(oldWidget.child, widget.child))) {
       _handle.markSnapshotDirty();
     }
     if (_flightResolver != null &&
@@ -115,6 +131,7 @@ class _MorphDescendantState extends State<MorphDescendant> {
     if (oldWidget.flightBehavior != widget.flightBehavior) {
       _synchronizeEndpoint();
     }
+    _synchronizeSnapshotChanges();
   }
 
   @override
@@ -131,6 +148,7 @@ class _MorphDescendantState extends State<MorphDescendant> {
 
   @override
   void dispose() {
+    _subscribedSnapshotChanges?.removeListener(_handleSnapshotChanged);
     _detachEndpoint();
     _flightResolver?.removeListener(_handleFlightEndpointChanged);
     _flightResolver?.release(this);

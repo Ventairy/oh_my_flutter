@@ -7,7 +7,7 @@ import '../../benchmark/morph/morph_benchmark_custom_flight_delegate.dart';
 void main() {
   testWidgets('when the custom benchmark endpoint changes, '
       'it should paint the interpolated flight color', (tester) async {
-    final target = MorphTarget(tag: 'custom-benchmark-test');
+    final target = MorphTarget(tag: 'custom-benchmark-test', duration: const Duration(milliseconds: 100));
     final observer = MorphNavigatorObserver();
     var destination = false;
     late StateSetter update;
@@ -22,9 +22,9 @@ void main() {
                 width: destination ? 200 : 100,
                 height: destination ? 140 : 70,
                 child: Morph(
-                  animateChildChanges: true,
-                  target: target,
-                  duration: const Duration(milliseconds: 100),
+                  key: ValueKey(destination),
+                  targets: [target],
+
                   flightConfig: const .custom(BenchmarkCustomFlightDelegate()),
                   child: ColoredBox(color: destination ? Colors.blue : Colors.red),
                 ),

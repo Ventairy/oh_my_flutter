@@ -9,13 +9,17 @@ import '../support/morph_golden_navigator.dart';
 
 void main() {
   group('MorphDescendant golden', () {
-    for (final behavior in MorphDescendantFlightBehavior.values) {
+    for (final (name, behavior) in const [
+      ('live', MorphDescendantFlightBehavior.live()),
+      ('snapshot', MorphDescendantFlightBehavior.snapshot()),
+      ('hide', MorphDescendantFlightBehavior.hide()),
+    ]) {
       final harnessKey = GlobalKey<_MorphDescendantGoldenHarnessState>();
 
       unawaited(
         goldenTest(
-          'when ${behavior.name} content reaches the flight midpoint, it should match the reference',
-          fileName: 'morph_descendant_${behavior.name}',
+          'when $name content reaches the flight midpoint, it should match the reference',
+          fileName: 'morph_descendant_$name',
           constraints: const BoxConstraints.tightFor(width: 400, height: 700),
           whilePerforming: (tester) async {
             harnessKey.currentState!._expand();
@@ -49,7 +53,7 @@ void main() {
         builder: () => MorphGoldenNavigator(
           child: _MorphDescendantGoldenHarness(
             key: atlasHarnessKey,
-            behavior: MorphDescendantFlightBehavior.snapshot,
+            behavior: const MorphDescendantFlightBehavior.snapshot(),
             multipleSnapshots: true,
           ),
         ),
@@ -83,6 +87,7 @@ class _MorphDescendantGoldenHarnessState extends State<_MorphDescendantGoldenHar
 
   @override
   Widget build(BuildContext context) {
+    final behaviorName = widget.behavior.isLive ? 'live' : (widget.behavior.usesSnapshot ? 'snapshot' : 'hide');
     final atlasColors = _expanded
         ? const [Color(0xFFFFC857), Color(0xFF44AF69), Color(0xFF7D53DE)]
         : const [Color(0xFFFF8C42), Color(0xFF2F7D32), Color(0xFF4E2A84)];
@@ -91,11 +96,14 @@ class _MorphDescendantGoldenHarnessState extends State<_MorphDescendantGoldenHar
       child: Align(
         alignment: _expanded ? Alignment.bottomRight : Alignment.topLeft,
         child: Morph(
-          animateChildChanges: true,
-          target: _morphTarget1.putIfAbsent(
-            'descendant-golden-${widget.behavior.name}',
-            () => MorphTarget(tag: 'descendant-golden-${widget.behavior.name}'),
-          ),
+          key: ValueKey(_expanded),
+
+          targets: [
+            _morphTarget1.putIfAbsent(
+              'descendant-golden-$behaviorName',
+              () => MorphTarget(tag: 'descendant-golden-$behaviorName'),
+            ),
+          ],
           child: Container(
             width: _expanded ? 310 : 190,
             height: _expanded ? 220 : 140,
@@ -111,7 +119,7 @@ class _MorphDescendantGoldenHarnessState extends State<_MorphDescendantGoldenHar
                       (index) => Expanded(
                         child: MorphDescendant(
                           key: ValueKey<int>(index),
-                          flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                          flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                           child: SizedBox.expand(
                             child: ColoredBox(color: atlasColors[index]),
                           ),

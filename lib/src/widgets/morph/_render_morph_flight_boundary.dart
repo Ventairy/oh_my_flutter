@@ -90,6 +90,12 @@ class _RenderMorphFlightBoundary extends RenderProxyBox {
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    if (_paintHandle.retirementRequested) {
+      _handoffOpacityLayer.layer = null;
+      _clipRectLayer.layer = null;
+      _paintHandle.reportRetiredPaint();
+      return;
+    }
     if (_paintHandle.handoffPrepared) {
       _handoffOpacityLayer.layer = context.pushOpacity(
         offset,

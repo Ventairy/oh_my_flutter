@@ -214,9 +214,9 @@ void main() {
     test('when no curve is provided, it should defer curve resolution', () {
       final morphTarget1 = MorphTarget(tag: 'default-curve');
 
-      final morph = Morph(target: morphTarget1, child: Container());
+      final morph = Morph(targets: [morphTarget1], child: Container());
 
-      expect(morph.curve, isNull);
+      expect(morph.targets.single.curve, isNull);
     });
 
     testWidgets(
@@ -234,8 +234,7 @@ void main() {
             navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                animateChildChanges: true,
-                target: morphTarget2,
+                targets: [morphTarget2],
                 child: Container(
                   key: const ValueKey('decorated'),
                   width: 200,
@@ -265,8 +264,7 @@ void main() {
             navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                animateChildChanges: true,
-                target: morphTarget3,
+                targets: [morphTarget3],
                 child: Container(
                   width: 200,
                   height: 100,
@@ -293,8 +291,7 @@ void main() {
             navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                animateChildChanges: true,
-                target: morphTarget4,
+                targets: [morphTarget4],
                 child: Container(
                   key: const ValueKey('padded'),
                   padding: const EdgeInsets.all(24),
@@ -323,8 +320,7 @@ void main() {
             navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                animateChildChanges: true,
-                target: morphTarget5,
+                targets: [morphTarget5],
                 child: Container(
                   key: const ValueKey('sized'),
                   width: 300,
@@ -356,8 +352,9 @@ void main() {
                 update = setState;
                 return Center(
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget6,
+                    key: ValueKey(destination),
+
+                    targets: [morphTarget6],
                     child: Container(
                       width: destination ? 160 : 80,
                       height: destination ? 120 : 80,
@@ -391,7 +388,11 @@ void main() {
     testWidgets(
       'when retained paint bounds and paint share one progress, it should interpolate each decoration once',
       (tester) async {
-        final morphTarget7 = MorphTarget(tag: 'cached-decoration');
+        final morphTarget7 = MorphTarget(
+          tag: 'cached-decoration',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -404,10 +405,10 @@ void main() {
                 update = setState;
                 return Center(
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget7,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.linear,
+                    key: ValueKey<Object>(ValueKey('cached-decoration-$destination')),
+
+                    targets: [morphTarget7],
+
                     child: Container(
                       key: ValueKey('cached-decoration-$destination'),
                       width: 140,
@@ -452,7 +453,11 @@ void main() {
     testWidgets(
       'when retained compound endpoint values are equal, it should skip static interpolation',
       (tester) async {
-        final morphTarget8 = MorphTarget(tag: 'static-compound');
+        final morphTarget8 = MorphTarget(
+          tag: 'static-compound',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -465,10 +470,10 @@ void main() {
                 update = setState;
                 return Center(
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget8,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.linear,
+                    key: ValueKey<Object>(ValueKey('static-compound-$destination')),
+
+                    targets: [morphTarget8],
+
                     child: Container(
                       key: ValueKey('static-compound-$destination'),
                       width: 160,
@@ -524,7 +529,11 @@ void main() {
     testWidgets(
       'when retained gradients and blurred shadows paint directly, they should match BoxDecoration pixels',
       (tester) async {
-        final morphTarget9 = MorphTarget(tag: 'direct-decoration');
+        final morphTarget9 = MorphTarget(
+          tag: 'direct-decoration',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.physicalSize = const Size(520, 260);
@@ -586,10 +595,10 @@ void main() {
                           left: 80,
                           top: 90,
                           child: Morph(
-                            animateChildChanges: true,
-                            target: morphTarget9,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.linear,
+                            key: ValueKey<Object>(ValueKey('direct-decoration-$destination')),
+
+                            targets: [morphTarget9],
+
                             child: Container(
                               key: ValueKey('direct-decoration-$destination'),
                               width: 100,
@@ -650,7 +659,11 @@ void main() {
     testWidgets(
       'when debug shadows are disabled, direct outer shadows should match BoxDecoration pixels',
       (tester) async {
-        final morphTarget10 = MorphTarget(tag: 'disabled-shadow');
+        final morphTarget10 = MorphTarget(
+          tag: 'disabled-shadow',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.physicalSize = const Size(520, 260);
@@ -706,10 +719,10 @@ void main() {
                           left: 80,
                           top: 90,
                           child: Morph(
-                            animateChildChanges: true,
-                            target: morphTarget10,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.linear,
+                            key: ValueKey<Object>(ValueKey('disabled-shadow-$destination')),
+
+                            targets: [morphTarget10],
+
                             child: Container(
                               key: ValueKey('disabled-shadow-$destination'),
                               width: 100,
@@ -783,8 +796,9 @@ void main() {
                 update = setState;
                 return Center(
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget11,
+                    key: ValueKey<Object>(ValueKey(destination)),
+
+                    targets: [morphTarget11],
                     onStart: destination ? () => events.add('destination-start') : () => events.add('source-start'),
                     onEnd: destination ? () => events.add('destination-end') : () => events.add('source-end'),
                     onReceived: destination
@@ -832,8 +846,9 @@ void main() {
                 update = setState;
                 return Center(
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget12,
+                    key: ValueKey(destination),
+
+                    targets: [morphTarget12],
                     child: Container(
                       width: destination ? 220 : 120,
                       padding: EdgeInsets.all(destination ? 20 : 8),
@@ -869,7 +884,11 @@ void main() {
     testWidgets(
       'when an unsupported child flies from a local theme, it should preserve the endpoint theme',
       (tester) async {
-        final morphTarget13 = MorphTarget(tag: 'inherited-flight-theme');
+        final morphTarget13 = MorphTarget(
+          tag: 'inherited-flight-theme',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -891,10 +910,10 @@ void main() {
                     child: Align(
                       alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget13,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey(destination)),
+
+                        targets: [morphTarget13],
+
                         child: Container(
                           key: ValueKey(destination),
                           width: destination ? 180 : 120,
@@ -954,7 +973,11 @@ void main() {
     testWidgets(
       'when overlay insets change during a raw child flight, it should preserve the endpoint SafeArea geometry',
       (tester) async {
-        final morphTarget14 = MorphTarget(tag: 'captured-safe-area');
+        final morphTarget14 = MorphTarget(
+          tag: 'captured-safe-area',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -989,10 +1012,10 @@ void main() {
                     child: Align(
                       alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget14,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('safe-area-surface-$destination')),
+
+                        targets: [morphTarget14],
+
                         child: Container(
                           key: ValueKey('safe-area-surface-$destination'),
                           width: 180,
@@ -1053,8 +1076,12 @@ void main() {
     testWidgets(
       'when raw endpoints have different MediaQuery data, it should switch SafeArea geometry with child ownership',
       (tester) async {
-        final morphTarget15 = MorphTarget(tag: 'different-safe-areas');
-        final morphTarget16 = MorphTarget(tag: 'different-safe-areas');
+        final morphTarget15 = MorphTarget(
+          tag: 'different-safe-areas',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
+
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -1077,10 +1104,8 @@ void main() {
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Morph(
-                              animateChildChanges: true,
-                              target: morphTarget15,
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.linear,
+                              targets: [morphTarget15],
+
                               child: Container(
                                 key: const ValueKey('source-safe-area-surface'),
                                 width: 160,
@@ -1105,10 +1130,8 @@ void main() {
                           child: Align(
                             alignment: Alignment.bottomRight,
                             child: Morph(
-                              animateChildChanges: true,
-                              target: morphTarget16,
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.linear,
+                              targets: [morphTarget15],
+
                               child: Container(
                                 key: const ValueKey(
                                   'destination-safe-area-surface',
@@ -1176,7 +1199,11 @@ void main() {
     testWidgets(
       'when ordinary descendants use a transition, it should animate them out and in around ownership',
       (tester) async {
-        final morphTarget17 = MorphTarget(tag: 'ordinary-transition');
+        final morphTarget17 = MorphTarget(
+          tag: 'ordinary-transition',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -1191,10 +1218,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget17,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('transition-surface-$destination')),
+
+                      targets: [morphTarget17],
+
                       flightConfig: .auto(
                         childTransition: (child, animation) {
                           return FadeTransition(
@@ -1320,7 +1347,11 @@ void main() {
     testWidgets(
       'when an ordinary descendant remains selected, it should retain its transition subtree between flight frames',
       (tester) async {
-        final morphTarget18 = MorphTarget(tag: 'retained-ordinary-transition');
+        final morphTarget18 = MorphTarget(
+          tag: 'retained-ordinary-transition',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -1337,10 +1368,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget18,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('retained-transition-$destination')),
+
+                      targets: [morphTarget18],
+
                       flightConfig: .auto(
                         childTransition: (child, animation) {
                           transitionBuilds += 1;
@@ -1422,7 +1453,11 @@ void main() {
     testWidgets(
       'when an arbitrary descendant transition can paint outside, it should preserve the positioned fallback',
       (tester) async {
-        final morphTarget19 = MorphTarget(tag: 'translated-raw-fallback');
+        final morphTarget19 = MorphTarget(
+          tag: 'translated-raw-fallback',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -1437,10 +1472,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget19,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('translated-raw-$destination')),
+
+                      targets: [morphTarget19],
+
                       flightConfig: .auto(
                         childTransition: (child, animation) {
                           return FractionalTranslation(
@@ -1493,7 +1528,11 @@ void main() {
     testWidgets(
       'when an ordinary descendant has no transition, it should retain its captured subtree between flight frames',
       (tester) async {
-        final morphTarget20 = MorphTarget(tag: 'retained-ordinary-raw');
+        final morphTarget20 = MorphTarget(
+          tag: 'retained-ordinary-raw',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -1508,10 +1547,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget20,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('retained-raw-$destination')),
+
+                      targets: [morphTarget20],
+
                       child: Container(
                         key: ValueKey('retained-raw-$destination'),
                         width: 180,
@@ -1611,7 +1650,11 @@ void main() {
     testWidgets(
       'when raw ownership switches between different sizes, it should keep the interpolated child rect exact',
       (tester) async {
-        final morphTarget21 = MorphTarget(tag: 'exact-raw-rect');
+        final morphTarget21 = MorphTarget(
+          tag: 'exact-raw-rect',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.physicalSize = const Size(400, 300);
@@ -1633,10 +1676,14 @@ void main() {
                         left: destination ? 150 : 20,
                         top: destination ? 110 : 30,
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget21,
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.linear,
+                          key: ValueKey<Object>(
+                            ValueKey(
+                              'exact-raw-rect-surface-$destination',
+                            ),
+                          ),
+
+                          targets: [morphTarget21],
+
                           child: Container(
                             key: ValueKey(
                               'exact-raw-rect-surface-$destination',
@@ -1751,7 +1798,11 @@ void main() {
     testWidgets(
       'when a raw descendant paints a shadow outside its bounds, it should use the overflow-safe fallback',
       (tester) async {
-        final morphTarget22 = MorphTarget(tag: 'raw-shadow-fallback');
+        final morphTarget22 = MorphTarget(
+          tag: 'raw-shadow-fallback',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.physicalSize = const Size(240, 180);
@@ -1777,10 +1828,14 @@ void main() {
                           left: 40,
                           top: 30,
                           child: Morph(
-                            animateChildChanges: true,
-                            target: morphTarget22,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.linear,
+                            key: ValueKey<Object>(
+                              ValueKey(
+                                'raw-shadow-surface-$destination',
+                              ),
+                            ),
+
+                            targets: [morphTarget22],
+
                             child: Container(
                               key: ValueKey(
                                 'raw-shadow-surface-$destination',
@@ -1856,7 +1911,12 @@ void main() {
     testWidgets(
       'when a watched raw destination resizes, it should keep the geometry-aware positioned fallback',
       (tester) async {
-        final morphTarget23 = MorphTarget(tag: 'watched-raw-fallback');
+        final morphTarget23 = MorphTarget(
+          tag: 'watched-raw-fallback',
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.linear,
+          watchDestination: true,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -1872,11 +1932,9 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget23,
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.linear,
-                      watchDestination: !destination,
+                      key: ValueKey<Object>(ValueKey('watched-raw-$destination')),
+
+                      targets: [morphTarget23],
                       child: Container(
                         key: ValueKey('watched-raw-$destination'),
                         width: destination ? destinationWidth : 100,
@@ -1929,7 +1987,11 @@ void main() {
     testWidgets(
       'when only one endpoint has a raw child, it should preserve the positioned fallback',
       (tester) async {
-        final morphTarget24 = MorphTarget(tag: 'one-sided-raw-fallback');
+        final morphTarget24 = MorphTarget(
+          tag: 'one-sided-raw-fallback',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -1944,10 +2006,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget24,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('one-sided-raw-$destination')),
+
+                      targets: [morphTarget24],
+
                       child: Container(
                         key: ValueKey('one-sided-raw-$destination'),
                         width: destination ? 180 : 100,
@@ -1997,7 +2059,11 @@ void main() {
     testWidgets(
       'when a raw flight curve overshoots extreme sizes, it should keep normalized layout bounds',
       (tester) async {
-        final morphTarget25 = MorphTarget(tag: 'overshoot-raw');
+        final morphTarget25 = MorphTarget(
+          tag: 'overshoot-raw',
+          duration: const Duration(milliseconds: 400),
+          curve: const _ExtremeOvershootCurve(),
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         const boundaryKey = ValueKey('overshoot-raw-screen');
@@ -2016,10 +2082,10 @@ void main() {
                     return Align(
                       alignment: Alignment.topLeft,
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget25,
-                        duration: const Duration(milliseconds: 400),
-                        curve: const _ExtremeOvershootCurve(),
+                        key: ValueKey<Object>(ValueKey('overshoot-raw-$destination')),
+
+                        targets: [morphTarget25],
+
                         child: Container(
                           key: ValueKey('overshoot-raw-$destination'),
                           width: destination ? 200 : 100,
@@ -2117,7 +2183,11 @@ void main() {
     testWidgets(
       'when a raw child has no MediaQuery, it should preserve the existing overlay behavior',
       (tester) async {
-        final morphTarget26 = MorphTarget(tag: 'no-media-query');
+        final morphTarget26 = MorphTarget(
+          tag: 'no-media-query',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
 
         var destination = false;
         late StateSetter update;
@@ -2134,10 +2204,10 @@ void main() {
                         return Align(
                           alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                           child: Morph(
-                            animateChildChanges: true,
-                            target: morphTarget26,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.linear,
+                            key: ValueKey<Object>(ValueKey('no-media-query-$destination')),
+
+                            targets: [morphTarget26],
+
                             child: Container(
                               key: ValueKey('no-media-query-$destination'),
                               width: destination ? 180 : 120,
@@ -2191,8 +2261,16 @@ void main() {
     testWidgets(
       'when a Container child contains a nested Morph, it should fly the surface and nested endpoint together',
       (tester) async {
-        final morphTarget27 = MorphTarget(tag: 'nested-surface');
-        final morphTarget28 = MorphTarget(tag: 'nested-title');
+        final morphTarget27 = MorphTarget(
+          tag: 'nested-surface',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
+        final morphTarget28 = MorphTarget(
+          tag: 'nested-title',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -2207,10 +2285,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget27,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('nested-surface-$destination')),
+
+                      targets: [morphTarget27],
+
                       flightConfig: .auto(
                         childTransition: (child, animation) {
                           return FadeTransition(
@@ -2227,10 +2305,10 @@ void main() {
                         child: Column(
                           children: [
                             Morph(
-                              animateChildChanges: true,
-                              target: morphTarget28,
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.linear,
+                              key: ValueKey<Object>(ValueKey('nested-title-$destination')),
+
+                              targets: [morphTarget28],
+
                               child: Text(
                                 destination ? 'Destination title' : 'Source title',
                                 key: ValueKey('nested-title-$destination'),
@@ -2294,7 +2372,11 @@ void main() {
     testWidgets(
       'when only the destination Container contains a nested Morph, it should paint it as ordinary flight content',
       (tester) async {
-        final morphTarget29 = MorphTarget(tag: 'unmatched-nested-surface');
+        final morphTarget29 = MorphTarget(
+          tag: 'unmatched-nested-surface',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphTarget30 = MorphTarget(tag: 'destination-only-nested');
         final morphObserver1 = MorphNavigatorObserver();
 
@@ -2312,10 +2394,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget29,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('unmatched-nested-surface-$destination')),
+
+                      targets: [morphTarget29],
+
                       child: Container(
                         key: ValueKey('unmatched-nested-surface-$destination'),
                         width: 240,
@@ -2325,8 +2407,7 @@ void main() {
                             ? Align(
                                 alignment: Alignment.center,
                                 child: Morph(
-                                  animateChildChanges: true,
-                                  target: morphTarget30,
+                                  targets: [morphTarget30],
                                   child: CustomPaint(
                                     painter: _PaintCounterPainter(contentPaints),
                                     child: const SizedBox.square(dimension: 48),
@@ -2361,9 +2442,12 @@ void main() {
     testWidgets(
       'when a route destination alone contains a nested Morph, it should paint it during the ancestor flight',
       (tester) async {
-        final morphTarget31 = MorphTarget(tag: 'destination-only-route-surface');
+        final morphTarget31 = MorphTarget(
+          tag: 'destination-only-route-surface',
+          curve: Curves.linear,
+        );
         final morphTarget32 = MorphTarget(tag: 'destination-only-route-content');
-        final morphTarget33 = MorphTarget(tag: 'destination-only-route-surface');
+
         final morphObserver1 = MorphNavigatorObserver();
 
         final contentPaints = _PaintCounter();
@@ -2386,17 +2470,15 @@ void main() {
                                 body: Align(
                                   alignment: Alignment.bottomRight,
                                   child: Morph(
-                                    animateChildChanges: true,
-                                    target: morphTarget31,
-                                    curve: Curves.linear,
+                                    targets: [morphTarget31],
+
                                     child: Container(
                                       width: 240,
                                       height: 180,
                                       color: Colors.blue,
                                       child: Center(
                                         child: Morph(
-                                          animateChildChanges: true,
-                                          target: morphTarget32,
+                                          targets: [morphTarget32],
                                           child: CustomPaint(
                                             painter: _PaintCounterPainter(contentPaints),
                                             child: const SizedBox.square(dimension: 48),
@@ -2413,9 +2495,8 @@ void main() {
                         );
                       },
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget33,
-                        curve: Curves.linear,
+                        targets: [morphTarget31],
+
                         child: Container(width: 120, height: 80, color: Colors.blue),
                       ),
                     ),
@@ -2444,7 +2525,11 @@ void main() {
     testWidgets(
       'when only the source Container contains a nested Morph, it should paint it as ordinary flight content',
       (tester) async {
-        final morphTarget34 = MorphTarget(tag: 'source-only-nested-surface');
+        final morphTarget34 = MorphTarget(
+          tag: 'source-only-nested-surface',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphTarget35 = MorphTarget(tag: 'source-only-nested');
         final morphObserver1 = MorphNavigatorObserver();
 
@@ -2462,10 +2547,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget34,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('source-only-nested-surface-$destination')),
+
+                      targets: [morphTarget34],
+
                       child: Container(
                         key: ValueKey('source-only-nested-surface-$destination'),
                         width: 240,
@@ -2476,8 +2561,7 @@ void main() {
                             : Align(
                                 alignment: Alignment.center,
                                 child: Morph(
-                                  animateChildChanges: true,
-                                  target: morphTarget35,
+                                  targets: [morphTarget35],
                                   child: CustomPaint(
                                     painter: _PaintCounterPainter(contentPaints),
                                     child: const SizedBox.square(dimension: 48),
@@ -2511,8 +2595,16 @@ void main() {
     testWidgets(
       'when a nested flight completes before its parent, it should hold the destination visual until the parent arrives',
       (tester) async {
-        final morphTarget36 = MorphTarget(tag: 'held-nested-surface');
-        final morphTarget37 = MorphTarget(tag: 'held-nested-title');
+        final morphTarget36 = MorphTarget(
+          tag: 'held-nested-surface',
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.linear,
+        );
+        final morphTarget37 = MorphTarget(
+          tag: 'held-nested-title',
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -2528,10 +2620,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget36,
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('held-nested-surface-$destination')),
+
+                      targets: [morphTarget36],
+
                       child: Container(
                         key: ValueKey('held-nested-surface-$destination'),
                         width: destination ? 240 : 160,
@@ -2540,10 +2632,14 @@ void main() {
                         child: Column(
                           children: [
                             Morph(
-                              animateChildChanges: true,
-                              target: morphTarget37,
-                              duration: const Duration(milliseconds: 200),
-                              curve: Curves.linear,
+                              key: ValueKey<Object>(
+                                ValueKey(
+                                  'held-nested-title-$destination',
+                                ),
+                              ),
+
+                              targets: [morphTarget37],
+
                               onEnd: destination ? null : () => childEvents.add('end'),
                               onReceived: destination ? () => childEvents.add('received') : null,
                               child: Text(
@@ -2640,7 +2736,11 @@ void main() {
     testWidgets(
       'when supported compound children fly, it should paint without a per-frame widget builder',
       (tester) async {
-        final morphTarget38 = MorphTarget(tag: 'retained-compound');
+        final morphTarget38 = MorphTarget(
+          tag: 'retained-compound',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -2654,10 +2754,10 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget38,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.linear,
+                    key: ValueKey(destination),
+
+                    targets: [morphTarget38],
+
                     child: Container(
                       width: destination ? 240 : 160,
                       height: destination ? 140 : 100,
@@ -2710,8 +2810,7 @@ void main() {
             navigatorObservers: [morphObserver1],
             home: Scaffold(
               body: Morph(
-                animateChildChanges: true,
-                target: morphTarget39,
+                targets: [morphTarget39],
                 child: Container(
                   width: 300,
                   height: 200,
@@ -2735,7 +2834,11 @@ void main() {
     testWidgets(
       'when a Container child wraps with visible overflow, it should retain every native pixel below its bounds',
       (tester) async {
-        final morphTarget40 = MorphTarget(tag: 'visible-container');
+        final morphTarget40 = MorphTarget(
+          tag: 'visible-container',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.physicalSize = const Size(300, 180);
@@ -2763,10 +2866,14 @@ void main() {
                           left: 20,
                           top: 20,
                           child: Morph(
-                            animateChildChanges: true,
-                            target: morphTarget40,
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.linear,
+                            key: ValueKey<Object>(
+                              ValueKey<String>(
+                                'visible-container-$destination',
+                              ),
+                            ),
+
+                            targets: [morphTarget40],
+
                             child: Container(
                               key: ValueKey<String>(
                                 'visible-container-$destination',
@@ -2882,7 +2989,11 @@ void main() {
     testWidgets(
       'when a directional Container flies from a local RTL subtree, it should preserve RTL alignment and border radius',
       (tester) async {
-        final morphTarget41 = MorphTarget(tag: 'local-rtl-container');
+        final morphTarget41 = MorphTarget(
+          tag: 'local-rtl-container',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.devicePixelRatio = 1;
@@ -2904,10 +3015,14 @@ void main() {
                       return Align(
                         alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget41,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear,
+                          key: ValueKey<Object>(
+                            ValueKey(
+                              destination ? 'rtl-container-destination' : 'rtl-container-source',
+                            ),
+                          ),
+
+                          targets: [morphTarget41],
+
                           child: Container(
                             key: ValueKey(
                               destination ? 'rtl-container-destination' : 'rtl-container-source',
@@ -3016,7 +3131,11 @@ void main() {
     testWidgets(
       'when a directional gradient flies from a local RTL subtree, it should preserve its resolved direction',
       (tester) async {
-        final morphTarget42 = MorphTarget(tag: 'rtl-gradient');
+        final morphTarget42 = MorphTarget(
+          tag: 'rtl-gradient',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.devicePixelRatio = 1;
@@ -3037,10 +3156,10 @@ void main() {
                       update = setState;
                       return Center(
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget42,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear,
+                          key: ValueKey<Object>(ValueKey('rtl-gradient-$destination')),
+
+                          targets: [morphTarget42],
+
                           child: Container(
                             key: ValueKey('rtl-gradient-$destination'),
                             width: 160,
@@ -3124,7 +3243,11 @@ void main() {
     testWidgets(
       'when a directional border flies from a local RTL subtree, it should preserve its resolved sides',
       (tester) async {
-        final morphTarget43 = MorphTarget(tag: 'rtl-border');
+        final morphTarget43 = MorphTarget(
+          tag: 'rtl-border',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.devicePixelRatio = 1;
@@ -3145,10 +3268,10 @@ void main() {
                       update = setState;
                       return Center(
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget43,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear,
+                          key: ValueKey<Object>(ValueKey('rtl-border-$destination')),
+
+                          targets: [morphTarget43],
+
                           child: Container(
                             key: ValueKey('rtl-border-$destination'),
                             width: 160,
@@ -3238,7 +3361,11 @@ void main() {
     testWidgets(
       'when a rounded Container flies under a uniform scale, it should preserve the scaled corner radius',
       (tester) async {
-        final morphTarget44 = MorphTarget(tag: 'scaled-rounded-container');
+        final morphTarget44 = MorphTarget(
+          tag: 'scaled-rounded-container',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.devicePixelRatio = 1;
@@ -3259,10 +3386,10 @@ void main() {
                       child: Transform.scale(
                         scale: 2,
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget44,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear,
+                          key: ValueKey<Object>(ValueKey('scaled-container-$destination')),
+
+                          targets: [morphTarget44],
+
                           child: Container(
                             key: ValueKey('scaled-container-$destination'),
                             width: 100,
@@ -3331,7 +3458,11 @@ void main() {
     testWidgets(
       'when a shadowed Container flies under a non-uniform scale, it should preserve the transformed shadow offset',
       (tester) async {
-        final morphTarget45 = MorphTarget(tag: 'scaled-shadow');
+        final morphTarget45 = MorphTarget(
+          tag: 'scaled-shadow',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.devicePixelRatio = 1;
@@ -3353,10 +3484,10 @@ void main() {
                         alignment: Alignment.center,
                         transform: Matrix4.diagonal3Values(2, 1, 1),
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget45,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear,
+                          key: ValueKey<Object>(ValueKey('scaled-shadow-$destination')),
+
+                          targets: [morphTarget45],
+
                           child: Container(
                             key: ValueKey('scaled-shadow-$destination'),
                             width: 100,
@@ -3429,7 +3560,11 @@ void main() {
     testWidgets(
       'when an outer transform rotates a Container, it should use the generic flight without an error',
       (tester) async {
-        final morphTarget46 = MorphTarget(tag: 'rotated-container');
+        final morphTarget46 = MorphTarget(
+          tag: 'rotated-container',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         tester.view.devicePixelRatio = 1;
@@ -3450,10 +3585,10 @@ void main() {
                       child: Transform.rotate(
                         angle: math.pi / 4,
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget46,
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.linear,
+                          key: ValueKey<Object>(ValueKey('rotated-container-$destination')),
+
+                          targets: [morphTarget46],
+
                           child: Container(
                             key: ValueKey('rotated-container-$destination'),
                             width: 100,
@@ -3527,7 +3662,11 @@ void main() {
     testWidgets(
       'when Container transform rotates its own content, it should use the generic flight without an error',
       (tester) async {
-        final morphTarget47 = MorphTarget(tag: 'self-rotated-container');
+        final morphTarget47 = MorphTarget(
+          tag: 'self-rotated-container',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var destination = false;
@@ -3541,10 +3680,10 @@ void main() {
                   update = setState;
                   return Center(
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget47,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(ValueKey('self-rotated-container-$destination')),
+
+                      targets: [morphTarget47],
+
                       child: Container(
                         key: ValueKey('self-rotated-container-$destination'),
                         width: 100,
@@ -3591,7 +3730,11 @@ class _ContainerClampTestApp extends StatefulWidget {
 }
 
 class _ContainerClampTestAppState extends State<_ContainerClampTestApp> {
-  final _morphTarget48 = MorphTarget(tag: 'container-clamp');
+  final _morphTarget48 = MorphTarget(
+    tag: 'container-clamp',
+    duration: const Duration(milliseconds: 400),
+    curve: Curves.linear,
+  );
   final _morphObserver1 = MorphNavigatorObserver();
 
   bool _compact = false;
@@ -3611,10 +3754,10 @@ class _ContainerClampTestAppState extends State<_ContainerClampTestApp> {
             Align(
               alignment: Alignment.topLeft,
               child: Morph(
-                animateChildChanges: true,
-                target: _morphTarget48,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.linear,
+                key: ValueKey<Object>(ValueKey(_compact ? 'compact' : 'expanded')),
+
+                targets: [_morphTarget48],
+
                 child: Container(
                   key: ValueKey(_compact ? 'compact' : 'expanded'),
                   width: 300,

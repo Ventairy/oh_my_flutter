@@ -113,20 +113,14 @@ between two positions, layouts, or screens.
 #### Morph
 
 `Morph` creates that transition between matching widgets. It automatically
-adapts supported content and can also animate other widgets, content changes,
-and destinations that continue moving during the transition.
+adapts supported content and can do things such as expand a card into its
+details on another screen, including destinations that keep moving.
 
 #### MorphDescendant
 
 `MorphDescendant` controls how one selected part inside a `Morph` participates
 in the transition. That part can remain live, appear as a captured image, or
 stay hidden while the transition runs.
-
-#### MorphSibling
-
-`MorphSibling` lets a separate widget outside a `Morph` follow the same
-transition. It can move in sync while remaining in its normal visual layer or
-appearing above the transition.
 
 ### Motion
 
@@ -272,10 +266,11 @@ primary calling code for a phone input.
 
 ### Phone number
 
-Use `PhoneNumber` to interact with complete phone numbers throughout an
-application. Use `PhoneNumberTextInputFormatter` to keep an editable field in
-the selected country's national format while returning its country and
-international value in a `PhoneNumberTextInputFormatterResult`.
+`PhoneNumber` lets applications parse, validate, display, and call complete
+international phone numbers. It can do things such as check whether a form's
+number matches its country's current numbering plan before continuing. Use
+`PhoneNumberTextInputFormatter` to keep editable text in the selected country's
+national format while returning its country and international value.
 
 ### WhatsApp
 

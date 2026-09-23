@@ -18,14 +18,22 @@ class _GroupFlightHarness extends StatefulWidget {
 }
 
 class _GroupFlightHarnessState extends State<_GroupFlightHarness> {
-  final _source = MorphTarget(tag: 'group');
-  final _destination = MorphTarget(tag: 'group');
+  late final _source = MorphTarget(
+    tag: 'group',
+    duration: const Duration(seconds: 1),
+    watchDestination: !widget.relayoutDestination,
+  );
+
   final _sourceGroup = GroupLink();
   final _destinationGroup = GroupLink();
   final _observer = MorphNavigatorObserver();
-  final _sourceTitle = MorphTarget(tag: 'group-title');
-  final _destinationTitle = MorphTarget(tag: 'group-title');
+  final _sourceTitle = MorphTarget(
+    tag: 'group-title',
+    duration: const Duration(seconds: 1),
+  );
+
   final GlobalKey _destinationPaddingKey = GlobalKey();
+  final GlobalKey _captureKey = GlobalKey();
   bool expanded = false;
   Color color = const Color(0xff0000ff);
   int taps = 0;
@@ -52,10 +60,7 @@ class _GroupFlightHarnessState extends State<_GroupFlightHarness> {
         children: [
           Positioned.fill(
             child: Morph(
-              target: destination ? _destination : _source,
-              duration: const Duration(seconds: 1),
-              animateChildChanges: true,
-              watchDestination: !widget.relayoutDestination,
+              targets: [_source],
               flightConfig: MorphFlightConfig.custom(_GroupFlightDelegate(link)),
               child: widget.emptyDestination && destination
                   ? const SizedBox.expand()
@@ -85,9 +90,8 @@ class _GroupFlightHarnessState extends State<_GroupFlightHarness> {
                     child: widget.nestedMorph
                         ? RepaintBoundary(
                             child: Morph(
-                              target: destination ? _destinationTitle : _sourceTitle,
-                              duration: const Duration(seconds: 1),
-                              animateChildChanges: true,
+                              targets: [_sourceTitle],
+
                               child: const ColoredBox(color: Color(0xffffffff)),
                             ),
                           )
@@ -109,11 +113,15 @@ class _GroupFlightHarnessState extends State<_GroupFlightHarness> {
       child: child!,
     ),
     home: Scaffold(
-      body: Stack(
-        children: [
-          Positioned(left: 20, top: 20, child: endpoint(destination: false)),
-          if (expanded) Positioned(left: 200, top: 20, child: endpoint(destination: true)),
-        ],
+      backgroundColor: Colors.black,
+      body: RepaintBoundary(
+        key: _captureKey,
+        child: Stack(
+          children: [
+            Positioned(left: 20, top: 20, child: endpoint(destination: false)),
+            if (expanded) Positioned(left: 200, top: 20, child: endpoint(destination: true)),
+          ],
+        ),
       ),
     ),
   );

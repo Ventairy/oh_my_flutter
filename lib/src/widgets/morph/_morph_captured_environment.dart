@@ -1,7 +1,14 @@
 part of 'morph.dart';
 
 final class _MorphCapturedEnvironment {
-  new(this._context);
+  factory of(BuildContext context) {
+    if (context case StatefulElement(:final _MorphState state)) {
+      return state._capturedEnvironment ?? _MorphCapturedEnvironment._(context);
+    }
+    return _MorphCapturedEnvironment._(context);
+  }
+
+  new _(this._context);
 
   final BuildContext _context;
 

@@ -487,10 +487,11 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
     MorphFlight<MorphTextProperties> flight,
   ) {
     Widget result;
-    if (!_supportsRetainedFlight(
-      flight.source.properties,
-      flight.destination.properties,
-    )) {
+    if (flight._geometry != null ||
+        !_supportsRetainedFlight(
+          flight.source.properties,
+          flight.destination.properties,
+        )) {
       result = AnimatedBuilder(
         animation: flight.curvedAnimation,
         builder: (context, child) => _buildProperties(context, flight.properties),

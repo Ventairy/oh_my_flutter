@@ -3,7 +3,8 @@ import 'package:flutter/widgets.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 class TagStatusRoute extends PopupRoute<void> {
-  final target = MorphTarget(tag: 'surface');
+  new(this.target);
+  final MorphTarget target;
   late final ValueListenable<MorphTagStatus> status;
   Offset translation = Offset.zero;
   bool concealed = false;
@@ -11,7 +12,7 @@ class TagStatusRoute extends PopupRoute<void> {
   @override
   void install() {
     super.install();
-    status = MorphNavigatorObserver.maybeOfNavigator(navigator!)!.tagStatus(target.tag);
+    status = target.status;
     status.addListener(changedInternalState);
   }
 
@@ -31,8 +32,8 @@ class TagStatusRoute extends PopupRoute<void> {
   Widget buildPage(BuildContext context, Animation<double> animation, Animation<double> secondaryAnimation) => Align(
     alignment: Alignment.bottomCenter,
     child: Morph(
-      target: target,
-      duration: const Duration(milliseconds: 300),
+      targets: [target],
+
       child: const SizedBox(
         key: ValueKey('destination'),
         width: 200,
@@ -41,7 +42,7 @@ class TagStatusRoute extends PopupRoute<void> {
           color: Color(0xFF1565C0),
           child: Center(
             child: MorphDescendant(
-              flightBehavior: MorphDescendantFlightBehavior.snapshot,
+              flightBehavior: MorphDescendantFlightBehavior.snapshot(),
               child: SizedBox.square(dimension: 40, child: ColoredBox(color: Color(0xFFFFFFFF))),
             ),
           ),

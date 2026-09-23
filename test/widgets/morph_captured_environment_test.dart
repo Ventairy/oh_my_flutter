@@ -1,10 +1,59 @@
+import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'package:oh_my_flutter/src/widgets/morph/morph.dart' show MorphColumnFlightDelegate;
 
 void main() {
   group('Morph captured environment', () {
+    testWidgets('when an inherited theme changes before departure, it should use the updated theme in flight', (
+      tester,
+    ) async {
+      final target = MorphTarget(tag: 'updated-theme');
+      var color = Colors.red;
+      var destination = false;
+      late StateSetter update;
+      final source = Morph(
+        key: const ValueKey('source'),
+        targets: [target],
+        child: Builder(builder: (context) => const Text('source')),
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [MorphNavigatorObserver()],
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              update = setState;
+              return DefaultTextStyle(
+                style: TextStyle(color: color),
+                child: Center(
+                  child: destination
+                      ? Morph(
+                          key: const ValueKey('destination'),
+                          targets: [target],
+                          child: Builder(builder: (context) => const Text('destination')),
+                        )
+                      : source,
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      update(() => color = Colors.blue);
+      await tester.pump();
+      update(() => destination = true);
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
+      final flightText = find.descendant(
+        of: find.byWidgetPredicate((widget) => widget.runtimeType.toString() == '_MorphOverlay'),
+        matching: find.text('source'),
+      );
+      expect(DefaultTextStyle.of(tester.element(flightText)).style.color, Colors.blue);
+    });
+
     testWidgets(
       'when endpoints contain multiple raw children, it should capture each endpoint environment once',
       (tester) async {

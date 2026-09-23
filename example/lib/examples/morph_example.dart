@@ -12,14 +12,14 @@ class MorphExample extends StatefulWidget {
 
 class _MorphExampleState extends State<MorphExample> {
   bool _expanded = false;
-  final _live = MorphTarget(tag: 'example-live-morph');
-  final _snapshot = MorphTarget(tag: 'example-snapshot-morph');
-  final _hidden = MorphTarget(tag: 'example-hidden-morph');
-  final _text = MorphTarget(tag: 'example-text-switch');
+  final _live = MorphTarget(tag: 'example-live-morph', duration: const Duration(milliseconds: 900));
+  final _snapshot = MorphTarget(tag: 'example-snapshot-morph', duration: const Duration(milliseconds: 900));
+  final _hidden = MorphTarget(tag: 'example-hidden-morph', duration: const Duration(milliseconds: 900));
+  final _text = MorphTarget(tag: 'example-text-switch', duration: const Duration(milliseconds: 900));
   final _routeSource = MorphTarget(tag: 'example-route-morph');
 
   Future<void> _openRoute() {
-    final destination = MorphTarget(tag: _routeSource.tag);
+    final destination = _routeSource;
     return Navigator.of(context).push<void>(
       PageRouteBuilder<void>(
         opaque: false,
@@ -36,8 +36,7 @@ class _MorphExampleState extends State<MorphExample> {
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Morph(
-                        animateChildChanges: true,
-                        target: destination,
+                        targets: [destination],
                         child: const Text(
                           'Route destination',
                           style: TextStyle(fontSize: 28, fontWeight: FontWeight.w700),
@@ -72,25 +71,25 @@ class _MorphExampleState extends State<MorphExample> {
         _buildBehaviorExample(
           label: 'Live: content lays out at every flight size',
           target: _live,
-          behavior: MorphDescendantFlightBehavior.live,
+          behavior: const MorphDescendantFlightBehavior.live(),
         ),
         const SizedBox(height: 16),
         _buildBehaviorExample(
           label: 'Snapshot: captured content keeps its endpoint size',
           target: _snapshot,
-          behavior: MorphDescendantFlightBehavior.snapshot,
+          behavior: const MorphDescendantFlightBehavior.snapshot(),
         ),
         const SizedBox(height: 16),
         _buildBehaviorExample(
           label: 'Hidden: ordinary content is omitted during the flight',
           target: _hidden,
-          behavior: MorphDescendantFlightBehavior.hide,
+          behavior: const MorphDescendantFlightBehavior.hide(),
         ),
         const SizedBox(height: 16),
         Morph(
-          animateChildChanges: true,
-          target: _text,
-          duration: const Duration(milliseconds: 900),
+          key: ValueKey(_expanded),
+          targets: [_text],
+
           flightConfig: .auto(
             childTransition: (child, animation) {
               return FadeTransition(opacity: animation, child: child);
@@ -104,7 +103,7 @@ class _MorphExampleState extends State<MorphExample> {
         ),
         FilledButton.tonal(
           onPressed: _openRoute,
-          child: Morph(animateChildChanges: true, target: _routeSource, child: const Text('Open route Morph')),
+          child: Morph(targets: [_routeSource], child: const Text('Open route Morph')),
         ),
       ],
     );
@@ -132,9 +131,9 @@ class _MorphExampleState extends State<MorphExample> {
           child: SizedBox(
             width: _expanded ? 330 : 180,
             child: Morph(
-              animateChildChanges: true,
-              target: target,
-              duration: const Duration(milliseconds: 900),
+              key: ValueKey(_expanded),
+              targets: [target],
+
               child: DecoratedBox(
                 decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(_expanded ? 32 : 16)),
                 child: MorphDescendant(

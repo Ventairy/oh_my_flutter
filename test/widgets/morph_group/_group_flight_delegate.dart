@@ -5,6 +5,9 @@ class _GroupFlightDelegate extends MorphFlightDelegate<Widget> {
   final GroupLink link;
 
   @override
+  Iterable<GroupLink> get contentGroups => [link];
+
+  @override
   Widget properties(MorphEndpointContext endpoint) => endpoint.groupSnapshot(link);
 
   @override

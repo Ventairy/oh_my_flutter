@@ -4,11 +4,13 @@ class _MorphControllerLease {
   new({
     required TickerProvider vsync,
     required Duration duration,
+    required Duration reverseDuration,
     double initialValue = 0,
     this.startsInReverse = false,
   }) : controller = AnimationController(
          vsync: vsync,
          duration: duration,
+         reverseDuration: reverseDuration,
          value: initialValue,
        );
 

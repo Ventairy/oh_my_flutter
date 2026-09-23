@@ -141,6 +141,15 @@ small, portable, strongly typed, and useful outside Cataquí applications.
   possible; otherwise ask the human to reproduce it and provide the logs.
 - Use the resulting logs as concrete evidence of the cause, then write a
   regression test that fails because of the bug before implementing the fix.
+- When a regression test still fails after a fix, determine whether the
+  original regression still occurs in production behavior or whether the test
+  does not accurately reproduce that behavior. Compare against the original
+  reproduction and evidence before changing production code, weakening the
+  assertion, or accepting the fix.
+- When an attempted fix does not resolve the issue, remove every code change
+  introduced solely for that attempt before trying another approach. Do not
+  leave unused workarounds, fallback paths, or other unverified fix code in the
+  codebase; preserve unrelated pre-existing work.
 - Fix analyzer findings in source; do not add blanket ignores or change `.agents` copies to satisfy Dart analysis.
 - Use `goldenTest` from `alchemist`, not raw `matchesGoldenFile` assertions.
 - Keep golden tests beside their widget tests and commit their CI references

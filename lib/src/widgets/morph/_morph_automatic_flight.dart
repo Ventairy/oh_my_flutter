@@ -17,11 +17,13 @@ class _MorphAutomaticFlight extends StatefulWidget {
 
 class _MorphAutomaticFlightState extends State<_MorphAutomaticFlight> {
   late bool _showsSource;
+  late int _endpointRevision;
 
   @override
   void initState() {
     super.initState();
     _showsSource = _sourceIsSelected;
+    _endpointRevision = widget.flight._geometry?.revision ?? 0;
     widget.flight.curvedAnimation.addListener(_handleProgressChanged);
   }
 
@@ -33,6 +35,7 @@ class _MorphAutomaticFlightState extends State<_MorphAutomaticFlight> {
       widget.flight.curvedAnimation.addListener(_handleProgressChanged);
     }
     _showsSource = _sourceIsSelected;
+    _endpointRevision = widget.flight._geometry?.revision ?? 0;
   }
 
   @override
@@ -74,6 +77,14 @@ class _MorphAutomaticFlightState extends State<_MorphAutomaticFlight> {
 
   void _handleProgressChanged() {
     final showsSource = _sourceIsSelected;
+    final endpointRevision = widget.flight._geometry?.revision ?? 0;
+    if (endpointRevision != _endpointRevision) {
+      setState(() {
+        _showsSource = showsSource;
+        _endpointRevision = endpointRevision;
+      });
+      return;
+    }
     if (showsSource == _showsSource && widget.transitionBuilder == null) {
       return;
     }

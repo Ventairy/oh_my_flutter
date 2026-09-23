@@ -11,8 +11,8 @@ class MorphLocalExample extends StatefulWidget {
 }
 
 class _MorphLocalExampleState extends State<MorphLocalExample> {
-  final _card = MorphTarget(tag: 'local-example');
-  final _details = MorphTarget(tag: 'local-example');
+  final _card = MorphTarget(tag: 'local-example', duration: const Duration(milliseconds: 500));
+
   bool _showDetails = false;
 
   @override
@@ -26,14 +26,13 @@ class _MorphLocalExampleState extends State<MorphLocalExample> {
           height: 280,
           child: Stack(
             children: [
-              Positioned(top: 0, left: 0, child: _header(_card, 'Card header')),
+              const Positioned(top: 0, left: 0, child: Text('Card')),
               Positioned(
                 top: 36,
                 left: 0,
                 child: Morph(
-                  animateChildChanges: true,
-                  target: _card,
-                  duration: const Duration(milliseconds: 500),
+                  targets: [_card],
+
                   child: Container(
                     width: 150,
                     height: 100,
@@ -44,14 +43,13 @@ class _MorphLocalExampleState extends State<MorphLocalExample> {
                 ),
               ),
               if (_showDetails) ...[
-                Positioned(top: 0, right: 0, child: _header(_details, 'Details header')),
+                const Positioned(top: 0, right: 0, child: Text('Details')),
                 Positioned(
                   top: 36,
                   right: 0,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: _details,
-                    duration: const Duration(milliseconds: 500),
+                    targets: [_card],
+
                     child: Container(
                       width: 230,
                       height: 230,
@@ -73,16 +71,6 @@ class _MorphLocalExampleState extends State<MorphLocalExample> {
           child: Text(_showDetails ? 'Remove details' : 'Mount details'),
         ),
       ],
-    );
-  }
-
-  Widget _header(MorphTarget target, String label) {
-    return MorphSibling(
-      target: target,
-      transitionBuilder: (child, curved, uncurved) {
-        return FadeTransition(opacity: uncurved, child: child);
-      },
-      child: Text(label),
     );
   }
 }

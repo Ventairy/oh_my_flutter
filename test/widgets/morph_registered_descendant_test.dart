@@ -18,8 +18,11 @@ void main() {
     (tester) async {
       final destination = ValueNotifier(false);
       addTearDown(destination.dispose);
-      final sourceTarget = MorphTarget(tag: 'replacement');
-      final destinationTarget = MorphTarget(tag: 'replacement');
+      final sourceTarget = MorphTarget(
+        tag: 'replacement',
+        duration: const Duration(seconds: 1),
+      );
+
       await tester.pumpWidget(
         MaterialApp(
           navigatorObservers: [MorphNavigatorObserver()],
@@ -27,16 +30,15 @@ void main() {
             valueListenable: destination,
             builder: (context, value, child) => Center(
               child: Morph(
-                animateChildChanges: true,
                 key: ValueKey(value),
-                target: value ? destinationTarget : sourceTarget,
-                duration: const Duration(seconds: 1),
+                targets: [sourceTarget],
+
                 flightConfig: const MorphFlightConfig.custom(_SnapshotFlightDelegate(crossFade: true)),
                 child: SizedBox(
                   width: value ? 120 : 80,
                   height: value ? 90 : 60,
                   child: MorphDescendant(
-                    flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                    flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                     child: ColoredBox(color: value ? Colors.blue : Colors.red),
                   ),
                 ),
@@ -176,7 +178,7 @@ void main() {
     },
   );
 
-  for (final behavior in [MorphDescendantFlightBehavior.snapshot, MorphDescendantFlightBehavior.hide]) {
+  for (final behavior in [const MorphDescendantFlightBehavior.snapshot(), const MorphDescendantFlightBehavior.hide()]) {
     testWidgets(
       'when a custom flight renders unregistered $behavior content, it should explain how to register the subtree',
       (tester) async {
@@ -205,7 +207,7 @@ void main() {
       await tester.pumpWidget(
         _SnapshotFlightHarness(
           key: key,
-          behavior: .live,
+          behavior: const .live(),
           delegate: const _SnapshotFlightDelegate(register: false),
         ),
       );
@@ -229,7 +231,7 @@ void main() {
     'when registered hidden content switches endpoints, it should reserve endpoint space within the flight constraints',
     (tester) async {
       final key = GlobalKey<_SnapshotFlightHarnessState>();
-      await tester.pumpWidget(_SnapshotFlightHarness(key: key, behavior: .hide));
+      await tester.pumpWidget(_SnapshotFlightHarness(key: key, behavior: const .hide()));
       await tester.pumpAndSettle();
       key.currentState!.show(1);
       await tester.pump();
@@ -261,18 +263,19 @@ void main() {
         final destinationController = ScrollController();
         addTearDown(sourceController.dispose);
         addTearDown(destinationController.dispose);
+        final morphTarget1 = MorphTarget(tag: 'registered-route');
         Widget endpoint(int index) {
-          final morphTarget1 = MorphTarget(tag: 'registered-route');
           return Align(
             child: Morph(
-              animateChildChanges: true,
-              target: morphTarget1,
+              key: const ValueKey(0),
+
+              targets: [morphTarget1],
               flightConfig: const .custom(_SnapshotFlightDelegate()),
               child: SizedBox(
                 width: index == 0 ? 80 : 120,
                 height: index == 0 ? 60 : 90,
                 child: MorphDescendant(
-                  flightBehavior: .snapshot,
+                  flightBehavior: const .snapshot(),
                   child: SingleChildScrollView(
                     controller: index == 0 ? sourceController : destinationController,
                     child: SizedBox(
@@ -444,13 +447,13 @@ void main() {
               children: [
                 Expanded(
                   child: MorphDescendant(
-                    flightBehavior: .snapshot,
+                    flightBehavior: const .snapshot(),
                     child: ColoredBox(color: endpoint == 0 ? Colors.red : Colors.blue),
                   ),
                 ),
                 Expanded(
                   child: MorphDescendant(
-                    flightBehavior: .snapshot,
+                    flightBehavior: const .snapshot(),
                     child: ColoredBox(color: endpoint == 0 ? Colors.yellow : Colors.green),
                   ),
                 ),
@@ -488,14 +491,14 @@ void main() {
                 Expanded(
                   child: MorphDescendant(
                     key: const ValueKey('first'),
-                    flightBehavior: .snapshot,
+                    flightBehavior: const .snapshot(),
                     child: ColoredBox(color: endpoint == 0 ? Colors.red : Colors.blue),
                   ),
                 ),
                 Expanded(
                   child: MorphDescendant(
                     key: const ValueKey('second'),
-                    flightBehavior: .snapshot,
+                    flightBehavior: const .snapshot(),
                     child: ColoredBox(color: endpoint == 0 ? Colors.yellow : Colors.green),
                   ),
                 ),
@@ -529,7 +532,7 @@ void main() {
     (tester) async {
       final key = GlobalKey<_SnapshotFlightHarnessState>();
       const sharedDescendant = MorphDescendant(
-        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
         child: SizedBox.expand(child: ColoredBox(color: Colors.blue)),
       );
       await tester.pumpWidget(
@@ -586,17 +589,18 @@ void main() {
               Expanded(
                 child: MorphDescendant(
                   key: const ValueKey('shared-key'),
-                  flightBehavior: .snapshot,
+                  flightBehavior: const .snapshot(),
                   child: ColoredBox(color: endpoint == 0 ? Colors.red : Colors.blue),
                 ),
               ),
               Expanded(
                 child: Morph(
-                  animateChildChanges: true,
-                  target: morphTarget2,
+                  key: const ValueKey<Object>(ValueKey('shared-key')),
+
+                  targets: [morphTarget2],
                   child: const MorphDescendant(
                     key: ValueKey('shared-key'),
-                    flightBehavior: .snapshot,
+                    flightBehavior: .snapshot(),
                     child: ColoredBox(color: Colors.green),
                   ),
                 ),

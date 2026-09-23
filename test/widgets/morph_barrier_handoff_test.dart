@@ -104,7 +104,7 @@ Future<void> main() async {
       addTearDown(scenario.disabled.dispose);
       await tester.pumpWidget(scenario.app);
       await tester.pumpAndSettle();
-      final route = _BarrierTestRoute(child: scenario.endpoint(MorphTarget(tag: scenario.source.tag)));
+      final route = _BarrierTestRoute(child: scenario.endpoint(destination: true));
       scenario.navigator.currentState!.push(route);
       await tester.pumpAndSettle();
       scenario.navigator.currentState!.didStartUserGesture();

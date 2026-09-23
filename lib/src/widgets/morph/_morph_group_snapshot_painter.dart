@@ -1,7 +1,7 @@
 part of 'morph.dart';
 
 final class _MorphGroupSnapshotPainter extends CustomPainter {
-  new(this.capture) : super(repaint: capture);
+  new(this.capture);
   final _MorphGroupCapture capture;
 
   @override

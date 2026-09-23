@@ -11,14 +11,14 @@ class _MorphCoordinator extends ChangeNotifier {
 
   final OverlayState overlay;
   final Map<Object, _MorphTargetGroup> _groups = {};
+  final Map<Object, List<_MorphEndpointHandle>> _appearancesByTag = {};
   final Set<_MorphTargetGroup> _pendingGroups = {};
   bool _reconciliationScheduled = false;
+  final Map<(_MorphEndpointHandle, _MorphEndpointHandle, MorphTarget), bool> _localMatchDecisions = {};
   final Map<Object, _MorphActiveFlight> _flights = {};
   final List<_MorphActiveFlight> _orderedFlights = [];
   final Set<_MorphEndpointHandle> _scheduledIncomingEndpoints = {};
-  final List<_MorphSiblingHandle> _siblings = [];
-  final List<_MorphSiblingHandle> _visibleSiblings = [];
-  final Map<(Duration, Object?), _MorphControllerLease> _sameFrameControllers = {};
+  final Map<(Duration, Duration, Object?), _MorphControllerLease> _sameFrameControllers = {};
   final _MorphTextRasterPool textRasterPool = _MorphTextRasterPool();
   OverlayEntry? _overlayEntry;
   Object? _sameFrameCohort;
@@ -28,140 +28,8 @@ class _MorphCoordinator extends ChangeNotifier {
 
   Iterable<_MorphActiveFlight> get flights => _orderedFlights;
 
-  List<_MorphSiblingHandle> siblingsAbove(
-    _MorphActiveFlight flight,
-  ) {
-    _visibleSiblings.clear();
-    for (var pass = 0; pass < 2; pass += 1) {
-      for (final sibling in _siblings) {
-        if (!sibling.active ||
-            sibling.disposed ||
-            !sibling.paintsOnTop ||
-            !sibling.canPaint ||
-            sibling.tag != flight.tag ||
-            identical(sibling.target, flight.destinationHandle.target) != (pass == 1)) {
-          continue;
-        }
-        if (_siblingParticipates(flight, sibling)) _visibleSiblings.add(sibling);
-      }
-    }
-    return _visibleSiblings;
-  }
-
-  void registerSibling(_MorphSiblingHandle sibling) {
-    sibling
-      ..active = true
-      ..disposed = false;
-    if (!_siblings.contains(sibling)) _siblings.add(sibling);
-    _attachSiblingFlight(sibling);
-    if (_hasScheduledIncomingFlightUsingSibling(sibling)) {
-      sibling.prepareForIncomingFlight();
-    } else if (!_hasFlightUsingSibling(sibling)) {
-      sibling.settleTransition();
-    }
-    if (_hasFlightUsingSibling(sibling)) {
-      _notifyListenersSafely();
-    }
-  }
-
-  void siblingGeometryChanged(_MorphSiblingHandle sibling) {
-    if (!_siblings.contains(sibling)) return;
-    if (_hasProjectedFlightUsingSibling(sibling)) {
-      sibling.changed();
-      if (!sibling.isProjected) _notifyListenersSafely();
-    }
-  }
-
-  void deactivateSibling(_MorphSiblingHandle sibling) {
-    sibling
-      ..active = false
-      ..resetFlight();
-    if (_overlayEntry != null) _notifyListenersSafely();
-  }
-
-  void activateSibling(_MorphSiblingHandle sibling) {
-    sibling
-      ..active = true
-      ..disposed = false;
-    _attachSiblingFlight(sibling);
-    if (_hasScheduledIncomingFlightUsingSibling(sibling)) {
-      sibling.prepareForIncomingFlight();
-    } else if (!_hasFlightUsingSibling(sibling)) {
-      sibling.settleTransition();
-    }
-    if (_hasFlightUsingSibling(sibling)) {
-      sibling.changed();
-      _notifyListenersSafely();
-    }
-  }
-
-  void unregisterSibling(_MorphSiblingHandle sibling) {
-    sibling
-      ..active = false
-      ..visibility.hidden = false;
-    _siblings.remove(sibling);
-    _visibleSiblings.remove(sibling);
-    sibling.dispose();
-    final group = _groups[sibling.tag];
-    if (group != null) _pruneGroup(group);
-    if (_overlayEntry != null) _notifyListenersSafely();
-  }
-
-  bool showsSibling(_MorphSiblingHandle sibling) {
-    if (!sibling.paintsOnTop || !sibling.canPaint) return false;
-    final flight = _flights[sibling.tag];
-    return flight != null && _siblingParticipates(flight, sibling);
-  }
-
-  bool _siblingParticipates(
-    _MorphActiveFlight flight,
-    _MorphSiblingHandle sibling,
-  ) {
-    return identical(flight.sourceHandle?.target, sibling.target) ||
-        identical(flight.destinationHandle.target, sibling.target) ||
-        (_groups[flight.tag]?.progress[sibling.target]?.participates ?? false);
-  }
-
-  bool _hasFlightUsingSibling(_MorphSiblingHandle sibling) {
-    final flight = _flights[sibling.tag];
-    return flight != null && _siblingParticipates(flight, sibling);
-  }
-
-  bool _hasProjectedFlightUsingSibling(_MorphSiblingHandle sibling) {
-    return sibling.paintsOnTop && _hasFlightUsingSibling(sibling);
-  }
-
-  bool _hasScheduledIncomingFlightUsingSibling(
-    _MorphSiblingHandle sibling,
-  ) {
-    if (!sibling.hasTransition) return false;
-    for (final endpoint in _scheduledIncomingEndpoints) {
-      if (identical(endpoint.target, sibling.target) && endpoint.active && !endpoint.disposed) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  void _prepareSiblingsForIncomingFlight(
-    _MorphEndpointHandle destination,
-  ) {
-    for (final sibling in _siblings) {
-      if (!sibling.active || sibling.disposed || !identical(sibling.target, destination.target)) {
-        continue;
-      }
-      sibling.prepareForIncomingFlight();
-    }
-  }
-
   void _installFlight(_MorphActiveFlight flight) {
     flight.updateLandingNavigation(flight.kind.isRoute ? flight.destinationHandle.observer?._request : null);
-    final group = _groups[flight.tag]!;
-    if (flight.completesAtSource ||
-        (flight.sourceHandle != null && !identical(flight.sourceHandle!.target, flight.destinationHandle.target))) {
-      group.siblingTransition?.dispose();
-      group.siblingTransition = _MorphSiblingTransition(group: group, coordinator: this, flight: flight);
-    }
     final replaced = _flights[flight.tag];
     if (replaced != null) _orderedFlights.remove(replaced);
     _flights[flight.tag] = flight;
@@ -172,10 +40,6 @@ class _MorphCoordinator extends ChangeNotifier {
     }
     _orderedFlights.insert(insertionIndex, flight);
     flight.destinationHandle.observer?._acceptTagFlight(flight);
-    for (final sibling in _siblings) {
-      if (!sibling.active || sibling.tag != flight.tag) continue;
-      _attachSiblingFlight(sibling);
-    }
   }
 
   int _compareFlightOrder(
@@ -221,39 +85,30 @@ class _MorphCoordinator extends ChangeNotifier {
     overlay.context.visitChildElements(visit);
   }
 
-  void _attachSiblingFlight(_MorphSiblingHandle sibling) {
-    if (!sibling.active) return;
-    final group = _groups.putIfAbsent(sibling.tag, () => _MorphTargetGroup(sibling.tag));
-    final progress = group.progress.putIfAbsent(
-      sibling.target,
-      () => _MorphTargetProgress(group.selected == null || identical(group.selected?.target, sibling.target) ? 1 : 0),
-    );
-    final flight = _flights[sibling.tag];
-    sibling.updateProgress(progress.curved, progress.uncurved);
-    if (flight != null && _siblingParticipates(flight, sibling)) {
-      sibling.attachFlight(flight, progress.curved, progress.uncurved);
-    }
-  }
-
-  void _updateSiblingProgress(_MorphTargetGroup group) {
-    for (final sibling in _siblings) {
-      if (!sibling.active || sibling.disposed || sibling.tag != group.tag) continue;
-      _attachSiblingFlight(sibling);
-    }
-  }
-
-  void _settleSiblingProgress(_MorphTargetGroup group, MorphTarget? winner) {
-    if (group.siblingTransition != null) return;
-    for (final entry in group.progress.entries) {
-      entry.value.settle(identical(entry.key, winner) ? 1 : 0);
-    }
-    _updateSiblingProgress(group);
-  }
-
   void endpointPresented(_MorphEndpointHandle endpoint) {
     final flight = _flights[endpoint.tag];
     if (flight == null) return;
     flight.endpointPresented(endpoint);
+  }
+
+  void endpointPresentationInvalidated(_MorphEndpointHandle endpoint) {
+    final flight = _flights[endpoint.tag];
+    if (flight == null) return;
+    flight.endpointPresentationInvalidated(endpoint);
+  }
+
+  void _endpointHandoffPresentationReady(_MorphActiveFlight flight) {
+    if (!identical(_flights[flight.tag], flight)) return;
+    _retireReadyEndpointHandoffs();
+  }
+
+  void _retireReadyEndpointHandoffs() {
+    for (final candidate in _orderedFlights) {
+      if (!candidate.endpointHandoffPresentationReady || _sharedAncestorFlight(candidate) != null) {
+        continue;
+      }
+      candidate.retirePresentedEndpoint();
+    }
   }
 
   void register(_MorphEndpointHandle endpoint) {
@@ -262,21 +117,31 @@ class _MorphCoordinator extends ChangeNotifier {
       ..disposed = false
       ..registrationOrder = ++_registrationOrder
       ..retentionGeneration += 1;
-    final group = _groups.putIfAbsent(endpoint.tag, () => _MorphTargetGroup(endpoint.tag));
-    group
-      ..register(endpoint)
-      ..progress.putIfAbsent(endpoint.target, () => _MorphTargetProgress(group.selected == null ? 1 : 0));
+    final group = _groups.putIfAbsent(endpoint.tag, () => _MorphTargetGroup(endpoint.tag))..register(endpoint);
+    _indexTargets(endpoint);
     endpoint.observer?._register(this);
     _scheduleStructuralOrderRefresh();
     if (group.selected == null) {
       group.selected = endpoint;
-      _claimOwnership(endpoint);
-    } else if (!identical(group.selected!.target, endpoint.target)) {
-      endpoint.visibility.hidden = true;
-      _scheduledIncomingEndpoints.add(endpoint);
-      _prepareSiblingsForIncomingFlight(endpoint);
+      // Alternatives are resolved together after layout. Do not settle an
+      // existing content during the incoming route's build.
+      if (!(_appearancesByTag[endpoint.tag]?.any(
+            (candidate) => !identical(candidate, endpoint) && candidate.targets.length > 1,
+          ) ??
+          false)) {
+        _claimOwnership(endpoint);
+      }
     }
+    _prepareIncomingEndpoint(endpoint);
     _scheduleReconciliation(group);
+  }
+
+  void _prepareIncomingEndpoint(_MorphEndpointHandle endpoint) {
+    final target = _findEligibleIncomingTarget(endpoint);
+    endpoint.preparedTarget = target;
+    if (target == null) return;
+    endpoint.visibility.hidden = true;
+    _scheduledIncomingEndpoints.add(endpoint);
   }
 
   void _scheduleReconciliation(_MorphTargetGroup group) {
@@ -288,6 +153,7 @@ class _MorphCoordinator extends ChangeNotifier {
       // Resolve after all of them have restored the routes' actual animations.
       scheduleMicrotask(() {
         _reconciliationScheduled = false;
+        _resolveTargetAlternatives();
         final pending = _pendingGroups.toList(growable: false);
         _pendingGroups.clear();
         for (final group in pending) {
@@ -297,8 +163,13 @@ class _MorphCoordinator extends ChangeNotifier {
             if (flight != null) flight.destinationHandle.observer?._acceptTagFlight(flight);
           }
         }
+        _localMatchDecisions.clear();
         _scheduledIncomingEndpoints.removeWhere(
-          (endpoint) => !_pendingGroups.contains(_groups[endpoint.tag]),
+          (endpoint) {
+            if (_pendingGroups.contains(_groups[endpoint.tag])) return false;
+            endpoint.preparedTarget = null;
+            return true;
+          },
         );
       });
     });
@@ -323,7 +194,7 @@ class _MorphCoordinator extends ChangeNotifier {
               parent.disposed ||
               (parentGroup != null &&
                   !identical(parentGroup, group) &&
-                  !identical(_lastMounted(parentGroup, route, ancestors)?.target, parent.target))) {
+                  !identical(_lastMounted(parentGroup, route, ancestors), parent))) {
             eligible = false;
             break;
           }
@@ -339,7 +210,9 @@ class _MorphCoordinator extends ChangeNotifier {
 
   void _navigationChanged(MorphNavigatorObserver observer) {
     for (final group in _groups.values) {
-      if (group.endpoints.any((endpoint) => identical(endpoint.observer, observer))) {
+      for (final endpoint in group.endpoints) {
+        if (!identical(endpoint.observer, observer)) continue;
+        if (endpoint.active && !endpoint.disposed) _prepareIncomingEndpoint(endpoint);
         _scheduleReconciliation(group);
       }
     }
@@ -356,7 +229,7 @@ class _MorphCoordinator extends ChangeNotifier {
         group.selected = accepted;
         final current = _flights[group.tag];
         current?.updateLandingNavigation(null);
-        if (current != null && current.hasIndependentClock) {
+        if (current != null) {
           if (current.kind == MorphFlightKind.routePush) {
             current.continueToDestination();
           } else {
@@ -373,8 +246,16 @@ class _MorphCoordinator extends ChangeNotifier {
             (identical(group.selected?.route, request.source) ? group.selected : null);
         final destination = _lastMounted(group, request.destination);
         group.selected = destination;
-        if (source != null && destination != null && request.source != null) {
+        if (source != null &&
+            destination != null &&
+            request.source != null &&
+            destination.alternativeMatchAvailable &&
+            _canMatch(source, destination, request: request)) {
           _startNavigation(source, destination, request);
+          if (_flightUses(source) && _flightUses(destination)) {
+            request.acceptedTargets[source] = source.target;
+            request.acceptedTargets[destination] = destination.target;
+          }
         } else {
           _settleUnmatchedNavigation(group, destination);
         }
@@ -392,18 +273,17 @@ class _MorphCoordinator extends ChangeNotifier {
       }
       return;
     }
-    if (identical(source?.target, destination.target)) {
-      group.selected = destination;
-      if (!identical(source, destination) && _endpointIdentity(source!) != _endpointIdentity(destination)) {
-        _startIncoming(destination, source: source);
-      } else if (_flights[group.tag] == null) {
-        _claimOwnership(destination);
-      }
+    if (identical(source, destination)) {
+      if (_flights[group.tag] == null) _claimOwnership(destination);
       return;
     }
     group.selected = destination;
     _scheduledIncomingEndpoints.remove(destination);
-    if (source == null || !identical(source.route, destination.route)) {
+    destination.preparedTarget = null;
+    if (source == null ||
+        !identical(source.route, destination.route) ||
+        !destination.alternativeMatchAvailable ||
+        !_canMatch(source, destination)) {
       _transferOwnershipImmediately(destination);
       return;
     }
@@ -415,9 +295,7 @@ class _MorphCoordinator extends ChangeNotifier {
     flight?.cancelForRetarget();
     group
       ..selected = destination
-      ..owner = destination
-      ..siblingTransition?.dispose();
-    _settleSiblingProgress(group, destination?.target);
+      ..owner = destination;
     for (final endpoint in group.endpoints) {
       endpoint.visibility.hidden = !identical(endpoint, _lastMounted(group, endpoint.route));
     }
@@ -436,7 +314,8 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
     final current = _flights[source.tag];
-    if (source.configuredDuration == null &&
+    final timing = _resolveTiming(source, route: source.route);
+    if (!timing.hasConfiguredReverse &&
         !(current?.hasIndependentClock ?? false) &&
         !request.preview &&
         source.route?.animation?.status != AnimationStatus.reverse) {
@@ -445,16 +324,16 @@ class _MorphCoordinator extends ChangeNotifier {
     }
     if (current != null &&
         current.kind == MorphFlightKind.routePop &&
-        identical(current.sourceHandle?.target, source.target) &&
-        identical(current.destinationHandle.target, destination.target)) {
-      if (current.hasIndependentClock) current.continueToDestination();
+        identical(current.sourceHandle, source) &&
+        identical(current.destinationHandle, destination)) {
+      current.continueToDestination();
       return;
     }
     if (current != null &&
         current.kind == MorphFlightKind.routePush &&
-        identical(current.sourceHandle?.target, destination.target) &&
-        identical(current.destinationHandle.target, source.target)) {
-      if (current.hasIndependentClock) current.returnToSource();
+        identical(current.sourceHandle, destination) &&
+        identical(current.destinationHandle, source)) {
+      current.returnToSource();
       return;
     }
     if (source.animationsDisabled || destination.animationsDisabled) {
@@ -466,15 +345,18 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
 
-    final configuredDuration = source.configuredDuration;
     final animation = source.route?.animation;
-    if (configuredDuration == null && (animation == null || animation.isDismissed)) {
+    if (!timing.hasConfiguredReverse && (animation == null || animation.isDismissed)) {
       _transferOwnershipImmediately(destination);
       return;
     }
-    final controllerLease = configuredDuration == null
+    final controllerLease = !timing.hasConfiguredReverse
         ? null
-        : _obtainSameFrameController(configuredDuration, group: source.route);
+        : _obtainSameFrameController(
+            timing.reverse,
+            reverseDuration: timing.forward,
+            group: source.route,
+          );
     final flightAnimation = controllerLease?.controller ?? ReverseAnimation(animation!);
     if (current != null) {
       _retargetToRoutePop(current, destination, flightAnimation, controllerLease: controllerLease);
@@ -502,7 +384,9 @@ class _MorphCoordinator extends ChangeNotifier {
   }
 
   void deactivate(_MorphEndpointHandle endpoint) {
-    _captureDeparture(endpoint);
+    if (!endpoint.animationsDisabled && endpoint.flightsEnabled && !_flightUses(endpoint)) {
+      _captureDeparture(endpoint);
+    }
     endpoint
       ..active = false
       ..retentionGeneration += 1;
@@ -546,7 +430,11 @@ class _MorphCoordinator extends ChangeNotifier {
       flight.cancelForRetarget();
     }
     for (final group in _groups.values) {
-      group.siblingTransition?.dispose();
+      for (final endpoint in group.endpoints) {
+        endpoint
+          ..releaseDeparture()
+          ..releaseGroupCache();
+      }
     }
     _sameFrameControllers.clear();
     _sameFrameCohort = null;
@@ -564,160 +452,6 @@ class _MorphCoordinator extends ChangeNotifier {
     });
   }
 
-  void replace(
-    _MorphEndpointHandle destination, {
-    required MorphEndpoint<Object?> source,
-    required Object sourceIdentity,
-    required Object destinationIdentity,
-    required MorphFlightDelegate<Object?> sourceDelegate,
-    required Duration duration,
-    required Curve curve,
-    required bool watchDestination,
-    required VoidCallback? onStart,
-    required VoidCallback? onEnd,
-  }) {
-    if (!identical(_groups[destination.tag]?.selected?.target, destination.target)) return;
-
-    if (destination.animationsDisabled) {
-      _transferOwnershipImmediately(destination);
-      return;
-    }
-
-    if (_flights[destination.tag] == null && !destination.flightsEnabled) {
-      _transferOwnershipImmediately(destination);
-      return;
-    }
-
-    final structuralOrder = destination.structuralOrder ?? destination.registrationOrder;
-    final registrationOrder = destination.registrationOrder;
-    destination.visibility.hidden = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!destination.active || destination.disposed) return;
-      if (!identical(_groups[destination.tag]?.selected?.target, destination.target)) return;
-
-      if (_flights[destination.tag] == null && !destination.flightsEnabled) {
-        _transferOwnershipImmediately(destination);
-        return;
-      }
-
-      final capturedDestination = _capture(destination);
-      if (capturedDestination == null) {
-        _claimOwnership(destination);
-        _reportSkippedFlight(
-          tag: destination.tag,
-          reason: 'the destination did not have usable layout',
-        );
-        return;
-      }
-      if (!_delegatesAreCompatible(
-        sourceDelegate,
-        destination.delegate,
-      )) {
-        _claimOwnership(destination);
-        _reportSkippedFlight(
-          tag: destination.tag,
-          reason: 'endpoint delegate types are incompatible',
-        );
-        return;
-      }
-
-      final existingFlight = _flights[destination.tag];
-      if (existingFlight != null) {
-        if (existingFlight.kind.isRoute) return;
-        _retarget(
-          existingFlight,
-          destination,
-          configuration: (
-            duration: duration,
-            curve: curve,
-            watchDestination: watchDestination,
-            onStart: onStart,
-            onEnd: onEnd,
-            destinationIdentity: destinationIdentity,
-          ),
-        );
-        return;
-      }
-
-      final controllerLease = _obtainSameFrameController(duration);
-      final flight = _MorphActiveFlight(
-        coordinator: this,
-        tag: destination.tag,
-        sourceHandle: null,
-        destinationHandle: destination,
-        delegate: sourceDelegate,
-        source: source,
-        destination: capturedDestination,
-        kind: MorphFlightKind.sameScreen,
-        flightAnimation: controllerLease.controller,
-        curve: curve,
-        watchDestination: watchDestination,
-        onStart: onStart,
-        onEnd: onEnd,
-        cohort: _obtainSameFrameCohort(),
-        structuralOrder: structuralOrder,
-        registrationOrder: registrationOrder,
-        reversibleOriginIdentity: sourceIdentity,
-        controllerLease: controllerLease,
-      );
-      _installFlight(flight);
-      _ensureOverlay();
-      notifyListeners();
-      flight.start();
-    });
-  }
-
-  void replaceFromState(
-    _MorphEndpointHandle destination, {
-    required MorphEndpoint<Object?>? Function() sourceCapture,
-    required Object sourceIdentity,
-    required Object destinationIdentity,
-    required MorphFlightDelegate<Object?> sourceDelegate,
-    required Duration duration,
-    required Curve curve,
-    required bool watchDestination,
-    required VoidCallback? onStart,
-    required VoidCallback? onEnd,
-  }) {
-    if (!identical(_groups[destination.tag]?.selected?.target, destination.target)) return;
-    if (destination.animationsDisabled) {
-      _transferOwnershipImmediately(destination);
-      return;
-    }
-    if (_flights[destination.tag] == null && !destination.flightsEnabled) {
-      _transferOwnershipImmediately(destination);
-      return;
-    }
-    MorphEndpoint<Object?>? source;
-    try {
-      source = sourceCapture();
-    } on Object catch (exception, stack) {
-      _reportCaptureError(destination, exception, stack);
-      _transferOwnershipImmediately(destination);
-      return;
-    }
-    if (source == null) {
-      _transferOwnershipImmediately(destination);
-      _reportSkippedFlight(
-        tag: destination.tag,
-        reason: 'the departing endpoint did not have usable layout',
-      );
-      return;
-    }
-    replace(
-      destination,
-      source: source,
-      sourceIdentity: sourceIdentity,
-      destinationIdentity: destinationIdentity,
-      sourceDelegate: sourceDelegate,
-      duration: duration,
-      curve: curve,
-      watchDestination: watchDestination,
-      onStart: onStart,
-      onEnd: onEnd,
-    );
-  }
-
   void finish(
     _MorphActiveFlight flight, {
     required bool arrived,
@@ -725,16 +459,20 @@ class _MorphCoordinator extends ChangeNotifier {
     bool deferNotification = false,
   }) {
     if (!identical(_flights[flight.tag], flight)) return;
-    final winner = returned
+    final returningToSource = flight.isReturningToSource && !arrived && !returned;
+    final completed = arrived || returned || returningToSource;
+    final winner = returningToSource
+        ? flight.sourceHandle ?? flight.destinationHandle
+        : returned
         ? flight.destinationHandle
         : arrived
         ? flight.destinationHandle
         : flight.sourceHandle ?? flight.destinationHandle;
-    if (arrived || returned) {
+    if (completed) {
       flight.markCohortCompleted();
     }
     final cohortReady = _cohortIsReady(flight.cohort);
-    if ((arrived || returned) &&
+    if (completed &&
         flight.holdAtEndpoint(
           winner,
           arrived: arrived,
@@ -750,7 +488,7 @@ class _MorphCoordinator extends ChangeNotifier {
       notifyListeners();
       return;
     }
-    if ((arrived || returned) && !cohortReady) {
+    if (completed && !cohortReady) {
       flight.holdForCohort(
         arrived: arrived,
         returned: returned,
@@ -768,7 +506,7 @@ class _MorphCoordinator extends ChangeNotifier {
       _invokeCompletionCallbacks(flight, winner, arrived: arrived, returned: returned);
       return;
     }
-    if ((arrived || returned || flight.routeHandoffCompleted) &&
+    if ((completed || flight.routeHandoffCompleted) &&
         flight.beginEndpointHandoff(
           winner: winner,
           arrived: arrived,
@@ -840,12 +578,8 @@ class _MorphCoordinator extends ChangeNotifier {
 
   void _flightEnded(_MorphActiveFlight flight) {
     flight.destinationHandle.observer?._endTagFlight(flight);
-    for (final sibling in _siblings) {
-      if (sibling.tag == flight.tag) {
-        sibling.detachFlight(flight);
-      }
-    }
     scheduleMicrotask(() {
+      _retireReadyEndpointHandoffs();
       if (_cohortIsReady(flight.cohort)) {
         _releaseReadyCohort(flight.cohort);
       }
@@ -899,7 +633,6 @@ class _MorphCoordinator extends ChangeNotifier {
     if (!identical(_flights[flight.tag], flight)) return;
     _removeFlight(flight.tag);
     flight.cancelForRetarget();
-    _groups[flight.tag]?.siblingTransition?.dispose();
     _claimOwnership(flight.destinationHandle);
     _removeExpiredEndpoints(flight.tag);
     _removeOverlayWhenIdle();
@@ -938,10 +671,11 @@ class _MorphCoordinator extends ChangeNotifier {
     final sourceRoute = source.route;
     if (!identical(destinationRoute, sourceRoute)) {
       final routeAnimation = destinationRoute?.animation;
-      final configuredDuration = source.configuredDuration;
-      if (configuredDuration != null && (routeAnimation == null || routeAnimation.status.isForwardOrCompleted)) {
+      final timing = _resolveTiming(source, route: destinationRoute);
+      if (timing.hasConfiguredForward && (routeAnimation == null || routeAnimation.status.isForwardOrCompleted)) {
         final controllerLease = _obtainSameFrameController(
-          configuredDuration,
+          timing.forward,
+          reverseDuration: timing.reverse,
           group: destinationRoute,
         );
         _startFlight(
@@ -967,13 +701,19 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
 
-    final controllerLease = _obtainSameFrameController(source.duration);
+    final timing = _resolveTiming(source);
+    final returning = !source.active && destination.registrationOrder < source.registrationOrder;
+    final controllerLease = _obtainSameFrameController(
+      returning ? timing.reverse : timing.forward,
+      reverseDuration: returning ? timing.forward : timing.reverse,
+    );
     _startFlight(
       sourceHandle: source,
       destinationHandle: destination,
       kind: MorphFlightKind.sameScreen,
       flightAnimation: controllerLease.controller,
       controllerLease: controllerLease,
+      usesReverseTiming: returning,
     );
   }
 
@@ -996,17 +736,8 @@ class _MorphCoordinator extends ChangeNotifier {
 
   void _retarget(
     _MorphActiveFlight current,
-    _MorphEndpointHandle destination, {
-    ({
-      Duration duration,
-      Curve curve,
-      VoidCallback? onStart,
-      VoidCallback? onEnd,
-      Object destinationIdentity,
-      bool watchDestination,
-    })?
-    configuration,
-  }) {
+    _MorphEndpointHandle destination,
+  ) {
     if (!_delegatesAreCompatible(
       current.delegate,
       destination.delegate,
@@ -1034,23 +765,14 @@ class _MorphCoordinator extends ChangeNotifier {
 
     final originIdentity = current.reversibleOriginIdentity;
     final returnsToDistinctOrigin =
-        configuration == null &&
-        current.sourceHandle != null &&
-        originIdentity != null &&
-        _endpointIdentity(destination) == originIdentity;
-    final returnsToSameStateOrigin =
-        configuration != null && originIdentity != null && configuration.destinationIdentity == originIdentity;
-    if (!crossesRoutes &&
-        current.kind == MorphFlightKind.sameScreen &&
-        (returnsToDistinctOrigin || returnsToSameStateOrigin)) {
+        current.sourceHandle != null && originIdentity != null && _endpointIdentity(destination) == originIdentity;
+    if (!crossesRoutes && current.kind == MorphFlightKind.sameScreen && returnsToDistinctOrigin) {
       _reverseToOrigin(
         current,
         destination,
-        duration: configuration?.duration ?? current.destinationHandle.duration,
-        curve: configuration?.curve ?? current.curve,
-        watchDestination: configuration?.watchDestination ?? current.destinationHandle.watchDestination,
-        onStart: configuration?.onStart ?? current.destinationHandle.onStart,
-        onEnd: configuration?.onEnd ?? current.destinationHandle.onEnd,
+        watchDestination: current.destinationHandle.target.watchDestination,
+        onStart: current.destinationHandle.onStart,
+        onEnd: current.destinationHandle.onEnd,
       );
       return;
     }
@@ -1072,21 +794,35 @@ class _MorphCoordinator extends ChangeNotifier {
     final _MorphControllerLease? controllerLease;
     final MorphFlightKind kind;
     final Animation<double> flightAnimation;
+    late final ({
+      Duration forward,
+      Duration reverse,
+      bool hasConfiguredForward,
+      bool hasConfiguredReverse,
+    })
+    timing;
     if (crossesRoutes) {
       kind = MorphFlightKind.routePush;
+      timing = _resolveTiming(
+        current.destinationHandle,
+        route: destinationRoute,
+      );
       if (configuredRouteDuration == null) {
         controllerLease = null;
         flightAnimation = _synchronizeRoutePushAnimation(routeAnimation!);
       } else {
         controllerLease = _obtainSameFrameController(
-          configuredRouteDuration,
+          timing.forward,
+          reverseDuration: timing.reverse,
           group: destinationRoute,
         );
         flightAnimation = controllerLease.controller;
       }
     } else {
+      timing = _resolveTiming(current.destinationHandle);
       controllerLease = _obtainSameFrameController(
-        configuration?.duration ?? current.destinationHandle.duration,
+        timing.forward,
+        reverseDuration: timing.reverse,
       );
       kind = MorphFlightKind.sameScreen;
       flightAnimation = controllerLease.controller;
@@ -1100,11 +836,16 @@ class _MorphCoordinator extends ChangeNotifier {
       source: sampledSource,
       destination: destinationProperties,
       kind: kind,
-      flightAnimation: flightAnimation,
-      curve: configuration?.curve ?? current.destinationHandle.curve,
-      watchDestination: configuration?.watchDestination ?? current.destinationHandle.watchDestination,
-      onStart: configuration?.onStart ?? current.destinationHandle.onStart,
-      onEnd: configuration?.onEnd ?? current.destinationHandle.onEnd,
+      parentAnimation: flightAnimation,
+      curve: current.destinationHandle.curve,
+      reverseCurve: current.destinationHandle.reverseCurve,
+      playbackDuration: timing.forward,
+      playbackReverseDuration: timing.reverse,
+      hasConfiguredForwardDuration: timing.hasConfiguredForward,
+      hasConfiguredReverseDuration: timing.hasConfiguredReverse,
+      watchDestination: current.destinationHandle.target.watchDestination,
+      onStart: current.destinationHandle.onStart,
+      onEnd: current.destinationHandle.onEnd,
       cohort: _obtainSameFrameCohort(),
       structuralOrder: current.structuralOrder,
       registrationOrder: current.registrationOrder,
@@ -1113,6 +854,7 @@ class _MorphCoordinator extends ChangeNotifier {
     current.destinationHandle.visibility.hidden = true;
     destination.visibility.hidden = true;
     _installFlight(flight);
+    _removeExpiredEndpoints(flight.tag);
     _ensureOverlay();
     notifyListeners();
     flight.start();
@@ -1121,8 +863,6 @@ class _MorphCoordinator extends ChangeNotifier {
   void _reverseToOrigin(
     _MorphActiveFlight current,
     _MorphEndpointHandle destination, {
-    required Duration duration,
-    required Curve curve,
     required bool watchDestination,
     required VoidCallback? onStart,
     required VoidCallback? onEnd,
@@ -1138,8 +878,10 @@ class _MorphCoordinator extends ChangeNotifier {
       _retargetFromSample(
         current,
         destination,
-        duration: duration,
-        curve: curve,
+        duration: current.playbackReverseDuration,
+        reverseDuration: current.playbackDuration,
+        curve: current.curve,
+        reverseCurve: current.reverseCurve,
         watchDestination: watchDestination,
         onStart: onStart,
         onEnd: onEnd,
@@ -1150,7 +892,8 @@ class _MorphCoordinator extends ChangeNotifier {
 
     final controllerLease = _MorphControllerLease(
       vsync: overlay,
-      duration: duration,
+      duration: current.playbackDuration,
+      reverseDuration: current.playbackReverseDuration,
       initialValue: progress,
       startsInReverse: true,
     )..retain();
@@ -1166,8 +909,13 @@ class _MorphCoordinator extends ChangeNotifier {
       source: current.currentSource,
       destination: current.currentDestination,
       kind: MorphFlightKind.sameScreen,
-      flightAnimation: controllerLease.controller,
+      parentAnimation: controllerLease.controller,
       curve: current.curve,
+      reverseCurve: current.reverseCurve,
+      playbackDuration: current.playbackDuration,
+      playbackReverseDuration: current.playbackReverseDuration,
+      hasConfiguredForwardDuration: current.hasConfiguredForwardDuration,
+      hasConfiguredReverseDuration: current.hasConfiguredReverseDuration,
       watchDestination: watchDestination,
       onStart: onStart,
       onEnd: onEnd,
@@ -1188,7 +936,9 @@ class _MorphCoordinator extends ChangeNotifier {
     _MorphActiveFlight current,
     _MorphEndpointHandle destination, {
     required Duration duration,
+    required Duration reverseDuration,
     required Curve curve,
+    required Curve reverseCurve,
     required bool watchDestination,
     required VoidCallback? onStart,
     required VoidCallback? onEnd,
@@ -1203,7 +953,10 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
 
-    final controllerLease = _obtainSameFrameController(duration);
+    final controllerLease = _obtainSameFrameController(
+      duration,
+      reverseDuration: reverseDuration,
+    );
     final flight = _MorphActiveFlight(
       coordinator: this,
       tag: destination.tag,
@@ -1213,8 +966,13 @@ class _MorphCoordinator extends ChangeNotifier {
       source: sampledSource,
       destination: capturedDestination,
       kind: MorphFlightKind.sameScreen,
-      flightAnimation: controllerLease.controller,
+      parentAnimation: controllerLease.controller,
       curve: curve,
+      reverseCurve: reverseCurve,
+      playbackDuration: duration,
+      playbackReverseDuration: reverseDuration,
+      hasConfiguredForwardDuration: current.hasConfiguredForwardDuration,
+      hasConfiguredReverseDuration: current.hasConfiguredReverseDuration,
       watchDestination: watchDestination,
       onStart: onStart,
       onEnd: onEnd,
@@ -1267,7 +1025,6 @@ class _MorphCoordinator extends ChangeNotifier {
 
     _removeFlight(flight.tag);
     flight.cancelForRetarget();
-    _groups[flight.tag]?.siblingTransition?.dispose();
     _claimOwnership(winner);
     _removeExpiredEndpoints(flight.tag);
     _removeOverlayWhenIdle();
@@ -1277,7 +1034,6 @@ class _MorphCoordinator extends ChangeNotifier {
   void _transferOwnershipImmediately(
     _MorphEndpointHandle winner,
   ) {
-    _groups[winner.tag]?.siblingTransition?.dispose();
     final current = _flights[winner.tag];
     if (current != null) {
       _removeFlight(winner.tag);
@@ -1322,6 +1078,10 @@ class _MorphCoordinator extends ChangeNotifier {
 
     final sampledSource = current.sample();
     final destinationProperties = _capture(destination);
+    final timing = _resolveTiming(
+      current.destinationHandle,
+      route: current.destinationHandle.route,
+    );
     current.cancelForRetarget();
     _removeFlight(current.tag);
     if (destinationProperties == null) {
@@ -1341,9 +1101,14 @@ class _MorphCoordinator extends ChangeNotifier {
       source: sampledSource,
       destination: destinationProperties,
       kind: MorphFlightKind.routePop,
-      flightAnimation: flightAnimation,
-      curve: current.destinationHandle.curve,
-      watchDestination: current.destinationHandle.watchDestination,
+      parentAnimation: flightAnimation,
+      curve: current.curve,
+      reverseCurve: current.reverseCurve,
+      playbackDuration: timing.reverse,
+      playbackReverseDuration: timing.forward,
+      hasConfiguredForwardDuration: timing.hasConfiguredForward,
+      hasConfiguredReverseDuration: timing.hasConfiguredReverse,
+      watchDestination: current.destinationHandle.target.watchDestination,
       onStart: current.destinationHandle.onStart,
       onEnd: current.destinationHandle.onEnd,
       cohort: _obtainSameFrameCohort(),
@@ -1365,6 +1130,7 @@ class _MorphCoordinator extends ChangeNotifier {
     required MorphFlightKind kind,
     required Animation<double> flightAnimation,
     _MorphControllerLease? controllerLease,
+    bool usesReverseTiming = false,
   }) {
     if (!sourceHandle.flightsEnabled || !destinationHandle.flightsEnabled) {
       _transferOwnershipImmediately(destinationHandle);
@@ -1385,7 +1151,7 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
 
-    final source = _capture(sourceHandle);
+    final source = _capture(sourceHandle, reuseSameFrame: true);
     final destination = _capture(
       destinationHandle,
       reuseSameFrame: true,
@@ -1404,6 +1170,16 @@ class _MorphCoordinator extends ChangeNotifier {
 
     sourceHandle.visibility.hidden = true;
     destinationHandle.visibility.hidden = true;
+    final controllingRoute = switch (kind) {
+      MorphFlightKind.routePush => destinationHandle.route,
+      MorphFlightKind.routePop => sourceHandle.route,
+      MorphFlightKind.sameScreen => null,
+    };
+    final timing = _resolveTiming(
+      sourceHandle,
+      route: controllingRoute,
+    );
+    final reverse = usesReverseTiming || kind == MorphFlightKind.routePop;
     final flight = _MorphActiveFlight(
       coordinator: this,
       tag: sourceHandle.tag,
@@ -1413,9 +1189,14 @@ class _MorphCoordinator extends ChangeNotifier {
       source: source,
       destination: destination,
       kind: kind,
-      flightAnimation: flightAnimation,
-      curve: sourceHandle.curve,
-      watchDestination: sourceHandle.watchDestination,
+      parentAnimation: flightAnimation,
+      curve: reverse ? sourceHandle.reverseCurve : sourceHandle.curve,
+      reverseCurve: reverse ? sourceHandle.curve : sourceHandle.reverseCurve,
+      playbackDuration: reverse ? timing.reverse : timing.forward,
+      playbackReverseDuration: reverse ? timing.forward : timing.reverse,
+      hasConfiguredForwardDuration: timing.hasConfiguredForward,
+      hasConfiguredReverseDuration: timing.hasConfiguredReverse,
+      watchDestination: sourceHandle.target.watchDestination,
       onStart: sourceHandle.onStart,
       onEnd: sourceHandle.onEnd,
       cohort: _obtainSameFrameCohort(),
@@ -1438,21 +1219,46 @@ class _MorphCoordinator extends ChangeNotifier {
   }
 
   Object _endpointIdentity(_MorphEndpointHandle endpoint) {
-    return (endpoint.target, endpoint.childIdentity);
+    return (endpoint.target, endpoint.route, endpoint.owner.widget.key ?? endpoint.owner);
+  }
+
+  ({
+    Duration forward,
+    Duration reverse,
+    bool hasConfiguredForward,
+    bool hasConfiguredReverse,
+  })
+  _resolveTiming(
+    _MorphEndpointHandle source, {
+    ModalRoute<Object?>? route,
+  }) {
+    final configuredForward = source.configuredDuration;
+    final configuredReverse = source.configuredReverseDuration;
+    return (
+      forward: configuredForward ?? route?.transitionDuration ?? Morph._defaultDuration,
+      reverse: configuredReverse ?? route?.reverseTransitionDuration ?? Morph._defaultDuration,
+      hasConfiguredForward: configuredForward != null,
+      hasConfiguredReverse: configuredReverse != null,
+    );
   }
 
   _MorphControllerLease _obtainSameFrameController(
     Duration duration, {
+    required Duration reverseDuration,
     Object? group,
   }) {
-    final key = (duration, group);
+    final key = (duration, reverseDuration, group);
     final existing = _sameFrameControllers[key];
     if (existing != null && !existing.isDisposed) {
       existing.retain();
       return existing;
     }
 
-    final lease = _MorphControllerLease(vsync: overlay, duration: duration);
+    final lease = _MorphControllerLease(
+      vsync: overlay,
+      duration: duration,
+      reverseDuration: reverseDuration,
+    );
     _sameFrameControllers[key] = lease;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (identical(_sameFrameControllers[key], lease)) {
@@ -1460,6 +1266,17 @@ class _MorphCoordinator extends ChangeNotifier {
       }
     });
     lease.retain();
+    return lease;
+  }
+
+  _MorphControllerLease _takeOverRouteClock(_MorphActiveFlight flight) {
+    final lease = _MorphControllerLease(
+      vsync: overlay,
+      duration: flight.playbackDuration,
+      reverseDuration: flight.playbackReverseDuration,
+      initialValue: flight.flightAnimation.value.clamp(0.0, 1.0),
+    )..retain();
+    flight.adoptControllerLease(lease);
     return lease;
   }
 
@@ -1477,9 +1294,13 @@ class _MorphCoordinator extends ChangeNotifier {
     return cohort;
   }
 
-  MorphEndpoint<Object?>? _capture(_MorphEndpointHandle endpoint, {bool reuseSameFrame = false}) {
+  MorphEndpoint<Object?>? _capture(
+    _MorphEndpointHandle endpoint, {
+    MorphTarget? target,
+    bool reuseSameFrame = false,
+  }) {
     try {
-      final captured = endpoint.capture(reuseSameFrame: reuseSameFrame);
+      final captured = endpoint.capture(target: target ?? endpoint.target, reuseSameFrame: reuseSameFrame);
       if (captured != null) endpoint.captureFailed = false;
       return captured;
     } on Object catch (exception, stack) {
@@ -1490,13 +1311,16 @@ class _MorphCoordinator extends ChangeNotifier {
   }
 
   void _captureDeparture(_MorphEndpointHandle endpoint) {
-    try {
-      endpoint
-        ..captureDeparture()
-        ..captureFailed = false;
-    } on Object catch (exception, stack) {
-      endpoint.captureFailed = true;
-      _reportCaptureError(endpoint, exception, stack);
+    endpoint.releaseDeparture();
+    for (final target in endpoint.targets) {
+      try {
+        endpoint
+          ..captureDeparture(target)
+          ..captureFailed = false;
+      } on Object catch (exception, stack) {
+        endpoint.captureFailed = true;
+        _reportCaptureError(endpoint, exception, stack);
+      }
     }
   }
 
@@ -1610,6 +1434,8 @@ class _MorphCoordinator extends ChangeNotifier {
     });
     final ownerWasRemoved = expired.contains(_groups[tag]?.owner);
     for (final endpoint in expired) {
+      _unindexTargets(endpoint);
+      endpoint.observer?._request?.forgetEndpoint(endpoint);
       endpoint
         ..releaseDeparture()
         ..releaseGroupCache();
@@ -1624,6 +1450,8 @@ class _MorphCoordinator extends ChangeNotifier {
   }
 
   void _removeEndpoint(_MorphEndpointHandle endpoint) {
+    _unindexTargets(endpoint);
+    endpoint.observer?._request?.forgetEndpoint(endpoint);
     final endpoints = _groups[endpoint.tag]?.endpoints;
     endpoints?.remove(endpoint);
     final wasOwner = identical(_groups[endpoint.tag]?.owner, endpoint);
@@ -1643,14 +1471,7 @@ class _MorphCoordinator extends ChangeNotifier {
   void _pruneGroup(_MorphTargetGroup group) {
     if (!group.endpoints.contains(group.owner)) group.owner = null;
     if (!group.endpoints.contains(group.selected)) group.selected = null;
-    group.progress.removeWhere(
-      (target, _) =>
-          !group.endpoints.any((endpoint) => identical(endpoint.target, target)) &&
-          !_siblings.any((sibling) => identical(sibling.target, target)),
-    );
     if (group.endpoints.isNotEmpty || _flights.containsKey(group.tag)) return;
-    group.siblingTransition?.dispose();
-    if (_siblings.any((sibling) => sibling.tag == group.tag)) return;
     _pendingGroups.remove(group);
     _groups.remove(group.tag);
   }
@@ -1661,10 +1482,14 @@ class _MorphCoordinator extends ChangeNotifier {
 
     final group = _groups[winner.tag];
     if (group == null) return;
+    final previousOwner = group.owner;
     group.owner = winner;
-    _settleSiblingProgress(group, winner.target);
     for (final endpoint in endpoints) {
-      endpoint.visibility.hidden = !identical(endpoint, winner);
+      // Other routes may remain visible behind a non-opaque destination.
+      // Sharing a target does not make them part of this ownership transfer.
+      if (identical(endpoint.route, winner.route) || identical(endpoint, previousOwner)) {
+        endpoint.visibility.hidden = !identical(endpoint, winner);
+      }
       if (endpoint.active && !_flightUses(endpoint)) endpoint.releaseDeparture();
     }
   }
@@ -1695,7 +1520,7 @@ class _MorphCoordinator extends ChangeNotifier {
       FlutterError.reportError(
         FlutterErrorDetails(
           exception: FlutterError(
-            'Morph skipped the flight tagged $tag because $reason.',
+            'Morph skipped the flight tagged ${tag is MorphTarget ? tag.tag : tag} because $reason.',
           ),
           library: 'oh_my_flutter Morph',
         ),

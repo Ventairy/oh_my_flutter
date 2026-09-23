@@ -29,15 +29,17 @@ class _RenderGroup extends RenderProxyBox {
   set zIndex(double value) {
     if (_zIndex == value) return;
     _zIndex = value;
+    _link._invalidateMemberOrder();
     markNeedsPaint();
   }
 
   bool get _hidden => _hiddenReferences > 0 && _link._captureDepth == 0;
 
   void _changeVisibility(int delta) {
+    final wasHidden = _hiddenReferences > 0;
     _hiddenReferences += delta;
     assert(_hiddenReferences >= 0, 'Group presentation releases must match acquisitions.');
-    if (!attached) return;
+    if (!attached || wasHidden == (_hiddenReferences > 0)) return;
     super.markNeedsPaint();
     markNeedsSemanticsUpdate();
   }

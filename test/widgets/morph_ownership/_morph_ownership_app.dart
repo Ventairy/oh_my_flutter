@@ -28,19 +28,10 @@ class _MorphOwnershipAppState extends State<_MorphOwnershipApp> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    MorphSibling(
-                      target: target,
-                      transitionBuilder: (child, curved, uncurved) {
-                        scenario.progress[target] = (curved, uncurved);
-                        return FadeTransition(opacity: uncurved, child: child);
-                      },
-                      child: Text('Header ${scenario.names[target]}'),
-                    ),
+                    Text('Header ${scenario.names[target]}'),
                     Morph(
-                      animateChildChanges: true,
-                      target: target,
-                      duration: const Duration(milliseconds: 400),
-                      curve: scenario.curve,
+                      targets: [scenario.target],
+
                       onStart: () => scenario.started.add(scenario.names[target]!),
                       onReceived: () => scenario.received.add(scenario.names[target]!),
                       child: SizedBox(

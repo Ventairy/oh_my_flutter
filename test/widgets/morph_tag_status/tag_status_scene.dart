@@ -10,8 +10,11 @@ class TagStatusScene {
   final bool reducedMotion;
   final observer = MorphNavigatorObserver();
   final navigator = GlobalKey<NavigatorState>();
-  final source = MorphTarget(tag: 'surface');
-  final route = TagStatusRoute();
+  final source = MorphTarget(
+    tag: 'surface',
+    duration: const Duration(milliseconds: 300),
+  );
+  late final route = TagStatusRoute(source);
 
   Widget get app => MaterialApp(
     debugShowCheckedModeBanner: false,
@@ -26,15 +29,15 @@ class TagStatusScene {
       child: Center(
         child: matched
             ? Morph(
-                target: source,
-                duration: const Duration(milliseconds: 300),
+                targets: [source],
+
                 child: const SizedBox.square(
                   dimension: 80,
                   child: ColoredBox(
                     color: Color(0xFF1565C0),
                     child: Center(
                       child: MorphDescendant(
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                         child: SizedBox.square(dimension: 40, child: ColoredBox(color: Color(0xFFFFFFFF))),
                       ),
                     ),

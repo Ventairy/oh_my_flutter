@@ -36,12 +36,15 @@ human-readable result, including invalid attempts and completed retries, to
 `morph_benchmark_summary.txt`.
 
 `MORPH_RENDERER` is a reporting label only; it does not configure Flutter's
-renderer. The example command explicitly enables Impeller because Flutter
-3.47.1 does not enable it by default on Android. Verify the active renderer and
-backend in Flutter's startup or device logs, then keep `impeller-vulkan` only
-when that is the observed backend. Use `--no-enable-impeller` and an observed
-Skia label for a Skia run. The harness rejects non-profile runs, an unspecified
-renderer label, and an invalid display refresh rate.
+renderer. The example command explicitly enables Impeller to make the benchmark
+backend reproducible. Flutter 3.47.1 enables Impeller by default on Android API
+29 and newer; older Android versions use the legacy OpenGL renderer unless a
+run explicitly opts into a supported Impeller backend. Verify the active
+renderer and backend in Flutter's startup or device logs, then keep
+`impeller-vulkan` only when that is the observed backend. Use
+`--no-enable-impeller` and an observed Skia label for a Skia run. The harness
+rejects non-profile runs, an unspecified renderer label, and an invalid display
+refresh rate.
 
 The harness measures these Morph scenarios independently:
 
@@ -50,12 +53,6 @@ The harness measures these Morph scenarios independently:
 | `text` | Reflowing and restyled `Text` |
 | `column` | Keyed four-text `Column` |
 | `surface` | Decorated `Container` containing a `Column` |
-| `foreground_static` | Static shadowed control painted live above a moving Morph surface |
-| `foreground_live` | Shadowed foreground control repainting continuously above a moving Morph surface |
-| `foreground_multi_static` | Sixteen independently retained static shadowed foreground controls |
-| `foreground_multi_mixed` | Fifteen static controls plus one paint-only live caret control |
-| `foreground_fallback_static` | Static shadowed control above a per-frame fallback Morph flight |
-| `foreground_fallback_live` | Repainting shadowed control above a per-frame fallback Morph flight |
 | `watch_text` | Continuously moving and resizing watched `Text` destination |
 | `watch_compound` | Continuously moving and resizing watched compound destination |
 | `watch_custom` | Continuously moving and resizing watched custom-delegate destination |
@@ -66,6 +63,9 @@ The harness measures these Morph scenarios independently:
 | `watch_snapshot_dynamic` | Four coalesced geometry and pixel mutation batches with one unchanged control |
 | `registered_watch_snapshot_dynamic` | The same mutation batches through a custom delegate with registered descendant content |
 | `watch_snapshot_full_surface` | Twelve consecutive-frame resizes of one near-full-surface snapshot |
+| `watch_group_keyboard` | Twelve consecutive-frame keyboard-style footer moves inside one near-full-surface group |
+| `watch_group_stationary` | Unchanged near-full-surface group with destination watching enabled |
+| `watch_group_stationary_control` | The identical unchanged grouped workload with destination watching disabled |
 | `watch_snapshot_nested_fallback` | Eight independent nested-boundary pixel changes |
 | `resting_scroll` | Forty unmatched resting solid endpoints moving under one paint-only ancestor |
 | `raw_descendants` | Ordinary descendants with endpoint-specific `MediaQuery` values |
@@ -151,6 +151,9 @@ Structural gates use these probes, not process-wide image callbacks:
   near-full-surface snapshot on twelve consecutive frames. Its dirty probe must
   capture every requested generation while its separate control remains at
   zero.
+- `watch_group_keyboard` moves a footer within a near-full-surface grouped
+  destination on twelve consecutive frames. Its dirty probe must capture every
+  requested generation while its separate control remains at zero.
 - `watch_snapshot_nested_fallback` changes a painter independently behind a
   nested repaint boundary. The dirty probe must observe every requested
   generation in order, while the unchanged nested control remains at zero.
@@ -159,6 +162,12 @@ Every changing probe must paint exactly once per requested batch and at most
 once per frame. Unchanged probes must remain at zero. These records are
 host-validated per transition in both directions and participate in
 acceptance.
+
+`watch_group_stationary` and `watch_group_stationary_control` form a focused
+A/B pair for the unchanged watched-group fast path. They use the same grouped
+surface, flight delegate, geometry, and timing, and differ only in whether
+destination watching is enabled. Neither variant requests mutations or adds a
+snapshot-refresh structural gate.
 
 The harness also observes Flutter application lifecycle and view-focus events.
 If either changes during a measured flight, the complete cold or steady trial
@@ -191,12 +200,6 @@ Run only one scenario while investigating it:
 --dart-define=MORPH_SCENARIO=text
 --dart-define=MORPH_SCENARIO=column
 --dart-define=MORPH_SCENARIO=surface
---dart-define=MORPH_SCENARIO=foreground_static
---dart-define=MORPH_SCENARIO=foreground_live
---dart-define=MORPH_SCENARIO=foreground_multi_static
---dart-define=MORPH_SCENARIO=foreground_multi_mixed
---dart-define=MORPH_SCENARIO=foreground_fallback_static
---dart-define=MORPH_SCENARIO=foreground_fallback_live
 --dart-define=MORPH_SCENARIO=watch_text
 --dart-define=MORPH_SCENARIO=watch_compound
 --dart-define=MORPH_SCENARIO=watch_custom
@@ -207,6 +210,9 @@ Run only one scenario while investigating it:
 --dart-define=MORPH_SCENARIO=watch_snapshot_dynamic
 --dart-define=MORPH_SCENARIO=registered_watch_snapshot_dynamic
 --dart-define=MORPH_SCENARIO=watch_snapshot_full_surface
+--dart-define=MORPH_SCENARIO=watch_group_keyboard
+--dart-define=MORPH_SCENARIO=watch_group_stationary
+--dart-define=MORPH_SCENARIO=watch_group_stationary_control
 --dart-define=MORPH_SCENARIO=watch_snapshot_nested_fallback
 --dart-define=MORPH_SCENARIO=resting_scroll
 --dart-define=MORPH_SCENARIO=raw_descendants
@@ -229,12 +235,8 @@ route can select a scenario at launch: pass `--es route /<scenario_id>` to
 `adb shell am start`. A non-root route overrides `MORPH_SCENARIO`; the
 benchmark itself keeps its application navigation at `/`.
 
-The multi-foreground scenarios use 16 controls by default. Override the count
-for focused scaling comparisons while keeping at least one control:
-
-```console
---dart-define=MORPH_FOREGROUND_COUNT=4
-```
+The former `foreground_*` workloads depended on the removed `MorphSibling` API
+and are retired. Their historical measurements are not comparable to current runs.
 
 The default is `all`. For quick local investigation, reduce the per-trial
 sample target while retaining two separately gated trials:

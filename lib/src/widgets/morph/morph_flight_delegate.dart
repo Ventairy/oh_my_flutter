@@ -13,6 +13,14 @@ abstract class MorphFlightDelegate<T> {
   /// Creates a delegate for a custom Morph transition.
   const new();
 
+  /// Groups whose original content follows this endpoint's visibility.
+  ///
+  /// Include groups used by [MorphEndpointContext.groupSnapshot] when members
+  /// live outside the Morph subtree. Declaring them here prevents incoming
+  /// members from appearing before the transition starts. Continue capturing
+  /// their content from [properties].
+  Iterable<GroupLink> get contentGroups => const [];
+
   /// Returns the visual values for [endpoint].
   ///
   /// Register endpoint widget content with
@@ -81,7 +89,7 @@ abstract class MorphFlightDelegate<T> {
   }) {
     final source = flight.source;
     final destination = flight.destination;
-    final typedFlight = MorphFlight<T>(
+    final typedFlight = MorphFlight<T>._(
       source: _MorphDescendantSnapshots.copy(
         source,
         MorphEndpoint<T>(
@@ -106,7 +114,9 @@ abstract class MorphFlightDelegate<T> {
       curvedAnimation: flight.curvedAnimation,
       uncurvedAnimation: flight.uncurvedAnimation,
       flightDelegate: this,
-    ).._geometry = flight._geometry;
+      endpointState: flight._geometry,
+      resolveEndpointProperties: (properties) => flight._resolveEndpointProperties(properties) as T,
+    );
     if (this case final MorphTextFlightDelegate delegate when rasterPool != null) {
       return _MorphTextFlight(
         delegate: delegate,

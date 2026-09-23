@@ -87,7 +87,7 @@ const MaybeSafeArea(
 ```
 
 Keep `MaybeSafeArea` outside a `MorphDescendant` whose flight behavior is
-`MorphDescendantFlightBehavior.snapshot`. A snapshot cannot change its
+`MorphDescendantFlightBehavior.snapshot()`. A snapshot cannot change its
 safe-area response after capture while it moves through the view.
 
 ## Layout behavior

@@ -1,3 +1,5 @@
+// @dart = 3.12
+
 import 'package:pigeon/pigeon.dart';
 
 // Pigeon resolves types only from its input compilation unit, so this schema
@@ -28,7 +30,7 @@ abstract class DeviceDisplayHostApi {
 /// Identifies the Flutter view geometry requesting platform display evidence.
 class DeviceDisplayGeometryMessage {
   /// Creates a physical-pixel geometry snapshot.
-  new({
+  DeviceDisplayGeometryMessage({
     required this.displayWidth,
     required this.displayHeight,
     required this.viewWidth,
@@ -51,7 +53,7 @@ class DeviceDisplayGeometryMessage {
 /// Carries platform display corner radii across the platform channel.
 class DeviceDisplayCornerRadiiMessage {
   /// Creates a message with current-orientation physical-pixel radii.
-  new({
+  DeviceDisplayCornerRadiiMessage({
     required this.topLeft,
     required this.topRight,
     required this.bottomRight,

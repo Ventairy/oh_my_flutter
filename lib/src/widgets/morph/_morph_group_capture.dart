@@ -1,30 +1,13 @@
 part of 'morph.dart';
 
-final class _MorphGroupCapture extends ChangeNotifier {
-  new(this.link, this.snapshot, this.reference) : revision = GroupCaptureAccess.revision(link, reference);
+final class _MorphGroupCapture {
+  new(this.link, this.snapshot, this.reference, this.revision);
   final RenderBox reference;
-  int? revision;
+  final int? revision;
+  int? get currentRevision => GroupCaptureAccess.revision(link, reference);
   bool get isCurrent => revision == GroupCaptureAccess.revision(link, reference);
   final GroupLink link;
-  GroupSnapshot snapshot;
-
-  GroupSnapshot? captureReplacement() => _MorphSnapshotCapture.captureGroup(
-    link,
-    relativeTo: reference,
-    bounds: snapshot.bounds,
-    pixelRatio: _pixelRatio,
-  );
-
-  double _pixelRatio = 1;
-
-  void replaceSnapshot(GroupSnapshot value) {
-    final previous = snapshot;
-    snapshot = value;
-    revision = GroupCaptureAccess.revision(link, reference);
-    notifyListeners();
-    SchedulerBinding.instance.addPostFrameCallback((_) => previous.dispose());
-    SchedulerBinding.instance.ensureVisualUpdate();
-  }
+  final GroupSnapshot snapshot;
 
   int _presentations = 0;
 
@@ -52,10 +35,8 @@ final class _MorphGroupCapture extends ChangeNotifier {
     };
   }
 
-  @override
   void dispose() {
     assert(_presentations == 0, 'Release presentations before disposing a group capture.');
     snapshot.dispose();
-    super.dispose();
   }
 }

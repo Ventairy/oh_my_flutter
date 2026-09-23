@@ -18,26 +18,26 @@ final class _BarrierHandoffScenario {
   final navigator = GlobalKey<NavigatorState>();
   final GlobalKey boundary = GlobalKey();
   final observer = MorphNavigatorObserver();
-  final source = MorphTarget(tag: 'barrier');
+  final source = MorphTarget(tag: 'barrier', duration: const Duration(milliseconds: 230), curve: Curves.easeOutCubic);
   final delegate = _BarrierFlightDelegate();
   int ended = 0;
   late PageRoute<void> route;
 
   Finder get flights => find.byKey(const ValueKey('barrier-flight'));
 
-  Widget endpoint(MorphTarget target) => Center(
+  Widget endpoint({bool destination = false}) => Center(
     child: Morph(
-      animateChildChanges: true,
-      target: target,
-      duration: const Duration(milliseconds: 230),
-      curve: Curves.easeOutCubic,
+      key: ValueKey(destination),
+
+      targets: [source],
+
       flightConfig: captureContent ? const .custom(_BarrierSnapshotFlightDelegate()) : .custom(delegate),
       onEnd: () => ended++,
       child: SizedBox.square(
-        dimension: target == source ? 100 : 200,
+        dimension: destination ? 200 : 100,
         child: captureContent
             ? const MorphDescendant(
-                flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                 child: ColoredBox(color: Colors.blue),
               )
             : const ColoredBox(color: Colors.blue),
@@ -63,21 +63,20 @@ final class _BarrierHandoffScenario {
               key: navigator,
               observers: [observer],
               onGenerateRoute: (_) => MaterialPageRoute<void>(
-                builder: (_) => ColoredBox(color: Colors.white, child: endpoint(source)),
+                builder: (_) => ColoredBox(color: Colors.white, child: endpoint()),
               ),
             )
-          : ColoredBox(color: Colors.white, child: endpoint(source)),
+          : ColoredBox(color: Colors.white, child: endpoint()),
     ),
   );
 
   void push() {
-    final destination = MorphTarget(tag: source.tag);
     route = PageRouteBuilder<void>(
       opaque: false,
       barrierColor: barrier,
       transitionDuration: routeDuration,
       reverseTransitionDuration: reverseDuration ?? routeDuration,
-      pageBuilder: (context, animation, secondaryAnimation) => endpoint(destination),
+      pageBuilder: (context, animation, secondaryAnimation) => endpoint(destination: true),
     );
     navigator.currentState!.push(route);
   }

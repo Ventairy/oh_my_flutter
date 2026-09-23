@@ -20,7 +20,7 @@ void main() {
             child: Group(
               link: link,
               child: Morph(
-                target: target,
+                targets: [target],
                 child: const ColoredBox(color: Colors.white),
               ),
             ),

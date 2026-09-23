@@ -3,12 +3,12 @@ import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 void main() {
   group('PhoneNumber', () {
-    group('when constructing a phone number', () {
+    group('when parsing a phone number', () {
       test(
         'when the number is formatted, it should accept the value',
         () {
           expect(
-            PhoneNumber('+1 (202) 555-0123').toDisplayString(),
+            PhoneNumber.parse('+1 (202) 555-0123').toDisplayString(),
             '+1 202-555-0123',
           );
         },
@@ -18,7 +18,7 @@ void main() {
         'when the number has no formatting, it should accept the value',
         () {
           expect(
-            PhoneNumber('12025550123').toDisplayString(),
+            PhoneNumber.parse('+12025550123').toDisplayString(),
             '+1 202-555-0123',
           );
         },
@@ -29,7 +29,7 @@ void main() {
         'it should accept the value',
         () {
           expect(
-            PhoneNumber('+15556625497').toDisplayString(),
+            PhoneNumber.parse('+15556625497').toDisplayString(),
             '+1 555-662-5497',
           );
         },
@@ -39,7 +39,7 @@ void main() {
         'when the number is malformed, it should throw a FormatException',
         () {
           expect(
-            () => PhoneNumber('not a phone number'),
+            () => PhoneNumber.parse('not a phone number'),
             throwsFormatException,
           );
         },
@@ -50,18 +50,28 @@ void main() {
         'it should throw a FormatException',
         () {
           expect(
-            () => PhoneNumber('020 7946 0018'),
+            () => PhoneNumber.parse('12025550123'),
             throwsFormatException,
           );
         },
       );
 
-      test('when digits can be interpreted as an international number, it should use that calling code', () {
-        expect(PhoneNumber('11912345678').e164, '+11912345678');
-      });
+      test(
+        'when the country calling code is unknown, '
+        'it should throw a FormatException',
+        () {
+          expect(
+            () => PhoneNumber.parse('+999 123456789'),
+            throwsFormatException,
+          );
+        },
+      );
 
       test('when the number has only a local length, it should reject it', () {
-        expect(() => PhoneNumber('+1 5550123'), throwsFormatException);
+        expect(
+          () => PhoneNumber.parse('+1 5550123'),
+          throwsFormatException,
+        );
       });
 
       test(
@@ -69,9 +79,42 @@ void main() {
         'it should throw a FormatException',
         () {
           expect(
-            () => PhoneNumber('+55 11 123'),
+            () => PhoneNumber.parse('+55 11 123'),
             throwsFormatException,
           );
+        },
+      );
+    });
+
+    group('when trying to parse a phone number', () {
+      test('when the value is complete, it should return the number', () {
+        expect(
+          PhoneNumber.tryParse('+1 415 555 2671')?.e164,
+          '+14155552671',
+        );
+      });
+
+      test('when the leading plus is missing, it should return null', () {
+        expect(PhoneNumber.tryParse('14155552671'), isNull);
+      });
+
+      test('when the length is impossible, it should return null', () {
+        expect(PhoneNumber.tryParse('+1 415 555'), isNull);
+      });
+    });
+
+    group('when checking whether the number is valid', () {
+      test(
+        'when the prefix is recognized, it should return true',
+        () {
+          expect(PhoneNumber.parse('+1 415 555 2671').isValid, isTrue);
+        },
+      );
+
+      test(
+        'when the prefix is unallocated, it should return false',
+        () {
+          expect(PhoneNumber.parse('+1 999 999 9999').isValid, isFalse);
         },
       );
     });
@@ -82,7 +125,7 @@ void main() {
         'it should return the canonical value',
         () {
           expect(
-            PhoneNumber('+1 (202) 555-0123').e164,
+            PhoneNumber.parse('+1 (202) 555-0123').e164,
             '+12025550123',
           );
         },
@@ -92,7 +135,10 @@ void main() {
         'when the prefix is unallocated, '
         'it should return the canonical value',
         () {
-          expect(PhoneNumber('+15556625497').e164, '+15556625497');
+          expect(
+            PhoneNumber.parse('+15556625497').e164,
+            '+15556625497',
+          );
         },
       );
     });
@@ -103,7 +149,7 @@ void main() {
         'it should return an international display value',
         () {
           expect(
-            PhoneNumber('+1 202-555-0123').toDisplayString(),
+            PhoneNumber.parse('+1 202-555-0123').toDisplayString(),
             '+1 202-555-0123',
           );
         },
@@ -114,7 +160,7 @@ void main() {
         'it should retain international grouping',
         () {
           expect(
-            PhoneNumber('+1 202-555-0123').toDisplayString(
+            PhoneNumber.parse('+1 202-555-0123').toDisplayString(
               includeCountryCode: false,
             ),
             '202-555-0123',
@@ -143,7 +189,7 @@ void main() {
           'when the input is $input, it should return $expected',
           () {
             expect(
-              PhoneNumber(input).toDisplayString(),
+              PhoneNumber.parse(input).toDisplayString(),
               expected,
             );
           },
