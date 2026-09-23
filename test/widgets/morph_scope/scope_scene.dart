@@ -5,22 +5,22 @@ class ScopeScene {
   final ValueNotifier<bool> enabled = ValueNotifier(true);
   final observer = MorphNavigatorObserver();
   final navigator = GlobalKey<NavigatorState>();
-  final source = MorphTarget(tag: 'scope');
-  final destination = MorphTarget(tag: 'scope');
+  final source = MorphTarget(tag: 'scope', duration: const Duration(milliseconds: 400));
+
   bool sourceEnabled = true;
   bool destinationEnabled = true;
   int starts = 0;
   int ends = 0;
 
-  Widget endpoint(MorphTarget target, {required bool allowed}) => MorphScope(
+  Widget endpoint({required bool destination, required bool allowed}) => MorphScope(
     enabled: allowed,
     child: Morph(
-      target: target,
-      duration: const Duration(milliseconds: 400),
+      targets: [source],
+
       onStart: () => starts++,
       onEnd: () => ends++,
       child: SizedBox.square(
-        dimension: identical(target, source) ? 80 : 180,
+        dimension: destination ? 180 : 80,
         child: const ColoredBox(color: Colors.blue),
       ),
     ),
@@ -35,7 +35,7 @@ class ScopeScene {
       child: child,
       builder: (context, value, child) => MorphScope(enabled: value, child: child!),
     ),
-    home: Center(child: endpoint(source, allowed: sourceEnabled)),
+    home: Center(child: endpoint(destination: false, allowed: sourceEnabled)),
   );
 
   void push() => navigator.currentState!.push<void>(
@@ -43,9 +43,9 @@ class ScopeScene {
       transitionDuration: const Duration(milliseconds: 400),
       reverseTransitionDuration: const Duration(milliseconds: 400),
       pageBuilder: (context, animation, secondaryAnimation) =>
-          Center(child: endpoint(destination, allowed: destinationEnabled)),
+          Center(child: endpoint(destination: true, allowed: destinationEnabled)),
     ),
   );
 
-  MorphTagStatus get status => observer.tagStatus('scope').value;
+  MorphTagStatus get status => source.status.value;
 }

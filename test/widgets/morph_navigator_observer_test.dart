@@ -12,12 +12,12 @@ part 'morph_navigator_observer/_recording_navigation_flight_delegate.dart';
 void main() {
   group('MorphNavigatorObserver', () {
     test('when no navigation has started, it should expose idle', () {
-      expect(MorphNavigatorObserver().tagStatus('surface').value, MorphTagStatus.idle);
+      expect(MorphTarget(tag: 'surface').status.value, MorphTagStatus.idle);
     });
 
-    test('when equal tags are queried, it should reuse the live listenable', () {
-      final observer = MorphNavigatorObserver();
-      expect(identical(observer.tagStatus('surface'), observer.tagStatus('surface')), isTrue);
+    test('when a target status is queried repeatedly, it should reuse the live listenable', () {
+      final target = MorphTarget(tag: 'surface');
+      expect(identical(target.status, target.status), isTrue);
     });
 
     testWidgets('when its Navigator is queried, it should return the installed observer', (tester) async {
@@ -37,14 +37,14 @@ void main() {
       await tester.pumpWidget(scenario.app);
       await tester.pumpAndSettle();
       scenario.push(scenario.b);
-      expect(scenario.observer.tagStatus('surface').value, MorphTagStatus.pending);
+      expect(scenario.target.status.value, MorphTagStatus.pending);
     });
 
     testWidgets('when a matched route finishes, it should report its accepted lifecycle', (tester) async {
       final scenario = _MorphNavigationScenario(duration: const Duration(milliseconds: 300));
       await tester.pumpWidget(scenario.app);
       await tester.pumpAndSettle();
-      final status = scenario.observer.tagStatus('surface');
+      final status = scenario.target.status;
       final values = <MorphTagStatus>[];
       void record() => values.add(status.value);
       status.addListener(record);
@@ -54,17 +54,17 @@ void main() {
       expect(values, [MorphTagStatus.pending, MorphTagStatus.flying, MorphTagStatus.completed]);
     });
 
-    testWidgets('when no endpoint uses a queried tag, it should resolve unmatched', (tester) async {
+    testWidgets('when a target is never attached, it should remain idle', (tester) async {
       final scenario = _MorphNavigationScenario();
       await tester.pumpWidget(scenario.app);
       await tester.pumpAndSettle();
-      final status = scenario.observer.tagStatus('missing');
+      final status = MorphTarget(tag: 'missing').status;
       scenario.push(scenario.b);
       await tester.pumpAndSettle();
-      expect(status.value, MorphTagStatus.unmatched);
+      expect(status.value, MorphTagStatus.idle);
     });
 
-    testWidgets('when no Morph is mounted, it should still finish resolution', (tester) async {
+    testWidgets('when no Morph is mounted, it should leave unused targets idle', (tester) async {
       final observer = MorphNavigatorObserver();
       final navigator = GlobalKey<NavigatorState>();
       await tester.pumpWidget(
@@ -73,7 +73,7 @@ void main() {
       await tester.pumpAndSettle();
       navigator.currentState!.push<void>(MaterialPageRoute(builder: (_) => const SizedBox()));
       await tester.pumpAndSettle();
-      expect(observer.tagStatus('missing').value, MorphTagStatus.unmatched);
+      expect(MorphTarget(tag: 'missing').status.value, MorphTagStatus.idle);
     });
 
     testWidgets('when the previous route has no matching surface, it should expose unmatched', (tester) async {
@@ -84,7 +84,7 @@ void main() {
       await tester.pumpAndSettle();
       scenario.push(scenario.b);
       await tester.pumpAndSettle();
-      expect(scenario.observer.tagStatus('surface').value, MorphTagStatus.unmatched);
+      expect(scenario.target.status.value, MorphTagStatus.unmatched);
     });
 
     testWidgets('when a flight returns, it should complete the new navigation', (tester) async {
@@ -95,7 +95,7 @@ void main() {
       await tester.pumpAndSettle();
       scenario.navigator.currentState!.pop();
       await tester.pumpAndSettle();
-      expect(scenario.observer.tagStatus('surface').value, MorphTagStatus.completed);
+      expect(scenario.target.status.value, MorphTagStatus.completed);
     });
 
     testWidgets('when a push reverses before landing, it should complete the return', (tester) async {
@@ -107,7 +107,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
       scenario.navigator.currentState!.pop();
       await tester.pumpAndSettle();
-      expect(scenario.observer.tagStatus('surface').value, MorphTagStatus.completed);
+      expect(scenario.target.status.value, MorphTagStatus.completed);
     });
 
     testWidgets('when an unrelated push interrupts a flight, it should expose only the latest result', (tester) async {
@@ -119,7 +119,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
       scenario.push(null);
       await tester.pumpAndSettle();
-      expect(scenario.observer.tagStatus('surface').value, MorphTagStatus.unmatched);
+      expect(scenario.target.status.value, MorphTagStatus.unmatched);
     });
 
     testWidgets('when an accepted flight has zero duration, it should expose completed', (tester) async {
@@ -128,7 +128,7 @@ void main() {
       await tester.pumpAndSettle();
       scenario.push(scenario.b);
       await tester.pumpAndSettle();
-      expect(scenario.observer.tagStatus('surface').value, MorphTagStatus.completed);
+      expect(scenario.target.status.value, MorphTagStatus.completed);
     });
 
     testWidgets('when an active flight loses its destination, it should expose cancelled', (tester) async {
@@ -140,7 +140,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 60));
       scenario.appearances[scenario.b]!.value = [];
       await tester.pumpAndSettle();
-      expect(scenario.observer.tagStatus('surface').value, MorphTagStatus.cancelled);
+      expect(scenario.target.status.value, MorphTagStatus.cancelled);
     });
 
     testWidgets('when delegate types are incompatible, it should expose unmatched', (tester) async {
@@ -150,14 +150,14 @@ void main() {
       scenario.navigator.currentState!.push<void>(
         MaterialPageRoute(
           builder: (_) => Center(
-            child: Morph(target: scenario.b, child: const SizedBox.square(dimension: 100)),
+            child: Morph(targets: [scenario.target], child: const SizedBox.square(dimension: 100)),
           ),
         ),
       );
       await tester.pumpAndSettle();
       expect(
         (
-          scenario.observer.tagStatus('surface').value,
+          scenario.target.status.value,
           tester.takeException().toString().contains('endpoint delegate types are incompatible'),
         ),
         (MorphTagStatus.unmatched, true),
@@ -172,7 +172,7 @@ void main() {
         MaterialPageRoute(
           builder: (_) => Center(
             child: Morph(
-              target: scenario.b,
+              targets: [scenario.target],
               flightConfig: MorphFlightConfig.custom(scenario.delegate),
               child: const SizedBox.shrink(),
             ),
@@ -182,7 +182,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         (
-          scenario.observer.tagStatus('surface').value,
+          scenario.target.status.value,
           tester.takeException().toString().contains('one or both endpoints did not have usable layout'),
         ),
         (MorphTagStatus.unmatched, true),
@@ -197,14 +197,14 @@ void main() {
       await tester.pumpAndSettle();
       scenario.appearances[scenario.b]!.value = [scenario.c];
       await tester.pumpAndSettle();
-      expect(scenario.observer.tagStatus('surface').value, MorphTagStatus.completed);
+      expect(scenario.target.status.value, MorphTagStatus.completed);
     });
 
     testWidgets('when a Navigator has no observer, it should explain the required setup', (tester) async {
       final target = MorphTarget(tag: 'surface');
       await tester.pumpWidget(
         MaterialApp(
-          home: Morph(target: target, child: const SizedBox.square(dimension: 100)),
+          home: Morph(targets: [target], child: const SizedBox.square(dimension: 100)),
         ),
       );
       expect(tester.takeException().toString(), contains('MorphNavigatorObserver'));
@@ -277,7 +277,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           navigatorObservers: [MorphNavigatorObserver(), MorphNavigatorObserver()],
-          home: Morph(target: target, child: const SizedBox.square(dimension: 100)),
+          home: Morph(targets: [target], child: const SizedBox.square(dimension: 100)),
         ),
       );
       expect(tester.takeException().toString(), contains('exactly one stable MorphNavigatorObserver'));
@@ -292,7 +292,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           navigatorObservers: [observer],
-          home: Morph(target: target, child: const SizedBox.square(dimension: 100)),
+          home: Morph(targets: [target], child: const SizedBox.square(dimension: 100)),
         ),
       );
       expect(tester.takeException().toString(), contains('from its creation'));
@@ -314,7 +314,7 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             navigatorObservers: [observer],
-            home: Morph(target: target, child: const SizedBox.square(dimension: 100)),
+            home: Morph(targets: [target], child: const SizedBox.square(dimension: 100)),
           ),
         );
 
@@ -331,7 +331,7 @@ void main() {
           navigatorObservers: [MorphNavigatorObserver()],
           home: Navigator(
             onGenerateRoute: (_) => MaterialPageRoute<void>(
-              builder: (_) => Morph(target: target, child: const SizedBox.square(dimension: 100)),
+              builder: (_) => Morph(targets: [target], child: const SizedBox.square(dimension: 100)),
             ),
           ),
         ),
@@ -499,7 +499,6 @@ void main() {
     ) async {
       final scenario = _MorphNavigationScenario();
       final outer = MorphTarget(tag: 'surface');
-      Animation<double>? outerProgress;
       final router = GoRouter(
         observers: [MorphNavigatorObserver()],
         routes: [
@@ -507,15 +506,8 @@ void main() {
             observers: [scenario.observer],
             builder: (_, _, child) => Stack(
               children: [
-                Morph(target: outer, child: const SizedBox.square(dimension: 50)),
-                MorphSibling(
-                  target: outer,
-                  transitionBuilder: (child, curved, _) {
-                    outerProgress = curved;
-                    return child;
-                  },
-                  child: const SizedBox.square(dimension: 50),
-                ),
+                Morph(targets: [outer], child: const SizedBox.square(dimension: 50)),
+                const SizedBox.square(dimension: 50),
                 child,
               ],
             ),
@@ -538,10 +530,9 @@ void main() {
       unawaited(router.push<void>('/details'));
       await tester.pumpAndSettle();
       expect(
-        [scenario.started, outerProgress!.value],
+        [scenario.started],
         [
           ['A'],
-          1.0,
         ],
       );
     });
@@ -572,17 +563,15 @@ void main() {
             final current = ModalRoute.of(tester.element(find.byKey(ValueKey('body-${commit ? 'A' : 'B'}'))))!;
             expect(
               [
-                scenario.observer.tagStatus('surface').value,
+                scenario.target.status.value,
                 current.isCurrent,
                 scenario.started,
-                scenario.progress[commit ? scenario.a : scenario.b]!.value,
                 tester.takeException(),
               ],
               [
                 if (commit) MorphTagStatus.completed else MorphTagStatus.cancelled,
                 true,
                 ['B'],
-                1.0,
                 null,
               ],
             );

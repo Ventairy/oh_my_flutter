@@ -43,7 +43,7 @@ class _DeepMorphDescendant extends StatelessWidget {
 class _MorphDescendantRouteTestApp extends StatefulWidget {
   const new({
     required this.scrollController,
-    this.flightBehavior = MorphDescendantFlightBehavior.snapshot,
+    this.flightBehavior = const MorphDescendantFlightBehavior.snapshot(),
   });
 
   final ScrollController scrollController;
@@ -55,7 +55,7 @@ class _MorphDescendantRouteTestApp extends StatefulWidget {
 
 class _MorphDescendantRouteTestAppState extends State<_MorphDescendantRouteTestApp> {
   final _morphTarget1 = MorphTarget(tag: 'descendant-route');
-  final _morphTarget2 = MorphTarget(tag: 'descendant-route');
+
   final _morphObserver1 = MorphNavigatorObserver();
 
   @override
@@ -68,8 +68,7 @@ class _MorphDescendantRouteTestAppState extends State<_MorphDescendantRouteTestA
             body: Column(
               children: [
                 Morph(
-                  animateChildChanges: true,
-                  target: _morphTarget1,
+                  targets: [_morphTarget1],
                   child: Container(
                     width: 200,
                     height: 200,
@@ -92,8 +91,7 @@ class _MorphDescendantRouteTestAppState extends State<_MorphDescendantRouteTestA
                             key: const ValueKey('destination'),
                             alignment: Alignment.bottomRight,
                             child: Morph(
-                              animateChildChanges: true,
-                              target: _morphTarget2,
+                              targets: [_morphTarget1],
                               child: Container(
                                 width: 300,
                                 height: 300,
@@ -215,7 +213,7 @@ void main() {
       await tester.pumpWidget(
         _MorphDescendantRouteTestApp(
           scrollController: scrollController,
-          flightBehavior: MorphDescendantFlightBehavior.live,
+          flightBehavior: const MorphDescendantFlightBehavior.live(),
         ),
       );
       await tester.pumpAndSettle();
@@ -271,13 +269,14 @@ void main() {
                 builder: (context, setState) {
                   setHarnessState = setState;
                   return Morph(
-                    animateChildChanges: true,
-                    target: morphTarget3,
+                    key: ValueKey<Object>(ValueKey<bool>(expanded)),
+
+                    targets: [morphTarget3],
                     child: SizedBox(
                       key: ValueKey<bool>(expanded),
                       width: expanded ? 260 : 180,
                       child: MorphDescendant(
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                         child: TextField(
                           key: fieldKey,
                           controller: textController,
@@ -387,7 +386,7 @@ void main() {
       await tester.pumpWidget(
         _MorphDescendantRouteTestApp(
           scrollController: scrollController,
-          flightBehavior: MorphDescendantFlightBehavior.hide,
+          flightBehavior: const MorphDescendantFlightBehavior.hide(),
         ),
       );
       await tester.pumpAndSettle();
@@ -420,8 +419,9 @@ void main() {
             builder: (context, setState) {
               setHarnessState = setState;
               return Morph(
-                animateChildChanges: true,
-                target: morphTarget4,
+                key: ValueKey<Object>(ValueKey<bool>(expanded)),
+
+                targets: [morphTarget4],
                 child: Container(
                   key: ValueKey<bool>(expanded),
                   width: expanded ? 240 : 160,
@@ -432,7 +432,7 @@ void main() {
                       3,
                       (index) => MorphDescendant(
                         key: ValueKey<int>(index),
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                         child: SizedBox.square(
                           dimension: expanded ? 48 : 32,
                           child: ColoredBox(
@@ -493,20 +493,21 @@ void main() {
               final innerSize = expanded ? 50.0 : 40.0;
               return Align(
                 child: Morph(
-                  animateChildChanges: true,
-                  target: morphTarget5,
+                  key: ValueKey<Object>(ValueKey<bool>(expanded)),
+
+                  targets: [morphTarget5],
                   child: SizedBox.square(
                     key: ValueKey<bool>(expanded),
                     dimension: outerSize,
                     child: MorphDescendant(
-                      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                      flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                       child: ColoredBox(
                         color: Colors.red,
                         child: Center(
                           child: SizedBox.square(
                             dimension: innerSize,
                             child: const MorphDescendant(
-                              flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                              flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                               child: ColoredBox(color: Colors.blue),
                             ),
                           ),
@@ -574,14 +575,15 @@ void main() {
               update = setState;
               return Align(
                 child: Morph(
-                  animateChildChanges: true,
-                  target: morphTarget6,
+                  key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                  targets: [morphTarget6],
                   child: SizedBox(
                     key: ValueKey<bool>(destination),
                     width: 4200,
                     height: 900,
                     child: const MorphDescendant(
-                      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                      flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                       child: ColoredBox(color: Colors.blue),
                     ),
                   ),
@@ -670,13 +672,14 @@ void main() {
               update = setState;
               return Align(
                 child: Morph(
-                  animateChildChanges: true,
-                  target: morphTarget7,
+                  key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                  targets: [morphTarget7],
                   child: SizedBox.square(
                     key: ValueKey<bool>(destination),
                     dimension: 2100,
                     child: const MorphDescendant(
-                      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                      flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                       child: ColoredBox(color: Colors.blue),
                     ),
                   ),
@@ -739,15 +742,16 @@ void main() {
               builder: (context, setState) {
                 update = setState;
                 return Morph(
-                  animateChildChanges: true,
-                  target: morphTarget8,
+                  key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                  targets: [morphTarget8],
                   child: Column(
                     key: ValueKey<bool>(destination),
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       MorphDescendant(
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                         child: SizedBox(
                           width: 1500,
                           height: 500,
@@ -755,7 +759,7 @@ void main() {
                         ),
                       ),
                       MorphDescendant(
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                         child: SizedBox(
                           width: 500,
                           height: 1500,
@@ -763,7 +767,7 @@ void main() {
                         ),
                       ),
                       MorphDescendant(
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                         child: SizedBox(
                           width: 1500,
                           height: 500,
@@ -771,7 +775,7 @@ void main() {
                         ),
                       ),
                       MorphDescendant(
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                         child: SizedBox(
                           width: 500,
                           height: 1500,
@@ -814,7 +818,10 @@ void main() {
     'when a tiled snapshot has a fractional terminal extent, '
     'it should preserve the painted edge coverage',
     (tester) async {
-      final morphTarget9 = MorphTarget(tag: 'fractional-snapshot-tile');
+      final morphTarget9 = MorphTarget(
+        tag: 'fractional-snapshot-tile',
+        duration: const Duration(milliseconds: 400),
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view
@@ -841,15 +848,16 @@ void main() {
                   return Align(
                     alignment: Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget9,
-                      duration: const Duration(milliseconds: 400),
+                      key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                      targets: [morphTarget9],
+
                       child: SizedBox(
                         key: ValueKey<bool>(destination),
                         width: 4096.5,
                         height: 40,
                         child: const MorphDescendant(
-                          flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                          flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                           child: CustomPaint(
                             painter: _SnapshotTestPainter(
                               color: Colors.red,
@@ -900,14 +908,15 @@ void main() {
               builder: (context, setState) {
                 setHarnessState = setState;
                 return Morph(
-                  animateChildChanges: true,
-                  target: morphTarget10,
+                  key: ValueKey<Object>(ValueKey<bool>(expanded)),
+
+                  targets: [morphTarget10],
                   child: ColoredBox(
                     key: ValueKey<bool>(expanded),
                     color: expanded ? Colors.blue : Colors.red,
                     child: MorphDescendant(
                       key: const ValueKey<String>('snapshot-content'),
-                      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                      flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                       child: SizedBox(
                         width: expanded ? 80 : 40,
                         height: expanded ? 60 : 30,
@@ -938,7 +947,12 @@ void main() {
     'when a watched destination snapshot changes during a flight, '
     'it should refresh its geometry and pixels before handoff',
     (tester) async {
-      final morphTarget11 = MorphTarget(tag: 'watched-snapshot-refresh');
+      final morphTarget11 = MorphTarget(
+        tag: 'watched-snapshot-refresh',
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view.devicePixelRatio = 1;
@@ -961,11 +975,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget11,
-                      duration: const Duration(milliseconds: 600),
-                      curve: Curves.linear,
-                      watchDestination: !destination,
+                      key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                      targets: [morphTarget11],
+
                       child: SizedBox(
                         key: ValueKey<bool>(destination),
                         width: destination ? destinationSize.width + 40 : 120,
@@ -975,7 +988,7 @@ void main() {
                             key: const ValueKey<String>(
                               'watched-snapshot-content',
                             ),
-                            flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                            flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                             child: SizedBox.fromSize(
                               size: destination ? destinationSize : const Size(40, 30),
                               child: ColoredBox(
@@ -1077,22 +1090,25 @@ void main() {
       var destination = false;
       late StateSetter update;
 
+      final morphTarget12 = MorphTarget(
+        tag: 'watched-short-cohort-flight',
+        duration: const Duration(milliseconds: 100),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       Widget shortFlight() {
-        final morphTarget12 = MorphTarget(tag: 'watched-short-cohort-flight');
-
         return Align(
           alignment: destination ? Alignment.topLeft : Alignment.topRight,
           child: Morph(
-            animateChildChanges: true,
-            target: morphTarget12,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.linear,
-            watchDestination: !destination,
+            key: ValueKey<Object>(ValueKey<String>('watched-short-$destination')),
+
+            targets: [morphTarget12],
+
             child: SizedBox.square(
               key: ValueKey<String>('watched-short-$destination'),
               dimension: 40,
               child: MorphDescendant(
-                flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                 child: RepaintBoundary(
                   child: CustomPaint(
                     painter: painter,
@@ -1104,17 +1120,20 @@ void main() {
         );
       }
 
+      final morphTarget13 = MorphTarget(
+        tag: 'watched-long-cohort-flight',
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       Widget longFlight() {
-        final morphTarget13 = MorphTarget(tag: 'watched-long-cohort-flight');
-
         return Align(
           alignment: destination ? Alignment.bottomCenter : Alignment.topCenter,
           child: Morph(
-            animateChildChanges: true,
-            target: morphTarget13,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.linear,
-            watchDestination: !destination,
+            key: ValueKey<Object>(ValueKey<String>('watched-long-$destination')),
+
+            targets: [morphTarget13],
+
             child: SizedBox(
               key: ValueKey<String>('watched-long-$destination'),
               width: destination ? 180 : 120,
@@ -1194,7 +1213,12 @@ void main() {
     'when a watched destination snapshot remains unchanged during a flight, '
     'it should not capture additional images',
     (tester) async {
-      final morphTarget14 = MorphTarget(tag: 'watched-static-snapshot');
+      final morphTarget14 = MorphTarget(
+        tag: 'watched-static-snapshot',
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       var destination = false;
@@ -1209,18 +1233,17 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget14,
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.linear,
-                    watchDestination: !destination,
+                    key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                    targets: [morphTarget14],
+
                     child: SizedBox(
                       key: ValueKey<bool>(destination),
                       width: destination ? 160 : 100,
                       height: destination ? 120 : 80,
                       child: const Center(
                         child: MorphDescendant(
-                          flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                          flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                           child: SizedBox(
                             width: 80,
                             height: 60,
@@ -1268,7 +1291,12 @@ void main() {
     'when an unchanged watched snapshot contains a nested Morph boundary, '
     'it should not capture additional images',
     (tester) async {
-      final morphTarget15 = MorphTarget(tag: 'watched-nested-morph-snapshot');
+      final morphTarget15 = MorphTarget(
+        tag: 'watched-nested-morph-snapshot',
+        duration: const Duration(milliseconds: 600),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphTarget16 = MorphTarget(tag: 'nested-suppressed-content');
       final morphObserver1 = MorphNavigatorObserver();
 
@@ -1284,21 +1312,21 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget15,
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.linear,
-                    watchDestination: !destination,
+                    key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                    targets: [morphTarget15],
+
                     child: SizedBox(
                       key: ValueKey<bool>(destination),
                       width: destination ? 160 : 100,
                       height: destination ? 120 : 80,
                       child: Center(
                         child: MorphDescendant(
-                          flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                          flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                           child: Morph(
-                            animateChildChanges: true,
-                            target: morphTarget16,
+                            key: ValueKey(destination),
+
+                            targets: [morphTarget16],
                             child: RepaintBoundary(
                               child: ColoredBox(
                                 color: Colors.blue,
@@ -1351,7 +1379,12 @@ void main() {
     'when one watched destination snapshot changes among several, '
     'it should recapture only the changed descendant',
     (tester) async {
-      final morphTarget17 = MorphTarget(tag: 'watched-dirty-subset');
+      final morphTarget17 = MorphTarget(
+        tag: 'watched-dirty-subset',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       var destination = false;
@@ -1374,18 +1407,17 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget17,
-                    duration: const Duration(milliseconds: 800),
-                    curve: Curves.linear,
-                    watchDestination: !destination,
+                    key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                    targets: [morphTarget17],
+
                     child: Row(
                       key: ValueKey<bool>(destination),
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         MorphDescendant(
                           key: const ValueKey<String>('first'),
-                          flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                          flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                           child: CustomPaint(
                             size: const Size(50, 40),
                             painter: _CountingSnapshotPainter(
@@ -1397,7 +1429,7 @@ void main() {
                         ),
                         MorphDescendant(
                           key: const ValueKey<String>('second'),
-                          flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                          flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                           child: CustomPaint(
                             size: const Size(50, 40),
                             painter: secondPainter,
@@ -1432,7 +1464,12 @@ void main() {
     'when a watched dirty subset would retain oversized shared atlases, '
     'it should compact the destination snapshot generation',
     (tester) async {
-      final morphTarget18 = MorphTarget(tag: 'watched-atlas-compaction');
+      final morphTarget18 = MorphTarget(
+        tag: 'watched-atlas-compaction',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view
@@ -1468,11 +1505,10 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget18,
-                    duration: const Duration(milliseconds: 800),
-                    curve: Curves.linear,
-                    watchDestination: !destination,
+                    key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                    targets: [morphTarget18],
+
                     child: SizedBox(
                       key: ValueKey<bool>(destination),
                       width: 1808,
@@ -1484,7 +1520,7 @@ void main() {
                           colors.length,
                           (index) => MorphDescendant(
                             key: ValueKey<int>(index),
-                            flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                            flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                             child: CustomPaint(
                               size: const Size.square(900),
                               painter: painters[index],
@@ -1591,7 +1627,12 @@ void main() {
     'when snapshot pixels change several times before a watched frame, '
     'it should coalesce them into one destination capture',
     (tester) async {
-      final morphTarget19 = MorphTarget(tag: 'watched-listenable-snapshot');
+      final morphTarget19 = MorphTarget(
+        tag: 'watched-listenable-snapshot',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view.devicePixelRatio = 1;
@@ -1614,18 +1655,17 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget19,
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.linear,
-                      watchDestination: !destination,
+                      key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                      targets: [morphTarget19],
+
                       child: SizedBox(
                         key: ValueKey<bool>(destination),
                         width: destination ? 160 : 100,
                         height: destination ? 120 : 80,
                         child: Center(
                           child: MorphDescendant(
-                            flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                            flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                             child: CustomPaint(
                               size: const Size(80, 60),
                               painter: painter,
@@ -1683,7 +1723,12 @@ void main() {
     'when nested repaint-boundary pixels change independently, '
     'it should retain automatic destination refreshes',
     (tester) async {
-      final morphTarget20 = MorphTarget(tag: 'watched-fallback-snapshot');
+      final morphTarget20 = MorphTarget(
+        tag: 'watched-fallback-snapshot',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view.devicePixelRatio = 1;
@@ -1706,18 +1751,17 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget20,
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.linear,
-                      watchDestination: !destination,
+                      key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                      targets: [morphTarget20],
+
                       child: SizedBox(
                         key: ValueKey<bool>(destination),
                         width: destination ? 160 : 100,
                         height: destination ? 120 : 80,
                         child: Center(
                           child: MorphDescendant(
-                            flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                            flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                             child: RepaintBoundary(
                               child: CustomPaint(
                                 size: const Size(80, 60),
@@ -1755,10 +1799,155 @@ void main() {
   );
 
   testWidgets(
+    'when nested snapshot changes are signaled, it should skip unchanged '
+    'destination captures and refresh on a signal',
+    (tester) async {
+      final target = MorphTarget(
+        tag: 'signaled-watched-snapshot',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
+      final observer = MorphNavigatorObserver();
+      const frameKey = ValueKey<String>('signaled-watched-frame');
+      final color = ValueNotifier<Color>(Colors.blue);
+      final snapshotChanges = ValueNotifier<int>(0);
+      addTearDown(color.dispose);
+      addTearDown(snapshotChanges.dispose);
+      final painter = _ListenableSnapshotPainter(color);
+      var destination = false;
+      late StateSetter update;
+
+      await tester.pumpWidget(
+        RepaintBoundary(
+          key: frameKey,
+          child: MaterialApp(
+            navigatorObservers: [observer],
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Align(
+                    alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
+                    child: Morph(
+                      key: ValueKey<bool>(destination),
+                      targets: [target],
+                      child: SizedBox(
+                        width: destination ? 160 : 100,
+                        height: destination ? 120 : 80,
+                        child: Center(
+                          child: MorphDescendant(
+                            flightBehavior: .snapshot(changes: snapshotChanges),
+                            child: RepaintBoundary(
+                              child: CustomPaint(
+                                size: const Size(80, 60),
+                                painter: painter,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      update(() => destination = true);
+      await tester.pump();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 450));
+
+      var imageCreations = 0;
+      final previousOnCreate = ui.Image.onCreate;
+      void handleImageCreated(ui.Image image) {
+        previousOnCreate?.call(image);
+        imageCreations += 1;
+      }
+
+      ui.Image.onCreate = handleImageCreated;
+      addTearDown(() {
+        if (identical(ui.Image.onCreate, handleImageCreated)) {
+          ui.Image.onCreate = previousOnCreate;
+        }
+      });
+      for (var frame = 0; frame < 5; frame += 1) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(imageCreations, 0);
+
+      color.value = Colors.green;
+      snapshotChanges.value += 1;
+      await tester.pump();
+      await tester.pump();
+      ui.Image.onCreate = previousOnCreate;
+      final pixel = await _pixelAt(
+        tester,
+        boundaryFinder: find.byKey(frameKey),
+        position: tester.getCenter(_snapshotPaint),
+      );
+      expect((imageCreations, pixel.toARGB32()), (1, Colors.green.toARGB32()));
+    },
+  );
+
+  testWidgets(
+    'when a snapshot notifier is disposed with its endpoint, '
+    'it should not be subscribed by the flight copy',
+    (tester) async {
+      final target = MorphTarget(
+        tag: 'disposed-snapshot-notifier',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+      );
+      final observer = MorphNavigatorObserver();
+      final sourceChanges = ValueNotifier<int>(0);
+      var destination = false;
+      late StateSetter update;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          navigatorObservers: [observer],
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              update = setState;
+              return Morph(
+                key: ValueKey<bool>(destination),
+                targets: [target],
+                child: SizedBox(
+                  width: destination ? 160 : 100,
+                  height: destination ? 120 : 80,
+                  child: MorphDescendant(
+                    flightBehavior: .snapshot(changes: destination ? null : sourceChanges),
+                    child: const RepaintBoundary(child: ColoredBox(color: Colors.blue)),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      update(() => destination = true);
+      sourceChanges.dispose();
+      await tester.pump();
+      await tester.pump();
+
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'when unsupported watched snapshot content stays unchanged, '
     'it should not retry its completed empty capture',
     (tester) async {
-      final morphTarget21 = MorphTarget(tag: 'watched-unsupported-snapshot');
+      final morphTarget21 = MorphTarget(
+        tag: 'watched-unsupported-snapshot',
+        duration: const Duration(milliseconds: 600),
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       var destination = false;
@@ -1771,16 +1960,16 @@ void main() {
             builder: (context, setState) {
               update = setState;
               return Morph(
-                animateChildChanges: true,
-                target: morphTarget21,
-                duration: const Duration(milliseconds: 600),
-                watchDestination: !destination,
+                key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                targets: [morphTarget21],
+
                 child: SizedBox(
                   key: ValueKey<bool>(destination),
                   width: destination ? 120 : 80,
                   height: destination ? 100 : 60,
                   child: MorphDescendant(
-                    flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                    flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                     child: RepaintBoundary(
                       child: CustomPaint(
                         foregroundPainter: _CountingSnapshotPainter(
@@ -1816,7 +2005,12 @@ void main() {
     'when a watched flight reverses to a changed origin snapshot, '
     'it should refresh the returning geometry and pixels',
     (tester) async {
-      final morphTarget22 = MorphTarget(tag: 'watched-reverse-snapshot');
+      final morphTarget22 = MorphTarget(
+        tag: 'watched-reverse-snapshot',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view.devicePixelRatio = 1;
@@ -1839,11 +2033,10 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget22,
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.linear,
-                      watchDestination: true,
+                      key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                      targets: [morphTarget22],
+
                       child: SizedBox(
                         key: ValueKey<bool>(destination),
                         width: descendantSize.width + 40,
@@ -1853,7 +2046,7 @@ void main() {
                             key: const ValueKey<String>(
                               'watched-reverse-content',
                             ),
-                            flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                            flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                             child: SizedBox.fromSize(
                               size: descendantSize,
                               child: ColoredBox(
@@ -1905,7 +2098,12 @@ void main() {
     'when a watched destination snapshot exceeds the total image budget, '
     'it should retain the coherent frame and recover when it shrinks',
     (tester) async {
-      final morphTarget23 = MorphTarget(tag: 'watched-snapshot-budget');
+      final morphTarget23 = MorphTarget(
+        tag: 'watched-snapshot-budget',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view
@@ -1934,17 +2132,16 @@ void main() {
                   return Align(
                     alignment: Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget23,
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.linear,
-                      watchDestination: !destination,
+                      key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                      targets: [morphTarget23],
+
                       child: SizedBox(
                         key: ValueKey<bool>(destination),
                         width: descendantSize.width,
                         height: descendantSize.height,
                         child: MorphDescendant(
-                          flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                          flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                           child: CustomPaint(
                             size: descendantSize,
                             painter: _SnapshotTestPainter(
@@ -2028,7 +2225,12 @@ void main() {
     'when a watched fallback snapshot becomes empty, '
     'it should release the obsolete image without recapturing',
     (tester) async {
-      final morphTarget24 = MorphTarget(tag: 'watched-empty-fallback-snapshot');
+      final morphTarget24 = MorphTarget(
+        tag: 'watched-empty-fallback-snapshot',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view.devicePixelRatio = 1;
@@ -2047,18 +2249,17 @@ void main() {
                 return Align(
                   alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget24,
-                    duration: const Duration(milliseconds: 800),
-                    curve: Curves.linear,
-                    watchDestination: !destination,
+                    key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                    targets: [morphTarget24],
+
                     child: SizedBox(
                       key: ValueKey<bool>(destination),
                       width: 160,
                       height: 120,
                       child: Center(
                         child: MorphDescendant(
-                          flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                          flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                           child: RepaintBoundary(
                             child: SizedBox.fromSize(
                               size: descendantSize,
@@ -2124,7 +2325,12 @@ void main() {
     'when a watched destination snapshot refresh fails, '
     'it should keep the last coherent frame and recover later',
     (tester) async {
-      final morphTarget25 = MorphTarget(tag: 'watched-snapshot-failure');
+      final morphTarget25 = MorphTarget(
+        tag: 'watched-snapshot-failure',
+        duration: const Duration(milliseconds: 800),
+        curve: Curves.linear,
+        watchDestination: true,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view.devicePixelRatio = 1;
@@ -2148,18 +2354,17 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget25,
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.linear,
-                      watchDestination: !destination,
+                      key: ValueKey<Object>(ValueKey<bool>(destination)),
+
+                      targets: [morphTarget25],
+
                       child: SizedBox(
                         key: ValueKey<bool>(destination),
                         width: descendantSize.width + 40,
                         height: descendantSize.height + 40,
                         child: Center(
                           child: MorphDescendant(
-                            flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                            flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                             child: CustomPaint(
                               size: descendantSize,
                               painter: _SnapshotTestPainter(
@@ -2243,7 +2448,7 @@ void main() {
       final morphObserver1 = MorphNavigatorObserver();
 
       const descendant = MorphDescendant(
-        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
         child: SizedBox.expand(
           child: ColoredBox(color: Colors.blue),
         ),
@@ -2258,8 +2463,9 @@ void main() {
               builder: (context, setState) {
                 setHarnessState = setState;
                 return Morph(
-                  animateChildChanges: true,
-                  target: morphTarget26,
+                  key: ValueKey<Object>(ValueKey<bool>(expanded)),
+
+                  targets: [morphTarget26],
                   child: SizedBox(
                     key: ValueKey<bool>(expanded),
                     width: expanded ? 120 : 80,
@@ -2306,8 +2512,9 @@ void main() {
               builder: (context, setState) {
                 setHarnessState = setState;
                 return Morph(
-                  animateChildChanges: true,
-                  target: morphTarget27,
+                  key: ValueKey<Object>(ValueKey<bool>(expanded)),
+
+                  targets: [morphTarget27],
                   child: Container(
                     key: ValueKey<bool>(expanded),
                     width: expanded ? 180 : 120,
@@ -2321,7 +2528,7 @@ void main() {
                     alignment: Alignment.center,
                     child: MorphDescendant(
                       key: const ValueKey<String>('container-content'),
-                      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                      flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                       child: SizedBox(
                         width: expanded ? 80 : 40,
                         height: expanded ? 60 : 30,
@@ -2362,16 +2569,17 @@ void main() {
               builder: (context, setState) {
                 setHarnessState = setState;
                 return Morph(
-                  animateChildChanges: true,
-                  target: morphTarget28,
+                  key: ValueKey<Object>(ValueKey<bool>(expanded)),
+
+                  targets: [morphTarget28],
                   child: SizedBox.square(
                     key: ValueKey<bool>(expanded),
                     dimension: expanded ? 120 : 80,
                     child: MorphDescendant(
                       key: const ValueKey<String>('mixed-content'),
                       flightBehavior: expanded
-                          ? MorphDescendantFlightBehavior.snapshot
-                          : MorphDescendantFlightBehavior.live,
+                          ? const MorphDescendantFlightBehavior.snapshot()
+                          : const MorphDescendantFlightBehavior.live(),
                       child: const ColoredBox(color: Colors.blue),
                     ),
                   ),
@@ -2414,13 +2622,14 @@ void main() {
                 builder: (context, setState) {
                   setHarnessState = setState;
                   return Morph(
-                    animateChildChanges: true,
-                    target: morphTarget29,
+                    key: ValueKey<Object>(ValueKey<bool>(expanded)),
+
+                    targets: [morphTarget29],
                     child: SizedBox.square(
                       key: ValueKey<bool>(expanded),
                       dimension: expanded ? 120 : 80,
                       child: const MorphDescendant(
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                         child: ColoredBox(color: Colors.blue),
                       ),
                     ),

@@ -60,22 +60,23 @@ class Whatsapp {
       );
     }
 
-    try {
-      final phoneNumber = PhoneNumber(trimmedIdentifier);
-
+    final phoneNumber = PhoneNumber.tryParse(
+      trimmedIdentifier.startsWith('+') ? trimmedIdentifier : '+$trimmedIdentifier',
+    );
+    if (phoneNumber != null) {
       return Whatsapp._(
         identifier: phoneNumber,
         launcher: launcher,
         isWeb: isWeb,
       );
-    } on FormatException {
-      return Whatsapp._fromUsername(
-        username: trimmedIdentifier,
-        source: identifier,
-        launcher: launcher,
-        isWeb: isWeb,
-      );
     }
+
+    return Whatsapp._fromUsername(
+      username: trimmedIdentifier,
+      source: identifier,
+      launcher: launcher,
+      isWeb: isWeb,
+    );
   }
 
   factory _fromUsername({

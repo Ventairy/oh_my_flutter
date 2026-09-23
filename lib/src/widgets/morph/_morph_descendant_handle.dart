@@ -70,7 +70,9 @@ final class _MorphDescendantHandle {
       size: size,
       snapshotRevision: snapshotRevision,
       capturesContinuously:
-          !size.isEmpty && (capturesContinuously ?? (behavior.usesSnapshot && renderObject.hasNestedRepaintBoundary)),
+          !size.isEmpty &&
+          (capturesContinuously ??
+              (behavior.usesSnapshot && behavior._snapshotChanges == null && renderObject.hasNestedRepaintBoundary)),
       snapshotCaptureCompleted: snapshotCaptureCompleted,
       snapshot: snapshot,
     );

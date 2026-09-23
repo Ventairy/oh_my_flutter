@@ -69,8 +69,9 @@ class _MorphGoldenHarnessState extends State<_MorphGoldenHarness> {
       child: Align(
         alignment: _expanded ? Alignment.bottomRight : Alignment.topLeft,
         child: Morph(
-          animateChildChanges: true,
-          target: _morphTarget1,
+          key: ValueKey(_expanded),
+
+          targets: [_morphTarget1],
           child: Container(
             width: _expanded ? 310 : 190,
             padding: EdgeInsets.all(_expanded ? 28 : 14),

@@ -7,6 +7,7 @@ part of 'morph.dart';
 @immutable
 final class MorphEndpointContext {
   const new _({
+    required this.target,
     required this.context,
     required this.child,
     required RenderBox internalRenderObject,
@@ -21,6 +22,14 @@ final class MorphEndpointContext {
   // intentionally unavailable to custom delegates.
   final RenderBox _renderObject;
   final _MorphDescendantCapture _descendantCapture;
+
+  /// The connection being considered for this endpoint.
+  ///
+  /// Use it to describe different visuals for different target alternatives.
+  /// This is the candidate currently being evaluated, which may differ from
+  /// the target of a previous flight. Capturing a candidate does not guarantee
+  /// that a flight will start.
+  final MorphTarget target;
 
   /// Context used to resolve inherited values for [child].
   ///

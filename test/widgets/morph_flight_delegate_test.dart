@@ -19,13 +19,17 @@ void main() {
       (tester) async {
         final navigator = GlobalKey<NavigatorState>();
         final delegate = _IndependentFlightDelegate();
-        final firstTarget = MorphTarget(tag: 'independent');
-        final secondTarget = MorphTarget(tag: 'independent');
+        final firstTarget = MorphTarget(
+          tag: 'independent',
+          duration: const Duration(seconds: 1),
+          curve: Curves.easeIn,
+          reverseCurve: Curves.easeOut,
+        );
+
         Widget endpoint(MorphTarget target, double width) => Center(
           child: Morph(
-            target: target,
-            duration: const Duration(seconds: 1),
-            curve: Curves.easeIn,
+            targets: [target],
+
             flightConfig: .custom(delegate),
             child: SizedBox(width: width, height: 80),
           ),
@@ -42,7 +46,7 @@ void main() {
           PageRouteBuilder<void>(
             transitionDuration: Duration.zero,
             reverseTransitionDuration: Duration.zero,
-            pageBuilder: (_, _, _) => endpoint(secondTarget, 160),
+            pageBuilder: (_, _, _) => endpoint(firstTarget, 160),
           ),
         );
         await tester.pump();
@@ -53,9 +57,17 @@ void main() {
         navigator.currentState!.pop();
         await tester.pump();
         await tester.pump();
+        final reversalStart = delegate.progress!;
         await tester.pump(const Duration(milliseconds: 50));
         final returning = delegate.progress!;
         await tester.pumpAndSettle();
+        final expectedReturningProgress = interrupt
+            ? opening.curvedProgress *
+                  (1 -
+                      Curves.easeOut.transform(
+                        (opening.uncurvedProgress - returning.uncurvedProgress) / opening.uncurvedProgress,
+                      ))
+            : Curves.easeOut.transform(returning.uncurvedProgress);
         expect(
           (
             opening.flightKind,
@@ -64,6 +76,8 @@ void main() {
             opening.curvedProgress,
             returning.flightKind,
             returning.animationStatus,
+            (reversalStart.curvedProgress - (interrupt ? opening.curvedProgress : 0)).abs() < 0.001,
+            (returning.curvedProgress - expectedReturningProgress).abs() < 0.001,
           ),
           (
             MorphFlightKind.routePush,
@@ -72,6 +86,8 @@ void main() {
             Curves.easeIn.transform(.25),
             interrupt ? MorphFlightKind.routePush : MorphFlightKind.routePop,
             interrupt ? AnimationStatus.reverse : AnimationStatus.forward,
+            true,
+            true,
           ),
         );
       },
@@ -82,8 +98,12 @@ void main() {
     tester,
   ) async {
     final delegate = _IndependentFlightDelegate();
-    final first = MorphTarget(tag: 'same-screen');
-    final second = MorphTarget(tag: 'same-screen');
+    final first = MorphTarget(
+      tag: 'same-screen',
+      duration: const Duration(seconds: 1),
+      curve: Curves.easeIn,
+    );
+
     var destination = false;
     late StateSetter update;
     await tester.pumpWidget(
@@ -95,9 +115,8 @@ void main() {
             return Center(
               child: Morph(
                 key: ValueKey(destination),
-                target: destination ? second : first,
-                duration: const Duration(seconds: 1),
-                curve: Curves.easeIn,
+                targets: [first],
+
                 flightConfig: .custom(delegate),
                 child: SizedBox(key: ValueKey(destination), width: destination ? 160 : 80, height: 80),
               ),
@@ -122,7 +141,11 @@ void main() {
 
   testWidgets('when independently timed content is retargeted, it should sample the visible value', (tester) async {
     final delegate = _IndependentFlightDelegate();
-    final target = MorphTarget(tag: 'retarget');
+    final target = MorphTarget(
+      tag: 'retarget',
+      duration: const Duration(seconds: 1),
+      curve: Curves.easeIn,
+    );
     var width = 80.0;
     late StateSetter update;
     await tester.pumpWidget(
@@ -133,10 +156,9 @@ void main() {
             update = setState;
             return Center(
               child: Morph(
-                target: target,
-                animateChildChanges: true,
-                duration: const Duration(seconds: 1),
-                curve: Curves.easeIn,
+                key: ValueKey(width),
+                targets: [target],
+
                 flightConfig: .custom(delegate),
                 child: SizedBox(width: width, height: 80),
               ),
@@ -163,7 +185,11 @@ void main() {
     testWidgets('when a custom flight uses $curve, it should expose both animations and interpolate with the curve', (
       tester,
     ) async {
-      final morphTarget1 = MorphTarget(tag: 'custom-config');
+      final morphTarget1 = MorphTarget(
+        tag: 'custom-config',
+        duration: const Duration(seconds: 1),
+        curve: curve,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       final captures = <Color>[];
@@ -182,10 +208,10 @@ void main() {
               update = setState;
               return Center(
                 child: Morph(
-                  animateChildChanges: true,
-                  target: morphTarget1,
-                  duration: const Duration(seconds: 1),
-                  curve: curve,
+                  key: ValueKey(destination),
+
+                  targets: [morphTarget1],
+
                   flightConfig: .custom(delegate),
                   child: ColoredBox(
                     color: destination ? Colors.blue : Colors.red,

@@ -98,12 +98,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     scene.enabled.value = false;
     await tester.pump();
-    final third = MorphTarget(tag: 'scope');
     scene.navigator.currentState!.push<void>(
       PageRouteBuilder<void>(
         pageBuilder: (context, animation, secondaryAnimation) => Align(
           alignment: Alignment.bottomRight,
-          child: scene.endpoint(third, allowed: true),
+          child: scene.endpoint(destination: true, allowed: true),
         ),
       ),
     );
@@ -125,7 +124,7 @@ void main() {
         home: ValueListenableBuilder<bool>(
           valueListenable: enabled,
           child: Morph(
-            target: target,
+            targets: [target],
             child: Material(child: TextField(key: input)),
           ),
           builder: (context, value, child) => MorphScope(enabled: value, child: child!),
@@ -147,7 +146,7 @@ void main() {
       'when local replacement is $replacement and disabled, it should display current content without flying',
       (tester) async {
         final source = MorphTarget(tag: 'local');
-        final destination = MorphTarget(tag: 'local');
+
         var changed = false;
         var enabled = false;
         var starts = 0;
@@ -162,8 +161,9 @@ void main() {
                   enabled: enabled,
                   child: Center(
                     child: Morph(
-                      target: replacement || !changed ? source : destination,
-                      animateChildChanges: replacement,
+                      key: replacement ? null : ValueKey(changed),
+                      targets: [source],
+
                       onStart: () => starts++,
                       child: SizedBox(
                         key: ValueKey(changed),
@@ -188,7 +188,7 @@ void main() {
         expect(starts, 0);
         rebuild(() => changed = false);
         await tester.pumpAndSettle();
-        expect(starts, 1);
+        expect(starts, replacement ? 0 : 1);
         expect(tester.takeException(), isNull);
       },
     );

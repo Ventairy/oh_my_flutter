@@ -5,16 +5,22 @@ class _RenderMorphEndpoint extends RenderProxyBox {
     this._visibility,
     this.onPaint,
     this.onPresented,
+    this.onSnapshotSuppressed,
   );
 
   _MorphVisibilityHandle _visibility;
   VoidCallback onPaint;
   VoidCallback onPresented;
+  VoidCallback onSnapshotSuppressed;
   int _snapshotSuppressionDepth = 0;
+  LayerHandle<OpacityLayer>? _hiddenOpacityLayer;
 
   void beginSnapshotSuppression() {
     _snapshotSuppressionDepth += 1;
-    if (_snapshotSuppressionDepth == 1) markNeedsPaint();
+    if (_snapshotSuppressionDepth == 1) {
+      onSnapshotSuppressed();
+      markNeedsPaint();
+    }
   }
 
   void endSnapshotSuppression() {
@@ -61,18 +67,49 @@ class _RenderMorphEndpoint extends RenderProxyBox {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (_visibility.hidden || _snapshotSuppressionDepth > 0) return;
+    if (_snapshotSuppressionDepth > 0 || (_visibility.hidden && !_visibility.paintsWhileHidden)) {
+      _clearHiddenOpacityLayer();
+      return;
+    }
+    if (_visibility.hidden) {
+      final hiddenOpacityLayer = _hiddenOpacityLayer ??= LayerHandle<OpacityLayer>();
+      hiddenOpacityLayer.layer = _visibility.paintHiddenGroups(
+        () => context.pushOpacity(
+          offset,
+          0,
+          super.paint,
+          oldLayer: hiddenOpacityLayer.layer,
+        ),
+      );
+      return;
+    }
+    _clearHiddenOpacityLayer();
+    _paintEndpoint(context, offset);
+    if (_visibility.tickersEnabled.value) onPresented();
+  }
+
+  void _paintEndpoint(PaintingContext context, Offset offset) {
     // An ancestor can change this endpoint's paint transform without laying
     // it out. Sampling only on an actual visible paint preserves the last
     // geometry shown to the user while retained, unpainted subtrees do no work.
     onPaint();
     super.paint(context, offset);
-    if (_visibility.tickersEnabled.value) onPresented();
+  }
+
+  void _clearHiddenOpacityLayer() {
+    _hiddenOpacityLayer?.layer = null;
+    _hiddenOpacityLayer = null;
   }
 
   @override
   void visitChildrenForSemantics(RenderObjectVisitor visitor) {
     if (_visibility.hidden) return;
     super.visitChildrenForSemantics(visitor);
+  }
+
+  @override
+  void dispose() {
+    _clearHiddenOpacityLayer();
+    super.dispose();
   }
 }

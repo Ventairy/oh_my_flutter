@@ -1,4 +1,40 @@
+## 0.25.0
+
+- **Breaking:** Configure descendant images with `MorphDescendantFlightBehavior.snapshot(changes: notifier)` instead of `MorphDescendant.snapshotChanges`. Flight behaviors now use `live()`, `snapshot()`, and `hide()` constructors.
+- Add independent `MorphTarget.reverseDuration` and `reverseCurve` timing for
+  local returns and route pops, including navigation that reverses before its
+  Morph flight finishes. Direction changes retain their visible state while
+  beginning the newly selected curve.
+- **Breaking:** Move `watchDestination` from `Morph` to `MorphTarget`. Enable it
+  on the shared target when either endpoint can move while it is the current
+  destination; watching now applies to that connection in both directions.
+- **Breaking:** Replace the unnamed `PhoneNumber` constructor with `parse` and
+  `tryParse`, require explicit international input beginning with `+`, and add
+  `isValid` for checking current country numbering-plan prefixes.
+
 ## 0.24.0
+
+- Keep watched Morph destinations coherent when layout or inherited values
+  change during a flight. Geometry, custom properties, grouped pixels, and
+  descendant snapshots now refresh together before paint-confirmed handoff,
+  while avoiding redundant group capture work and excess image overlap.
+  Completed handoffs also retire retained overlay layers before releasing
+  captured pixels, and nested flights remain until shared ancestor handoffs
+  complete, preventing grouped content from flashing after route pops. Rapid
+  route reversals now reclaim flight paint ownership before cancelling a
+  pending endpoint handoff, so a settled destination cannot remain duplicated
+  behind its returning flight.
+
+- **Breaking:** Morph appearances now share the same `MorphTarget` instance
+  through ordered `targets` alternatives. Move `duration` and `curve` to the
+  target; omitted values retain ancestor timing inheritance. `canMatch`
+  checks each proposed connection once; appearances can further restrict their
+  alternatives with `Morph.canMatch`, and custom delegates can select visuals
+  through `MorphEndpointContext.target`. Observe navigation through the target
+  `status` listenable instead of `MorphNavigatorObserver.tagStatus`. Remove `MorphSibling` and
+  `animateChildChanges`; use delegate-managed group snapshots for accompanying
+  content and Flutter's animation widgets for local child changes. Unrelated
+  routes stay visible behind transparent destinations.
 
 - Add `DeviceLocale.getCountry()` and `Device.locale` to read the configured
   country on Android, iOS, macOS, and Windows, returning null when unavailable.

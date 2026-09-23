@@ -11,7 +11,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
 
   @override
   _MorphAutomaticProperties properties(MorphEndpointContext endpoint) {
-    final capturedEnvironment = _MorphCapturedEnvironment(endpoint.context);
+    final capturedEnvironment = _MorphCapturedEnvironment.of(endpoint.context);
     final hasUnsupportedContainerTransform = switch (endpoint.child) {
       Container(transform: final Matrix4 _) => true,
       _ => false,
@@ -98,6 +98,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
     MorphFlight<Object?> flight,
   })?
   _specializedFlight(MorphFlight<Object?> flight) {
+    if (flight._geometry != null) return null;
     final source = flight._sourceProperties;
     final destination = flight._destinationProperties;
     if (source is! _MorphAutomaticProperties || destination is! _MorphAutomaticProperties) {
@@ -118,6 +119,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
           source: sourceText,
           destination: destinationText,
           delegate: delegate,
+          selectProperties: (properties) => properties.child.text!,
         ),
       );
     }
@@ -136,6 +138,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
           source: sourceContainer,
           destination: destinationContainer,
           delegate: delegate,
+          selectProperties: (properties) => properties.child.container!,
         ),
       );
     }
@@ -154,6 +157,7 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
           source: sourceColumn,
           destination: destinationColumn,
           delegate: delegate,
+          selectProperties: (properties) => properties.child.column!,
         ),
       );
     }
@@ -165,10 +169,11 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
     required T source,
     required T destination,
     required MorphFlightDelegate<T> delegate,
+    required T Function(_MorphAutomaticProperties properties) selectProperties,
   }) {
     final sourceEndpoint = flight.source;
     final destinationEndpoint = flight.destination;
-    return MorphFlight<T>(
+    return MorphFlight<T>._(
       source: MorphEndpoint<T>(
         properties: source,
         bounds: sourceEndpoint.bounds,
@@ -187,7 +192,9 @@ final class _MorphAutomaticFlightDelegate extends MorphFlightDelegate<_MorphAuto
       curvedAnimation: flight.curvedAnimation,
       uncurvedAnimation: flight.uncurvedAnimation,
       flightDelegate: delegate,
-    ).._geometry = flight._geometry;
+      endpointState: flight._geometry,
+      resolveEndpointProperties: (properties) => selectProperties(properties! as _MorphAutomaticProperties),
+    );
   }
 
   bool _sharesSpecialization(

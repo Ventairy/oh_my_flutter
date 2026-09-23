@@ -6,7 +6,7 @@ class _SnapshotFlightHarness extends StatefulWidget {
     this.curve = Curves.linear,
     this.sharedDescendant = false,
     this.watchDestination = false,
-    this.behavior = MorphDescendantFlightBehavior.snapshot,
+    this.behavior = const MorphDescendantFlightBehavior.snapshot(),
     this.contentBuilder,
     super.key,
   });
@@ -23,7 +23,12 @@ class _SnapshotFlightHarness extends StatefulWidget {
 }
 
 class _SnapshotFlightHarnessState extends State<_SnapshotFlightHarness> {
-  final _morphTarget1 = MorphTarget(tag: 'registered-descendant');
+  late final _morphTarget1 = MorphTarget(
+    tag: 'registered-descendant',
+    duration: const Duration(seconds: 1),
+    curve: widget.curve,
+    watchDestination: widget.watchDestination,
+  );
   final _morphObserver1 = MorphNavigatorObserver();
 
   static const ValueKey<String> _frameKey = ValueKey('registration-frame');
@@ -72,11 +77,9 @@ class _SnapshotFlightHarnessState extends State<_SnapshotFlightHarness> {
       home: Scaffold(
         body: Align(
           child: Morph(
-            animateChildChanges: true,
-            target: _morphTarget1,
-            duration: const Duration(seconds: 1),
-            curve: widget.curve,
-            watchDestination: widget.watchDestination,
+            key: ValueKey(endpoint),
+
+            targets: [_morphTarget1],
             flightConfig: .custom(widget.delegate),
             child: SizedBox(
               key: ValueKey(endpoint),
@@ -86,7 +89,7 @@ class _SnapshotFlightHarnessState extends State<_SnapshotFlightHarness> {
                   widget.contentBuilder?.call(endpoint) ??
                   (widget.sharedDescendant
                       ? const MorphDescendant(
-                          flightBehavior: .snapshot,
+                          flightBehavior: .snapshot(),
                           child: SizedBox.expand(child: ColoredBox(color: Colors.blue)),
                         )
                       : MorphDescendant(

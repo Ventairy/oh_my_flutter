@@ -10,17 +10,18 @@ final class _MorphNavigationScenario {
   final Duration? duration;
   final observer = MorphNavigatorObserver();
   final navigator = GlobalKey<NavigatorState>();
-  final a = MorphTarget(tag: 'surface');
-  final b = MorphTarget(tag: 'surface');
-  final c = MorphTarget(tag: 'surface');
-  late final Map<MorphTarget, String> names = {a: 'A', b: 'B', c: 'C'};
-  late final Map<MorphTarget, ValueNotifier<List<MorphTarget>>> appearances = {
+  final a = Object();
+  final b = Object();
+  final c = Object();
+  late final target = MorphTarget(tag: 'surface', duration: duration);
+
+  late final Map<Object, String> names = {a: 'A', b: 'B', c: 'C'};
+  late final Map<Object, ValueNotifier<List<Object>>> appearances = {
     for (final target in names.keys) target: ValueNotifier([target]),
   };
   final started = <String>[];
   final received = <String>[];
   final flights = <MorphFlight<double>>[];
-  final progress = <MorphTarget, Animation<double>>{};
   late final delegate = _RecordingNavigationFlightDelegate(flights);
 
   Widget get app => MaterialApp(
@@ -29,11 +30,10 @@ final class _MorphNavigationScenario {
     home: page(a),
   );
 
-  Widget endpoint(MorphTarget target) => Morph(
-    animateChildChanges: true,
+  Widget endpoint(Object target) => Morph(
     key: ObjectKey(target),
-    target: target,
-    duration: duration,
+    targets: [this.target],
+
     flightConfig: .custom(delegate),
     onStart: () => started.add(names[target]!),
     onReceived: () => received.add(names[target]!),
@@ -45,7 +45,7 @@ final class _MorphNavigationScenario {
     ),
   );
 
-  Widget page(MorphTarget? target) => Scaffold(
+  Widget page(Object? target) => Scaffold(
     body: Center(
       child: target == null
           ? const Text('Unmatched route')
@@ -55,14 +55,7 @@ final class _MorphNavigationScenario {
                 mainAxisSize: .min,
                 children: [
                   for (final appearance in targets) ...[
-                    MorphSibling(
-                      target: appearance,
-                      transitionBuilder: (child, curved, uncurved) {
-                        progress[appearance] = uncurved;
-                        return FadeTransition(opacity: uncurved, child: child);
-                      },
-                      child: Text('Header ${names[appearance]}'),
-                    ),
+                    Text('Header ${names[appearance]}'),
                     endpoint(appearance),
                   ],
                 ],
@@ -71,7 +64,7 @@ final class _MorphNavigationScenario {
     ),
   );
 
-  void push(MorphTarget? target) {
+  void push(Object? target) {
     navigator.currentState!.push<void>(MaterialPageRoute(builder: (_) => page(target)));
   }
 }

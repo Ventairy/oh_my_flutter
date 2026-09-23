@@ -14,10 +14,16 @@ class GroupMorphExample extends StatefulWidget {
 }
 
 class _GroupMorphExampleState extends State<GroupMorphExample> {
-  final _source = MorphTarget(tag: 'group-example-surface');
-  final _destination = MorphTarget(tag: 'group-example-surface');
-  final _sourceTitle = MorphTarget(tag: 'group-example-title');
-  final _destinationTitle = MorphTarget(tag: 'group-example-title');
+  final _source = MorphTarget(
+    tag: 'group-example-surface',
+    duration: const Duration(milliseconds: 800),
+  );
+
+  final _sourceTitle = MorphTarget(
+    tag: 'group-example-title',
+    duration: const Duration(milliseconds: 800),
+  );
+
   final _sourceGroup = GroupLink();
   final _destinationGroup = GroupLink();
   bool _expanded = false;
@@ -31,9 +37,8 @@ class _GroupMorphExampleState extends State<GroupMorphExample> {
         children: [
           Positioned.fill(
             child: Morph(
-              target: expanded ? _destination : _source,
-              animateChildChanges: true,
-              duration: const Duration(milliseconds: 800),
+              targets: [_source],
+
               flightConfig: MorphFlightConfig.custom(
                 _GroupMorphDelegate(group),
               ),
@@ -54,9 +59,8 @@ class _GroupMorphExampleState extends State<GroupMorphExample> {
               link: group,
               zIndex: 1,
               child: Morph(
-                target: expanded ? _destinationTitle : _sourceTitle,
-                animateChildChanges: true,
-                duration: const Duration(milliseconds: 800),
+                targets: [_sourceTitle],
+
                 child: Text(
                   'One title',
                   style: TextStyle(

@@ -2,10 +2,10 @@ part of 'morph.dart';
 
 /// Animates a widget between two matching locations.
 ///
-/// Give each appearance a stable [MorphTarget] with the same tag. Mounting a
-/// new appearance moves the shared visual to it; removing it returns to the
+/// Share one stable [MorphTarget] instance between matching appearances.
+/// Mounting a new appearance moves the shared visual to it; removing it returns to the
 /// most recently mounted appearance that remains. Rebuilds do not reorder
-/// appearances. A covered appearance cannot start a child-replacement flight.
+/// appearances. Updating [child] does not start a transition.
 ///
 /// Register a stable [MorphNavigatorObserver] from the creation of each
 /// Navigator containing Morphs. Local transitions also work in a standalone
@@ -25,12 +25,6 @@ part of 'morph.dart';
 /// endpoint, or use a custom delegate when it must have a different in-flight
 /// visual.
 ///
-/// When [animateChildChanges] is true, replacing [child] on the same [Morph]
-/// starts an in-place transition. Give the old and new children the same
-/// non-null key when a rebuild should update
-/// the resting widget without animating. Replacing an unkeyed child starts a
-/// transition whenever its widget instance changes.
-///
 /// When animations are disabled before a transition starts, Morph shows the
 /// destination immediately without invoking lifecycle callbacks. If they
 /// become disabled during a transition, Morph finishes immediately without
@@ -39,15 +33,12 @@ part of 'morph.dart';
 /// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md)
 /// for endpoint setup, automatic transitions, and customization.
 class Morph extends StatefulWidget {
-  /// Creates an appearance that can transition to another with an equal tag.
+  /// Creates an appearance that can transition to another sharing a target.
   const new({
-    required this.target,
+    required this.targets,
     required this.child,
     this.flightConfig = const MorphFlightConfig.auto(),
-    this.duration,
-    this.curve,
-    this.watchDestination = false,
-    this.animateChildChanges = false,
+    this.canMatch,
     this.onStart,
     this.onEnd,
     this.onReceived,
@@ -57,35 +48,28 @@ class Morph extends StatefulWidget {
   static const Duration _defaultDuration = Duration(milliseconds: 300);
   static const Curve _defaultCurve = Curves.linear;
 
-  static bool _debugValidateDuration(Duration? duration) {
-    assert(
-      duration == null || !duration.isNegative,
-      'duration must not be negative.',
-    );
-    return true;
-  }
-
-  /// Identifier shared by the source, destination and sibling widgets.
+  /// Ordered alternatives for matching this visual with another appearance.
   ///
-  /// Use a distinct target object for each logical shared element. At most one Morph
-  /// may use a target at a time. Keep the target's equality and hash code
-  /// stable while this widget is mounted.
-  final MorphTarget target;
+  /// The destination's first usable match wins. One visual can join only one
+  /// flight at a time. Supply a nonempty list of distinct targets, keep the
+  /// target instances stable, and do not mutate the list.
+  final List<MorphTarget> targets;
+
+  /// Restricts which connections this appearance may use.
+  ///
+  /// Use this to accept different alternatives at different locations while
+  /// sharing the same targets. The shared [MorphTarget.canMatch] runs first,
+  /// followed by the destination's predicate and then the source's predicate.
+  /// All must approve. Rejection tries the destination's next target.
+  ///
+  /// Keep this synchronous and side-effect-free. An accepted flight retains
+  /// its decision through completion, cancellation, and interruption. Policy
+  /// changes alone do not start or cancel a flight. Exceptions are reported
+  /// through FlutterError and reject the candidate.
+  final bool Function(MorphTarget target, MorphMatchContext match)? canMatch;
 
   /// Widget shown at this location when no transition is running.
   final Widget child;
-
-  /// Whether replacing [child] can start an in-place transition.
-  ///
-  /// Defaults to false. When enabled, a different child instance starts a
-  /// transition unless both children have the same non-null key. Rebuilds within the existing
-  /// child subtree do not start a transition.
-  ///
-  /// Set this to false to update the child without a replacement transition.
-  /// Matching appearances still transition when mounted, removed, or replaced,
-  /// including during navigation. This does not cancel an existing flight.
-  /// The new value applies when this property and [child] change together.
-  final bool animateChildChanges;
 
   /// How the shared element appears during its transition.
   ///
@@ -97,47 +81,6 @@ class Morph extends StatefulWidget {
   /// endpoints must both use automatic configuration or compatible custom
   /// delegates. The departing endpoint's configuration controls the transition.
   final MorphFlightConfig flightConfig;
-
-  /// Duration of transitions started by this Morph.
-  ///
-  /// When omitted, the nearest ancestor Morph's configured duration is used.
-  /// If no Morph ancestor supplies one, transitions within the same route use
-  /// 300 milliseconds and transitions between routes follow the route's
-  /// animation.
-  ///
-  /// When the two widgets use different durations, the source value is used.
-  /// The duration must not be negative. [Duration.zero] completes the visual
-  /// transition immediately.
-  ///
-  /// When several Morph transitions start together, shorter transitions remain
-  /// visually settled while the other transitions finish.
-  final Duration? duration;
-
-  /// Curve applied while moving from the source to the destination.
-  ///
-  /// When omitted, the nearest ancestor Morph's effective curve is used. If no
-  /// Morph ancestor supplies one, [Curves.linear] is used.
-  ///
-  /// When the two widgets use different curves, the source value is used.
-  ///
-  /// Curves that overshoot may produce progress outside the 0 to 1 interval.
-  final Curve? curve;
-
-  /// Whether a flight departing from this Morph follows changes to its
-  /// destination's geometry and snapshotted descendants.
-  ///
-  /// Set this to true when the matching endpoint can move or resize while a
-  /// flight travels from this Morph toward it. The flight then continues
-  /// toward the destination's updated geometry instead of its initial
-  /// geometry. Descendants using
-  /// [MorphDescendantFlightBehavior.snapshot] also refresh their destination
-  /// image and size when they change, without mounting another copy of their
-  /// subtree.
-  ///
-  /// This setting has no effect on flights arriving at this Morph. Set it on
-  /// both matching Morphs when each direction's destination can move while the
-  /// flight is running.
-  final bool watchDestination;
 
   /// Called on the source when its transition starts.
   final VoidCallback? onStart;
@@ -156,7 +99,7 @@ class _MorphState extends State<Morph> {
   bool _scopeEnabled = true;
   _MorphVisibilityHandle _visibility = _MorphVisibilityHandle();
   _MorphEndpointHandle? _endpoint;
-  MorphTarget? _attachedTarget;
+  List<MorphTarget> _attachedTargets = const [];
   OverlayState? _overlay;
   ModalRoute<Object?>? _route;
   _RenderMorphEndpoint? _renderObject;
@@ -167,6 +110,7 @@ class _MorphState extends State<Morph> {
   Widget? _lastPaintedChild;
   MorphFlightDelegate<Object?>? _lastPaintedFlightDelegate;
   late MorphFlightDelegate<Object?> _resolvedFlightDelegate;
+  _MorphCapturedEnvironment? _capturedEnvironment;
 
   @override
   void initState() {
@@ -185,9 +129,21 @@ class _MorphState extends State<Morph> {
   }
 
   MorphEndpoint<Object?>? _capture({
+    required MorphTarget target,
     Widget? child,
     MorphFlightDelegate<Object?>? flightDelegate,
   }) {
+    final geometry = _readSettledLiveGeometry();
+    if (geometry == null) return null;
+    return _resolveEndpoint(
+      target: target,
+      geometry: geometry,
+      child: child ?? widget.child,
+      flightDelegate: flightDelegate ?? _resolvedFlightDelegate,
+    );
+  }
+
+  _MorphEndpointGeometry? _readSettledLiveGeometry() {
     final phase = SchedulerBinding.instance.schedulerPhase;
     if (phase == .idle || phase == .postFrameCallbacks) {
       // Post-frame observers can invalidate layout before capture runs. Paint
@@ -197,16 +153,30 @@ class _MorphState extends State<Morph> {
         ?..flushLayout()
         ..flushCompositingBits();
     }
-    final geometry = _readLiveGeometry();
-    if (geometry == null) return null;
+    return _readLiveGeometry();
+  }
+
+  MorphEndpoint<Object?>? _captureWatchedEndpoint({
+    required MorphTarget target,
+    required _MorphEndpointGeometry geometry,
+    required List<_MorphDescendantFlightRecord> previousRecords,
+    required bool pixelRatioChanged,
+  }) {
     return _resolveEndpoint(
+      target: target,
       geometry: geometry,
-      child: child ?? widget.child,
-      flightDelegate: flightDelegate ?? _resolvedFlightDelegate,
+      child: widget.child,
+      flightDelegate: _resolvedFlightDelegate,
+      previousRecords: previousRecords,
+      pixelRatioChanged: pixelRatioChanged,
     );
   }
 
-  MorphEndpoint<Object?>? _captureLastPainted() {
+  MorphEndpoint<Object?>? _captureLastPainted({
+    required MorphTarget target,
+    List<_MorphDescendantFlightRecord>? departureRecords,
+    int? departureDescendantRevision,
+  }) {
     final overlayRenderObject = _overlayRenderObject;
     final geometry = _lastPaintedGeometry;
     final child = _lastPaintedChild;
@@ -219,10 +189,13 @@ class _MorphState extends State<Morph> {
       return null;
     }
     return _resolveEndpoint(
+      target: target,
       geometry: geometry,
       child: child,
       flightDelegate: flightDelegate,
       allowDetachedDescendants: true,
+      departureRecords: departureRecords,
+      departureDescendantRevision: departureDescendantRevision,
     );
   }
 
@@ -242,12 +215,6 @@ class _MorphState extends State<Morph> {
     final childRenderObject = renderObject.child;
     if (childRenderObject == null || !childRenderObject.hasSize) return null;
 
-    final path = _validatedTransformPath(
-      renderObject: renderObject,
-      overlayRenderObject: overlayRenderObject,
-    );
-    if (path == null) return null;
-
     final scratch = _geometryScratch ??= _MorphEndpointGeometry(
       renderObject: childRenderObject,
       localSize: renderObject.size,
@@ -255,9 +222,13 @@ class _MorphState extends State<Morph> {
       transform: Matrix4.identity(),
       axisScale: Offset.zero,
     );
-    final transform = scratch.transform..setIdentity();
-    for (var index = path.length - 1; index > 0; index -= 1) {
-      path[index].applyPaintTransform(path[index - 1], transform);
+    final transform = scratch.transform;
+    if (!_resolveTransformPath(
+      renderObject: renderObject,
+      overlayRenderObject: overlayRenderObject,
+      transform: transform,
+    )) {
+      return null;
     }
     final bounds = MatrixUtils.transformRect(
       transform,
@@ -276,42 +247,46 @@ class _MorphState extends State<Morph> {
     return scratch;
   }
 
-  List<RenderObject>? _validatedTransformPath({
+  bool _resolveTransformPath({
     required _RenderMorphEndpoint renderObject,
     required RenderBox overlayRenderObject,
+    required Matrix4 transform,
   }) {
     final cachedPath = _transformPath;
     if (cachedPath != null &&
         cachedPath.isNotEmpty &&
         identical(cachedPath.first, renderObject) &&
         identical(cachedPath.last, overlayRenderObject)) {
-      var valid = true;
-      for (var index = 0; index < cachedPath.length; index += 1) {
-        final node = cachedPath[index];
-        if (node case final RenderBox box when !box.hasSize) {
-          valid = false;
+      transform.setIdentity();
+      for (var index = cachedPath.length - 1; index > 0; index -= 1) {
+        final parent = cachedPath[index];
+        final child = cachedPath[index - 1];
+        if ((parent is RenderBox && !parent.hasSize) ||
+            (child is RenderBox && !child.hasSize) ||
+            !identical(child.parent, parent)) {
           break;
         }
-        if (index + 1 < cachedPath.length && !identical(node.parent, cachedPath[index + 1])) {
-          valid = false;
-          break;
-        }
+        parent.applyPaintTransform(child, transform);
+        if (index == 1) return true;
       }
-      if (valid) return cachedPath;
     }
 
     final path = (cachedPath ?? <RenderObject>[])..clear();
     RenderObject? node = renderObject;
     while (node != null) {
-      if (node case final RenderBox box when !box.hasSize) return null;
+      if (node case final RenderBox box when !box.hasSize) return false;
       path.add(node);
       if (identical(node, overlayRenderObject)) {
         _transformPath = path;
-        return path;
+        transform.setIdentity();
+        for (var index = path.length - 1; index > 0; index -= 1) {
+          path[index].applyPaintTransform(path[index - 1], transform);
+        }
+        return true;
       }
       node = node.parent;
     }
-    return null;
+    return false;
   }
 
   bool _groupCaptureScheduled = false;
@@ -341,7 +316,14 @@ class _MorphState extends State<Morph> {
       _groupCaptureScheduled = true;
       SchedulerBinding.instance.addPostFrameCallback((_) {
         _groupCaptureScheduled = false;
-        if (mounted && endpoint.active && !_visibility.hidden) {
+        final cachedGroupCapture = endpoint._cachedGroupCapture;
+        if (mounted &&
+            identical(_endpoint, endpoint) &&
+            endpoint.active &&
+            !endpoint.disposed &&
+            !endpoint.visibility.hidden &&
+            cachedGroupCapture != null &&
+            !cachedGroupCapture.groupsAreCurrent) {
           _MorphCoordinator.of(endpoint.overlay)._capture(endpoint);
         }
       });
@@ -362,14 +344,20 @@ class _MorphState extends State<Morph> {
   }
 
   MorphEndpoint<Object?>? _resolveEndpoint({
+    required MorphTarget target,
     required _MorphEndpointGeometry geometry,
     required Widget child,
     required MorphFlightDelegate<Object?> flightDelegate,
     bool allowDetachedDescendants = false,
+    List<_MorphDescendantFlightRecord>? departureRecords,
+    int? departureDescendantRevision,
+    List<_MorphDescendantFlightRecord>? previousRecords,
+    bool pixelRatioChanged = false,
   }) {
     final capturedTransform = Matrix4.copy(geometry.transform);
     final descendantCapture = _MorphDescendantCapture();
     final endpointContext = MorphEndpointContext._(
+      target: target,
       context: context,
       child: child,
       internalRenderObject: geometry.renderObject,
@@ -395,28 +383,43 @@ class _MorphState extends State<Morph> {
       axisScale: geometry.axisScale,
     );
     if (descendantCapture.hasRegistrations) {
-      descendantCapture.replaceRecords(
-        _endpoint?._captureDescendants(allowDetached: allowDetachedDescendants) ?? const [],
-      );
+      final descendantHandle = _endpoint;
+      final reusableDepartureRecords =
+          departureRecords != null &&
+              descendantHandle?.descendantRevision == departureDescendantRevision &&
+              departureRecords.every((record) => record.snapshotRevision == record.handle.snapshotRevision)
+          ? departureRecords
+          : null;
+      final records =
+          reusableDepartureRecords ??
+          (previousRecords == null
+              ? _endpoint?._captureDescendants(allowDetached: allowDetachedDescendants) ?? const []
+              : _endpoint?._refreshDescendants(
+                  previousRecords: previousRecords,
+                  pixelRatioChanged: pixelRatioChanged,
+                ));
+      if (records == null) return null;
+      descendantCapture.replaceRecords(records);
       _MorphDescendantSnapshots.attach(endpoint, capture: descendantCapture);
     }
     return endpoint;
   }
 
-  void _attachTarget() {
+  void _attachTargets() {
+    assert(widget.targets.isNotEmpty, 'Morph.targets must not be empty.');
+    assert(
+      widget.targets.toSet().length == widget.targets.length,
+      'Morph.targets must contain distinct target instances.',
+    );
     if (_MorphFlightScope.contains(context)) {
-      _detachTarget();
+      _detachTargets();
       return;
     }
-    if (identical(_attachedTarget, widget.target)) return;
-    _detachTarget();
-    widget.target._attach(this);
-    _attachedTarget = widget.target;
+    _attachedTargets = List.unmodifiable(widget.targets);
   }
 
-  void _detachTarget() {
-    _attachedTarget?._detach(this);
-    _attachedTarget = null;
+  void _detachTargets() {
+    _attachedTargets = const [];
   }
 
   void _attach() {
@@ -439,7 +442,7 @@ class _MorphState extends State<Morph> {
     _route = route;
     final endpoint = _MorphEndpointHandle(
       owner: this,
-      target: widget.target,
+      targets: _attachedTargets,
       visibility: _visibility,
       overlay: overlay,
       route: route,
@@ -482,77 +485,75 @@ class _MorphState extends State<Morph> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final previousEndpoint = _endpoint;
+    context.visitAncestorElements((element) {
+      if (element is InheritedElement && element.widget is InheritedTheme) {
+        context.dependOnInheritedElement(element);
+      }
+      return true;
+    });
+    _capturedEnvironment = _MorphCapturedEnvironment._(context);
+    // Preserve inherited themes before a departing element loses its ancestry.
+    _capturedEnvironment!
+      ..capturedThemes
+      ..mediaQueryData;
     _scopeEnabled = _MorphScope.enabledOf(context);
     if (_MorphFlightScope.contains(context)) {
-      _detachTarget();
+      _detachTargets();
       _detach();
       return;
     }
-    _attachTarget();
+    _attachTargets();
     _attach();
+    if (identical(previousEndpoint, _endpoint)) {
+      _endpoint?.captureChanged();
+    }
   }
 
   @override
   void didUpdateWidget(Morph oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _attachTarget();
+    final previousTargets = _attachedTargets;
+    _attachTargets();
+    final retainsTarget = _endpoint == null || _attachedTargets.contains(_endpoint!.target);
+    final replacesAppearance = !previousTargets.any(_attachedTargets.contains);
+    if (!replacesAppearance && !listEquals(previousTargets, _attachedTargets) && _endpoint != null) {
+      _MorphCoordinator.of(_endpoint!.overlay).updateTargets(_endpoint!, _attachedTargets);
+    }
     final oldDelegate = _resolvedFlightDelegate;
     _resolvedFlightDelegate = _resolveFlightDelegate(widget);
-    if (identical(oldWidget.target, widget.target) && oldDelegate.runtimeType != _resolvedFlightDelegate.runtimeType) {
+    _endpoint?.captureChanged();
+    if (retainsTarget && oldDelegate.runtimeType != _resolvedFlightDelegate.runtimeType) {
       final endpoint = _endpoint;
       if (endpoint != null) {
         endpoint.configurationChanged();
         final coordinator = _MorphCoordinator.of(endpoint.overlay);
-        if (identical(coordinator._groups[endpoint.tag]?.selected?.target, endpoint.target)) {
+        if (identical(coordinator._groups[endpoint.tag]?.selected, endpoint)) {
           coordinator._transferOwnershipImmediately(endpoint);
         }
       }
       return;
     }
-    if (identical(oldWidget.target, widget.target) && oldDelegate.runtimeType == _resolvedFlightDelegate.runtimeType) {
-      final endpoint = _endpoint;
-      final oldDuration = endpoint?.duration ?? oldWidget.duration ?? Morph._defaultDuration;
-      final oldCurve = endpoint?.curve ?? oldWidget.curve ?? Morph._defaultCurve;
-      endpoint?.configurationChanged();
-      if (endpoint != null) {
+    if (retainsTarget && oldDelegate.runtimeType == _resolvedFlightDelegate.runtimeType) {
+      _endpoint?.configurationChanged();
+      if (_endpoint case final endpoint?) {
         _MorphCoordinator.of(endpoint.overlay)._scheduleStructuralOrderRefresh();
-      }
-      final oldChildKey = oldWidget.child.key;
-      final newChildKey = widget.child.key;
-      final representsNewOwnership =
-          !identical(oldWidget.child, widget.child) &&
-          (oldChildKey == null || newChildKey == null || oldChildKey != newChildKey);
-      if (widget.animateChildChanges && endpoint != null && representsNewOwnership) {
-        _MorphCoordinator.of(endpoint.overlay).replaceFromState(
-          endpoint,
-          sourceCapture: () => _capture(
-            child: oldWidget.child,
-            flightDelegate: oldDelegate,
-          ),
-          sourceIdentity: (widget.target, oldChildKey ?? oldWidget.child),
-          destinationIdentity: (widget.target, newChildKey ?? widget.child),
-          sourceDelegate: oldDelegate,
-          duration: oldDuration,
-          curve: oldCurve,
-          watchDestination: oldWidget.watchDestination,
-          onStart: oldWidget.onStart,
-          onEnd: oldWidget.onEnd,
-        );
       }
       return;
     }
 
-    final departing = _endpoint;
-    if (departing != null) {
-      _MorphCoordinator.of(departing.overlay)._captureDeparture(departing);
+    if (replacesAppearance) {
+      final departing = _endpoint;
+      if (departing != null) _MorphCoordinator.of(departing.overlay)._captureDeparture(departing);
+      _detach();
+      _attach();
+    } else {
+      _endpoint?.configurationChanged();
     }
-    _detach();
-    _attach();
   }
 
   @override
   void deactivate() {
-    _attachedTarget?._detach(this);
     final endpoint = _endpoint;
     if (endpoint != null) {
       _MorphCoordinator.of(endpoint.overlay).deactivate(endpoint);
@@ -563,7 +564,6 @@ class _MorphState extends State<Morph> {
   @override
   void activate() {
     super.activate();
-    _attachedTarget?._attach(this);
     final endpoint = _endpoint;
     if (endpoint != null) {
       _MorphCoordinator.of(endpoint.overlay).activate(endpoint);
@@ -572,7 +572,7 @@ class _MorphState extends State<Morph> {
 
   @override
   void dispose() {
-    _detachTarget();
+    _detachTargets();
     _detach();
     _visibility.dispose();
     super.dispose();
@@ -582,7 +582,7 @@ class _MorphState extends State<Morph> {
   Widget build(BuildContext context) {
     final flightScope = _MorphFlightScope.scopeOf(context);
     if (flightScope != null) {
-      final hiddenByFlight = flightScope.hasFlight(widget.target.tag);
+      final hiddenByFlight = widget.targets.any(flightScope.hasFlight);
       return _MorphDescendantFlightScope(
         flightScope: flightScope,
         resolver: null,
@@ -603,6 +603,7 @@ class _MorphState extends State<Morph> {
       },
       onPaint: _rememberPaintedGeometry,
       onPresented: _rememberPresentation,
+      onSnapshotSuppressed: _invalidatePresentation,
       child: ValueListenableBuilder<bool>(
         valueListenable: visibility.tickersEnabled,
         builder: (context, tickersEnabled, child) {
@@ -623,5 +624,11 @@ class _MorphState extends State<Morph> {
       curve: endpoint.curve,
       child: endpointBoundary,
     );
+  }
+
+  void _invalidatePresentation() {
+    final endpoint = _endpoint;
+    if (endpoint == null || !endpoint.active || endpoint.disposed) return;
+    _MorphCoordinator.of(endpoint.overlay).endpointPresentationInvalidated(endpoint);
   }
 }

@@ -20,7 +20,7 @@ final class MorphChildFlightDelegate {
       rect: rect,
       axisScale: axisScale,
       switchThreshold: switchThreshold,
-      capturedEnvironment: _MorphCapturedEnvironment(context),
+      capturedEnvironment: _MorphCapturedEnvironment.of(context),
       renderObject: renderObject,
     );
   }

@@ -5,7 +5,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
+final _targets = <String, MorphTarget>{};
+
 void main() {
+  setUp(_targets.clear);
   group('Morph stacking', () {
     testWidgets(
       'when a lower destination registers after an overlapping foreground, it should preserve departing order during a route push',
@@ -86,7 +89,7 @@ void main() {
     );
 
     testWidgets(
-      'when keyed same-state endpoints reorder, it should preserve their departing order',
+      'when keyed appearances replace and reorder, it should preserve their departing order',
       (tester) async {
         const boundaryKey = ValueKey('same-state-order-boundary');
         var foregroundFirst = false;
@@ -207,33 +210,6 @@ void main() {
         );
       },
     );
-
-    testWidgets(
-      'when MorphSibling overlaps its ordered flight, it should remain above that flight',
-      (tester) async {
-        final navigatorKey = GlobalKey<NavigatorState>();
-        const boundaryKey = ValueKey('morph-sibling-boundary');
-        await _pumpApp(
-          tester,
-          navigatorKey: navigatorKey,
-          boundaryKey: boundaryKey,
-        );
-        navigatorKey.currentState!.push(
-          _route(
-            lazyBackground: true,
-            showMorphSibling: true,
-          ),
-        );
-        await tester.pump();
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 200));
-
-        expect(
-          await _centerPixel(tester, boundaryKey),
-          const Color(0xFF4CAF50),
-        );
-      },
-    );
   });
 }
 
@@ -285,7 +261,6 @@ void _configureView(WidgetTester tester) {
 PageRoute<void> _route({
   required bool lazyBackground,
   bool foregroundFirst = false,
-  bool showMorphSibling = false,
 }) {
   return PageRouteBuilder<void>(
     transitionDuration: const Duration(milliseconds: 400),
@@ -295,7 +270,6 @@ PageRoute<void> _route({
         lazyBackground: lazyBackground,
         foregroundFirst: foregroundFirst,
         generation: 1,
-        showMorphSibling: showMorphSibling,
       );
     },
   );
@@ -306,37 +280,22 @@ class _MorphLayerPage extends StatefulWidget {
     required this.lazyBackground,
     this.foregroundFirst = false,
     this.generation = 0,
-    this.showMorphSibling = false,
   });
 
   final bool lazyBackground;
   final bool foregroundFirst;
   final int generation;
-  final bool showMorphSibling;
 
   @override
   State<_MorphLayerPage> createState() => _MorphLayerPageState();
 }
 
 class _MorphLayerPageState extends State<_MorphLayerPage> {
-  final _morphTarget1 = MorphTarget(tag: 'foreground');
+  final MorphTarget _morphTarget1 = _targets.putIfAbsent('foreground', () => MorphTarget(tag: 'foreground'));
 
   @override
   Widget build(BuildContext context) {
     final children = widget.foregroundFirst ? [_foreground(), _background()] : [_background(), _foreground()];
-    if (widget.showMorphSibling) {
-      children.add(
-        Center(
-          child: MorphSibling(
-            target: _morphTarget1,
-            child: const ColoredBox(
-              color: Color(0xFF4CAF50),
-              child: SizedBox.square(dimension: 40),
-            ),
-          ),
-        ),
-      );
-    }
     return Scaffold(
       body: Stack(
         fit: StackFit.expand,
@@ -357,8 +316,9 @@ class _MorphLayerPageState extends State<_MorphLayerPage> {
   Widget _foreground() {
     return Center(
       child: Morph(
-        animateChildChanges: true,
-        target: _morphTarget1,
+        key: ValueKey<Object>(ValueKey(('foreground', widget.generation))),
+
+        targets: [_morphTarget1],
         child: ColoredBox(
           key: ValueKey(('foreground', widget.generation)),
           color: const Color(0xFFF44336),
@@ -379,20 +339,20 @@ class _NestedMorphPage extends StatefulWidget {
 }
 
 class _NestedMorphPageState extends State<_NestedMorphPage> {
-  final _morphTarget2 = MorphTarget(tag: 'nested-parent');
-  final _morphTarget3 = MorphTarget(tag: 'nested-child');
+  final MorphTarget _morphTarget2 = _targets.putIfAbsent('nested-parent', () => MorphTarget(tag: 'nested-parent'));
+  final MorphTarget _morphTarget3 = _targets.putIfAbsent('nested-child', () => MorphTarget(tag: 'nested-child'));
 
   @override
   Widget build(BuildContext context) {
     final parent = Morph(
-      animateChildChanges: true,
-      target: _morphTarget2,
+      targets: [_morphTarget2],
       child: ColoredBox(
         color: const Color(0xFF2196F3),
         child: Center(
           child: Morph(
-            animateChildChanges: true,
-            target: _morphTarget3,
+            key: ValueKey<Object>(ValueKey(widget.lazyParent)),
+
+            targets: [_morphTarget3],
             child: ColoredBox(
               key: ValueKey(widget.lazyParent),
               color: const Color(0xFFF44336),
@@ -422,24 +382,28 @@ class _ReorderedSameScreenPage extends StatefulWidget {
 }
 
 class _ReorderedSameScreenPageState extends State<_ReorderedSameScreenPage> {
-  final _morphTarget4 = MorphTarget(tag: 'same-state-background');
-  final _morphTarget5 = MorphTarget(tag: 'same-state-foreground');
+  final MorphTarget _morphTarget4 = _targets.putIfAbsent(
+    'same-state-background',
+    () => MorphTarget(tag: 'same-state-background'),
+  );
+  final MorphTarget _morphTarget5 = _targets.putIfAbsent(
+    'same-state-foreground',
+    () => MorphTarget(tag: 'same-state-foreground'),
+  );
 
   @override
   Widget build(BuildContext context) {
     final background = Morph(
-      animateChildChanges: true,
-      key: const ValueKey('same-state-background-morph'),
-      target: _morphTarget4,
+      key: ValueKey(('same-state-background-morph', widget.generation)),
+      targets: [_morphTarget4],
       child: ColoredBox(
         key: ValueKey(('same-state-background', widget.generation)),
         color: const Color(0xFF2196F3),
       ),
     );
     final foreground = Morph(
-      animateChildChanges: true,
-      key: const ValueKey('same-state-foreground-morph'),
-      target: _morphTarget5,
+      key: ValueKey(('same-state-foreground-morph', widget.generation)),
+      targets: [_morphTarget5],
       child: Center(
         key: ValueKey(('same-state-foreground', widget.generation)),
         child: const ColoredBox(
@@ -467,13 +431,14 @@ class _BackgroundMorph extends StatefulWidget {
 }
 
 class _BackgroundMorphState extends State<_BackgroundMorph> {
-  final _morphTarget6 = MorphTarget(tag: 'background');
+  final MorphTarget _morphTarget6 = _targets.putIfAbsent('background', () => MorphTarget(tag: 'background'));
 
   @override
   Widget build(BuildContext context) {
     return Morph(
-      animateChildChanges: true,
-      target: _morphTarget6,
+      key: ValueKey<Object>(ValueKey(('background', widget.generation))),
+
+      targets: [_morphTarget6],
       child: ColoredBox(
         key: ValueKey(('background', widget.generation)),
         color: const Color(0xFF2196F3),

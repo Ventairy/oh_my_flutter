@@ -12,7 +12,11 @@ class _MorphTransitionTestApp extends StatefulWidget {
 }
 
 class _MorphTransitionTestAppState extends State<_MorphTransitionTestApp> {
-  final _morphTarget1 = MorphTarget(tag: 'transition-animation');
+  final _morphTarget1 = MorphTarget(
+    tag: 'transition-animation',
+    duration: const Duration(milliseconds: 100),
+    curve: Curves.linear,
+  );
   final _morphObserver1 = MorphNavigatorObserver();
 
   bool _expanded = false;
@@ -26,10 +30,10 @@ class _MorphTransitionTestAppState extends State<_MorphTransitionTestApp> {
           Align(
             alignment: _expanded ? Alignment.bottomRight : Alignment.topLeft,
             child: Morph(
-              animateChildChanges: true,
-              target: _morphTarget1,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.linear,
+              key: ValueKey<Object>(ValueKey<bool>(_expanded)),
+
+              targets: [_morphTarget1],
+
               flightConfig: .auto(
                 childTransition: widget.transitionBuilder,
               ),
@@ -60,7 +64,11 @@ class _MorphTextSwitchTransitionTestApp extends StatefulWidget {
 }
 
 class _MorphTextSwitchTransitionTestAppState extends State<_MorphTextSwitchTransitionTestApp> {
-  final _morphTarget2 = MorphTarget(tag: 'text-switch-transition');
+  final _morphTarget2 = MorphTarget(
+    tag: 'text-switch-transition',
+    duration: const Duration(milliseconds: 100),
+    curve: Curves.linear,
+  );
   final _morphObserver1 = MorphNavigatorObserver();
 
   bool _showsDestination = false;
@@ -72,10 +80,10 @@ class _MorphTextSwitchTransitionTestAppState extends State<_MorphTextSwitchTrans
       home: Stack(
         children: [
           Morph(
-            animateChildChanges: true,
-            target: _morphTarget2,
-            duration: const Duration(milliseconds: 100),
-            curve: Curves.linear,
+            key: ValueKey(_showsDestination),
+
+            targets: [_morphTarget2],
+
             flightConfig: .auto(
               childTransition: (child, animation) {
                 return FadeTransition(
@@ -136,7 +144,10 @@ void main() {
   testWidgets(
     'when automatic Text keeps the same value, it should not apply the switch transition',
     (tester) async {
-      final morphTarget3 = MorphTarget(tag: 'same-text-switch-transition');
+      final morphTarget3 = MorphTarget(
+        tag: 'same-text-switch-transition',
+        duration: const Duration(milliseconds: 100),
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       var emphasized = false;
@@ -149,9 +160,10 @@ void main() {
             builder: (context, setState) {
               update = setState;
               return Morph(
-                animateChildChanges: true,
-                target: morphTarget3,
-                duration: const Duration(milliseconds: 100),
+                key: ValueKey(emphasized),
+
+                targets: [morphTarget3],
+
                 flightConfig: .auto(
                   childTransition: (child, animation) {
                     transitionBuilds += 1;

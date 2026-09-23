@@ -1,3 +1,5 @@
+// @dart = 3.12
+
 import 'package:pigeon/pigeon.dart';
 
 // Pigeon resolves types only from its input compilation unit, so this schema
@@ -77,7 +79,7 @@ enum AndroidDeviceLocationPermissionStatus {
 /// Carries Android coordinates across the package's platform channel.
 class AndroidDeviceCoordinates {
   /// Creates a coordinates message with horizontal accuracy.
-  new({
+  AndroidDeviceCoordinates({
     required this.latitude,
     required this.longitude,
     required this.accuracy,
@@ -96,7 +98,7 @@ class AndroidDeviceCoordinates {
 /// Carries an Android reverse-geocoding result across the platform channel.
 class AndroidDeviceLocationAddress {
   /// Creates a message with nullable device-supplied address components.
-  new({
+  AndroidDeviceLocationAddress({
     this.formattedAddress,
     this.name,
     this.street,

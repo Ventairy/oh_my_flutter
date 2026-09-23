@@ -21,6 +21,8 @@ class MorphNavigatorObserver extends NavigatorObserver {
   Route<Object?>? _arrivingRoute;
   _MorphNavigationRequest? _request;
   int _revision = 0;
+  MorphMatchOperation _arrivingOperation = .unknown;
+  MorphMatchOperation _returningOperation = .unknown;
   WeakReference<NavigatorState>? _initialNavigator;
   ModalRoute<Object?>? _gestureRoute;
   Route<Object?>? _gestureDestination;
@@ -30,8 +32,7 @@ class MorphNavigatorObserver extends NavigatorObserver {
   AnimationStatus _gestureStatus = AnimationStatus.completed;
   bool _gestureMoved = false;
 
-  final List<WeakReference<_MorphTagStatusListenable>> _tagStatusListeners = [];
-  final Set<_MorphTagStatusListenable> _subscribedTagStatuses = {};
+  final List<WeakReference<_MorphTargetStatusListenable>> _tagStatusListeners = [];
   final Map<Object, MorphTagStatus> _tagStatuses = {};
   final Map<Object, WeakReference<_MorphActiveFlight>> _tagFlights = {};
   bool _tagResolutionPending = false;
@@ -47,30 +48,12 @@ class MorphNavigatorObserver extends NavigatorObserver {
     return observers.length == 1 ? observers.single : null;
   }
 
-  /// Reads or watches the given [tag] status
-  ///
-  /// Read `.value` for the current status, or add a listener for changes. Remove
-  /// listeners when no longer needed; do not dispose the returned listenable.
-  /// Equal tags share a status on this observer. Queries do not start flights.
-  ///
-  /// Status follows the latest navigation on this Navigator. It starts at
-  /// [MorphTagStatus.idle], becomes pending during resolution, then reports an
-  /// unmatched result or the accepted flight's lifecycle. Terminal results stay
-  /// available until the next navigation. Local appearance changes are excluded.
-  /// Endpoints must be available during the destination's initial layout.
-  ///
-  /// Only unmatched selects a fallback; completion and cancellation must not
-  /// start another entrance or exit animation. Honor reduced motion separately.
-  /// See the [Morph guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/morph.md).
-  ValueListenable<MorphTagStatus> tagStatus(Object tag) {
-    _tagStatusListeners.removeWhere((reference) => reference.target == null);
-    for (final reference in _tagStatusListeners) {
-      final listenable = reference.target;
-      if (listenable != null && listenable.tag == tag) return listenable;
-    }
-    final listenable = _MorphTagStatusListenable(this, tag);
-    _tagStatusListeners.add(WeakReference(listenable));
-    return listenable;
+  void _trackTarget(MorphTarget target) {
+    final status = target._status;
+    if (identical(status._observer?.target, this)) return;
+    status._observer = WeakReference(this);
+    _tagStatusListeners.add(WeakReference(status));
+    _notifyTagStatus();
   }
 
   MorphTagStatus _tagStatusValue(Object tag) =>
@@ -88,7 +71,7 @@ class MorphNavigatorObserver extends NavigatorObserver {
       _tagNotificationScheduled = false;
       _tagStatusListeners.removeWhere((reference) => reference.target == null);
       for (final reference in List.of(_tagStatusListeners)) {
-        reference.target?.update();
+        reference.target?.update(this);
       }
     });
   }
@@ -191,30 +174,42 @@ class MorphNavigatorObserver extends NavigatorObserver {
       return true;
     }(), 'Record the Navigator observed from its creation.');
     _arrivingRoute = route;
+    _arrivingOperation = .push;
   }
 
   @override
   @mustCallSuper
   void didPop(Route<Object?> route, Route<Object?>? previousRoute) {
-    if (identical(route, _currentRoute)) _returningRoute = route;
+    if (!identical(route, _currentRoute)) return;
+    _returningRoute = route;
+    _returningOperation = .pop;
   }
 
   @override
   @mustCallSuper
   void didRemove(Route<Object?> route, Route<Object?>? previousRoute) {
-    if (identical(route, _currentRoute)) _returningRoute = route;
+    if (!identical(route, _currentRoute)) return;
+    _returningRoute = route;
+    _returningOperation = .remove;
   }
 
   @override
   @mustCallSuper
   void didReplace({Route<Object?>? newRoute, Route<Object?>? oldRoute}) {
-    if (identical(oldRoute, _currentRoute)) _arrivingRoute = newRoute;
+    if (!identical(oldRoute, _currentRoute)) return;
+    _arrivingRoute = newRoute;
+    _arrivingOperation = .replace;
   }
 
   @override
   @mustCallSuper
   void didChangeTop(Route<Object?> topRoute, Route<Object?>? previousTopRoute) {
     if (!_owns(topRoute)) return;
+    final operation = identical(topRoute, _arrivingRoute)
+        ? _arrivingOperation
+        : previousTopRoute != null && identical(previousTopRoute, _returningRoute)
+        ? _returningOperation
+        : MorphMatchOperation.unknown;
     final kind = !identical(topRoute, _arrivingRoute) && identical(previousTopRoute, _returningRoute)
         ? MorphFlightKind.routePop
         : MorphFlightKind.routePush;
@@ -230,6 +225,7 @@ class MorphNavigatorObserver extends NavigatorObserver {
       source: previousTopRoute,
       destination: topRoute,
       kind: kind,
+      operation: operation,
       revision: ++_revision,
     );
     _beginTagResolution();
@@ -269,6 +265,7 @@ class MorphNavigatorObserver extends NavigatorObserver {
       source: route,
       destination: _gestureDestination!,
       kind: MorphFlightKind.routePop,
+      operation: .pop,
       revision: ++_revision,
       preview: true,
     );

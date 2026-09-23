@@ -30,12 +30,11 @@ void main() {
       final morphTarget1 = MorphTarget(tag: 'default-curve');
 
       final morph = Morph(
-        animateChildChanges: true,
-        target: morphTarget1,
+        targets: [morphTarget1],
         child: const DecoratedBox(decoration: BoxDecoration()),
       );
 
-      expect(morph.curve, isNull);
+      expect(morph.targets.single.curve, isNull);
     });
 
     testWidgets('when building at rest, it should preserve the original decorated box', (tester) async {
@@ -47,8 +46,9 @@ void main() {
         MaterialApp(
           navigatorObservers: [morphObserver1],
           home: Morph(
-            animateChildChanges: true,
-            target: morphTarget2,
+            key: const ValueKey<Object>(ValueKey('decorated-box')),
+
+            targets: [morphTarget2],
             child: const DecoratedBox(
               key: ValueKey('decorated-box'),
               position: DecorationPosition.foreground,
@@ -64,7 +64,11 @@ void main() {
     });
 
     testWidgets('when a foreground decorated box flies, it should keep its decoration above its child', (tester) async {
-      final morphTarget3 = MorphTarget(tag: 'foreground-decorated-box');
+      final morphTarget3 = MorphTarget(
+        tag: 'foreground-decorated-box',
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.linear,
+      );
       final morphObserver1 = MorphNavigatorObserver();
 
       tester.view.devicePixelRatio = 1;
@@ -86,10 +90,10 @@ void main() {
                     child: SizedBox.square(
                       dimension: destination ? 140 : 80,
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget3,
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey(destination)),
+
+                        targets: [morphTarget3],
+
                         child: DecoratedBox(
                           key: ValueKey(destination),
                           position: DecorationPosition.foreground,

@@ -21,18 +21,13 @@ abstract final class MorphBenchmarkWorkloads {
     required MorphTarget target,
     required bool expanded,
     required MorphDescendantFlightBehavior behavior,
-    Duration duration = const Duration(milliseconds: 320),
     VoidCallback? onStart,
     VoidCallback? onEnd,
   }) {
     const liveScenario = MorphBenchmarkScenario.descendantLive;
     const snapshotScenario = MorphBenchmarkScenario.descendantSnapshot;
     const hideScenario = MorphBenchmarkScenario.descendantHide;
-    final scenario = switch (behavior) {
-      MorphDescendantFlightBehavior.live => liveScenario,
-      MorphDescendantFlightBehavior.snapshot => snapshotScenario,
-      MorphDescendantFlightBehavior.hide => hideScenario,
-    };
+    final scenario = behavior.isLive ? liveScenario : (behavior.usesSnapshot ? snapshotScenario : hideScenario);
     var alignment = const Alignment(-0.24, -0.62);
     var surfaceColor = const Color(0xFFFFF0E6);
     if (expanded) {
@@ -50,9 +45,9 @@ abstract final class MorphBenchmarkWorkloads {
     return Align(
       alignment: alignment,
       child: Morph(
-        animateChildChanges: true,
-        target: target,
-        duration: duration,
+        key: ValueKey(expanded),
+        targets: [target],
+
         onStart: onStart,
         onEnd: onEnd,
         child: Container(
@@ -82,31 +77,35 @@ abstract final class MorphBenchmarkWorkloads {
     required MorphTarget target,
     required bool expanded,
     bool registeredContent = false,
-    bool watchDestination = false,
     bool dynamicWatchedSnapshot = false,
     bool geometryOnlyWatchedSnapshot = false,
     bool nestedSnapshotFallback = false,
     ValueListenable<int>? surfaceChanges,
     CustomPainter? dirtySnapshotPainter,
     CustomPainter? unchangedSnapshotPainter,
-    Duration duration = const Duration(milliseconds: 320),
     VoidCallback? onStart,
     VoidCallback? onEnd,
   }) {
-    assert(!dynamicWatchedSnapshot || watchDestination, 'A dynamic watched snapshot must watch its destination.');
+    assert(
+      !dynamicWatchedSnapshot || target.watchDestination,
+      'A dynamic watched snapshot must watch its destination.',
+    );
     assert(
       !dynamicWatchedSnapshot || surfaceChanges != null,
       'A dynamic watched snapshot must declare geometry and pixel changes.',
     );
     assert(
-      !geometryOnlyWatchedSnapshot || watchDestination,
+      !geometryOnlyWatchedSnapshot || target.watchDestination,
       'A geometry-only watched snapshot must watch its destination.',
     );
     assert(
       !geometryOnlyWatchedSnapshot || surfaceChanges != null,
       'A geometry-only watched snapshot must declare geometry changes.',
     );
-    assert(!nestedSnapshotFallback || watchDestination, 'A nested snapshot fallback must watch its destination.');
+    assert(
+      !nestedSnapshotFallback || target.watchDestination,
+      'A nested snapshot fallback must watch its destination.',
+    );
     assert(
       <bool>[
             dynamicWatchedSnapshot,
@@ -117,7 +116,7 @@ abstract final class MorphBenchmarkWorkloads {
       'A watched snapshot workload must select only one mutation mode.',
     );
     var scenario = MorphBenchmarkScenario.descendantSnapshotDense;
-    if (watchDestination) {
+    if (target.watchDestination) {
       scenario = MorphBenchmarkScenario.watchSnapshotDense;
     }
     if (dynamicWatchedSnapshot) {
@@ -160,11 +159,10 @@ abstract final class MorphBenchmarkWorkloads {
           ? const MorphFlightConfig.custom(RegisteredDelegate())
           : const MorphFlightConfig.auto();
       return Morph(
-        animateChildChanges: true,
-        target: target,
-        duration: duration,
+        key: ValueKey(expanded),
+        targets: [target],
+
         flightConfig: flightConfig,
-        watchDestination: watchDestination,
         onStart: onStart,
         onEnd: onEnd,
         child: Container(
@@ -221,12 +219,11 @@ abstract final class MorphBenchmarkWorkloads {
     required ValueListenable<int> surfaceChanges,
     required CustomPainter dirtySnapshotPainter,
     required CustomPainter unchangedSnapshotPainter,
-    Duration duration = const Duration(milliseconds: 640),
     VoidCallback? onStart,
     VoidCallback? onEnd,
   }) {
     const scenario = MorphBenchmarkScenario.watchSnapshotFullSurface;
-    const snapshotBehavior = MorphDescendantFlightBehavior.snapshot;
+    const snapshotBehavior = MorphDescendantFlightBehavior.snapshot();
     return LayoutBuilder(
       builder: (context, constraints) {
         final maximumSize = constraints.biggest;
@@ -253,10 +250,8 @@ abstract final class MorphBenchmarkWorkloads {
             return Align(
               alignment: alignment,
               child: Morph(
-                animateChildChanges: true,
-                target: target,
-                duration: duration,
-                watchDestination: true,
+                key: ValueKey(expanded),
+                targets: [target],
                 onStart: onStart,
                 onEnd: onEnd,
                 child: Container(
@@ -322,6 +317,201 @@ abstract final class MorphBenchmarkWorkloads {
     );
   }
 
+  /// Builds a near-full-surface watched group with a moving footer.
+  static Widget watchedGroupKeyboard({
+    required MorphTarget target,
+    required bool showDestination,
+    required GroupLink sourceLink,
+    required GroupLink destinationLink,
+    required ValueListenable<int> surfaceChanges,
+    required CustomPainter dirtyGroupPainter,
+    required CustomPainter unchangedPainter,
+    required MorphFlightDelegate<({Size size, Widget snapshot})> sourceDelegate,
+    required MorphFlightDelegate<({Size size, Widget snapshot})> destinationDelegate,
+    VoidCallback? onStart,
+    VoidCallback? onEnd,
+  }) {
+    const scenario = MorphBenchmarkScenario.watchGroupKeyboard;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maximumSize = constraints.biggest;
+        var availableWidth = maximumSize.width;
+        if (!availableWidth.isFinite) availableWidth = 400.0;
+        var availableHeight = maximumSize.height;
+        if (!availableHeight.isFinite) availableHeight = 800.0;
+        return ValueListenableBuilder<int>(
+          valueListenable: surfaceChanges,
+          builder: (context, generation, child) {
+            final batch = generation ~/ scenario.snapshotMutationsPerBatch;
+            final width = math.max(1, availableWidth - 8).toDouble();
+            final height = math.max(1, availableHeight - 8).toDouble();
+            final phase = batch % 24;
+            final keyboardProgress = phase <= 12 ? phase / 12 : (24 - phase) / 12;
+            final footerBottom = 24.0 + keyboardProgress * 300;
+            return _fullSurfaceGroup(
+              scenario: scenario,
+              target: target,
+              showDestination: showDestination,
+              sourceLink: sourceLink,
+              destinationLink: destinationLink,
+              surfaceSize: Size(width, height),
+              footerBottom: (source: footerBottom, destination: footerBottom),
+              dirtyGroupPainter: dirtyGroupPainter,
+              unchangedPainter: unchangedPainter,
+              sourceDelegate: sourceDelegate,
+              destinationDelegate: destinationDelegate,
+              onStart: onStart,
+              onEnd: onEnd,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// Builds a near-full-surface group whose destination stays unchanged.
+  static Widget stationaryGroup({
+    required MorphTarget target,
+    required bool showDestination,
+    required GroupLink sourceLink,
+    required GroupLink destinationLink,
+    required CustomPainter dirtyGroupPainter,
+    required CustomPainter unchangedPainter,
+    required MorphFlightDelegate<({Size size, Widget snapshot})> sourceDelegate,
+    required MorphFlightDelegate<({Size size, Widget snapshot})> destinationDelegate,
+    VoidCallback? onStart,
+    VoidCallback? onEnd,
+  }) {
+    const scenario = MorphBenchmarkScenario.watchGroupStationary;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maximumSize = constraints.biggest;
+        var availableWidth = maximumSize.width;
+        if (!availableWidth.isFinite) availableWidth = 400.0;
+        var availableHeight = maximumSize.height;
+        if (!availableHeight.isFinite) availableHeight = 800.0;
+        return _fullSurfaceGroup(
+          scenario: scenario,
+          target: target,
+          showDestination: showDestination,
+          sourceLink: sourceLink,
+          destinationLink: destinationLink,
+          surfaceSize: Size(math.max(1, availableWidth - 8).toDouble(), math.max(1, availableHeight - 8).toDouble()),
+          footerBottom: const (source: 24, destination: 24),
+          dirtyGroupPainter: dirtyGroupPainter,
+          unchangedPainter: unchangedPainter,
+          sourceDelegate: sourceDelegate,
+          destinationDelegate: destinationDelegate,
+          onStart: onStart,
+          onEnd: onEnd,
+        );
+      },
+    );
+  }
+
+  static Widget _fullSurfaceGroup({
+    required MorphBenchmarkScenario scenario,
+    required MorphTarget target,
+    required bool showDestination,
+    required GroupLink sourceLink,
+    required GroupLink destinationLink,
+    required Size surfaceSize,
+    required ({double source, double destination}) footerBottom,
+    required CustomPainter dirtyGroupPainter,
+    required CustomPainter unchangedPainter,
+    required MorphFlightDelegate<({Size size, Widget snapshot})> sourceDelegate,
+    required MorphFlightDelegate<({Size size, Widget snapshot})> destinationDelegate,
+    VoidCallback? onStart,
+    VoidCallback? onEnd,
+  }) {
+    Widget endpoint({required bool destination}) {
+      final link = destination ? destinationLink : sourceLink;
+      final delegate = destination ? destinationDelegate : sourceDelegate;
+      final currentFooterBottom = destination ? footerBottom.destination : footerBottom.source;
+      return Morph(
+        key: ValueKey(destination),
+        targets: [target],
+        flightConfig: .custom(delegate),
+        onStart: onStart,
+        onEnd: onEnd,
+        child: SizedBox(
+          key: _endpointKey(scenario: scenario, child: 'surface', expanded: destination),
+          width: surfaceSize.width,
+          height: surfaceSize.height,
+          child: Stack(
+            children: <Widget>[
+              Positioned.fill(
+                child: Group(
+                  link: link,
+                  child: CustomPaint(
+                    foregroundPainter: dirtyGroupPainter,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8F9FF),
+                        borderRadius: BorderRadius.circular(destination ? 32 : 20),
+                      ),
+                      child: const Padding(
+                        padding: EdgeInsets.fromLTRB(24, 86, 24, 24),
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: Text(
+                            'Stable title and body content remain visible '
+                            'while the keyboard moves the footer.',
+                            style: TextStyle(color: Color(0xFF46516A), fontSize: 18, height: 1.35),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 24,
+                top: 24,
+                child: Group(
+                  link: link,
+                  zIndex: 1,
+                  child: const Text(
+                    'Add contact',
+                    style: TextStyle(color: Color(0xFF182033), fontSize: 28, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 24,
+                right: 24,
+                bottom: currentFooterBottom,
+                height: 56,
+                child: Group(
+                  link: link,
+                  zIndex: 2,
+                  child: const DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: Color(0xFF3057D5),
+                      borderRadius: BorderRadius.all(Radius.circular(18)),
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: CustomPaint(foregroundPainter: unchangedPainter, child: const SizedBox.square(dimension: 8)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Center(
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: <Widget>[endpoint(destination: false), if (showDestination) endpoint(destination: true)],
+      ),
+    );
+  }
+
   static Widget _denseSnapshotDescendant({
     required int index,
     required bool expanded,
@@ -355,7 +545,7 @@ abstract final class MorphBenchmarkWorkloads {
       height: expanded ? 36 : 30,
       child: MorphDescendant(
         key: ValueKey<int>(index),
-        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+        flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
         child: child,
       ),
     );
@@ -365,7 +555,6 @@ abstract final class MorphBenchmarkWorkloads {
   static Widget columnMatchedRawResize({
     required MorphTarget target,
     required bool expanded,
-    required Duration duration,
     VoidCallback? onStart,
     VoidCallback? onEnd,
   }) {
@@ -388,9 +577,9 @@ abstract final class MorphBenchmarkWorkloads {
       ),
     );
     final endpoint = Morph(
-      animateChildChanges: true,
-      target: target,
-      duration: duration,
+      key: ValueKey(expanded),
+      targets: [target],
+
       onStart: onStart,
       onEnd: onEnd,
       child: Column(
@@ -423,10 +612,8 @@ abstract final class MorphBenchmarkWorkloads {
   }) {
     const scenario = MorphBenchmarkScenario.nestedWatchHold;
     final nestedEndpoint = Morph(
-      animateChildChanges: true,
-      target: childTarget,
-      duration: nestedWatchChildDuration,
-      watchDestination: true,
+      key: ValueKey(expanded),
+      targets: [childTarget],
       child: Text(
         key: _endpointKey(scenario: scenario, child: 'nested-watched-text', expanded: expanded),
         expanded ? 'Destino observado em espera' : 'Origem observada',
@@ -459,9 +646,9 @@ abstract final class MorphBenchmarkWorkloads {
           ),
         );
         final endpoint = Morph(
-          animateChildChanges: true,
-          target: target,
-          duration: nestedWatchParentDuration,
+          key: ValueKey(expanded),
+          targets: [target],
+
           onStart: onStart,
           onEnd: onEnd,
           child: Container(

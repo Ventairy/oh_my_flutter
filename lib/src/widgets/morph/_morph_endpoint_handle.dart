@@ -3,13 +3,14 @@ part of 'morph.dart';
 class _MorphEndpointHandle {
   new({
     required this.owner,
-    required this.target,
+    required this.targets,
     required this.visibility,
     required this.overlay,
     required this.route,
     required this.observer,
     required this.parentEndpoint,
   }) {
+    target = targets.first;
     configurationChanged();
   }
 
@@ -20,19 +21,24 @@ class _MorphEndpointHandle {
   _MorphEndpointHandle? parentEndpoint;
 
   final MorphNavigatorObserver? observer;
-  final MorphTarget target;
+  List<MorphTarget> targets;
+  late MorphTarget target;
+  MorphTarget? preparedTarget;
 
-  Object get tag => target.tag;
+  Object get tag => target;
   late MorphFlightDelegate<Object?> delegate;
-  late Object childIdentity;
-  late Duration? configuredDuration;
-  late Duration duration;
-  late Curve curve;
-  late bool watchDestination;
+  Duration? get configuredDuration => target.duration ?? parentEndpoint?.configuredDuration;
+  Duration? get configuredReverseDuration =>
+      target.reverseDuration ?? target.duration ?? parentEndpoint?.configuredReverseDuration;
+  Duration get duration => configuredDuration ?? Morph._defaultDuration;
+  Duration get reverseDuration => configuredReverseDuration ?? Morph._defaultDuration;
+  Curve get curve => target.curve ?? parentEndpoint?.curve ?? Morph._defaultCurve;
+  Curve get reverseCurve => target.reverseCurve ?? target.curve ?? parentEndpoint?.reverseCurve ?? Morph._defaultCurve;
   VoidCallback? onStart;
   VoidCallback? onEnd;
   VoidCallback? onReceived;
-  MorphEndpoint<Object?>? cachedEndpoint;
+  MorphEndpoint<Object?>? _cachedEndpoint;
+  MorphTarget? _cachedTarget;
   bool captureFailed = false;
   _MorphDescendantCapture? _cachedGroupCapture;
   VoidCallback? _releaseCachedGroupPresentation;
@@ -44,8 +50,13 @@ class _MorphEndpointHandle {
     _cachedGroupCapture = null;
   }
 
-  Set<_MorphDescendantCapture> _departureCaptures = const {};
+  final Set<_MorphDescendantCapture> _departureCaptures = {};
+  final Map<MorphTarget, MorphEndpoint<Object?>> _departureEndpoints = {};
+  List<_MorphDescendantFlightRecord>? _departureRecords;
+  int? _departureDescendantRevision;
   int registrationOrder = 0;
+  bool alternativesResolved = false;
+  bool alternativeMatchAvailable = true;
   int? structuralOrder;
   int presentationGeneration = 0;
   bool presentationRequested = false;
@@ -55,11 +66,16 @@ class _MorphEndpointHandle {
   bool animationsDisabled = false;
 
   MorphEndpoint<Object?>? _sameFrameEndpoint;
+  MorphTarget? _sameFrameTarget;
   final List<_MorphDescendantHandle> _descendants = [];
   int _descendantRegistrationOrder = 0;
   int _descendantRevision = 0;
+  int _captureRevision = 0;
 
   int get descendantRevision => _descendantRevision;
+  int get captureRevision => _captureRevision;
+
+  void captureChanged() => _captureRevision += 1;
 
   bool get flightsEnabled => owner._scopeEnabled;
 
@@ -280,16 +296,8 @@ class _MorphEndpointHandle {
 
   void configurationChanged() {
     final widget = owner.widget;
-    assert(
-      Morph._debugValidateDuration(widget.duration),
-      'Morph duration must be valid.',
-    );
-    childIdentity = widget.child.key ?? widget.child;
     delegate = owner._resolvedFlightDelegate;
-    configuredDuration = widget.duration ?? parentEndpoint?.configuredDuration;
-    duration = configuredDuration ?? Morph._defaultDuration;
-    curve = widget.curve ?? parentEndpoint?.curve ?? Morph._defaultCurve;
-    watchDestination = widget.watchDestination;
+    visibility.setContentGroups(delegate.contentGroups);
     onStart = widget.onStart;
     onEnd = widget.onEnd;
     onReceived = widget.onReceived;
@@ -298,7 +306,7 @@ class _MorphEndpointHandle {
     }
   }
 
-  void _cacheCapture(MorphEndpoint<Object?> endpoint) {
+  void _cacheCapture(MorphTarget target, MorphEndpoint<Object?> endpoint) {
     final capture = _MorphDescendantSnapshots.captureOf(endpoint);
     final groupCapture = capture != null && capture.hasGroups ? capture : null;
     if (!identical(groupCapture, _cachedGroupCapture)) {
@@ -307,46 +315,69 @@ class _MorphEndpointHandle {
       _cachedGroupCapture = groupCapture;
       _releaseCachedGroupPresentation = groupCapture?.beginGroupPresentation(visibility);
     }
-    cachedEndpoint = endpoint;
+    _cachedEndpoint = endpoint;
+    _cachedTarget = target;
     _sameFrameEndpoint = endpoint;
+    _sameFrameTarget = target;
     scheduleMicrotask(() {
       if (identical(_sameFrameEndpoint, endpoint)) {
         _sameFrameEndpoint = null;
+        _sameFrameTarget = null;
       }
     });
   }
 
-  void captureDeparture() {
-    final capturedEndpoint = owner._captureLastPainted();
-    if (capturedEndpoint != null) {
-      final captures = _MorphDescendantSnapshots.capturesOf(capturedEndpoint);
-      for (final capture in captures) {
-        capture.retain();
-      }
-      releaseDeparture();
-      _departureCaptures = captures;
-      _cacheCapture(capturedEndpoint);
+  void _cacheWatchedEndpoint({
+    required MorphTarget target,
+    required MorphEndpoint<Object?> endpoint,
+  }) {
+    if (!active || disposed || !identical(this.target, target)) return;
+    _cacheCapture(target, endpoint);
+  }
+
+  void captureDeparture(MorphTarget candidate) {
+    // Only descendant pixels are shared across alternatives. The delegate still
+    // resolves each target's properties and group snapshots independently.
+    final sharedRecords = _departureRecords;
+    final capturedEndpoint = owner._captureLastPainted(
+      target: candidate,
+      departureRecords: sharedRecords,
+      departureDescendantRevision: _departureDescendantRevision,
+    );
+    if (capturedEndpoint == null) return;
+    final descendantCapture = _MorphDescendantSnapshots.captureOf(capturedEndpoint);
+    if (descendantCapture != null && !identical(descendantCapture.records, sharedRecords)) {
+      _departureRecords = descendantCapture.records;
+      _departureDescendantRevision = _descendantRevision;
     }
+    for (final capture in _MorphDescendantSnapshots.capturesOf(capturedEndpoint)) {
+      if (_departureCaptures.add(capture)) capture.retain();
+    }
+    _departureEndpoints[candidate] = capturedEndpoint;
+    if (identical(candidate, target)) _cacheCapture(candidate, capturedEndpoint);
   }
 
   void releaseDeparture() {
     for (final capture in _departureCaptures) {
       capture.release();
     }
-    _departureCaptures = const {};
+    _departureCaptures.clear();
+    _departureEndpoints.clear();
+    _departureRecords = null;
+    _departureDescendantRevision = null;
   }
 
-  MorphEndpoint<Object?>? capture({bool reuseSameFrame = false}) {
+  MorphEndpoint<Object?>? capture({required MorphTarget target, bool reuseSameFrame = false}) {
     final sameFrameEndpoint = _sameFrameEndpoint;
-    if (reuseSameFrame && sameFrameEndpoint != null) {
+    if (reuseSameFrame && identical(_sameFrameTarget, target) && sameFrameEndpoint != null) {
       return sameFrameEndpoint;
     }
     if (active && owner.mounted) {
-      final capturedEndpoint = owner._capture();
+      final capturedEndpoint = owner._capture(target: target);
       if (capturedEndpoint != null) {
-        _cacheCapture(capturedEndpoint);
+        _cacheCapture(target, capturedEndpoint);
       }
     }
-    return cachedEndpoint;
+    return identical(_cachedTarget, target) ? _cachedEndpoint : _departureEndpoints[target];
   }
 }

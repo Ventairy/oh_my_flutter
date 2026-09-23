@@ -47,7 +47,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
       renderObject: renderObject,
       axisScale: endpoint.axisScale,
       switchThreshold: switchThreshold,
-      capturedEnvironment: _MorphCapturedEnvironment(endpoint.context),
+      capturedEnvironment: _MorphCapturedEnvironment.of(endpoint.context),
       endpoint: endpoint,
     );
   }
@@ -66,7 +66,7 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
       renderObject: renderObject,
       axisScale: axisScale,
       switchThreshold: switchThreshold,
-      capturedEnvironment: _MorphCapturedEnvironment(context),
+      capturedEnvironment: _MorphCapturedEnvironment.of(context),
     );
   }
 
@@ -147,6 +147,16 @@ final class MorphColumnFlightDelegate extends MorphFlightDelegate<MorphColumnPro
     BuildContext context,
     MorphFlight<MorphColumnProperties> flight,
   ) {
+    if (flight._geometry != null) {
+      return AnimatedBuilder(
+        animation: flight.curvedAnimation,
+        builder: (context, child) => _buildProperties(
+          context,
+          flight.properties,
+          switchTransition: switchTransition,
+        ),
+      );
+    }
     if (switchTransition == null ||
         !MorphChildFlightDelegate._specializedTextChanges(
           flight.source.properties,

@@ -19,11 +19,13 @@ class _MorphTestApp extends StatefulWidget {
     required this.source,
     required this.destination,
     this.disableAnimations = false,
+    this.preserveAppearance = false,
   });
 
   final Widget source;
   final Widget destination;
   final bool disableAnimations;
+  final bool preserveAppearance;
 
   @override
   State<_MorphTestApp> createState() => _MorphTestAppState();
@@ -45,7 +47,12 @@ class _MorphTestAppState extends State<_MorphTestApp> {
             children: [
               Align(
                 alignment: _showDestination ? Alignment.bottomRight : Alignment.topLeft,
-                child: _showDestination ? widget.destination : widget.source,
+                child: widget.preserveAppearance
+                    ? (_showDestination ? widget.destination : widget.source)
+                    : KeyedSubtree(
+                        key: ValueKey(_showDestination),
+                        child: _showDestination ? widget.destination : widget.source,
+                      ),
               ),
               Align(
                 alignment: Alignment.topCenter,
@@ -76,7 +83,7 @@ class _RouteMorphTestApp extends StatefulWidget {
 
 class _RouteMorphTestAppState extends State<_RouteMorphTestApp> {
   final _morphTarget1 = MorphTarget(tag: 'route-shared');
-  final _morphTarget2 = MorphTarget(tag: 'route-shared');
+
   final _morphObserver1 = MorphNavigatorObserver();
 
   @override
@@ -88,7 +95,8 @@ class _RouteMorphTestAppState extends State<_RouteMorphTestApp> {
           body: Column(
             children: [
               Morph(
-                target: _morphTarget1,
+                key: const ValueKey('appearance-2506'),
+                targets: [_morphTarget1],
                 onStart: () => widget.events.add('source-start'),
                 onEnd: () => widget.events.add('source-end'),
                 onReceived: () => widget.events.add('source-received'),
@@ -110,7 +118,8 @@ class _RouteMorphTestAppState extends State<_RouteMorphTestApp> {
                           body: Align(
                             alignment: Alignment.bottomRight,
                             child: Morph(
-                              target: _morphTarget2,
+                              key: const ValueKey('appearance-3612'),
+                              targets: [_morphTarget1],
                               onStart: () => widget.events.add('destination-start'),
                               onEnd: () => widget.events.add('destination-end'),
                               onReceived: () => widget.events.add(
@@ -212,11 +221,13 @@ class _TimedRouteMorphTestApp extends StatefulWidget {
     required this.events,
     this.flights,
     this.curve = Curves.linear,
+    this.reverseCurve,
     this.routeCurve,
-    this.sourceDuration,
-    this.destinationDuration,
+    this.duration,
+    this.reverseDuration,
     this.sourceAncestorDuration,
     this.destinationAncestorDuration,
+    this.destinationAncestorReverseDuration,
     this.routeDuration = const Duration(milliseconds: 400),
     this.reverseRouteDuration = const Duration(milliseconds: 400),
     this.onRouteCreated,
@@ -226,11 +237,13 @@ class _TimedRouteMorphTestApp extends StatefulWidget {
   final List<String> events;
   final List<MorphFlight<_TestProperties>>? flights;
   final Curve curve;
+  final Curve? reverseCurve;
   final Curve? routeCurve;
-  final Duration? sourceDuration;
-  final Duration? destinationDuration;
+  final Duration? duration;
+  final Duration? reverseDuration;
   final Duration? sourceAncestorDuration;
   final Duration? destinationAncestorDuration;
+  final Duration? destinationAncestorReverseDuration;
   final Duration routeDuration;
   final Duration reverseRouteDuration;
   final ValueChanged<_ControllableMorphPageRoute>? onRouteCreated;
@@ -250,9 +263,20 @@ class _TimedRouteMorphTestAppState extends State<_TimedRouteMorphTestApp> {
   }) {
     final captures = <_TestProperties>[];
     final endpoint = Morph(
-      target: _morphTarget3.putIfAbsent(('timed-route-shared', source), () => MorphTarget(tag: 'timed-route-shared')),
-      duration: source ? widget.sourceDuration : widget.destinationDuration,
-      curve: widget.curve,
+      key: ValueKey<Object>(ValueKey(source ? 'timed-route-source' : 'timed-route-destination')),
+      targets: [
+        _morphTarget3.putIfAbsent(
+          'timed-route-shared',
+          () => MorphTarget(
+            tag: 'timed-route-shared',
+            duration: widget.duration,
+            reverseDuration: widget.reverseDuration,
+            curve: widget.curve,
+            reverseCurve: widget.reverseCurve,
+          ),
+        ),
+      ],
+
       flightConfig: .custom(
         _TestFlightDelegate(
           color,
@@ -272,13 +296,24 @@ class _TimedRouteMorphTestAppState extends State<_TimedRouteMorphTestApp> {
       ),
     );
     final ancestorDuration = source ? widget.sourceAncestorDuration : widget.destinationAncestorDuration;
-    if (ancestorDuration == null) return endpoint;
+    final ancestorReverseDuration = source ? null : widget.destinationAncestorReverseDuration;
+    if (ancestorDuration == null && ancestorReverseDuration == null) return endpoint;
     return Morph(
-      target: _morphTarget4.putIfAbsent((
-        source ? 'timed-route-source-ancestor' : 'timed-route-destination-ancestor',
-        source,
-      ), () => MorphTarget(tag: source ? 'timed-route-source-ancestor' : 'timed-route-destination-ancestor')),
-      duration: ancestorDuration,
+      key: const ValueKey('appearance-8507'),
+      targets: [
+        _morphTarget4.putIfAbsent(
+          (
+            source ? 'timed-route-source-ancestor' : 'timed-route-destination-ancestor',
+            source,
+          ),
+          () => MorphTarget(
+            tag: source ? 'timed-route-source-ancestor' : 'timed-route-destination-ancestor',
+            duration: ancestorDuration,
+            reverseDuration: ancestorReverseDuration,
+          ),
+        ),
+      ],
+
       child: endpoint,
     );
   }
@@ -462,8 +497,17 @@ class _RouteStartSynchronizationTestAppState extends State<_RouteStartSynchroniz
     VoidCallback? onReceived,
   }) {
     return Morph(
-      target: _morphTarget5.putIfAbsent(childKey, () => MorphTarget(tag: 'route-start-synchronization')),
-      curve: Curves.linear,
+      key: ValueKey<Object>(childKey),
+      targets: [
+        _morphTarget5.putIfAbsent(
+          const ValueKey('shared'),
+          () => MorphTarget(
+            tag: 'route-start-synchronization',
+            curve: Curves.linear,
+          ),
+        ),
+      ],
+
       flightConfig: .custom(
         _TestFlightDelegate(
           color,
@@ -651,8 +695,17 @@ class _HeldRouteMorphTestAppState extends State<_HeldRouteMorphTestApp> {
     VoidCallback? onStart,
   }) {
     return Morph(
-      target: _morphTarget6.putIfAbsent(childKey, () => MorphTarget(tag: 'held-route-synchronization')),
-      curve: Curves.linear,
+      key: ValueKey<Object>(childKey),
+      targets: [
+        _morphTarget6.putIfAbsent(
+          const ValueKey('shared'),
+          () => MorphTarget(
+            tag: 'held-route-synchronization',
+            curve: Curves.linear,
+          ),
+        ),
+      ],
+
       flightConfig: .custom(
         _TestFlightDelegate(
           color,
@@ -814,7 +867,6 @@ Widget _paintedMorphEndpoint({
   required Key childKey,
   required _PaintCounter paints,
   required MorphFlightDelegate<_TestProperties> flightDelegate,
-  Duration duration = const Duration(milliseconds: 400),
   String? semanticsLabel,
 }) {
   Widget child = CustomPaint(
@@ -827,9 +879,8 @@ Widget _paintedMorphEndpoint({
   }
   return Morph(
     key: endpointKey,
-    target: target,
-    duration: duration,
-    curve: Curves.linear,
+    targets: [target],
+
     flightConfig: .custom(flightDelegate),
     child: child,
   );
@@ -854,7 +905,7 @@ class _OwnershipRouteTestApp extends StatefulWidget {
 
 class _OwnershipRouteTestAppState extends State<_OwnershipRouteTestApp> {
   final _morphTarget8 = MorphTarget(tag: 'ownership-shared');
-  final _morphTarget9 = MorphTarget(tag: 'ownership-shared');
+
   final _morphObserver1 = MorphNavigatorObserver();
 
   Container _endpoint({
@@ -875,7 +926,8 @@ class _OwnershipRouteTestAppState extends State<_OwnershipRouteTestApp> {
 
   Widget _destination() {
     final destination = Morph(
-      target: _morphTarget8,
+      key: const ValueKey('appearance-25341'),
+      targets: [_morphTarget8],
       child: _endpoint(
         paints: widget.destinationPaints,
         color: Colors.blue,
@@ -913,7 +965,8 @@ class _OwnershipRouteTestAppState extends State<_OwnershipRouteTestApp> {
                 Align(
                   alignment: Alignment.topLeft,
                   child: Morph(
-                    target: _morphTarget9,
+                    key: const ValueKey('appearance-26443'),
+                    targets: [_morphTarget8],
                     child: _endpoint(
                       paints: widget.sourcePaints,
                       color: Colors.red,
@@ -977,7 +1030,7 @@ class _RebuildingRouteTestApp extends StatefulWidget {
 
 class _RebuildingRouteTestAppState extends State<_RebuildingRouteTestApp> {
   final _morphTarget10 = MorphTarget(tag: 'rebuild-shared');
-  final _morphTarget11 = MorphTarget(tag: 'rebuild-shared');
+
   final _morphObserver1 = MorphNavigatorObserver();
 
   @override
@@ -990,7 +1043,8 @@ class _RebuildingRouteTestAppState extends State<_RebuildingRouteTestApp> {
             body: Column(
               children: [
                 Morph(
-                  target: _morphTarget10,
+                  key: const ValueKey('appearance-29070'),
+                  targets: [_morphTarget10],
                   flightConfig: .custom(
                     _TestFlightDelegate(
                       Colors.red,
@@ -1016,7 +1070,8 @@ class _RebuildingRouteTestAppState extends State<_RebuildingRouteTestApp> {
                                 return Align(
                                   alignment: Alignment.bottomRight,
                                   child: Morph(
-                                    target: _morphTarget11,
+                                    key: const ValueKey('appearance-30377'),
+                                    targets: [_morphTarget10],
                                     flightConfig: .custom(
                                       _TestFlightDelegate(
                                         Colors.blue,
@@ -1072,9 +1127,12 @@ class _RetargetOwnershipTestApp extends StatefulWidget {
 }
 
 class _RetargetOwnershipTestAppState extends State<_RetargetOwnershipTestApp> {
-  final _paintedTarget1 = MorphTarget(tag: 'retarget-shared');
-  final _paintedTarget2 = MorphTarget(tag: 'retarget-shared');
-  final _paintedTarget3 = MorphTarget(tag: 'retarget-shared');
+  final _paintedTarget1 = MorphTarget(
+    tag: 'retarget-shared',
+    duration: const Duration(milliseconds: 400),
+    curve: Curves.linear,
+    watchDestination: true,
+  );
 
   final _morphObserver1 = MorphNavigatorObserver();
 
@@ -1103,7 +1161,7 @@ class _RetargetOwnershipTestAppState extends State<_RetargetOwnershipTestApp> {
                   Align(
                     alignment: Alignment.center,
                     child: _paintedMorphEndpoint(
-                      target: _paintedTarget2,
+                      target: _paintedTarget1,
                       endpointKey: const ValueKey(
                         'retarget-destination-endpoint',
                       ),
@@ -1117,7 +1175,7 @@ class _RetargetOwnershipTestAppState extends State<_RetargetOwnershipTestApp> {
                   Align(
                     alignment: Alignment.bottomRight,
                     child: _paintedMorphEndpoint(
-                      target: _paintedTarget3,
+                      target: _paintedTarget1,
                       endpointKey: const ValueKey('retarget-third-endpoint'),
                       childKey: const ValueKey('retarget-third-child'),
                       paints: widget.thirdPaints,
@@ -1159,9 +1217,11 @@ class _ThirdEndpointRouteTestApp extends StatefulWidget {
 }
 
 class _ThirdEndpointRouteTestAppState extends State<_ThirdEndpointRouteTestApp> {
-  final _paintedTarget4 = MorphTarget(tag: 'third-route-shared');
-  final _paintedTarget5 = MorphTarget(tag: 'third-route-shared');
-  final _paintedTarget6 = MorphTarget(tag: 'third-route-shared');
+  final _paintedTarget4 = MorphTarget(
+    tag: 'third-route-shared',
+    duration: const Duration(milliseconds: 400),
+    curve: Curves.linear,
+  );
 
   final _morphObserver1 = MorphNavigatorObserver();
 
@@ -1206,7 +1266,7 @@ class _ThirdEndpointRouteTestAppState extends State<_ThirdEndpointRouteTestApp> 
                                       Align(
                                         alignment: Alignment.center,
                                         child: _paintedMorphEndpoint(
-                                          target: _paintedTarget5,
+                                          target: _paintedTarget4,
                                           endpointKey: const ValueKey(
                                             'third-route-destination-endpoint',
                                           ),
@@ -1224,7 +1284,7 @@ class _ThirdEndpointRouteTestAppState extends State<_ThirdEndpointRouteTestApp> 
                                         Align(
                                           alignment: Alignment.bottomRight,
                                           child: _paintedMorphEndpoint(
-                                            target: _paintedTarget6,
+                                            target: _paintedTarget4,
                                             endpointKey: const ValueKey(
                                               'third-route-third-endpoint',
                                             ),
@@ -1299,15 +1359,17 @@ class _CrossRouteRetargetTestAppState extends State<_CrossRouteRetargetTestApp> 
     required _PaintCounter paints,
   }) {
     return _paintedMorphEndpoint(
-      target: _paintedTarget7.putIfAbsent((
-        'cross-route-retarget-shared',
-        endpointKey,
-        childKey,
-      ), () => MorphTarget(tag: 'cross-route-retarget-shared')),
+      target: _paintedTarget7.putIfAbsent(
+        'shared',
+        () => MorphTarget(
+          tag: 'cross-route-retarget-shared',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        ),
+      ),
       endpointKey: endpointKey,
       childKey: childKey,
       paints: paints,
-      duration: const Duration(milliseconds: 300),
       flightDelegate: _TestFlightDelegate(
         color,
         widget.captures,
@@ -1436,8 +1498,11 @@ class _SkippedRouteOwnershipTestApp extends StatefulWidget {
 }
 
 class _SkippedRouteOwnershipTestAppState extends State<_SkippedRouteOwnershipTestApp> {
-  final _paintedTarget8 = MorphTarget(tag: 'skipped-route-shared');
-  final _paintedTarget9 = MorphTarget(tag: 'skipped-route-shared');
+  final _paintedTarget8 = MorphTarget(
+    tag: 'skipped-route-shared',
+    duration: const Duration(milliseconds: 400),
+    curve: Curves.linear,
+  );
 
   final _morphObserver1 = MorphNavigatorObserver();
 
@@ -1480,7 +1545,7 @@ class _SkippedRouteOwnershipTestAppState extends State<_SkippedRouteOwnershipTes
                               child: Align(
                                 alignment: Alignment.bottomRight,
                                 child: _paintedMorphEndpoint(
-                                  target: _paintedTarget9,
+                                  target: _paintedTarget8,
                                   endpointKey: const ValueKey(
                                     'skipped-route-destination-endpoint',
                                   ),
@@ -1534,9 +1599,18 @@ class _SameScreenDuringRoutePopTestAppState extends State<_SameScreenDuringRoute
     required Key childKey,
   }) {
     return Morph(
-      target: _morphTarget12.putIfAbsent(childKey, () => MorphTarget(tag: 'same-screen-during-pop')),
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.linear,
+      key: ValueKey<Object>(childKey),
+      targets: [
+        _morphTarget12.putIfAbsent(
+          const ValueKey('shared'),
+          () => MorphTarget(
+            tag: 'same-screen-during-pop',
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.linear,
+          ),
+        ),
+      ],
+
       flightConfig: .custom(_TestFlightDelegate(color, widget.captures)),
       child: SizedBox.square(key: childKey, dimension: 48),
     );
@@ -1624,7 +1698,7 @@ class _DynamicReducedMotionRouteTestApp extends StatefulWidget {
 
 class _DynamicReducedMotionRouteTestAppState extends State<_DynamicReducedMotionRouteTestApp> {
   final _morphTarget13 = MorphTarget(tag: 'dynamic-reduced-route');
-  final _morphTarget14 = MorphTarget(tag: 'dynamic-reduced-route');
+
   final _morphObserver1 = MorphNavigatorObserver();
 
   @override
@@ -1654,7 +1728,8 @@ class _DynamicReducedMotionRouteTestAppState extends State<_DynamicReducedMotion
                   left: 24,
                   top: 96,
                   child: Morph(
-                    target: _morphTarget13,
+                    key: const ValueKey('appearance-54576'),
+                    targets: [_morphTarget13],
                     child: const Text(
                       'Reduced source',
                     ),
@@ -1680,7 +1755,8 @@ class _DynamicReducedMotionRouteTestAppState extends State<_DynamicReducedMotion
                               child: Align(
                                 alignment: Alignment.bottomRight,
                                 child: Morph(
-                                  target: _morphTarget14,
+                                  key: const ValueKey('appearance-55787'),
+                                  targets: [_morphTarget13],
                                   child: const Text(
                                     'Reduced destination',
                                   ),
@@ -1710,334 +1786,14 @@ class _DynamicReducedMotionRouteTestAppState extends State<_DynamicReducedMotion
 }
 
 void main() {
-  group('animateChildChanges', () {
-    test('when child animation is omitted, it should default to disabled', () {
-      expect(
-        Morph(
-          target: MorphTarget(tag: 'default'),
-          child: const SizedBox(),
-        ).animateChildChanges,
-        isFalse,
-      );
-    });
-
-    testWidgets('when the same child instance is retained, it should not animate a rebuild or flag change', (
-      tester,
-    ) async {
-      final target = MorphTarget(tag: 'same-child');
-      final observer = MorphNavigatorObserver();
-      final child = Container(width: 50, height: 50, color: Colors.red);
-      var enabled = true;
-      var starts = 0;
-      late StateSetter rebuild;
-      await tester.pumpWidget(
-        MaterialApp(
-          navigatorObservers: [observer],
-          home: StatefulBuilder(
-            builder: (context, setState) {
-              rebuild = setState;
-              return Center(
-                child: Morph(
-                  target: target,
-                  animateChildChanges: enabled,
-                  onStart: () => starts++,
-                  child: child,
-                ),
-              );
-            },
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      rebuild(() {});
-      await tester.pumpAndSettle();
-      rebuild(() => enabled = false);
-      await tester.pumpAndSettle();
-      rebuild(() => enabled = true);
-      await tester.pumpAndSettle();
-      expect(starts, 0);
-    });
-
-    for (final scenario in [
-      (
-        name: 'disabled unkeyed resize',
-        before: false,
-        after: false,
-        keyed: false,
-        stable: false,
-        resize: true,
-        flights: 0,
-      ),
-      (
-        name: 'disabled identical-looking rebuild',
-        before: false,
-        after: false,
-        keyed: false,
-        stable: false,
-        resize: false,
-        flights: 0,
-      ),
-      (name: 'disabled changed key', before: false, after: false, keyed: true, stable: false, resize: true, flights: 0),
-      (
-        name: 'enabled unkeyed resize',
-        before: true,
-        after: true,
-        keyed: false,
-        stable: false,
-        resize: true,
-        flights: 1,
-      ),
-      (name: 'enabled stable key', before: true, after: true, keyed: true, stable: true, resize: true, flights: 0),
-      (name: 'enabled changed key', before: true, after: true, keyed: true, stable: false, resize: true, flights: 1),
-      (
-        name: 'enabled with child update',
-        before: false,
-        after: true,
-        keyed: false,
-        stable: false,
-        resize: true,
-        flights: 1,
-      ),
-      (
-        name: 'disabled with child update',
-        before: true,
-        after: false,
-        keyed: false,
-        stable: false,
-        resize: true,
-        flights: 0,
-      ),
-    ]) {
-      testWidgets('when ${scenario.name}, it should honor the current child animation flag', (tester) async {
-        final target = MorphTarget(tag: 'child-changes');
-        final observer = MorphNavigatorObserver();
-        final captures = <_TestProperties>[];
-        var updated = false;
-        var starts = 0;
-        var ends = 0;
-        var received = 0;
-        late StateSetter rebuild;
-        await tester.pumpWidget(
-          MaterialApp(
-            navigatorObservers: [observer],
-            home: StatefulBuilder(
-              builder: (context, setState) {
-                rebuild = setState;
-                return Center(
-                  child: Morph(
-                    target: target,
-                    animateChildChanges: updated ? scenario.after : scenario.before,
-                    flightConfig: .custom(_TestFlightDelegate(Colors.red, captures)),
-                    onStart: () => starts++,
-                    onEnd: () => ends++,
-                    onReceived: () => received++,
-                    child: SizedBox.square(
-                      key: scenario.keyed ? ValueKey(!scenario.stable && updated) : null,
-                      dimension: updated && scenario.resize ? 100 : 50,
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        rebuild(() => updated = true);
-        await tester.pump();
-        await tester.pump();
-        final flights = _morphOverlay().evaluate().length;
-        final captured = captures.isNotEmpty;
-        await tester.pumpAndSettle();
-        expect(
-          (flights, starts, ends, received, captured, tester.getSize(find.byType(SizedBox).last).height),
-          (
-            scenario.flights,
-            scenario.flights,
-            scenario.flights,
-            scenario.flights,
-            scenario.flights != 0,
-            scenario.resize ? 100.0 : 50.0,
-          ),
-        );
-      });
-    }
-
-    for (final replace in [false, true]) {
-      testWidgets(
-        'when child changes are disabled and local appearances ${replace ? 'replace' : 'mount and unmount'}, it should transfer ownership',
-        (tester) async {
-          final source = MorphTarget(tag: 'local-disabled');
-          final destination = MorphTarget(tag: 'local-disabled');
-          final observer = MorphNavigatorObserver();
-          var showDestination = false;
-          var starts = 0;
-          late StateSetter rebuild;
-          await tester.pumpWidget(
-            MaterialApp(
-              navigatorObservers: [observer],
-              home: StatefulBuilder(
-                builder: (context, setState) {
-                  rebuild = setState;
-                  return Stack(
-                    children: [
-                      if (!replace || !showDestination)
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Morph(
-                            key: const ValueKey('source'),
-                            target: source,
-                            animateChildChanges: false,
-                            onStart: () => starts++,
-                            child: Container(width: 50, height: 50, color: Colors.red),
-                          ),
-                        ),
-                      if (showDestination)
-                        Align(
-                          alignment: Alignment.bottomRight,
-                          child: Morph(
-                            key: const ValueKey('destination'),
-                            target: destination,
-                            animateChildChanges: false,
-                            onStart: () => starts++,
-                            child: Container(width: 100, height: 100, color: Colors.blue),
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          );
-          await tester.pumpAndSettle();
-          rebuild(() => showDestination = true);
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 80));
-          final arrival = _morphOverlay().evaluate().length;
-          await tester.pumpAndSettle();
-          rebuild(() => showDestination = false);
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 80));
-          final departure = _morphOverlay().evaluate().length;
-          await tester.pumpAndSettle();
-          expect((arrival, departure, starts), (1, 1, 2));
-        },
-      );
-    }
-
-    testWidgets('when the child animation flag changes during a flight, it should finish the existing flight', (
-      tester,
-    ) async {
-      final target = MorphTarget(tag: 'active-child-change');
-      final observer = MorphNavigatorObserver();
-      var enabled = true;
-      var size = 50.0;
-      var starts = 0;
-      var ends = 0;
-      late StateSetter rebuild;
-      await tester.pumpWidget(
-        MaterialApp(
-          navigatorObservers: [observer],
-          home: StatefulBuilder(
-            builder: (context, setState) {
-              rebuild = setState;
-              return Center(
-                child: Morph(
-                  target: target,
-                  animateChildChanges: enabled,
-                  duration: const Duration(milliseconds: 300),
-                  onStart: () => starts++,
-                  onEnd: () => ends++,
-                  child: Container(width: size, height: size, color: Colors.red),
-                ),
-              );
-            },
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      rebuild(() => size = 100);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 80));
-      rebuild(() => enabled = false);
-      await tester.pump();
-      final active = _morphOverlay().evaluate().length;
-      await tester.pumpAndSettle();
-      expect((active, starts, ends), (1, 1, 1));
-    });
-
-    testWidgets('when child changes are disabled on matching routes, it should still push and pop', (tester) async {
-      final source = MorphTarget(tag: 'disabled-route');
-      final destination = MorphTarget(tag: 'disabled-route');
-      final observer = MorphNavigatorObserver();
-      final navigator = GlobalKey<NavigatorState>();
-      var starts = 0;
-      await tester.pumpWidget(
-        MaterialApp(
-          navigatorKey: navigator,
-          navigatorObservers: [observer],
-          home: Center(
-            child: Morph(
-              target: source,
-              animateChildChanges: false,
-              onStart: () => starts++,
-              child: Container(width: 50, height: 50, color: Colors.red),
-            ),
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      navigator.currentState!.push<void>(
-        MaterialPageRoute(
-          builder: (context) => Center(
-            child: Morph(
-              target: destination,
-              animateChildChanges: false,
-              onStart: () => starts++,
-              child: Container(width: 100, height: 100, color: Colors.blue),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 80));
-      final pushFlights = _morphOverlay().evaluate().length;
-      await tester.pumpAndSettle();
-      navigator.currentState!.pop();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 80));
-      final popFlights = _morphOverlay().evaluate().length;
-      await tester.pumpAndSettle();
-      expect((pushFlights, popFlights, starts), (1, 1, 2));
-    });
-  });
-
   group('Morph', () {
-    testWidgets(
-      'when duration is negative, it should reject mounting',
-      (tester) async {
-        final morphTarget15 = MorphTarget(tag: 'negative-duration');
-        final morphObserver1 = MorphNavigatorObserver();
-
-        await tester.pumpWidget(
-          MaterialApp(
-            navigatorObservers: [morphObserver1],
-            home: Morph(
-              target: morphTarget15,
-              duration: const Duration(milliseconds: -1),
-              child: const SizedBox(),
-            ),
-          ),
-        );
-
-        expect(tester.takeException(), isA<AssertionError>());
-      },
-    );
-
     testWidgets(
       'when no Morph supplies a duration, it should use 300 milliseconds',
       (tester) async {
-        final morphTarget16 = MorphTarget(tag: 'default-effective-duration');
-        final morphTarget17 = MorphTarget(tag: 'default-effective-duration');
+        final morphTarget16 = MorphTarget(
+          tag: 'default-effective-duration',
+          curve: Curves.linear,
+        );
 
         final captures = <_TestProperties>[];
         final animations = <Animation<double>>[];
@@ -2045,8 +1801,9 @@ void main() {
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget16,
-              curve: Curves.linear,
+              key: const ValueKey('appearance-57072'),
+              targets: [morphTarget16],
+
               flightConfig: .custom(
                 _TestFlightDelegate(
                   Colors.red,
@@ -2057,8 +1814,9 @@ void main() {
               child: const SizedBox.square(dimension: 48),
             ),
             destination: Morph(
-              target: morphTarget17,
-              curve: Curves.linear,
+              key: const ValueKey('appearance-57460'),
+              targets: [morphTarget16],
+
               flightConfig: .custom(
                 _TestFlightDelegate(
                   Colors.blue,
@@ -2086,19 +1844,22 @@ void main() {
       final morphTarget18 = MorphTarget(tag: 'default-curve');
 
       final morph = Morph(
-        target: morphTarget18,
+        key: const ValueKey('appearance-58334'),
+        targets: [morphTarget18],
         flightConfig: const .custom(_TestFlightDelegate(Colors.red, [])),
         child: const SizedBox.shrink(),
       );
 
-      expect(morph.curve, isNull);
+      expect(morph.targets.single.curve, isNull);
     });
 
     testWidgets(
       'when no Morph supplies a curve, it should use linear motion',
       (tester) async {
-        final morphTarget19 = MorphTarget(tag: 'default-effective-curve');
-        final morphTarget20 = MorphTarget(tag: 'default-effective-curve');
+        final morphTarget19 = MorphTarget(
+          tag: 'default-effective-curve',
+          duration: const Duration(milliseconds: 600),
+        );
 
         final captures = <_TestProperties>[];
         final animations = <Animation<double>>[];
@@ -2106,8 +1867,9 @@ void main() {
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget19,
-              duration: const Duration(milliseconds: 600),
+              key: const ValueKey('appearance-58990'),
+              targets: [morphTarget19],
+
               flightConfig: .custom(
                 _TestFlightDelegate(
                   Colors.red,
@@ -2118,8 +1880,9 @@ void main() {
               child: const SizedBox.square(dimension: 48),
             ),
             destination: Morph(
-              target: morphTarget20,
-              duration: const Duration(milliseconds: 600),
+              key: const ValueKey('appearance-59378'),
+              targets: [morphTarget19],
+
               flightConfig: .custom(
                 _TestFlightDelegate(
                   Colors.blue,
@@ -2147,7 +1910,6 @@ void main() {
       'when a delegate mutates its endpoint transform, it should not change the captured flight geometry',
       (tester) async {
         final morphTarget21 = MorphTarget(tag: 'defensive-endpoint-transform');
-        final morphTarget22 = MorphTarget(tag: 'defensive-endpoint-transform');
 
         final captures = <_TestProperties>[];
         final endpointTransforms = <Matrix4>[];
@@ -2162,12 +1924,14 @@ void main() {
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget21,
+              key: const ValueKey('appearance-60753'),
+              targets: [morphTarget21],
               flightConfig: .custom(delegate),
               child: const SizedBox.square(dimension: 48),
             ),
             destination: Morph(
-              target: morphTarget22,
+              key: const ValueKey('appearance-60963'),
+              targets: [morphTarget21],
               flightConfig: .custom(delegate),
               child: const SizedBox.square(dimension: 48),
             ),
@@ -2205,7 +1969,8 @@ void main() {
               builder: (context, setState) {
                 rebuild = setState;
                 return Morph(
-                  target: morphTarget23,
+                  key: const ValueKey('appearance-62291'),
+                  targets: [morphTarget23],
                   flightConfig: .custom(_TestFlightDelegate(Colors.red, captures)),
                   child: SizedBox.square(
                     key: const ValueKey('stable-child'),
@@ -2247,7 +2012,8 @@ void main() {
                   initialEntries: [
                     OverlayEntry(
                       builder: (context) => Morph(
-                        target: morphTarget24,
+                        key: const ValueKey('appearance-63717'),
+                        targets: [morphTarget24],
                         flightConfig: .custom(
                           _TestFlightDelegate(
                             Colors.red,
@@ -2276,8 +2042,12 @@ void main() {
       'when equal tags live in different Overlays, '
       'it should isolate ownership and flights to each nearest Overlay',
       (tester) async {
-        final morphTarget25 = MorphTarget(tag: 'overlay-isolated');
-        final morphTarget26 = MorphTarget(tag: 'overlay-isolated');
+        final morphTarget25 = MorphTarget(
+          tag: 'overlay-isolated',
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.linear,
+        );
+
         final morphObserver1 = MorphNavigatorObserver();
 
         final semantics = tester.ensureSemantics();
@@ -2302,10 +2072,10 @@ void main() {
                             valueListenable: leftGeneration,
                             builder: (context, generation, child) {
                               return Morph(
-                                animateChildChanges: true,
-                                target: morphTarget25,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.linear,
+                                key: ValueKey<Object>(ValueKey('left-$generation')),
+
+                                targets: [morphTarget25],
+
                                 child: Text(
                                   'Left $generation',
                                   key: ValueKey('left-$generation'),
@@ -2328,10 +2098,10 @@ void main() {
                             valueListenable: rightGeneration,
                             builder: (context, generation, child) {
                               return Morph(
-                                animateChildChanges: true,
-                                target: morphTarget26,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.linear,
+                                key: ValueKey<Object>(ValueKey('right-$generation')),
+
+                                targets: [morphTarget25],
+
                                 child: Text(
                                   'Right $generation',
                                   key: ValueKey('right-$generation'),
@@ -2412,7 +2182,7 @@ void main() {
       'when a same-screen flight starts, it should capture destination properties once',
       (tester) async {
         final morphTarget27 = MorphTarget(tag: 'same-screen-capture');
-        final morphTarget28 = MorphTarget(tag: 'same-screen-capture');
+
         final morphObserver1 = MorphNavigatorObserver();
 
         final captures = <_TestProperties>[];
@@ -2429,7 +2199,7 @@ void main() {
                     children: [
                       Morph(
                         key: const ValueKey('same-screen-source-endpoint'),
-                        target: morphTarget27,
+                        targets: [morphTarget27],
                         flightConfig: .custom(
                           _TestFlightDelegate(
                             Colors.red,
@@ -2446,7 +2216,7 @@ void main() {
                           key: const ValueKey(
                             'same-screen-destination-endpoint',
                           ),
-                          target: morphTarget28,
+                          targets: [morphTarget27],
                           flightConfig: .custom(
                             _TestFlightDelegate(
                               Colors.blue,
@@ -2483,7 +2253,7 @@ void main() {
       'when a match appears, it should capture the source properties from that frame',
       (tester) async {
         final morphTarget29 = MorphTarget(tag: 'fresh-live-source');
-        final morphTarget30 = MorphTarget(tag: 'fresh-live-source');
+
         final morphObserver1 = MorphNavigatorObserver();
 
         final captures = <_TestProperties>[];
@@ -2501,7 +2271,8 @@ void main() {
                   return Stack(
                     children: [
                       Morph(
-                        target: morphTarget29,
+                        key: const ValueKey('appearance-72672'),
+                        targets: [morphTarget29],
                         flightConfig: .custom(
                           _TestFlightDelegate(
                             value.color,
@@ -2513,7 +2284,7 @@ void main() {
                       if (value.showDestination)
                         Morph(
                           key: const ValueKey('fresh-live-destination'),
-                          target: morphTarget30,
+                          targets: [morphTarget29],
                           flightConfig: .custom(
                             _TestFlightDelegate(
                               Colors.blue,
@@ -2612,7 +2383,11 @@ void main() {
           MaterialApp(
             navigatorObservers: [morphObserver1],
             home: Scaffold(
-              body: Morph(target: morphTarget31, child: const Text('Resting')),
+              body: Morph(
+                key: const ValueKey('appearance-76554'),
+                targets: [morphTarget31],
+                child: const Text('Resting'),
+              ),
             ),
           ),
         );
@@ -2629,19 +2404,20 @@ void main() {
       'when ownership changes on one screen, it should report one completed flight',
       (tester) async {
         final morphTarget32 = MorphTarget(tag: 'shared');
-        final morphTarget33 = MorphTarget(tag: 'shared');
 
         final events = <String>[];
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget32,
+              key: const ValueKey('appearance-77201'),
+              targets: [morphTarget32],
               onStart: () => events.add('start'),
               onEnd: () => events.add('end'),
               child: const Text('Source'),
             ),
             destination: Morph(
-              target: morphTarget33,
+              key: const ValueKey('appearance-77444'),
+              targets: [morphTarget32],
               onReceived: () => events.add('received'),
               child: const Text('Destination'),
             ),
@@ -2674,8 +2450,9 @@ void main() {
                 rebuild = setState;
                 return Scaffold(
                   body: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget34,
+                    key: const ValueKey('appearance-78530'),
+
+                    targets: [morphTarget34],
                     onStart: () => events.add('start'),
                     child: Text(
                       'Generation $generation',
@@ -2713,8 +2490,9 @@ void main() {
                 rebuild = setState;
                 return Scaffold(
                   body: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget35,
+                    key: ValueKey<Object>(ValueKey('morph-child-$generation')),
+
+                    targets: [morphTarget35],
                     onStart: () => events.add('start'),
                     onEnd: () => events.add('end'),
                     onReceived: () => events.add('received'),
@@ -2742,7 +2520,6 @@ void main() {
       'when a Morph reattaches before its old endpoint purges, it should preserve paint ownership with the new handle',
       (tester) async {
         final paintedTarget10 = MorphTarget(tag: 'reattached-visibility');
-        final paintedTarget11 = MorphTarget(tag: 'reattached-visibility');
 
         final morphObserver1 = MorphNavigatorObserver();
 
@@ -2785,7 +2562,7 @@ void main() {
                               ),
                               if (visible)
                                 _paintedMorphEndpoint(
-                                  target: paintedTarget11,
+                                  target: paintedTarget10,
                                   endpointKey: const ValueKey(
                                     'reattached-destination-endpoint',
                                   ),
@@ -2852,7 +2629,8 @@ void main() {
                 return Scaffold(
                   body: visible
                       ? Morph(
-                          target: morphTarget36,
+                          key: const ValueKey('appearance-84890'),
+                          targets: [morphTarget36],
                           child: const Text('Purge source'),
                         )
                       : const SizedBox.shrink(),
@@ -2876,7 +2654,7 @@ void main() {
       'when an endpoint subtree is paint-hidden, it should pause tickers without changing layout, semantics, or input ownership',
       (tester) async {
         final morphTarget37 = MorphTarget(tag: 'ticker-ownership');
-        final morphTarget38 = MorphTarget(tag: 'ticker-ownership');
+
         final morphObserver1 = MorphNavigatorObserver();
 
         final semantics = tester.ensureSemantics();
@@ -2898,7 +2676,8 @@ void main() {
                   Align(
                     alignment: Alignment.topLeft,
                     child: Morph(
-                      target: morphTarget37,
+                      key: const ValueKey('appearance-86449'),
+                      targets: [morphTarget37],
                       flightConfig: .custom(
                         _TestFlightDelegate(
                           Colors.red,
@@ -2923,7 +2702,8 @@ void main() {
                   Align(
                     alignment: Alignment.bottomRight,
                     child: Morph(
-                      target: morphTarget38,
+                      key: const ValueKey('appearance-87508'),
+                      targets: [morphTarget37],
                       flightConfig: .custom(
                         _TestFlightDelegate(
                           Colors.blue,
@@ -2976,19 +2756,20 @@ void main() {
       'when reduced motion is enabled, it should transfer ownership without flight callbacks',
       (tester) async {
         final morphTarget39 = MorphTarget(tag: 'shared');
-        final morphTarget40 = MorphTarget(tag: 'shared');
 
         final events = <String>[];
         await tester.pumpWidget(
           _MorphTestApp(
             disableAnimations: true,
             source: Morph(
-              target: morphTarget39,
+              key: const ValueKey('appearance-89596'),
+              targets: [morphTarget39],
               onStart: () => events.add('start'),
               child: const Text('Source'),
             ),
             destination: Morph(
-              target: morphTarget40,
+              key: const ValueKey('appearance-89793'),
+              targets: [morphTarget39],
               onReceived: () => events.add('received'),
               child: const Text('Destination'),
             ),
@@ -3007,12 +2788,19 @@ void main() {
       'when ownership returns before settling, it should retarget and reveal the current endpoint',
       (tester) async {
         final morphTarget41 = MorphTarget(tag: 'shared');
-        final morphTarget42 = MorphTarget(tag: 'shared');
 
         await tester.pumpWidget(
           _MorphTestApp(
-            source: Morph(target: morphTarget41, child: const Text('Source')),
-            destination: Morph(target: morphTarget42, child: const Text('Destination')),
+            source: Morph(
+              key: const ValueKey('appearance-90478'),
+              targets: [morphTarget41],
+              child: const Text('Source'),
+            ),
+            destination: Morph(
+              key: const ValueKey('appearance-90582'),
+              targets: [morphTarget41],
+              child: const Text('Destination'),
+            ),
           ),
         );
         await tester.pumpAndSettle();
@@ -3072,7 +2860,7 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: const Duration(milliseconds: 200),
+            duration: const Duration(milliseconds: 200),
             routeDuration: const Duration(milliseconds: 800),
             onRouteCreated: (value) => route = value,
           ),
@@ -3116,7 +2904,7 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: const Duration(milliseconds: 800),
+            duration: const Duration(milliseconds: 800),
             routeDuration: const Duration(milliseconds: 300),
             onRouteCreated: (value) => route = value,
           ),
@@ -3151,6 +2939,234 @@ void main() {
             ),
             (0, 'source-start,destination-received,source-end'),
           ),
+        );
+      },
+    );
+
+    testWidgets(
+      'when only reverse timing is configured, it should keep the push on the route clock and own the pop clock',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            reverseDuration: const Duration(milliseconds: 200),
+            reverseCurve: Curves.easeIn,
+            routeDuration: const Duration(milliseconds: 800),
+            reverseRouteDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 210));
+        final push = (
+          route.animation!.value < 1,
+          _morphOverlay().evaluate().length,
+        );
+        await tester.pumpAndSettle();
+        animations.clear();
+
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('timed-route-destination')),
+          ),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        final popMidpoint = animations.single.value;
+        await tester.pump(const Duration(milliseconds: 110));
+        await tester.pump();
+        final pop = (
+          route.animation!.value > 0,
+          _morphOverlay().evaluate().isEmpty,
+        );
+        await tester.pumpAndSettle();
+
+        expect(
+          (
+            push,
+            (popMidpoint - Curves.easeIn.transform(0.5)).abs() < 0.01,
+            pop,
+          ),
+          ((true, 1), true, (true, true)),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a route-clock push is cancelled with reverse duration, it should continue on a Morph clock',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        final flights = <MorphFlight<_TestProperties>>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            flights: flights,
+            reverseDuration: const Duration(milliseconds: 400),
+            curve: Curves.easeIn,
+            reverseCurve: Curves.easeOut,
+            routeDuration: const Duration(milliseconds: 800),
+            reverseRouteDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        final flight = flights.single;
+        final reversalStart = (
+          curved: flight.curvedAnimation.value,
+          uncurved: flight.uncurvedAnimation.value,
+        );
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('timed-route-destination')),
+          ),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        final continuous = (flight.curvedAnimation.value - reversalStart.curved).abs() < 0.001;
+        await tester.pump(const Duration(milliseconds: 50));
+        final reverseElapsed = (reversalStart.uncurved - flight.uncurvedAnimation.value) / reversalStart.uncurved;
+        final expectedProgress = reversalStart.curved * (1 - Curves.easeOut.transform(reverseElapsed));
+        final usesReverseCurve = (flight.curvedAnimation.value - expectedProgress).abs() < 0.001;
+        await tester.pump(const Duration(milliseconds: 60));
+        await tester.pump();
+        final result = (
+          route.animation!.value > 0,
+          _morphOverlay().evaluate().isEmpty,
+          events.join(','),
+          continuous,
+          usesReverseCurve,
+        );
+        await tester.pumpAndSettle();
+
+        expect(result, (true, true, 'source-start', true, true));
+      },
+    );
+
+    testWidgets(
+      'when a route-clock push is cancelled with only a reverse curve, it should keep the route clock and use that curve',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        final flights = <MorphFlight<_TestProperties>>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            flights: flights,
+            curve: Curves.easeIn,
+            reverseCurve: Curves.easeOut,
+            routeDuration: const Duration(milliseconds: 800),
+            reverseRouteDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        final flight = flights.single;
+        final reversalStart = (
+          curved: flight.curvedAnimation.value,
+          uncurved: flight.uncurvedAnimation.value,
+        );
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('timed-route-destination')),
+          ),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        final reverseElapsed = (reversalStart.uncurved - flight.uncurvedAnimation.value) / reversalStart.uncurved;
+        final expectedProgress = reversalStart.curved * (1 - Curves.easeOut.transform(reverseElapsed));
+        final result = (
+          (flight.curvedAnimation.value - expectedProgress).abs() < 0.001,
+          route.animation!.value > 0,
+          _morphOverlay().evaluate().length,
+        );
+        await tester.pumpAndSettle();
+
+        expect(result, (true, true, 1));
+      },
+    );
+
+    testWidgets(
+      'when a Morph-clock pop is cancelled, it should use the forward duration without replacing its animations',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        final flights = <MorphFlight<_TestProperties>>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            flights: flights,
+            duration: const Duration(milliseconds: 800),
+            reverseDuration: const Duration(milliseconds: 200),
+            curve: Curves.easeIn,
+            reverseCurve: Curves.easeOut,
+            routeDuration: const Duration(milliseconds: 800),
+            reverseRouteDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pumpAndSettle();
+        flights.clear();
+
+        route.startPopGesture();
+        await tester.pump();
+        await tester.pump();
+        final flight = flights.single;
+        var notifications = 0;
+        void recordProgress() => notifications += 1;
+        flight.uncurvedAnimation.addListener(recordProgress);
+        await tester.pump(const Duration(milliseconds: 100));
+        final reverseStart = (
+          curved: flight.curvedAnimation.value,
+          uncurved: flight.uncurvedAnimation.value,
+        );
+        route.cancelPopGesture();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 210));
+        final forwardElapsed = (reverseStart.uncurved - flight.uncurvedAnimation.value) / reverseStart.uncurved;
+        final expectedProgress = reverseStart.curved * (1 - Curves.easeIn.transform(forwardElapsed));
+        final returning = (
+          _morphOverlay().evaluate().length,
+          flight.uncurvedAnimation.status,
+          notifications > 0,
+          (flight.curvedAnimation.value - expectedProgress).abs() < 0.001,
+        );
+        await tester.pump(const Duration(milliseconds: 210));
+        await tester.pump();
+        flight.uncurvedAnimation.removeListener(recordProgress);
+
+        expect(
+          (returning, _morphOverlay().evaluate().isEmpty),
+          ((1, AnimationStatus.reverse, true, true), true),
         );
       },
     );
@@ -3196,6 +3212,49 @@ void main() {
     );
 
     testWidgets(
+      'when a route Morph inherits reverse duration, it should use the inherited Morph clock for pop',
+      (tester) async {
+        final animations = <Animation<double>>[];
+        final events = <String>[];
+        late _ControllableMorphPageRoute route;
+        await tester.pumpWidget(
+          _TimedRouteMorphTestApp(
+            animations: animations,
+            events: events,
+            destinationAncestorReverseDuration: const Duration(milliseconds: 200),
+            routeDuration: const Duration(milliseconds: 800),
+            reverseRouteDuration: const Duration(milliseconds: 800),
+            onRouteCreated: (value) => route = value,
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('push-timed-route')));
+        await tester.pumpAndSettle();
+        animations.clear();
+
+        Navigator.of(
+          tester.element(
+            find.byKey(const ValueKey('timed-route-destination')),
+          ),
+        ).pop();
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        final midpoint = animations.single.value;
+        await tester.pump(const Duration(milliseconds: 110));
+        await tester.pump();
+        final result = (
+          (midpoint - 0.5).abs() < 0.001,
+          route.animation!.value > 0,
+          _morphOverlay().evaluate().isEmpty,
+        );
+        await tester.pumpAndSettle();
+
+        expect(result, (true, true, true));
+      },
+    );
+
+    testWidgets(
       'when the departing route duration is longer, it should keep the pop flight after route disposal',
       (tester) async {
         final animations = <Animation<double>>[];
@@ -3204,7 +3263,7 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: const Duration(milliseconds: 150),
+            sourceAncestorDuration: const Duration(milliseconds: 150),
             destinationAncestorDuration: const Duration(milliseconds: 800),
             routeDuration: const Duration(milliseconds: 300),
             reverseRouteDuration: const Duration(milliseconds: 300),
@@ -3255,7 +3314,7 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: const Duration(milliseconds: 300),
+            duration: const Duration(milliseconds: 300),
             routeDuration: Duration.zero,
           ),
         );
@@ -3287,7 +3346,7 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: Duration.zero,
+            duration: Duration.zero,
             routeDuration: const Duration(milliseconds: 800),
             onRouteCreated: (value) => route = value,
           ),
@@ -3326,8 +3385,8 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: const Duration(milliseconds: 100),
-            destinationDuration: Duration.zero,
+            sourceAncestorDuration: const Duration(milliseconds: 100),
+            destinationAncestorDuration: Duration.zero,
             routeDuration: const Duration(milliseconds: 800),
             reverseRouteDuration: const Duration(milliseconds: 800),
             onRouteCreated: (value) => route = value,
@@ -3393,8 +3452,8 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: const Duration(milliseconds: 150),
-            destinationDuration: const Duration(milliseconds: 150),
+            duration: const Duration(milliseconds: 150),
+
             reverseRouteDuration: const Duration(milliseconds: 800),
             onRouteCreated: (value) => route = value,
           ),
@@ -3434,7 +3493,7 @@ void main() {
       for (final popping in [false, true]) {
         testWidgets(
           'when a ${popping ? 'pop' : 'push'} reverses with ${duration == null ? 'route' : 'Morph'} timing, '
-          'it should keep both flight animations connected through cancellation',
+          'it should use each direction curve without replacing its animations',
           (tester) async {
             final animations = <Animation<double>>[];
             final events = <String>[];
@@ -3446,8 +3505,9 @@ void main() {
                 events: events,
                 flights: flights,
                 curve: Curves.easeIn,
-                sourceDuration: duration,
-                destinationDuration: duration,
+                reverseCurve: Curves.easeOut,
+                duration: duration,
+
                 routeDuration: const Duration(seconds: 1),
                 reverseRouteDuration: const Duration(seconds: 1),
                 onRouteCreated: (value) => route = value,
@@ -3496,12 +3556,19 @@ void main() {
             if (popping) route.cancelPopGesture();
             await tester.pumpAndSettle();
 
+            final outwardCurve = popping ? Curves.easeOut : Curves.easeIn;
+            final returnCurve = popping ? Curves.easeIn : Curves.easeOut;
+            final outwardProgress = outwardCurve.transform(0.4);
+            final returnProgress = outwardProgress * (1 - returnCurve.transform(0.25));
+            final resumedProgress =
+                returnProgress + (1 - returnProgress) * outwardCurve.transform((0.4 - 0.3) / (1 - 0.3));
+
             expect(
               [forward, reverse, resumed, curvedNotifications > 0, uncurvedNotifications > 0],
               [
-                [closeTo(Curves.easeIn.transform(0.4), 1e-6), closeTo(0.4, 1e-6)],
-                [closeTo(Curves.easeIn.transform(0.3), 1e-6), closeTo(0.3, 1e-6)],
-                [closeTo(Curves.easeIn.transform(0.4), 1e-6), closeTo(0.4, 1e-6)],
+                [closeTo(outwardProgress, 1e-6), closeTo(0.4, 1e-6)],
+                [closeTo(returnProgress, 1e-6), closeTo(0.3, 1e-6)],
+                [closeTo(resumedProgress, 1e-6), closeTo(0.4, 1e-6)],
                 true,
                 true,
               ],
@@ -3552,7 +3619,7 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: const Duration(milliseconds: 800),
+            duration: const Duration(milliseconds: 800),
             routeDuration: const Duration(milliseconds: 800),
             reverseRouteDuration: const Duration(milliseconds: 800),
           ),
@@ -3594,8 +3661,8 @@ void main() {
           _TimedRouteMorphTestApp(
             animations: animations,
             events: events,
-            sourceDuration: const Duration(milliseconds: 150),
-            destinationDuration: const Duration(milliseconds: 800),
+            sourceAncestorDuration: const Duration(milliseconds: 150),
+            destinationAncestorDuration: const Duration(milliseconds: 800),
             onRouteCreated: (value) => route = value,
           ),
         );
@@ -4171,19 +4238,20 @@ void main() {
       'when a retained compound flight repaints, it should contain dirty propagation within its local paint bounds',
       (tester) async {
         final morphTarget43 = MorphTarget(tag: 'retained-repaint-boundary');
-        final morphTarget44 = MorphTarget(tag: 'retained-repaint-boundary');
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget43,
+              key: const ValueKey('appearance-129415'),
+              targets: [morphTarget43],
               child: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [Text('Source')],
               ),
             ),
             destination: Morph(
-              target: morphTarget44,
+              key: const ValueKey('appearance-129663'),
+              targets: [morphTarget43],
               child: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -4223,8 +4291,11 @@ void main() {
     testWidgets(
       'when a retained Container flight paints a BoxShadow, it should include the shadow overflow in its paint bounds',
       (tester) async {
-        final morphTarget45 = MorphTarget(tag: 'retained-shadow-bounds');
-        final morphTarget46 = MorphTarget(tag: 'retained-shadow-bounds');
+        final morphTarget45 = MorphTarget(
+          tag: 'retained-shadow-bounds',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
 
         const shadow = BoxShadow(
           color: Colors.black,
@@ -4234,9 +4305,9 @@ void main() {
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget45,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-131393'),
+              targets: [morphTarget45],
+
               child: Container(
                 key: const ValueKey('shadow-source'),
                 width: 80,
@@ -4248,9 +4319,9 @@ void main() {
               ),
             ),
             destination: Morph(
-              target: morphTarget46,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-131829'),
+              targets: [morphTarget45],
+
               child: Container(
                 key: const ValueKey('shadow-destination'),
                 width: 140,
@@ -4588,16 +4659,17 @@ void main() {
       'when matching plain text children omit a delegate, it should use the optimized text flight',
       (tester) async {
         final morphTarget47 = MorphTarget(tag: 'automatic-text');
-        final morphTarget48 = MorphTarget(tag: 'automatic-text');
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget47,
+              key: const ValueKey('appearance-145007'),
+              targets: [morphTarget47],
               child: const Text('Source', style: TextStyle(fontSize: 16)),
             ),
             destination: Morph(
-              target: morphTarget48,
+              key: const ValueKey('appearance-145186'),
+              targets: [morphTarget47],
               child: const Text('Destination', style: TextStyle(fontSize: 24)),
             ),
           ),
@@ -4621,7 +4693,6 @@ void main() {
       'when automatic text is loosely constrained, it should capture its rendered endpoint width',
       (tester) async {
         final morphTarget49 = MorphTarget(tag: 'automatic-loose-text');
-        final morphTarget50 = MorphTarget(tag: 'automatic-loose-text');
 
         const sourceKey = ValueKey('automatic-loose-source');
         const destinationKey = ValueKey(
@@ -4630,11 +4701,13 @@ void main() {
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget49,
+              key: const ValueKey<Object>(sourceKey),
+              targets: [morphTarget49],
               child: const Text('Source', key: sourceKey),
             ),
             destination: Morph(
-              target: morphTarget50,
+              key: const ValueKey<Object>(destinationKey),
+              targets: [morphTarget49],
               child: const Text(
                 'A longer centered destination',
                 key: destinationKey,
@@ -4677,16 +4750,17 @@ void main() {
       'when automatic endpoints have different child types, it should switch the generic child at the threshold',
       (tester) async {
         final morphTarget51 = MorphTarget(tag: 'automatic-generic');
-        final morphTarget52 = MorphTarget(tag: 'automatic-generic');
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget51,
+              key: const ValueKey('appearance-148013'),
+              targets: [morphTarget51],
               child: const Text('Source'),
             ),
             destination: Morph(
-              target: morphTarget52,
+              key: const ValueKey('appearance-148160'),
+              targets: [morphTarget51],
               child: Container(
                 width: 80,
                 height: 80,
@@ -4734,14 +4808,14 @@ void main() {
       'when a generic flight advances, it should rebuild its child only at the switch threshold',
       (tester) async {
         final morphTarget53 = MorphTarget(tag: 'automatic-generic-builds');
-        final morphTarget54 = MorphTarget(tag: 'automatic-generic-builds');
 
         var sourceBuilds = 0;
         var destinationBuilds = 0;
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget53,
+              key: const ValueKey('appearance-149733'),
+              targets: [morphTarget53],
               child: Builder(
                 builder: (context) {
                   sourceBuilds += 1;
@@ -4753,7 +4827,8 @@ void main() {
               ),
             ),
             destination: Morph(
-              target: morphTarget54,
+              key: const ValueKey('appearance-150123'),
+              targets: [morphTarget53],
               child: Builder(
                 builder: (context) {
                   destinationBuilds += 1;
@@ -4799,8 +4874,10 @@ void main() {
         final captures = <_TestProperties>[];
         await tester.pumpWidget(
           _MorphTestApp(
+            preserveAppearance: true,
             source: Morph(
-              target: morphTarget55,
+              key: const ValueKey('appearance-151827'),
+              targets: [morphTarget55],
               flightConfig: .custom(
                 _TestFlightDelegate(
                   Colors.red,
@@ -4810,7 +4887,8 @@ void main() {
               child: const Text('Source'),
             ),
             destination: Morph(
-              target: morphTarget55,
+              key: const ValueKey('appearance-151827'),
+              targets: [morphTarget55],
               flightConfig: .custom(
                 _IncompatibleTestFlightDelegate(
                   Colors.blue,
@@ -4845,7 +4923,6 @@ void main() {
       'when a custom typed delegate captures a transform, it should expose the resolved scale',
       (tester) async {
         final morphTarget57 = MorphTarget(tag: 'custom');
-        final morphTarget58 = MorphTarget(tag: 'custom');
 
         final captures = <_TestProperties>[];
         await tester.pumpWidget(
@@ -4853,13 +4930,15 @@ void main() {
             source: Transform.scale(
               scale: 0.5,
               child: Morph(
-                target: morphTarget57,
+                key: const ValueKey('appearance-153379'),
+                targets: [morphTarget57],
                 flightConfig: .custom(_TestFlightDelegate(Colors.red, captures)),
                 child: const SizedBox.square(dimension: 40),
               ),
             ),
             destination: Morph(
-              target: morphTarget58,
+              key: const ValueKey('appearance-153645'),
+              targets: [morphTarget57],
               flightConfig: .custom(_TestFlightDelegate(Colors.blue, captures)),
               child: const SizedBox.square(dimension: 80),
             ),
@@ -4881,17 +4960,20 @@ void main() {
     testWidgets(
       'when a custom flight advances, it should position without an outer per-frame builder',
       (tester) async {
-        final morphTarget59 = MorphTarget(tag: 'render-positioned-custom');
-        final morphTarget60 = MorphTarget(tag: 'render-positioned-custom');
+        final morphTarget59 = MorphTarget(
+          tag: 'render-positioned-custom',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
 
         final captures = <_TestProperties>[];
         final flights = <MorphFlight<_TestProperties>>[];
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget59,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-154673'),
+              targets: [morphTarget59],
+
               flightConfig: .custom(
                 _TestFlightDelegate(
                   Colors.red,
@@ -4902,9 +4984,9 @@ void main() {
               child: const SizedBox.square(dimension: 40),
             ),
             destination: Morph(
-              target: morphTarget60,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-155070'),
+              targets: [morphTarget59],
+
               flightConfig: .custom(
                 _TestFlightDelegate(
                   Colors.blue,
@@ -4972,13 +5054,16 @@ void main() {
         final captures = <_TestProperties>[];
         final flightPaints = _PaintCounter();
         addTearDown(flightPaints.dispose);
+        final morphTarget61 = MorphTarget(
+          tag: 'static-custom-layer',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         Morph endpoint(Color color) {
-          final morphTarget61 = MorphTarget(tag: 'static-custom-layer');
-
           return Morph(
-            target: morphTarget61,
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.linear,
+            key: ValueKey<Object>(ValueKey<int>(color.toARGB32())),
+            targets: [morphTarget61],
+
             flightConfig: .custom(
               _TestFlightDelegate(
                 color,
@@ -5063,7 +5148,7 @@ void main() {
       'when a detached source changed since mounting, it should capture its last painted properties and transform',
       (tester) async {
         final morphTarget62 = MorphTarget(tag: 'changed-detached-source');
-        final morphTarget63 = MorphTarget(tag: 'changed-detached-source');
+
         final morphObserver1 = MorphNavigatorObserver();
 
         final captures = <_TestProperties>[];
@@ -5080,7 +5165,8 @@ void main() {
                 builder: (context, value, child) {
                   if (value.showDestination) {
                     return Morph(
-                      target: morphTarget62,
+                      key: const ValueKey('appearance-161733'),
+                      targets: [morphTarget62],
                       flightConfig: .custom(
                         _TestFlightDelegate(
                           Colors.blue,
@@ -5093,7 +5179,8 @@ void main() {
                   return Transform.scale(
                     scale: value.scale,
                     child: Morph(
-                      target: morphTarget63,
+                      key: const ValueKey('appearance-162241'),
+                      targets: [morphTarget62],
                       flightConfig: .custom(
                         _TestFlightDelegate(
                           value.color,
@@ -5135,7 +5222,11 @@ void main() {
     testWidgets(
       'when a resting endpoint is reparented, it should capture geometry from its current ancestry',
       (tester) async {
-        final morphTarget64 = MorphTarget(tag: 'reparented-geometry');
+        final morphTarget64 = MorphTarget(
+          tag: 'reparented-geometry',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         final stage = ValueNotifier<int>(0);
@@ -5151,11 +5242,9 @@ void main() {
                 valueListenable: stage,
                 builder: (context, value, child) {
                   final endpoint = Morph(
-                    animateChildChanges: true,
-                    key: endpointKey,
-                    target: morphTarget64,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.linear,
+                    key: value == 2 ? const ValueKey('new-appearance') : endpointKey,
+                    targets: [morphTarget64],
+
                     flightConfig: .custom(
                       _TestFlightDelegate(
                         value == 2 ? Colors.blue : Colors.red,
@@ -5213,14 +5302,17 @@ void main() {
         final animations = <Animation<double>>[];
         final flightTransforms = <({Matrix4 source, Matrix4 destination})>[];
         addTearDown(stage.dispose);
+        final morphTarget65 = MorphTarget(
+          tag: 'sampled-transform-retarget',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         Widget endpoint({
           required String id,
           required double left,
           required double scale,
           required Color color,
         }) {
-          final morphTarget65 = MorphTarget(tag: 'sampled-transform-retarget');
-
           return Positioned(
             left: left,
             top: 96,
@@ -5229,9 +5321,8 @@ void main() {
               alignment: Alignment.topLeft,
               child: Morph(
                 key: ValueKey('sampled-transform-$id'),
-                target: morphTarget65,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.linear,
+                targets: [morphTarget65],
+
                 flightConfig: .custom(
                   _TestFlightDelegate(
                     color,
@@ -5315,11 +5406,11 @@ void main() {
       (tester) async {
         final captures = <_TestProperties>[];
         final animations = <Animation<double>>[];
+        final morphTarget66 = <Object, MorphTarget>{};
         Widget endpoint(String suffix, Color color, String phase) {
-          final morphTarget66 = <Object, MorphTarget>{};
-
           return Morph(
-            target: morphTarget66.putIfAbsent('shared-$suffix', () => MorphTarget(tag: 'shared-$suffix')),
+            key: ValueKey<Object>(ValueKey('$suffix-$phase')),
+            targets: [morphTarget66.putIfAbsent('shared-$suffix', () => MorphTarget(tag: 'shared-$suffix'))],
             flightConfig: .custom(
               _TestFlightDelegate(
                 color,
@@ -5372,8 +5463,9 @@ void main() {
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              animateChildChanges: true,
-              target: morphTarget67,
+              key: const ValueKey<Object>(ValueKey('throwing-capture-source')),
+
+              targets: [morphTarget67],
               flightConfig: .custom(
                 _ThrowingTestFlightDelegate(
                   Colors.red,
@@ -5387,8 +5479,9 @@ void main() {
               ),
             ),
             destination: Morph(
-              animateChildChanges: true,
-              target: morphTarget67,
+              key: const ValueKey<Object>(ValueKey('throwing-capture-destination')),
+
+              targets: [morphTarget67],
               flightConfig: .custom(
                 _ThrowingTestFlightDelegate(
                   Colors.blue,
@@ -5425,13 +5518,13 @@ void main() {
       'when target replacement source properties throw, it should report the error and reveal the destination without a flight',
       (tester) async {
         final sourceTarget = MorphTarget(tag: 'throwing-target-capture');
-        final destinationTarget = MorphTarget(tag: 'throwing-target-capture');
 
         final captures = <_TestProperties>[];
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: sourceTarget,
+              key: const ValueKey<Object>(ValueKey('throwing-capture-source')),
+              targets: [sourceTarget],
               flightConfig: .custom(
                 _ThrowingTestFlightDelegate(
                   Colors.red,
@@ -5445,7 +5538,8 @@ void main() {
               ),
             ),
             destination: Morph(
-              target: destinationTarget,
+              key: const ValueKey<Object>(ValueKey('throwing-capture-destination')),
+              targets: [sourceTarget],
               flightConfig: .custom(
                 _ThrowingTestFlightDelegate(
                   Colors.blue,
@@ -5479,23 +5573,105 @@ void main() {
     );
 
     testWidgets(
+      'when a terminal watched capture stays unavailable, it should hand off to the live endpoint',
+      (tester) async {
+        final target = MorphTarget(
+          tag: 'terminal-watched-capture-failure',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+          watchDestination: true,
+        );
+        final captures = <_TestProperties>[];
+        final captureErrors = <FlutterErrorDetails>[];
+        final previousOnError = FlutterError.onError;
+        FlutterError.onError = captureErrors.add;
+        addTearDown(() => FlutterError.onError = previousOnError);
+        var destination = false;
+        var destinationWidth = 80.0;
+        var throwOnCapture = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorObservers: [MorphNavigatorObserver()],
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Align(
+                    alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
+                    child: Morph(
+                      key: ValueKey(destination),
+                      targets: [target],
+                      flightConfig: .custom(
+                        _ThrowingTestFlightDelegate(
+                          destination ? Colors.blue : Colors.red,
+                          captures,
+                          throwOnCapture: destination && throwOnCapture,
+                        ),
+                      ),
+                      child: SizedBox(
+                        key: const ValueKey('terminal-watched-capture-endpoint'),
+                        width: destination ? destinationWidth : 40,
+                        height: destination ? 80 : 40,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        update(() => destination = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        update(() {
+          destinationWidth = 120;
+          throwOnCapture = true;
+        });
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 150));
+        for (var frame = 0; frame < 4; frame += 1) {
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+
+        FlutterError.onError = previousOnError;
+        expect(
+          (
+            captureErrors.length,
+            captureErrors.single.exception is StateError,
+            _morphOverlay().evaluate().length,
+            tester.getSize(find.byKey(const ValueKey('terminal-watched-capture-endpoint'))),
+          ),
+          (1, true, 0, const Size(120, 80)),
+        );
+      },
+    );
+
+    testWidgets(
       'when an overlay unmounts during an active same-screen flight, it should dispose the flight before the overlay',
       (tester) async {
-        final morphTarget69 = MorphTarget(tag: 'unmount-active-flight');
-        final morphTarget70 = MorphTarget(tag: 'unmount-active-flight');
+        final morphTarget69 = MorphTarget(
+          tag: 'unmount-active-flight',
+          duration: const Duration(seconds: 1),
+          curve: Curves.linear,
+        );
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget69,
-              duration: const Duration(seconds: 1),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-175513'),
+              targets: [morphTarget69],
+
               child: const Text('Unmount source'),
             ),
             destination: Morph(
-              target: morphTarget70,
-              duration: const Duration(seconds: 1),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-175698'),
+              targets: [morphTarget69],
+
               child: const Text('Unmount destination'),
             ),
           ),
@@ -5517,22 +5693,25 @@ void main() {
     testWidgets(
       'when onStart throws, it should still reveal an endpoint and remove the flight overlay',
       (tester) async {
-        final morphTarget71 = MorphTarget(tag: 'throwing-start');
-        final morphTarget72 = MorphTarget(tag: 'throwing-start');
+        final morphTarget71 = MorphTarget(
+          tag: 'throwing-start',
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.linear,
+        );
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget71,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-176711'),
+              targets: [morphTarget71],
+
               onStart: () => throw StateError('start failed'),
               child: const Text('Throwing start source'),
             ),
             destination: Morph(
-              target: morphTarget72,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-176966'),
+              targets: [morphTarget71],
+
               child: const Text(
                 'Throwing start destination',
               ),
@@ -5562,21 +5741,24 @@ void main() {
     testWidgets(
       'when onReceived throws, it should still remove the settled flight overlay',
       (tester) async {
-        final morphTarget73 = MorphTarget(tag: 'throwing-receive');
-        final morphTarget74 = MorphTarget(tag: 'throwing-receive');
+        final morphTarget73 = MorphTarget(
+          tag: 'throwing-receive',
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.linear,
+        );
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget73,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-178161'),
+              targets: [morphTarget73],
+
               child: const Text('Throwing receive source'),
             ),
             destination: Morph(
-              target: morphTarget74,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-178355'),
+              targets: [morphTarget73],
+
               onReceived: () => throw StateError('receive failed'),
               child: const Text(
                 'Throwing receive destination',
@@ -5606,22 +5788,25 @@ void main() {
     testWidgets(
       'when onEnd throws, it should still remove the settled flight overlay',
       (tester) async {
-        final morphTarget75 = MorphTarget(tag: 'throwing-end');
-        final morphTarget76 = MorphTarget(tag: 'throwing-end');
+        final morphTarget75 = MorphTarget(
+          tag: 'throwing-end',
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.linear,
+        );
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget75,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-179539'),
+              targets: [morphTarget75],
+
               onEnd: () => throw StateError('end failed'),
               child: const Text('Throwing end source'),
             ),
             destination: Morph(
-              target: morphTarget76,
-              duration: const Duration(milliseconds: 100),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-179788'),
+              targets: [morphTarget75],
+
               child: const Text('Throwing end destination'),
             ),
           ),
@@ -5648,8 +5833,11 @@ void main() {
     testWidgets(
       'when a retained Column contains a shadowed Container, its local paint bounds should include the nested shadow',
       (tester) async {
-        final morphTarget77 = MorphTarget(tag: 'retained-nested-shadow-bounds');
-        final morphTarget78 = MorphTarget(tag: 'retained-nested-shadow-bounds');
+        final morphTarget77 = MorphTarget(
+          tag: 'retained-nested-shadow-bounds',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
 
         const shadow = BoxShadow(
           color: Colors.black,
@@ -5659,9 +5847,9 @@ void main() {
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget77,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-181062'),
+              targets: [morphTarget77],
+
               child: Column(
                 key: const ValueKey('nested-shadow-source-column'),
                 mainAxisSize: MainAxisSize.min,
@@ -5679,9 +5867,9 @@ void main() {
               ),
             ),
             destination: Morph(
-              target: morphTarget78,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              key: const ValueKey('appearance-181742'),
+              targets: [morphTarget77],
+
               child: Column(
                 key: const ValueKey('nested-shadow-destination-column'),
                 mainAxisSize: MainAxisSize.min,
@@ -5728,8 +5916,11 @@ void main() {
     testWidgets(
       'when a retained Column paints a nested Container shadow, it should not clip the shadow to the child layout rect',
       (tester) async {
-        final morphTarget79 = MorphTarget(tag: 'retained-nested-shadow-paint');
-        final morphTarget80 = MorphTarget(tag: 'retained-nested-shadow-paint');
+        final morphTarget79 = MorphTarget(
+          tag: 'retained-nested-shadow-paint',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
 
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetDevicePixelRatio);
@@ -5740,9 +5931,9 @@ void main() {
             key: screenKey,
             child: _MorphTestApp(
               source: Morph(
-                target: morphTarget79,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.linear,
+                key: const ValueKey('appearance-184113'),
+                targets: [morphTarget79],
+
                 child: Column(
                   key: const ValueKey('painted-shadow-source-column'),
                   mainAxisSize: MainAxisSize.min,
@@ -5766,9 +5957,9 @@ void main() {
                 ),
               ),
               destination: Morph(
-                target: morphTarget80,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.linear,
+                key: const ValueKey('appearance-185064'),
+                targets: [morphTarget79],
+
                 child: Column(
                   key: const ValueKey('painted-shadow-destination-column'),
                   mainAxisSize: MainAxisSize.min,
@@ -5869,8 +6060,16 @@ void main() {
     testWidgets(
       'when a completion rebuild starts another flight, it should not let the old overlay cancel it',
       (tester) async {
-        final morphTarget81 = MorphTarget(tag: 'overlay-generation-first');
-        final morphTarget82 = MorphTarget(tag: 'overlay-generation-second');
+        final morphTarget81 = MorphTarget(
+          tag: 'overlay-generation-first',
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.linear,
+        );
+        final morphTarget82 = MorphTarget(
+          tag: 'overlay-generation-second',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var firstDestination = false;
@@ -5887,10 +6086,10 @@ void main() {
                     Align(
                       alignment: firstDestination ? Alignment.bottomRight : Alignment.topLeft,
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget81,
-                        duration: const Duration(milliseconds: 100),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('overlay-generation-first-$firstDestination')),
+
+                        targets: [morphTarget81],
+
                         onEnd: () => update(() => secondDestination = true),
                         child: SizedBox.square(
                           key: ValueKey('overlay-generation-first-$firstDestination'),
@@ -5901,10 +6100,10 @@ void main() {
                     Align(
                       alignment: secondDestination ? Alignment.bottomLeft : Alignment.topRight,
                       child: Morph(
-                        animateChildChanges: true,
-                        target: morphTarget82,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('overlay-generation-second-$secondDestination')),
+
+                        targets: [morphTarget82],
+
                         child: SizedBox.square(
                           key: ValueKey('overlay-generation-second-$secondDestination'),
                           dimension: 48,
@@ -5930,7 +6129,7 @@ void main() {
         await tester.pump();
         final observed = (
           secondDestination,
-          find.byKey(const ValueKey<Object>('overlay-generation-second')).evaluate().length,
+          find.byKey(ValueKey<Object>(morphTarget82)).evaluate().length,
           _morphOverlay().evaluate().length,
         );
         await tester.pumpAndSettle();
@@ -5978,20 +6177,17 @@ void main() {
         addTearDown(disableAnimations.dispose);
         addTearDown(stage.dispose);
         addTearDown(flightPaints.dispose);
-        Widget endpoint(
-          String text,
-          Alignment alignment,
-          Color color,
-        ) {
-          final morphTarget83 = MorphTarget(tag: 'dynamic-reduced-active-flight');
-
+        final morphTarget83 = MorphTarget(
+          tag: 'dynamic-reduced-active-flight',
+          duration: const Duration(milliseconds: 400),
+        );
+        Widget endpoint(String text, Alignment alignment, Color color) {
           return Align(
             alignment: alignment,
             child: Morph(
               key: ValueKey(text),
-              target: morphTarget83,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              targets: [morphTarget83],
+
               flightConfig: .custom(
                 _TestFlightDelegate(
                   color,
@@ -6083,8 +6279,12 @@ void main() {
     testWidgets(
       'when reduced motion becomes enabled during an active flight, it should cancel without completion callbacks',
       (tester) async {
-        final morphTarget84 = MorphTarget(tag: 'dynamic-reduced-running-flight');
-        final morphTarget85 = MorphTarget(tag: 'dynamic-reduced-running-flight');
+        final morphTarget84 = MorphTarget(
+          tag: 'dynamic-reduced-running-flight',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
+
         final morphObserver1 = MorphNavigatorObserver();
 
         final disableAnimations = ValueNotifier<bool>(false);
@@ -6116,9 +6316,9 @@ void main() {
                   Align(
                     alignment: Alignment.topLeft,
                     child: Morph(
-                      target: morphTarget84,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: const ValueKey<Object>(ValueKey('dynamic-reduced-source-child')),
+                      targets: [morphTarget84],
+
                       onStart: () => events.add('start'),
                       onEnd: () => events.add('end'),
                       child: const Text(
@@ -6134,9 +6334,13 @@ void main() {
                       return Align(
                         alignment: Alignment.bottomRight,
                         child: Morph(
-                          target: morphTarget85,
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.linear,
+                          key: const ValueKey<Object>(
+                            ValueKey(
+                              'dynamic-reduced-destination-child',
+                            ),
+                          ),
+                          targets: [morphTarget84],
+
                           onReceived: () => events.add('received'),
                           child: const Text(
                             'Dynamic reduced destination',
@@ -6173,24 +6377,27 @@ void main() {
     testWidgets(
       'when ownership returns to the origin, it should reverse over the elapsed forward duration',
       (tester) async {
-        final morphTarget86 = MorphTarget(tag: 'timed-reverse');
-        final morphTarget87 = MorphTarget(tag: 'timed-reverse');
+        final morphTarget86 = MorphTarget(
+          tag: 'timed-reverse',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget86,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              key: const ValueKey<Object>(ValueKey('timed-reverse-source')),
+              targets: [morphTarget86],
+
               child: const Text(
                 'Timed reverse source',
                 key: ValueKey('timed-reverse-source'),
               ),
             ),
             destination: Morph(
-              target: morphTarget87,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.linear,
+              key: const ValueKey<Object>(ValueKey('timed-reverse-destination')),
+              targets: [morphTarget86],
+
               child: const Text(
                 'Timed reverse destination',
                 key: ValueKey('timed-reverse-destination'),
@@ -6217,10 +6424,98 @@ void main() {
     );
 
     testWidgets(
+      'when a settled local appearance is removed, it should use reverse timing',
+      (tester) async {
+        final target = MorphTarget(
+          tag: 'settled-local-return',
+          duration: const Duration(milliseconds: 800),
+          reverseDuration: const Duration(milliseconds: 200),
+          curve: Curves.linear,
+          reverseCurve: Curves.easeIn,
+        );
+        final animations = <Animation<double>>[];
+        final captures = <_TestProperties>[];
+        var showDestination = false;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorObservers: [MorphNavigatorObserver()],
+            home: Scaffold(
+              body: StatefulBuilder(
+                builder: (context, setState) {
+                  update = setState;
+                  return Stack(
+                    children: [
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Morph(
+                          targets: [target],
+                          flightConfig: .custom(
+                            _TestFlightDelegate(
+                              Colors.red,
+                              captures,
+                              animations: animations,
+                            ),
+                          ),
+                          child: const SizedBox.square(dimension: 48),
+                        ),
+                      ),
+                      if (showDestination)
+                        Align(
+                          alignment: Alignment.bottomRight,
+                          child: Morph(
+                            targets: [target],
+                            flightConfig: .custom(
+                              _TestFlightDelegate(
+                                Colors.blue,
+                                captures,
+                                animations: animations,
+                              ),
+                            ),
+                            child: const SizedBox.square(dimension: 96),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        update(() => showDestination = true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pumpAndSettle();
+        animations.clear();
+
+        update(() => showDestination = false);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        final midpoint = animations.single.value;
+        await tester.pump(const Duration(milliseconds: 110));
+        await tester.pump();
+
+        expect(
+          (
+            (midpoint - Curves.easeIn.transform(0.5)).abs() < 0.01,
+            _morphOverlay().evaluate().isEmpty,
+          ),
+          (true, true),
+        );
+      },
+    );
+
+    testWidgets(
       'when ownership returns through a distinct endpoint State, it should reverse over the elapsed forward duration',
       (tester) async {
-        final morphTarget88 = MorphTarget(tag: 'distinct-origin-reversal');
-        final morphTarget89 = MorphTarget(tag: 'distinct-origin-reversal');
+        final morphTarget88 = MorphTarget(
+          tag: 'distinct-origin-reversal',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
+
         final morphObserver1 = MorphNavigatorObserver();
 
         var showDestination = false;
@@ -6244,9 +6539,13 @@ void main() {
                           child: Align(
                             alignment: Alignment.topLeft,
                             child: Morph(
-                              target: morphTarget88,
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.linear,
+                              key: ValueKey<Object>(
+                                ValueKey<String>(
+                                  'distinct-source-child'.substring(0),
+                                ),
+                              ),
+                              targets: [morphTarget88],
+
                               onStart: () => events.add('a$builtOriginVersion-start'),
                               onEnd: () => events.add('a$builtOriginVersion-end'),
                               onReceived: () => events.add('a$builtOriginVersion-received'),
@@ -6271,9 +6570,9 @@ void main() {
                           child: Align(
                             alignment: Alignment.bottomRight,
                             child: Morph(
-                              target: morphTarget89,
-                              duration: const Duration(milliseconds: 400),
-                              curve: Curves.linear,
+                              key: const ValueKey<Object>(ValueKey('distinct-destination-child')),
+                              targets: [morphTarget88],
+
                               onStart: () => events.add('b-start'),
                               onEnd: () => events.add('b-end'),
                               onReceived: () => events.add('b-received'),
@@ -6329,7 +6628,11 @@ void main() {
     testWidgets(
       'when ownership returns to a moved origin, it should target the current origin geometry',
       (tester) async {
-        final morphTarget90 = MorphTarget(tag: 'moved-origin-reversal');
+        final morphTarget90 = MorphTarget(
+          tag: 'moved-origin-reversal',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         final state = ValueNotifier(
@@ -6354,10 +6657,14 @@ void main() {
                         ? Alignment.centerLeft
                         : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget90,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(
+                        ValueKey(
+                          showDestination ? 'moved-origin-destination' : 'moved-origin-source',
+                        ),
+                      ),
+
+                      targets: [morphTarget90],
+
                       flightConfig: .custom(
                         _TestFlightDelegate(
                           showDestination ? Colors.blue : Colors.red,
@@ -6400,10 +6707,15 @@ void main() {
     );
 
     testWidgets(
-      'when watchDestination is enabled on the source and the destination moves, it should follow the live geometry',
+      'when the selected target watches the destination, it should follow the live geometry',
       (tester) async {
-        final morphTarget91 = MorphTarget(tag: 'watched-destination');
-        final morphTarget92 = MorphTarget(tag: 'watched-destination');
+        final morphTarget91 = MorphTarget(
+          tag: 'watched-destination',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+          watchDestination: true,
+        );
+
         final morphObserver1 = MorphNavigatorObserver();
 
         final destinationTop = ValueNotifier<double>(500);
@@ -6419,10 +6731,8 @@ void main() {
                   Align(
                     alignment: Alignment.topLeft,
                     child: Morph(
-                      target: morphTarget91,
-                      watchDestination: true,
-                      duration: const Duration(milliseconds: 400),
-                      curve: Curves.linear,
+                      key: const ValueKey<Object>(ValueKey('watched-source')),
+                      targets: [morphTarget91],
                       flightConfig: .custom(
                         _TestFlightDelegate(
                           Colors.red,
@@ -6445,9 +6755,9 @@ void main() {
                     ),
                     child: RepaintBoundary(
                       child: Morph(
-                        target: morphTarget92,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.linear,
+                        key: const ValueKey<Object>(ValueKey('watched-destination')),
+                        targets: [morphTarget91],
+
                         flightConfig: .custom(
                           _TestFlightDelegate(
                             Colors.blue,
@@ -6528,10 +6838,118 @@ void main() {
     );
 
     testWidgets(
+      'when alternatives differ, only the selected target should watch the destination',
+      (tester) async {
+        final watchedTarget = MorphTarget(
+          tag: 'watched-alternative',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+          watchDestination: true,
+        );
+        final unwatchedTarget = MorphTarget(
+          tag: 'unwatched-alternative',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
+
+        for (final selectedTarget in [watchedTarget, unwatchedTarget]) {
+          final destinationOffset = ValueNotifier<double>(200);
+          final captures = <_TestProperties>[];
+          final flights = <MorphFlight<_TestProperties>>[];
+          addTearDown(destinationOffset.dispose);
+          bool selects(MorphTarget candidate, MorphMatchContext _) => identical(candidate, selectedTarget);
+          final targets = [watchedTarget, unwatchedTarget];
+
+          await tester.pumpWidget(
+            _MorphTestApp(
+              source: Morph(
+                key: ValueKey('alternative-source-${selectedTarget.tag}'),
+                targets: targets,
+                canMatch: selects,
+                flightConfig: .custom(
+                  _TestFlightDelegate(
+                    Colors.red,
+                    captures,
+                    flights: flights,
+                  ),
+                ),
+                child: const SizedBox.square(dimension: 48),
+              ),
+              destination: ValueListenableBuilder<double>(
+                valueListenable: destinationOffset,
+                builder: (context, offset, child) => Transform.translate(
+                  offset: Offset(0, offset),
+                  child: child,
+                ),
+                child: Morph(
+                  key: ValueKey(
+                    'alternative-destination-${selectedTarget.tag}',
+                  ),
+                  targets: targets,
+                  canMatch: selects,
+                  flightConfig: .custom(
+                    _TestFlightDelegate(
+                      Colors.blue,
+                      captures,
+                      flights: flights,
+                    ),
+                  ),
+                  child: const SizedBox.square(dimension: 48),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          var liveGeometryCreations = 0;
+          void listener(ObjectEvent event) {
+            if (event is ObjectCreated && event.object.runtimeType.toString() == '_MorphFlightGeometry') {
+              liveGeometryCreations += 1;
+            }
+          }
+
+          FlutterMemoryAllocations.instance.addListener(listener);
+          await tester.tap(find.byKey(const ValueKey('toggle')));
+          await tester.pump();
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 100));
+          final initialTop = flights.last.destination.bounds.top;
+
+          destinationOffset.value = 100;
+          await tester.pump();
+          final updatedTop = flights.last.destination.bounds.top;
+          FlutterMemoryAllocations.instance.removeListener(listener);
+          await tester.pumpAndSettle();
+
+          expect(flights.last.source.properties, isA<_TestProperties>());
+          expect(flights.last.destination.properties, isA<_TestProperties>());
+          expect(updatedTop - initialTop, selectedTarget.watchDestination ? -100.0 : 0.0);
+          expect(
+            liveGeometryCreations,
+            selectedTarget.watchDestination ? greaterThan(0) : 0,
+          );
+          await tester.pumpWidget(const SizedBox.shrink());
+          await tester.pump();
+        }
+      },
+    );
+
+    testWidgets(
       'when a watched nested flight is held, it should follow destination geometry until its parent arrives',
       (tester) async {
-        final morphTarget93 = MorphTarget(tag: 'held-watch-parent');
-        final morphTarget94 = MorphTarget(tag: 'held-watch-child');
+        final morphTarget93 = MorphTarget(
+          tag: 'held-watch-parent',
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.linear,
+        );
+        final morphTarget94 = MorphTarget(
+          tag: 'held-watch-child',
+          duration: const Duration(
+            milliseconds: 200,
+          ),
+          curve: Curves.linear,
+          watchDestination: true,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         final nestedGeometry = ValueNotifier<({double size, double top})>(
@@ -6551,10 +6969,14 @@ void main() {
                   return Align(
                     alignment: destination ? Alignment.bottomRight : Alignment.topLeft,
                     child: Morph(
-                      animateChildChanges: true,
-                      target: morphTarget93,
-                      duration: const Duration(milliseconds: 800),
-                      curve: Curves.linear,
+                      key: ValueKey<Object>(
+                        ValueKey(
+                          'held-watch-parent-$destination',
+                        ),
+                      ),
+
+                      targets: [morphTarget93],
+
                       child: Container(
                         key: ValueKey(
                           'held-watch-parent-$destination',
@@ -6571,13 +6993,13 @@ void main() {
                                   left: 20,
                                   top: destination ? geometry.top : 20,
                                   child: Morph(
-                                    animateChildChanges: true,
-                                    target: morphTarget94,
-                                    watchDestination: true,
-                                    duration: const Duration(
-                                      milliseconds: 200,
+                                    key: ValueKey<Object>(
+                                      ValueKey(
+                                        'held-watch-child-$destination',
+                                      ),
                                     ),
-                                    curve: Curves.linear,
+
+                                    targets: [morphTarget94],
                                     flightConfig: .custom(
                                       _TestFlightDelegate(
                                         destination ? Colors.yellow : Colors.green,
@@ -6641,8 +7063,12 @@ void main() {
     testWidgets('when watchDestination is disabled, it should keep the geometry captured at flight start', (
       tester,
     ) async {
-      final morphTarget95 = MorphTarget(tag: 'unwatched-destination');
-      final morphTarget96 = MorphTarget(tag: 'unwatched-destination');
+      final morphTarget95 = MorphTarget(
+        tag: 'unwatched-destination',
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.linear,
+      );
+
       final morphObserver1 = MorphNavigatorObserver();
 
       final destinationTop = ValueNotifier<double>(500);
@@ -6658,9 +7084,9 @@ void main() {
                 Align(
                   alignment: Alignment.topLeft,
                   child: Morph(
-                    target: morphTarget95,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.linear,
+                    key: const ValueKey<Object>(ValueKey('unwatched-source')),
+                    targets: [morphTarget95],
+
                     flightConfig: .custom(
                       _TestFlightDelegate(
                         Colors.red,
@@ -6682,9 +7108,9 @@ void main() {
                     child: child!,
                   ),
                   child: Morph(
-                    target: morphTarget96,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.linear,
+                    key: const ValueKey<Object>(ValueKey('unwatched-destination')),
+                    targets: [morphTarget95],
+
                     flightConfig: .custom(
                       _TestFlightDelegate(
                         Colors.blue,
@@ -6718,19 +7144,23 @@ void main() {
     testWidgets(
       'when watchDestination is disabled, it should not allocate live flight geometry',
       (tester) async {
-        final morphTarget97 = MorphTarget(tag: 'lazy-flight-geometry');
-        final morphTarget98 = MorphTarget(tag: 'lazy-flight-geometry');
+        final morphTarget97 = MorphTarget(
+          tag: 'lazy-flight-geometry',
+          duration: const Duration(milliseconds: 400),
+        );
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Morph(
-              target: morphTarget97,
-              duration: const Duration(milliseconds: 400),
+              key: const ValueKey('appearance-221704'),
+              targets: [morphTarget97],
+
               child: const Text('Source'),
             ),
             destination: Morph(
-              target: morphTarget98,
-              duration: const Duration(milliseconds: 400),
+              key: const ValueKey('appearance-221866'),
+              targets: [morphTarget97],
+
               child: const Text('Destination'),
             ),
           ),
@@ -6762,23 +7192,29 @@ void main() {
       (tester) async {
         final morphTarget99 = MorphTarget(tag: 'hello');
         final morphTarget100 = MorphTarget(tag: 'hola');
-        final morphTarget101 = MorphTarget(tag: 'hello');
-        final morphTarget102 = MorphTarget(tag: 'hola');
 
         await tester.pumpWidget(
           _MorphTestApp(
             source: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Morph(target: morphTarget99, child: const Text('Hello')),
-                Morph(target: morphTarget100, child: const Text('Hola')),
+                Morph(key: const ValueKey('appearance-223230'), targets: [morphTarget99], child: const Text('Hello')),
+                Morph(key: const ValueKey('appearance-223324'), targets: [morphTarget100], child: const Text('Hola')),
               ],
             ),
             destination: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Morph(target: morphTarget101, child: const Text('Hello detail')),
-                Morph(target: morphTarget102, child: const Text('Hola detail')),
+                Morph(
+                  key: const ValueKey('appearance-223555'),
+                  targets: [morphTarget99],
+                  child: const Text('Hello detail'),
+                ),
+                Morph(
+                  key: const ValueKey('appearance-223656'),
+                  targets: [morphTarget100],
+                  child: const Text('Hola detail'),
+                ),
               ],
             ),
           ),
@@ -6795,8 +7231,15 @@ void main() {
     testWidgets(
       'when a nested Morph omits duration, it should inherit its nearest Morph ancestor duration',
       (tester) async {
-        final morphTarget103 = MorphTarget(tag: 'inherited-duration-parent');
-        final morphTarget104 = MorphTarget(tag: 'inherited-duration-child');
+        final morphTarget103 = MorphTarget(
+          tag: 'inherited-duration-parent',
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.linear,
+        );
+        final morphTarget104 = MorphTarget(
+          tag: 'inherited-duration-child',
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var expanded = false;
@@ -6813,17 +7256,18 @@ void main() {
                 return Align(
                   alignment: expanded ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    target: morphTarget103,
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.linear,
+                    key: ValueKey<Object>(ValueKey('inherited-duration-parent-$expanded')),
+                    targets: [morphTarget103],
+
                     onEnd: () => parentEnded = true,
                     child: SizedBox(
                       key: ValueKey('inherited-duration-parent-$expanded'),
                       width: expanded ? 180 : 100,
                       height: expanded ? 120 : 80,
                       child: Morph(
-                        target: morphTarget104,
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('inherited-duration-child-$expanded')),
+                        targets: [morphTarget104],
+
                         onEnd: () => childEnded = true,
                         child: Text(
                           expanded ? 'Destination' : 'Source',
@@ -6853,8 +7297,16 @@ void main() {
     testWidgets(
       'when a nested Morph supplies duration, it should override its Morph ancestor duration',
       (tester) async {
-        final morphTarget105 = MorphTarget(tag: 'overridden-duration-parent');
-        final morphTarget106 = MorphTarget(tag: 'overridden-duration-child');
+        final morphTarget105 = MorphTarget(
+          tag: 'overridden-duration-parent',
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.linear,
+        );
+        final morphTarget106 = MorphTarget(
+          tag: 'overridden-duration-child',
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var expanded = false;
@@ -6871,18 +7323,18 @@ void main() {
                 return Align(
                   alignment: expanded ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    target: morphTarget105,
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.linear,
+                    key: ValueKey<Object>(ValueKey('overridden-duration-parent-$expanded')),
+                    targets: [morphTarget105],
+
                     onEnd: () => parentEnded = true,
                     child: SizedBox(
                       key: ValueKey('overridden-duration-parent-$expanded'),
                       width: expanded ? 180 : 100,
                       height: expanded ? 120 : 80,
                       child: Morph(
-                        target: morphTarget106,
-                        duration: const Duration(milliseconds: 150),
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('overridden-duration-child-$expanded')),
+                        targets: [morphTarget106],
+
                         onEnd: () => childEnded = true,
                         child: Text(
                           expanded ? 'Destination' : 'Source',
@@ -6912,8 +7364,15 @@ void main() {
     testWidgets(
       'when a nested Morph omits curve, it should inherit its nearest Morph ancestor curve',
       (tester) async {
-        final morphTarget107 = MorphTarget(tag: 'inherited-curve-parent');
-        final morphTarget108 = MorphTarget(tag: 'inherited-curve-child');
+        final morphTarget107 = MorphTarget(
+          tag: 'inherited-curve-parent',
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeIn,
+        );
+        final morphTarget108 = MorphTarget(
+          tag: 'inherited-curve-child',
+          duration: const Duration(milliseconds: 600),
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var expanded = false;
@@ -6930,16 +7389,21 @@ void main() {
                 return Align(
                   alignment: expanded ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    target: morphTarget107,
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeIn,
+                    key: ValueKey<Object>(ValueKey('inherited-curve-parent-$expanded')),
+                    targets: [morphTarget107],
+
                     child: SizedBox(
                       key: ValueKey('inherited-curve-parent-$expanded'),
                       width: expanded ? 180 : 100,
                       height: expanded ? 120 : 80,
                       child: Morph(
-                        target: morphTarget108,
-                        duration: const Duration(milliseconds: 600),
+                        key: ValueKey<Object>(
+                          ValueKey(
+                            'inherited-curve-child-$expanded',
+                          ),
+                        ),
+                        targets: [morphTarget108],
+
                         flightConfig: .custom(
                           _TestFlightDelegate(
                             Colors.red,
@@ -6976,8 +7440,16 @@ void main() {
     testWidgets(
       'when a nested Morph supplies curve, it should override its Morph ancestor curve',
       (tester) async {
-        final morphTarget109 = MorphTarget(tag: 'overridden-curve-parent');
-        final morphTarget110 = MorphTarget(tag: 'overridden-curve-child');
+        final morphTarget109 = MorphTarget(
+          tag: 'overridden-curve-parent',
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeIn,
+        );
+        final morphTarget110 = MorphTarget(
+          tag: 'overridden-curve-child',
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOut,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var expanded = false;
@@ -6994,17 +7466,21 @@ void main() {
                 return Align(
                   alignment: expanded ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    target: morphTarget109,
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeIn,
+                    key: ValueKey<Object>(ValueKey('overridden-curve-parent-$expanded')),
+                    targets: [morphTarget109],
+
                     child: SizedBox(
                       key: ValueKey('overridden-curve-parent-$expanded'),
                       width: expanded ? 180 : 100,
                       height: expanded ? 120 : 80,
                       child: Morph(
-                        target: morphTarget110,
-                        duration: const Duration(milliseconds: 600),
-                        curve: Curves.easeOut,
+                        key: ValueKey<Object>(
+                          ValueKey(
+                            'overridden-curve-child-$expanded',
+                          ),
+                        ),
+                        targets: [morphTarget110],
+
                         flightConfig: .custom(
                           _TestFlightDelegate(
                             Colors.red,
@@ -7041,12 +7517,19 @@ void main() {
     testWidgets(
       'when an ancestor curve changes before a nested flight, it should inherit the updated curve',
       (tester) async {
-        final morphTarget111 = MorphTarget(tag: 'updated-inherited-curve-parent');
-        final morphTarget112 = MorphTarget(tag: 'updated-inherited-curve-child');
+        final morphTarget112 = MorphTarget(
+          tag: 'updated-inherited-curve-child',
+          duration: const Duration(milliseconds: 600),
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var expanded = false;
         var parentCurve = Curves.linear;
+        var morphTarget111 = MorphTarget(
+          tag: 'updated-inherited-curve-parent',
+          duration: const Duration(milliseconds: 600),
+          curve: parentCurve,
+        );
         late StateSetter update;
         final childCaptures = <_TestProperties>[];
         final childAnimations = <Animation<double>>[];
@@ -7060,9 +7543,13 @@ void main() {
                 return Align(
                   alignment: expanded ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    target: morphTarget111,
-                    duration: const Duration(milliseconds: 600),
-                    curve: parentCurve,
+                    key: ValueKey<Object>(
+                      ValueKey(
+                        'updated-inherited-curve-parent-$expanded',
+                      ),
+                    ),
+                    targets: [morphTarget111],
+
                     child: SizedBox(
                       key: ValueKey(
                         'updated-inherited-curve-parent-$expanded',
@@ -7070,8 +7557,13 @@ void main() {
                       width: expanded ? 180 : 100,
                       height: expanded ? 120 : 80,
                       child: Morph(
-                        target: morphTarget112,
-                        duration: const Duration(milliseconds: 600),
+                        key: ValueKey<Object>(
+                          ValueKey(
+                            'updated-inherited-curve-child-$expanded',
+                          ),
+                        ),
+                        targets: [morphTarget112],
+
                         flightConfig: .custom(
                           _TestFlightDelegate(
                             Colors.red,
@@ -7095,6 +7587,11 @@ void main() {
         await tester.pump();
 
         update(() => parentCurve = Curves.easeInOut);
+        morphTarget111 = MorphTarget(
+          tag: 'updated-inherited-curve-parent',
+          duration: const Duration(milliseconds: 600),
+          curve: parentCurve,
+        );
         await tester.pump();
         update(() => expanded = true);
         await tester.pump();
@@ -7113,12 +7610,19 @@ void main() {
     testWidgets(
       'when an ancestor duration changes before a nested flight, it should inherit the updated duration',
       (tester) async {
-        final morphTarget113 = MorphTarget(tag: 'updated-inherited-duration-parent');
-        final morphTarget114 = MorphTarget(tag: 'updated-inherited-duration-child');
+        final morphTarget114 = MorphTarget(
+          tag: 'updated-inherited-duration-child',
+          curve: Curves.linear,
+        );
         final morphObserver1 = MorphNavigatorObserver();
 
         var expanded = false;
         var parentDuration = const Duration(milliseconds: 600);
+        var morphTarget113 = MorphTarget(
+          tag: 'updated-inherited-duration-parent',
+          duration: parentDuration,
+          curve: Curves.linear,
+        );
         var childEnded = false;
         var parentEnded = false;
         late StateSetter update;
@@ -7132,17 +7636,18 @@ void main() {
                 return Align(
                   alignment: expanded ? Alignment.bottomRight : Alignment.topLeft,
                   child: Morph(
-                    target: morphTarget113,
-                    duration: parentDuration,
-                    curve: Curves.linear,
+                    key: ValueKey<Object>(ValueKey('updated-inherited-duration-parent-$expanded')),
+                    targets: [morphTarget113],
+
                     onEnd: () => parentEnded = true,
                     child: SizedBox(
                       key: ValueKey('updated-inherited-duration-parent-$expanded'),
                       width: expanded ? 180 : 100,
                       height: expanded ? 120 : 80,
                       child: Morph(
-                        target: morphTarget114,
-                        curve: Curves.linear,
+                        key: ValueKey<Object>(ValueKey('updated-inherited-duration-child-$expanded')),
+                        targets: [morphTarget114],
+
                         onEnd: () => childEnded = true,
                         child: Text(
                           expanded ? 'Destination' : 'Source',
@@ -7159,6 +7664,11 @@ void main() {
         await tester.pump();
 
         update(() => parentDuration = const Duration(milliseconds: 900));
+        morphTarget113 = MorphTarget(
+          tag: 'updated-inherited-duration-parent',
+          duration: parentDuration,
+          curve: Curves.linear,
+        );
         await tester.pump();
         update(() => expanded = true);
         await tester.pump();
@@ -7192,10 +7702,9 @@ void main() {
               .length;
         }
 
+        final morphTarget115 = MorphTarget(tag: 'long-handoff-flight', duration: const Duration(milliseconds: 400));
+        final morphTarget116 = MorphTarget(tag: 'short-handoff-flight', duration: const Duration(milliseconds: 100));
         Widget screen({required bool destination}) {
-          final morphTarget115 = MorphTarget(tag: 'long-handoff-flight');
-          final morphTarget116 = MorphTarget(tag: 'short-handoff-flight');
-
           return SizedBox(
             key: ValueKey('short-flight-screen-$destination'),
             width: 300,
@@ -7205,9 +7714,9 @@ void main() {
                 Align(
                   alignment: destination ? Alignment.bottomCenter : Alignment.topCenter,
                   child: Morph(
-                    target: morphTarget115,
-                    duration: const Duration(milliseconds: 400),
-                    curve: Curves.linear,
+                    key: ValueKey<Object>(ValueKey('long-handoff-surface-$destination')),
+                    targets: [morphTarget115],
+
                     child: Container(
                       key: ValueKey('long-handoff-surface-$destination'),
                       width: destination ? 180 : 120,
@@ -7219,9 +7728,9 @@ void main() {
                 Align(
                   alignment: destination ? Alignment.topLeft : Alignment.topRight,
                   child: Morph(
-                    target: morphTarget116,
-                    duration: const Duration(milliseconds: 100),
-                    curve: Curves.linear,
+                    key: ValueKey<Object>(ValueKey('short-handoff-child-$destination')),
+                    targets: [morphTarget116],
+
                     child: Container(
                       key: ValueKey('short-handoff-child-$destination'),
                       width: 40,

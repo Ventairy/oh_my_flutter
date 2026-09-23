@@ -21,8 +21,12 @@ class _MorphFlightConfigTestApp extends StatefulWidget {
 }
 
 class _MorphFlightConfigTestAppState extends State<_MorphFlightConfigTestApp> {
-  final _morphTarget1 = MorphTarget(tag: 'child-config');
-  final _morphTarget2 = MorphTarget(tag: 'child-config');
+  late final _morphTarget1 = MorphTarget(
+    tag: 'child-config',
+    duration: const Duration(seconds: 1),
+    curve: widget.curve,
+  );
+
   final _morphObserver1 = MorphNavigatorObserver();
 
   var _destination = false;
@@ -42,7 +46,7 @@ class _MorphFlightConfigTestAppState extends State<_MorphFlightConfigTestApp> {
         return widget.snapshot
             ? MorphDescendant(
                 key: _MorphFlightConfigTestApp.snapshotKey,
-                flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                 child: content,
               )
             : content;
@@ -55,17 +59,17 @@ class _MorphFlightConfigTestAppState extends State<_MorphFlightConfigTestApp> {
         alignment: _destination ? Alignment.bottomRight : Alignment.topLeft,
         child: configuration == null
             ? Morph(
-                animateChildChanges: true,
-                target: _morphTarget1,
-                duration: const Duration(seconds: 1),
-                curve: widget.curve,
+                key: ValueKey(_destination),
+
+                targets: [_morphTarget1],
+
                 child: child,
               )
             : Morph(
-                animateChildChanges: true,
-                target: _morphTarget2,
-                duration: const Duration(seconds: 1),
-                curve: widget.curve,
+                key: ValueKey(_destination),
+
+                targets: [_morphTarget1],
+
                 flightConfig: configuration,
                 child: child,
               ),

@@ -71,8 +71,8 @@ void main() {
           addTearDown(tester.view.reset);
           final boundaryKey = GlobalKey();
           late BuildContext routeContext;
+          final morphTarget1 = MorphTarget(tag: 'snapshot-safe-area');
           Widget surface(double height) {
-            final morphTarget1 = MorphTarget(tag: 'snapshot-safe-area');
             return Stack(
               children: [
                 Positioned(
@@ -81,12 +81,11 @@ void main() {
                   width: 200,
                   height: height,
                   child: Morph(
-                    animateChildChanges: true,
-                    target: morphTarget1,
+                    targets: [morphTarget1],
                     child: Container(
                       decoration: const BoxDecoration(color: Colors.white),
                       child: const MorphDescendant(
-                        flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                        flightBehavior: MorphDescendantFlightBehavior.snapshot(),
                         child: Align(
                           alignment: Alignment.topLeft,
                           child: MaybeSafeArea(
@@ -1853,7 +1852,11 @@ void main() {
     testWidgets(
       'when a same-screen Morph moves and expands it, it should remain continuous and avoid unsafe edges in flight',
       (tester) async {
-        final morphTarget2 = MorphTarget(tag: 'same-screen-maybe-safe-area');
+        final morphTarget2 = MorphTarget(
+          tag: 'same-screen-maybe-safe-area',
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.linear,
+        );
 
         _useTestView(tester);
         const sourceKey = ValueKey('same-screen-morph-source');
@@ -1873,10 +1876,10 @@ void main() {
                         width: 100,
                         height: expanded ? 600 : 520,
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget2,
-                          duration: const Duration(milliseconds: 400),
-                          curve: Curves.linear,
+                          key: ValueKey(expanded),
+
+                          targets: [morphTarget2],
+
                           child: MaybeSafeArea(
                             left: false,
                             right: false,
@@ -1954,8 +1957,10 @@ void main() {
     testWidgets(
       'when a route Morph moves and expands it, it should remain continuous and avoid unsafe edges in flight',
       (tester) async {
-        final morphTarget3 = MorphTarget(tag: 'route-maybe-safe-area');
-        final morphTarget4 = MorphTarget(tag: 'route-maybe-safe-area');
+        final morphTarget3 = MorphTarget(
+          tag: 'route-maybe-safe-area',
+          curve: Curves.linear,
+        );
 
         _useTestView(tester);
         const sourceKey = ValueKey('route-morph-source');
@@ -1973,9 +1978,8 @@ void main() {
                         width: 40,
                         height: 20,
                         child: Morph(
-                          animateChildChanges: true,
-                          target: morphTarget3,
-                          curve: Curves.linear,
+                          targets: [morphTarget3],
+
                           child: const MaybeSafeArea(
                             child: ColoredBox(
                               key: sourceKey,
@@ -2003,9 +2007,8 @@ void main() {
                                           width: 160,
                                           height: 100,
                                           child: Morph(
-                                            animateChildChanges: true,
-                                            target: morphTarget4,
-                                            curve: Curves.linear,
+                                            targets: [morphTarget3],
+
                                             child: const MaybeSafeArea(
                                               child: ColoredBox(
                                                 key: destinationKey,
@@ -2074,8 +2077,10 @@ void main() {
     testWidgets(
       'when a route Morph is inside it, it should include each correction throughout push and pop flights',
       (tester) async {
-        final morphTarget5 = MorphTarget(tag: 'ancestor-route-maybe-safe-area');
-        final morphTarget6 = MorphTarget(tag: 'ancestor-route-maybe-safe-area');
+        final morphTarget5 = MorphTarget(
+          tag: 'ancestor-route-maybe-safe-area',
+          curve: Curves.easeOutCubic,
+        );
 
         tester.view.physicalSize = const Size(390, 844);
         tester.view.devicePixelRatio = 1;
@@ -2103,9 +2108,10 @@ void main() {
                           child: Padding(
                             padding: const EdgeInsets.only(top: 12),
                             child: Morph(
-                              animateChildChanges: true,
-                              target: morphTarget5,
-                              curve: Curves.easeOutCubic,
+                              key: const ValueKey<Object>(sourceKey),
+
+                              targets: [morphTarget5],
+
                               child: const SizedBox.square(
                                 key: sourceKey,
                                 dimension: 50,
@@ -2144,9 +2150,10 @@ void main() {
                                                 child: Padding(
                                                   padding: const EdgeInsets.only(top: 12),
                                                   child: Morph(
-                                                    animateChildChanges: true,
-                                                    target: morphTarget6,
-                                                    curve: Curves.easeOutCubic,
+                                                    key: const ValueKey<Object>(destinationKey),
+
+                                                    targets: [morphTarget5],
+
                                                     child: const SizedBox.square(
                                                       key: destinationKey,
                                                       dimension: 50,

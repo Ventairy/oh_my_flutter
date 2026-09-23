@@ -1,12 +1,12 @@
 part of 'morph.dart';
 
 final class _MorphSnapshotCapture {
-  static GroupSnapshot? captureGroup(
+  static ({GroupSnapshot snapshot, int revision})? captureGroup(
     GroupLink link, {
     required RenderBox relativeTo,
     required Rect bounds,
     required double pixelRatio,
-  }) => GroupCaptureAccess.capture(
+  }) => GroupCaptureAccess.captureWithRevision(
     link,
     relativeTo: relativeTo,
     bounds: bounds,

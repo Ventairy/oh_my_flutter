@@ -5,14 +5,14 @@ Use `PhoneNumber` to interact with a phone number throughout an application.
 ```dart
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
-final phoneNumber = PhoneNumber('+1 (202) 555-0123');
+final phoneNumber = PhoneNumber.parse('+1 (202) 555-0123');
 ```
 
 The input may use spaces, parentheses, dashes, or no visual formatting. It must
-include a country calling code, such as `55` for Brazil or `1` for the United
-States and Canada. The leading `+` is optional. The national number must have a
-possible length for its country, but its prefix does not need to be currently
-allocated by a carrier.
+begin with `+` and include a country calling code, such as `55` for Brazil or
+`1` for the United States and Canada. The national number must have a possible
+length for its country, but its prefix does not need to be currently allocated
+by a carrier.
 
 Use `PhoneNumberTextInputFormatter` while a person is still entering a number.
 It formats partial national text and returns its country and international
@@ -80,6 +80,25 @@ reformatted text, even when the existing digits exceed the newly selected
 country's normal maximum. Further additions remain limited. Countries without a
 calling code cannot be used.
 
+## Validate phone-number input
+
+Use `tryParse` when a person may still have incomplete or unsupported input.
+It returns `null` instead of throwing when the value cannot become a complete
+international phone number:
+
+```dart
+final phoneNumber = PhoneNumber.tryParse(internationalValue);
+final canContinue = phoneNumber?.isValid ?? false;
+```
+
+`isValid` checks the complete number against its country's current numbering
+plan, including recognized prefix patterns. This stricter check is suitable
+for deciding whether an ordinary form can continue.
+
+A valid result does not prove that the number is assigned, active, reachable,
+or controlled by the person entering it. Use an SMS or voice verification code
+when an application must establish reachability or ownership.
+
 ## Display a phone number
 
 Use `toDisplayString` to produce text that follows the phone number's country
@@ -129,27 +148,23 @@ does not guarantee that a call was connected.
 
 ## Handle invalid input
 
-Construction throws a `FormatException` when the value has no recognizable
-country calling code or its length is not possible for that country. Input is
-always interpreted as international, even without `+`. A national number whose
-first digits resemble a calling code can therefore be interpreted as another
-country’s number; include the intended calling code explicitly.
+`parse` throws a `FormatException` when the value does not begin with `+`, has
+no recognizable country calling code, or has a length that is not possible for
+that country. Use it when invalid input should be exceptional:
 
 ```dart
 const input = '+1 202-555-0123';
 
 try {
-  final phoneNumber = PhoneNumber(input);
+  final phoneNumber = PhoneNumber.parse(input);
   Text(phoneNumber.toDisplayString());
 } on FormatException {
-  // Ask for a complete phone number with a country calling code.
+  // Ask for a complete international phone number beginning with +.
 }
 ```
 
-A value with a possible length is not proof that its prefix is allocated, the
-number exists, it is connected, or it belongs to a particular person. Phone
-extensions and automatic country inference from the device locale are not
-supported.
+Phone extensions and automatic country inference from the device locale are
+not supported.
 
 See the
 [`PhoneNumber` API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/PhoneNumber-class.html)

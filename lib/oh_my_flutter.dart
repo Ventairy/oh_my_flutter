@@ -50,18 +50,19 @@ export 'src/widgets/morph/morph.dart'
     show
         Morph,
         MorphDescendant,
+        MorphDescendantFlightBehavior,
         MorphEndpoint,
         MorphEndpointContext,
         MorphFlight,
         MorphFlightConfig,
         MorphFlightDelegate,
         MorphFlightProgress,
+        MorphMatchContext,
         MorphNavigatorObserver,
         MorphScope,
-        MorphSibling,
         MorphTarget;
-export 'src/widgets/morph/morph_descendant_flight_behavior.dart' show MorphDescendantFlightBehavior;
 export 'src/widgets/morph/morph_flight_kind.dart' show MorphFlightKind;
+export 'src/widgets/morph/morph_match_operation.dart' show MorphMatchOperation;
 export 'src/widgets/morph/morph_tag_status.dart' show MorphTagStatus;
 export 'src/widgets/motion/motion.dart'
     show

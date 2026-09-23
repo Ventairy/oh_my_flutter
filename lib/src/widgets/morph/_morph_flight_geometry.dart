@@ -4,8 +4,8 @@ class _MorphFlightGeometry extends ChangeNotifier {
   new({
     required MorphEndpoint<Object?> source,
     required MorphEndpoint<Object?> destination,
-  }) : _sourceSnapshot = source,
-       _destinationSnapshot = destination,
+  }) : _sourceEndpoint = source,
+       _destinationEndpoint = destination,
        _sourceBounds = source.bounds,
        _sourceLocalSize = source.localSize,
        _sourceTransform = Matrix4.copy(source.transform),
@@ -15,8 +15,8 @@ class _MorphFlightGeometry extends ChangeNotifier {
        _destinationTransform = Matrix4.copy(destination.transform),
        _destinationAxisScale = destination.axisScale;
 
-  final MorphEndpoint<Object?> _sourceSnapshot;
-  final MorphEndpoint<Object?> _destinationSnapshot;
+  MorphEndpoint<Object?> _sourceEndpoint;
+  MorphEndpoint<Object?> _destinationEndpoint;
   Rect _sourceBounds;
   Size _sourceLocalSize;
   final Matrix4 _sourceTransform;
@@ -26,16 +26,23 @@ class _MorphFlightGeometry extends ChangeNotifier {
   final Matrix4 _destinationTransform;
   Offset _destinationAxisScale;
   bool _disposed = false;
+  int _revision = 0;
+
+  int get revision => _revision;
 
   Rect get sourceBounds => _sourceBounds;
 
   Rect get destinationBounds => _destinationBounds;
 
-  MorphEndpoint<T> source<T>(T properties) {
+  Object? get sourceProperties => _sourceEndpoint.properties;
+
+  Object? get destinationProperties => _destinationEndpoint.properties;
+
+  MorphEndpoint<T> source<T>() {
     return _MorphDescendantSnapshots.copy(
-      _sourceSnapshot,
+      _sourceEndpoint,
       MorphEndpoint<T>(
-        properties: properties,
+        properties: _sourceEndpoint.properties as T,
         bounds: _sourceBounds,
         localSize: _sourceLocalSize,
         transform: Matrix4.copy(_sourceTransform),
@@ -44,11 +51,11 @@ class _MorphFlightGeometry extends ChangeNotifier {
     );
   }
 
-  MorphEndpoint<T> _sourceWithOwnedTransform<T>(T properties) {
+  MorphEndpoint<T> _sourceWithOwnedTransform<T>() {
     return _MorphDescendantSnapshots.copy(
-      _sourceSnapshot,
+      _sourceEndpoint,
       MorphEndpoint<T>(
-        properties: properties,
+        properties: _sourceEndpoint.properties as T,
         bounds: _sourceBounds,
         localSize: _sourceLocalSize,
         transform: _sourceTransform,
@@ -57,11 +64,11 @@ class _MorphFlightGeometry extends ChangeNotifier {
     );
   }
 
-  MorphEndpoint<T> destination<T>(T properties) {
+  MorphEndpoint<T> destination<T>() {
     return _MorphDescendantSnapshots.copy(
-      _destinationSnapshot,
+      _destinationEndpoint,
       MorphEndpoint<T>(
-        properties: properties,
+        properties: _destinationEndpoint.properties as T,
         bounds: _destinationBounds,
         localSize: _destinationLocalSize,
         transform: Matrix4.copy(_destinationTransform),
@@ -70,11 +77,11 @@ class _MorphFlightGeometry extends ChangeNotifier {
     );
   }
 
-  MorphEndpoint<T> _destinationWithOwnedTransform<T>(T properties) {
+  MorphEndpoint<T> _destinationWithOwnedTransform<T>() {
     return _MorphDescendantSnapshots.copy(
-      _destinationSnapshot,
+      _destinationEndpoint,
       MorphEndpoint<T>(
-        properties: properties,
+        properties: _destinationEndpoint.properties as T,
         bounds: _destinationBounds,
         localSize: _destinationLocalSize,
         transform: _destinationTransform,
@@ -83,34 +90,39 @@ class _MorphFlightGeometry extends ChangeNotifier {
     );
   }
 
-  bool updateSource(_MorphEndpointGeometry value) {
-    if (value.overlayBounds == _sourceBounds &&
-        value.localSize == _sourceLocalSize &&
-        value.axisScale == _sourceAxisScale &&
-        MatrixUtils.matrixEquals(value.transform, _sourceTransform)) {
-      return false;
-    }
-    _sourceBounds = value.overlayBounds;
+  void updateSourceEndpoint(MorphEndpoint<Object?> value) {
+    _sourceEndpoint = value;
+    _sourceBounds = value.bounds;
     _sourceLocalSize = value.localSize;
     _sourceTransform.setFrom(value.transform);
     _sourceAxisScale = value.axisScale;
-    if (!_disposed) notifyListeners();
-    return true;
+    _notifyEndpointChanged();
   }
 
-  bool updateDestination(_MorphEndpointGeometry value) {
-    if (value.overlayBounds == _destinationBounds &&
-        value.localSize == _destinationLocalSize &&
-        value.axisScale == _destinationAxisScale &&
-        MatrixUtils.matrixEquals(value.transform, _destinationTransform)) {
-      return false;
-    }
-    _destinationBounds = value.overlayBounds;
+  void updateDestinationEndpoint(MorphEndpoint<Object?> value) {
+    _destinationEndpoint = value;
+    _destinationBounds = value.bounds;
     _destinationLocalSize = value.localSize;
     _destinationTransform.setFrom(value.transform);
     _destinationAxisScale = value.axisScale;
+    _notifyEndpointChanged();
+  }
+
+  bool sourceMatches(_MorphEndpointGeometry value) =>
+      value.overlayBounds == _sourceBounds &&
+      value.localSize == _sourceLocalSize &&
+      value.axisScale == _sourceAxisScale &&
+      MatrixUtils.matrixEquals(value.transform, _sourceTransform);
+
+  bool destinationMatches(_MorphEndpointGeometry value) =>
+      value.overlayBounds == _destinationBounds &&
+      value.localSize == _destinationLocalSize &&
+      value.axisScale == _destinationAxisScale &&
+      MatrixUtils.matrixEquals(value.transform, _destinationTransform);
+
+  void _notifyEndpointChanged() {
+    _revision += 1;
     if (!_disposed) notifyListeners();
-    return true;
   }
 
   @override

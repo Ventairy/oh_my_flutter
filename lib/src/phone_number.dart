@@ -5,31 +5,32 @@ import 'package:url_launcher/url_launcher.dart';
 /// Provides a consistent way to interact with a phone number.
 ///
 /// ```dart
-/// final phoneNumber = PhoneNumber('+1 202-555-0123');
+/// final phoneNumber = PhoneNumber.parse('+1 202-555-0123');
 ///
 /// Text(phoneNumber.toDisplayString());
 /// await phoneNumber.call();
 /// ```
 ///
-/// The input must include a country calling code, with or without a leading
-/// `+`. Common spacing and punctuation are accepted. Construction throws a
-/// [FormatException] when the input cannot be resolved to a complete number
+/// The input must begin with `+` and include a country calling code. Common
+/// spacing and punctuation are accepted. Parsing requires a complete number
 /// with a possible length for its country.
 ///
-/// A possible length does not confirm that the prefix is allocated, the number
-/// exists, or the destination can receive calls.
+/// Use [isValid] to check whether the number also matches its country's current
+/// numbering plan. Neither successful parsing nor validation confirms that the
+/// number exists or can receive calls.
 ///
 /// See the [phone number guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/phone_number.md)
 /// for formatting and platform behavior.
 class PhoneNumber {
-  /// Creates a phone number from [value].
+  /// Parses a complete international phone number from [value].
   ///
-  /// [value] may contain common human-readable formatting and may omit the
-  /// leading `+`, but it must include a country calling code.
+  /// [value] may contain common human-readable formatting, but it must begin
+  /// with `+`, include a country calling code, and have a possible length for
+  /// its country.
   ///
-  /// Throws a [FormatException] when [value] cannot be resolved to a complete
-  /// phone number with a country calling code and possible length.
-  factory(String value) {
+  /// Throws a [FormatException] when [value] cannot be resolved to a supported
+  /// complete phone number.
+  factory parse(String value) {
     return PhoneNumber._parse(value: value, launcher: launchUrl);
   }
 
@@ -42,10 +43,10 @@ class PhoneNumber {
     try {
       final input = value.trim();
       // Keep identifiers and extensions out of the numeric phone API.
-      if (RegExp('[a-zA-Z]').hasMatch(input)) {
+      if (!input.startsWith('+') || RegExp('[a-zA-Z]').hasMatch(input)) {
         throw FormatException(_invalidMessage, value);
       }
-      final parsed = _phoneUtil.parse(input.startsWith('+') ? input : '+$input', 'ZZ');
+      final parsed = _phoneUtil.parse(input, 'ZZ');
       if (_phoneUtil.isPossibleNumberWithReason(parsed) != parser.ValidationResult.isPossible) {
         throw FormatException(_invalidMessage, value);
       }
@@ -61,7 +62,8 @@ class PhoneNumber {
   /// The [launcher] receives the canonical international `tel:` URI and
   /// returns `true` when the operating system accepts the launch.
   ///
-  /// Throws a [FormatException] under the same conditions as [PhoneNumber].
+  /// Throws a [FormatException] under the same conditions as
+  /// [PhoneNumber.parse].
   @visibleForTesting
   factory test(
     String value, {
@@ -70,14 +72,33 @@ class PhoneNumber {
     return PhoneNumber._parse(value: value, launcher: launcher);
   }
 
+  /// Tries to parse a complete international phone number from [value].
+  ///
+  /// Returns `null` under the same conditions that [PhoneNumber.parse] throws a
+  /// [FormatException].
+  static PhoneNumber? tryParse(String value) {
+    try {
+      return PhoneNumber.parse(value);
+    } on FormatException {
+      return null;
+    }
+  }
+
   static const _invalidMessage =
-      'A phone number must include a country calling code and have a possible '
-      'length for that country.';
+      'A phone number must begin with +, include a country calling code, and '
+      'have a possible length for that country.';
 
   static final parser.PhoneNumberUtil _phoneUtil = parser.PhoneNumberUtil.instance;
 
   final parser.PhoneNumber _parsed;
   final Future<bool> Function(Uri uri) _launcher;
+
+  /// Whether this number matches its country's current numbering plan.
+  ///
+  /// A valid result does not confirm that the number is assigned, reachable,
+  /// or controlled by a particular person. Use SMS or voice verification when
+  /// an application must establish reachability or ownership.
+  bool get isValid => _phoneUtil.isValidNumber(_parsed);
 
   /// Returns the canonical E.164 value for use by application code.
   ///
@@ -91,7 +112,7 @@ class PhoneNumber {
   /// default, it includes the `+` and country calling code:
   ///
   /// ```dart
-  /// PhoneNumber('+12025550123').toDisplayString();
+  /// PhoneNumber.parse('+12025550123').toDisplayString();
   /// // +1 202-555-0123
   /// ```
   ///

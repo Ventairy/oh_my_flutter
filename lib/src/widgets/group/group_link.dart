@@ -6,11 +6,13 @@ part of 'group.dart';
 /// detached; the link needs no disposal. Dispose snapshots you capture from it.
 final class GroupLink {
   final Set<_RenderGroup> _members = <_RenderGroup>{};
+  List<_RenderGroup>? _membersInPaintOrder;
   int _captureDepth = 0;
   final Set<GroupPresentationLease> _leases = {};
 
   void _attach(_RenderGroup member) {
     _members.add(member);
+    _membersInPaintOrder = null;
     for (final lease in _leases) {
       lease._attach(member);
     }
@@ -18,10 +20,13 @@ final class GroupLink {
 
   void _detach(_RenderGroup member) {
     _members.remove(member);
+    _membersInPaintOrder = null;
     for (final lease in _leases) {
       lease._detach(member);
     }
   }
+
+  void _invalidateMemberOrder() => _membersInPaintOrder = null;
 
   /// Measures the union of members in [relativeTo]'s local coordinates.
   ///
@@ -67,43 +72,152 @@ final class GroupLink {
 
   ({Rect bounds, List<(_RenderGroup, Matrix4)> members})? _geometry(RenderBox reference) {
     if (!reference.attached || !reference.hasSize || _members.isEmpty) return null;
-    RenderObject rootOf(RenderObject object) {
-      var root = object;
-      while (root.parent != null) {
-        root = root.parent!;
-      }
-      return root;
-    }
-
-    final root = rootOf(reference);
-    final inverse = Matrix4.tryInvert(reference.getTransformTo(null));
-    if (inverse == null) return null;
+    final memberTransform = Matrix4.identity();
+    final edgeTransform = Matrix4.identity();
+    Matrix4? referenceInverse;
+    RenderObject? referenceRoot;
     final members = <(_RenderGroup, Matrix4)>[];
     Rect? bounds;
-    final order = _members.toList();
-    final indices = {for (var i = 0; i < order.length; i++) order[i]: i};
-    order.sort((a, b) {
-      final z = a.zIndex.compareTo(b.zIndex);
-      return z == 0 ? indices[a]!.compareTo(indices[b]!) : z;
-    });
-    for (final member in order) {
-      if (!member.attached || !member.hasSize || !identical(rootOf(member), root)) return null;
-      var nested = false;
-      var ancestor = member.parent;
-      while (ancestor != null) {
-        if (ancestor is _RenderGroup && identical(ancestor.link, this)) {
-          nested = true;
-          break;
+    for (final member in _orderedMembers) {
+      if (!member.attached || !member.hasSize || !identical(member.owner, reference.owner)) return null;
+      final memberRoot = _writeTransformToReferenceOrRoot(
+        member,
+        reference: reference,
+        transform: memberTransform,
+        edgeTransform: edgeTransform,
+      );
+      if (memberRoot != null) {
+        var inverse = referenceInverse;
+        if (inverse == null) {
+          inverse = Matrix4.identity();
+          referenceRoot = _writeTransformToRoot(
+            reference,
+            transform: inverse,
+            edgeTransform: edgeTransform,
+          );
+          if (inverse.invert() == 0) return null;
+          referenceInverse = inverse;
         }
-        ancestor = ancestor.parent;
+        if (!identical(memberRoot, referenceRoot)) return null;
+        memberTransform.leftMultiply(inverse);
       }
-      if (nested) continue;
-      final transform = Matrix4.copy(inverse)..multiply(member.getTransformTo(null));
-      final rect = MatrixUtils.transformRect(transform, member.paintBounds);
+      if (_isNestedMember(member)) continue;
+      final rect = MatrixUtils.transformRect(memberTransform, member.paintBounds);
       if (!rect.isFinite) return null;
-      members.add((member, transform));
+      members.add((member, Matrix4.copy(memberTransform)));
       bounds = bounds?.expandToInclude(rect) ?? rect;
     }
     return bounds == null || bounds.isEmpty ? null : (bounds: bounds, members: members);
+  }
+
+  int? _revision(RenderBox reference) {
+    if (!reference.attached || !reference.hasSize || _members.isEmpty) return null;
+    final memberTransform = Matrix4.identity();
+    final edgeTransform = Matrix4.identity();
+    Matrix4? referenceInverse;
+    RenderObject? referenceRoot;
+    var hasBounds = false;
+    var revision = 0;
+    for (final member in _orderedMembers) {
+      if (!member.attached || !member.hasSize || !identical(member.owner, reference.owner)) return null;
+      final memberRoot = _writeTransformToReferenceOrRoot(
+        member,
+        reference: reference,
+        transform: memberTransform,
+        edgeTransform: edgeTransform,
+      );
+      if (memberRoot != null) {
+        var inverse = referenceInverse;
+        if (inverse == null) {
+          inverse = Matrix4.identity();
+          referenceRoot = _writeTransformToRoot(
+            reference,
+            transform: inverse,
+            edgeTransform: edgeTransform,
+          );
+          if (inverse.invert() == 0) return null;
+          referenceInverse = inverse;
+        }
+        if (!identical(memberRoot, referenceRoot)) return null;
+        memberTransform.leftMultiply(inverse);
+      }
+      if (_isNestedMember(member)) continue;
+      final rect = MatrixUtils.transformRect(memberTransform, member.paintBounds);
+      if (!rect.isFinite) return null;
+      hasBounds = hasBounds || !rect.isEmpty;
+      revision = Object.hash(
+        revision,
+        member,
+        member._revision,
+        member.size,
+        member.zIndex,
+        Object.hashAll(memberTransform.storage),
+      );
+    }
+    return hasBounds ? revision : null;
+  }
+
+  List<_RenderGroup> get _orderedMembers {
+    final cachedMembers = _membersInPaintOrder;
+    if (cachedMembers != null) return cachedMembers;
+    final members = _members.toList(growable: false);
+    final registrationIndices = {for (var index = 0; index < members.length; index++) members[index]: index};
+    members.sort((first, second) {
+      final zIndexOrder = first.zIndex.compareTo(second.zIndex);
+      return zIndexOrder == 0 ? registrationIndices[first]!.compareTo(registrationIndices[second]!) : zIndexOrder;
+    });
+    return _membersInPaintOrder = members;
+  }
+
+  RenderObject _writeTransformToRoot(
+    RenderObject object, {
+    required Matrix4 transform,
+    required Matrix4 edgeTransform,
+  }) {
+    assert(object.attached, 'Group transforms require attached render objects.');
+    transform.setIdentity();
+    var child = object;
+    while (true) {
+      final parent = child.parent;
+      if (parent == null) return child;
+      // Match getTransformTo(null), which excludes the root node's transform.
+      if (parent.parent == null) return parent;
+      edgeTransform.setIdentity();
+      parent.applyPaintTransform(child, edgeTransform);
+      transform.leftMultiply(edgeTransform);
+      child = parent;
+    }
+  }
+
+  RenderObject? _writeTransformToReferenceOrRoot(
+    RenderObject object, {
+    required RenderObject reference,
+    required Matrix4 transform,
+    required Matrix4 edgeTransform,
+  }) {
+    assert(object.attached, 'Group transforms require attached render objects.');
+    transform.setIdentity();
+    var child = object;
+    while (!identical(child, reference)) {
+      final parent = child.parent;
+      if (parent == null) return child;
+      // Keep cross-branch transforms in the same root coordinate space as
+      // getTransformTo(null), which excludes the root node's transform.
+      if (parent.parent == null && !identical(parent, reference)) return parent;
+      edgeTransform.setIdentity();
+      parent.applyPaintTransform(child, edgeTransform);
+      transform.leftMultiply(edgeTransform);
+      child = parent;
+    }
+    return null;
+  }
+
+  bool _isNestedMember(_RenderGroup member) {
+    var ancestor = member.parent;
+    while (ancestor != null) {
+      if (ancestor is _RenderGroup && identical(ancestor.link, this)) return true;
+      ancestor = ancestor.parent;
+    }
+    return false;
   }
 }

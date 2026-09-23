@@ -1,9 +1,9 @@
 # Morph
 
 `Morph` moves and resizes shared content between appearances, such as a card
-and its details, or animates a changed child in one location. Each appearance
-owns a stable `MorphTarget`; targets with equal tags identify the same shared
-content. Matching stays within one Flutter `Overlay`.
+and its details. Both appearances share the same stable `MorphTarget` instance.
+A target defines their connection and optional forward and return timing.
+Matching stays within one Flutter `Overlay`.
 
 ```dart
 import 'package:flutter/material.dart';
@@ -37,15 +37,96 @@ a Morph displays its child normally without transitions.
 Create targets once in the owning State, not inside `build`:
 
 ```dart
-late final card = MorphTarget(tag: widget.item.id);
-late final details = MorphTarget(tag: widget.item.id);
+late final target = MorphTarget(
+  tag: widget.item.id,
+  duration: const Duration(milliseconds: 400),
+  reverseDuration: const Duration(milliseconds: 250),
+  curve: Curves.easeOut,
+  reverseCurve: Curves.easeIn,
+);
 ```
 
-`card` and `details` are different instances with equal tags. At most one
-attached Morph can use each target, with any number of `MorphSibling` widgets
-sharing that exact instance. Targets require no disposal. Tag equality and hash
-codes must stay stable while a target is in use. Use different tags for
-unrelated shared content.
+Pass this same instance to both appearances, including through route
+constructors when needed. Separate instances do not match, even with equal
+tags. Targets require no disposal. The tag labels diagnostics; matching and status belong to the target instance.
+
+## Prefer one relationship and fall back to another
+
+Pass alternatives in priority order on the destination:
+
+```dart
+Morph(
+  targets: [specificTarget, fallbackTarget],
+  child: content,
+)
+```
+
+Morph chooses the destination's first usable match, even when the source lists
+its targets in a different order. Each visual joins at most one flight. A
+missing or incompatible first match allows the next alternative; an accepted
+flight never starts a fallback after completion or cancellation. Without a
+usable match, the content displays normally.
+
+Supply at least one target and do not repeat instances in the
+same list. Keep target instances stable and treat the list as immutable.
+Reordering affects future matches without restarting an active flight. When
+several arriving visuals compete for a source, earlier registered appearances
+are considered first; the existing appearance-order rules still apply.
+
+Each connection can have its own timing. For example, give a card both
+`cardToDetails` and `cardToPreview`, then give details only `cardToDetails`
+and preview only `cardToPreview`. The selected target supplies the flight's
+duration and curve. Delegates and callbacks remain on each Morph.
+
+## Restrict matching
+
+Use `MorphTarget.canMatch` to allow only particular route relationships or
+navigation operations. For example, allow shared flights on push and pop while
+leaving replacement and removal navigation to the ordinary route transition:
+
+```dart
+late final target = MorphTarget(
+  tag: widget.item.id,
+  canMatch: (match) =>
+      match.operation == MorphMatchOperation.push ||
+      match.operation == MorphMatchOperation.pop,
+);
+```
+
+The shared target checks each proposed pair once. A rejected
+candidate allows the next destination target to be considered. Approval still
+requires compatible, available endpoints. Exceptions are reported through
+Flutter's error reporting and reject that candidate.
+
+Use `Morph.canMatch` when a particular appearance needs narrower rules than
+its shared targets. It receives the candidate target and the same match context:
+
+```dart
+Morph(
+  targets: [previewTarget, itemTarget],
+  canMatch: (target, match) =>
+      target != previewTarget || match.operation == MorphMatchOperation.push,
+  child: const Text('Preview item'),
+)
+```
+
+The shared target's policy runs first, then the destination appearance's policy,
+then the source appearance's policy. All must approve. A restriction on one
+appearance does not change how other appearances use that target.
+
+`sourceRoute` and `destinationRoute` are the actual Flutter routes. On pop, the
+page being left is the source and the revealed route is the destination. A
+`local` match has the same enclosing route on both sides, or null outside a
+route. Navigation operations follow observer notifications: `push`, `pop`,
+`replace` (including `pushReplacement`), or `remove`. Compound updates use the
+operation responsible for the destination becoming current; `unknown` means
+the notifications did not establish one.
+
+Keep predicates synchronous and side-effect-free. A stable target can read
+current policy through its callback. Each new navigation, including pop, checks
+eligibility again. An accepted flight keeps its decision through gesture
+reversal, completion, and cancellation. Changing policy alone neither starts
+matching nor cancels a flight. Updating a child does not consult this predicate.
 
 ## Mount and remove appearances
 
@@ -57,7 +138,7 @@ Stack(
     Align(
       alignment: Alignment.topLeft,
       child: Morph(
-        target: card,
+        targets: [target],
         child: const Text('Item summary'),
       ),
     ),
@@ -65,7 +146,7 @@ Stack(
       Align(
         alignment: Alignment.bottomRight,
         child: Morph(
-          target: details,
+          targets: [target],
           child: const Text(
             'A complete item description',
             style: TextStyle(fontSize: 32, fontWeight: FontWeight.w700),
@@ -93,54 +174,19 @@ not take the foreground visual. An interrupted flight continues from its
 current appearance toward the latest destination.
 
 Changing an `IndexedStack` index or `Offstage` alone does not request a
-transition. Use mounting, removal, target replacement, or child replacement.
+transition. Mount or remove a matching appearance to request one.
 There is no additional view wrapper or activation call.
 
-See [MorphSibling](morph_sibling.md) for external headers that arrive and depart
-with these appearances.
+Custom delegates can include external content with
+`MorphEndpointContext.groupSnapshot` (see grouped content below).
 
-## Animate a changed child in place
+## Update content within one appearance
 
-Set `animateChildChanges: true` so changing the child of the current mounted
-`Morph` can start a flight without moving to another appearance. The snippets
-below use target fields created once in the owning State, as in the setup
-above. Use a different child key to explicitly represent a new visual:
-
-```dart
-Morph(
-  target: statusTarget,
-  animateChildChanges: true,
-  child: Text(
-    expanded ? 'Ready to publish' : 'Draft',
-    key: ValueKey(expanded),
-  ),
-)
-```
-
-With this enabled, an unkeyed child also starts a flight when a rebuild supplies
-a different widget instance, which ordinary declarative rebuilds commonly do. Use an
-explicit changing key when that in-place animation is intentional. Give
-successive children the same non-null key when the rebuild should update the
-resting widget without animating; that stable key suppresses the in-place
-flight even when the child's configuration or widget type changes. Updating a
-covered appearance does not promote it. Child replacement leaves its siblings
-visible, or lets their existing arrival or departure continue.
-
-By default, `animateChildChanges` is `false`: updates to the direct child are
-immediate while transitions between matching appearances remain enabled:
-
-```dart
-Morph(
-  target: statusTarget,
-  animateChildChanges: false,
-  child: Container(height: expanded ? 200 : 100),
-)
-```
-
-This container's height updates without an in-place flight. Mounting or removing
-another matching appearance, including during navigation, still animates.
-Changing the flag does not cancel an existing flight.
-Rebuilds inside the child subtree do not start child-replacement flights.
+Changing a mounted Morph's child updates it normally without starting a flight.
+To transition between replacement appearances, give the Morph widgets distinct
+Flutter keys and the same target. Active flights can still follow a moving
+destination through `MorphTarget.watchDestination` or retarget to a newly
+mounted appearance.
 
 ## Choose the automatic behavior
 
@@ -167,7 +213,7 @@ Configure automatic child replacement on `.auto()`:
 
 ```dart
 Morph(
-  target: itemTarget,
+  targets: [itemTarget],
   flightConfig: .auto(childSwitchAt: 0.4),
   child: content,
 )
@@ -183,22 +229,22 @@ delegate defines its own interpolation and child transitions instead.
 
 ## Configure timing and ownership
 
-| Setting            | Default and ownership                                                                                                                                                                                                                                                             |
-| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `duration`         | 300 ms for a root same-screen flight. An omitted value inherits the nearest configured Morph ancestor. A fully omitted route flight follows the route animation; an explicit or inherited value gives it an independent clock. The departing endpoint wins when endpoints differ. |
-| `curve`            | `Curves.linear` for a root flight. An omitted value inherits the nearest Morph ancestor. The departing endpoint wins when endpoints differ.                                                                                                                                       |
-| `watchDestination` | `false`. Set it on the departing endpoint when the endpoint it travels toward can move or resize.                                                                                                                                                                                 |
-| `flightConfig`     | `const MorphFlightConfig.auto()`. Both endpoints must use automatic configuration or compatible custom delegates; the departing endpoint controls the flight.                                                                                                                     |
+| Setting                       | Default and ownership                                                                                                                                                                          |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MorphTarget.duration`        | Omitted values inherit from the departing Morph's nearest configured ancestor target. Without an inherited value, same-screen flights use 300 ms and route pushes follow the route animation.  |
+| `MorphTarget.reverseDuration` | Defaults to `duration`. When both are omitted, reverse timing is inherited; without inherited timing, same-screen returns use 300 ms and route pops follow the route animation.                 |
+| `MorphTarget.curve`           | Omitted values inherit from the departing Morph's nearest configured ancestor target, falling back to `Curves.linear`.                                                                         |
+| `MorphTarget.reverseCurve`    | Defaults to `curve`. When both are omitted, the departing Morph supplies inherited reverse easing, falling back to `Curves.linear`.                                                            |
+| `MorphTarget.watchDestination` | `false`. Enable it when either endpoint in this connection can move, resize, or change captured visuals while it is a destination.                                                           |
+| `flightConfig`                | `const MorphFlightConfig.auto()`. Both endpoints must use automatic configuration or compatible custom delegates; the departing endpoint controls the flight.                                  |
 
-If a flight must behave the same in both directions, configure the
-direction-dependent values on both endpoints. A route push uses the source as
-the departing endpoint; a pop uses the endpoint in the closing route as the
-departing endpoint.
-
-Each endpoint first resolves an omitted duration or curve from its own nearest
-Morph ancestor. If the resolved endpoint values differ, the departing
-endpoint's effective value controls that direction. A duration must not be
-negative. Zero completes the visual transition immediately.
+Use `duration` and `curve` for a newly mounted appearance or route push. Use
+`reverseDuration` and `reverseCurve` when removing that appearance or popping
+the route. Omitting either reverse setting falls back to its forward setting.
+When both settings for one value are omitted, the departing appearance supplies
+the inherited value, so different ancestor configurations can give push and pop
+different timing. A duration must not be negative. Zero completes the visual
+transition immediately.
 
 Curves that overshoot can produce progress outside the 0 to 1 interval. Custom
 delegates should either support that extrapolation or clamp progress when their
@@ -225,11 +271,11 @@ focus, selection, or scroll position to another live subtree:
 
 ```dart
 Morph(
-  target: editorTarget,
+  targets: [editorTarget],
   child: Container(
     decoration: const BoxDecoration(color: Colors.white),
     child: MorphDescendant(
-      flightBehavior: MorphDescendantFlightBehavior.snapshot,
+      flightBehavior: MorphDescendantFlightBehavior.snapshot(),
       child: SingleChildScrollView(
         controller: descriptionScrollController,
         child: TextField(controller: descriptionController),
@@ -244,11 +290,11 @@ For automatic flights, the source snapshot remains visible before
 The endpoint behavior is selected at the same time, so matching endpoints may
 deliberately use different behaviors.
 
-When the departing Morph sets `watchDestination: true`, the destination
+When the selected target sets `watchDestination: true`, the destination
 snapshot and its reserved size refresh while the flight is active. This keeps
 the in-flight image aligned with destination layout changes without mounting a
-second copy of the snapshotted subtree. Configure both endpoints when this is
-required in both directions.
+second copy of the snapshotted subtree. The shared target applies this behavior
+in both directions.
 
 Rebuilds, layout changes, and paints that reach the `MorphDescendant` are
 detected automatically, and several changes in one frame produce one refreshed
@@ -256,6 +302,13 @@ image. Content that repaints independently inside a nested repaint boundary
 also stays current, but may require an image refresh on every watched frame.
 Keep frequently changing captured regions small, or use `live` or `hide` when
 their behavior is a better fit.
+
+If that content has a notifier for every visual change that should appear during
+the flight, use `MorphDescendantFlightBehavior.snapshot(changes: notifier)`.
+Morph can then reuse the image between notifications. Keep the default when no complete notifier
+exists: an unsignaled change will not appear in the flight image until the live
+content takes over. Layout changes and updates to the descendant child remain
+automatic.
 
 Snapshot capture is bounded to avoid unbounded image memory on constrained
 devices. If one capture batch is unusually large, an active watched flight
@@ -275,7 +328,7 @@ Use `live` explicitly when a shared wrapper selects behavior dynamically:
 
 ```dart
 MorphDescendant(
-  flightBehavior: MorphDescendantFlightBehavior.live,
+  flightBehavior: MorphDescendantFlightBehavior.live(),
   child: Text(expanded ? longDescription : shortDescription),
 )
 ```
@@ -284,7 +337,7 @@ Use `hide` to reserve endpoint space without showing content:
 
 ```dart
 MorphDescendant(
-  flightBehavior: MorphDescendantFlightBehavior.hide,
+  flightBehavior: MorphDescendantFlightBehavior.hide(),
   child: const Text('Visible before and after the flight'),
 )
 ```
@@ -312,7 +365,7 @@ Nested `Morph` widgets continue their independent flights.
 
 ```dart
 Morph(
-  target: statusTarget,
+  targets: [statusTarget],
   flightConfig: .auto(
     childSwitchAt: 0.4,
     childTransition: (child, animation) {
@@ -330,46 +383,65 @@ treatment should apply during both forward and reverse flights.
 
 ## Follow a moving destination
 
-Set `watchDestination: true` on the morph that departs from when
-the endpoint it travels toward can move or resize, for example while keyboard
-insets change:
+Set `watchDestination: true` on the shared target when either endpoint can move
+or resize while a flight travels toward it, for example while keyboard insets
+change:
 
 ```dart
-Morph(
-  target: continueTarget,
+final continueTarget = MorphTarget(
+  tag: #continue,
   watchDestination: true,
+);
+
+Morph(
+  targets: [continueTarget],
   child: const ContinueButton(),
 )
 ```
 
-The flight follows its destination until it finishes. The setting has no effect
-on flights arriving at the configured Morph. If either direction's destination
-can move, enable `watchDestination` on both matching Morphs. Leave it disabled
-when destinations remain stationary.
+The flight follows its destination until it finishes. Geometry, custom delegate
+properties, grouped content, and descendant snapshots update together, so the
+flight never exposes a partially refreshed endpoint. A custom delegate's
+`properties` method may therefore run again; keep it synchronous and free of
+side effects.
+
+The target represents the whole connection, so watching applies to the current
+destination in both directions. Leave it disabled when destinations remain
+stationary.
 
 ## Coordinate nested Morphs
 
-Nested Morph widgets inherit the nearest Morph ancestor's effective duration
-and curve when they omit those settings.
+An omitted forward duration or curve inherits the forward value from the
+departing appearance's nearest Morph ancestor. An omitted reverse setting first
+falls back to the selected target's forward setting; when the target omits both,
+it inherits the ancestor's effective reverse value. Inherited values can differ
+when the two appearances have different ancestors.
 
 ```dart
-Morph(
-  target: card,
+final target = MorphTarget(
+  tag: 'card',
   duration: const Duration(milliseconds: 500),
+  reverseDuration: const Duration(milliseconds: 300),
   curve: Curves.easeOutCubic,
+  reverseCurve: Curves.easeInCubic,
+);
+
+Morph(
+  targets: [target],
   child: Column(
     children: [
-      Morph(target: titleTarget, child: const Text('Title')),
-      Morph(target: actionTarget, child: const Icon(Icons.arrow_forward)),
+      Morph(targets: [titleTarget], child: const Text('Title')),
+      Morph(targets: [actionTarget], child: const Icon(Icons.arrow_forward)),
     ],
   ),
 )
 ```
 
-The nested flights inherit 500 milliseconds and `Curves.easeOutCubic`. Supply
-either setting on a nested Morph only when that flight should intentionally use
-different timing. The inherited duration also gives a nested route flight its
-own 500-millisecond clock instead of the route's clock.
+The nested flights inherit 500 milliseconds and `Curves.easeOutCubic` when
+moving forward, then 300 milliseconds and `Curves.easeInCubic` when returning.
+Supply a setting on the nested Morph's target only when that flight should
+intentionally use different timing. An inherited duration also gives a nested
+route flight its own timing instead of the route's timing.
 
 ## Animate across routes
 
@@ -382,12 +454,11 @@ final routeSource = MorphTarget(tag: 'route-title');
 
 // Source in build.
 Morph(
-  target: routeSource,
+  targets: [routeSource],
   child: const Text('Item summary'),
 )
 
-// In the action that opens a new route, create its target once.
-final routeDestination = MorphTarget(tag: routeSource.tag);
+// Pass the same target to the new route.
 Navigator.of(context).push<void>(
   MaterialPageRoute<void>(
     builder: (context) {
@@ -395,7 +466,7 @@ Navigator.of(context).push<void>(
         body: Align(
           alignment: Alignment.bottomRight,
           child: Morph(
-            target: routeDestination,
+            targets: [routeSource],
             child: const Text('Full item description'),
           ),
         ),
@@ -410,27 +481,30 @@ No particular `PageRoute` type, transparent background, or
 together. Use a transparent `PageRouteBuilder` that returns its child unchanged
 only when Morph should provide all visible route movement.
 
-When the departing Morph and its Morph ancestors omit `duration`, the forward
-flight follows the route's push animation and the return flight follows its pop
-animation. Morph applies the departing endpoint's curve to that route progress;
-the route supplies the clock, while Morph supplies the visual easing.
+When the shared target and the departing Morph ancestors' targets omit both
+durations, the forward flight follows the route's push animation and the return
+flight follows its pop animation. Morph applies the effective target curve to
+that route progress, including gesture-controlled progress.
 
-Set `duration` when the shared visual should use its own clock. It can finish
-and hand off to the destination while the page transition continues, or remain
-in the navigator overlay after the page transition settles. An inherited
-duration has the same effect. When returning beneath a closing route's colored
-modal barrier, the shared visual finishes moving on its own clock and stays at
-its destination until that route disappears. This prevents a brief tint at
-landing without changing the route duration. Completion callbacks still follow
-the Morph's configured timing.
+Set `MorphTarget.duration` when a route push should use the target's timing. Set
+`reverseDuration` when a route pop should use different timing. Setting only
+`reverseDuration` leaves the push on the route animation. A target-timed Morph
+can finish and hand off while the page transition continues, or remain in the
+navigator overlay after the page transition settles. Inherited durations have
+the same effect. When returning beneath a closing route's colored modal barrier,
+the shared visual stays at its destination until that route disappears. This
+prevents a brief tint at landing without changing the route duration.
 
-If navigation reverses before the Morph finishes,
-the Morph returns from its current progress over the proportional elapsed
-duration. A Morph that already handed off starts a new return flight.
+If a route-driven push reverses before the Morph finishes and
+`reverseDuration` is configured, the Morph returns from its exact current
+progress using that return duration. Cancelling a target-timed pop similarly
+uses the forward duration to restore the current route. The remaining playback
+time is proportional to the distance still to travel. An interrupted flight
+starts the new direction's curve from its current visible state, so a rapid
+return uses `reverseCurve` without jumping. A Morph that already handed off
+starts a new return flight.
 
-The departing Morph supplies the effective duration, `curve`, and flight
-delegate configuration. Configure both endpoints when push and pop should use
-the same independent timing and visual behavior.
+The departing Morph still supplies the flight delegate configuration.
 
 Navigation matches only the actual departing and arriving routes. An
 unmatched route between two matching routes breaks that relationship;
@@ -443,7 +517,7 @@ movement does not start a flight or invoke lifecycle callbacks.
 
 For GoRouter, retain the observer with the router and supply it through the
 router's `observers`. Each `ShellRoute` Navigator that contains Morphs needs its
-own observer too. Use pages with a route animation when omitted Morph durations
+own observer too. Use pages with a route animation when omitted target durations
 should follow route progress:
 
 ```dart
@@ -491,6 +565,12 @@ destination correct or visible. Reduced motion can intentionally omit them.
 
 ## Build a custom flight
 
+Read `MorphEndpointContext.target` in `properties` when different target
+alternatives need different flight visuals. It identifies the candidate being
+considered, including during fallback to another target. Capture the selected
+visual values in the returned properties; approval and successful capture are
+still required before the flight starts.
+
 Subclass `MorphFlightDelegate<T>` when the automatic visual is not
 appropriate, then pass an instance to `MorphFlightConfig.custom`. The type
 parameter is the endpoint data your delegate interpolates.
@@ -526,7 +606,7 @@ endpoints:
 
 ```dart
 Morph(
-  target: statusTarget,
+  targets: [statusTarget],
   flightConfig: const .custom(StatusFlightDelegate()),
   child: const ColoredBox(color: Colors.green),
 )
@@ -561,9 +641,10 @@ Morph does not provide a recovery transition for invalid delegate code.
 
 ### Choose animation progress
 
-Use `curvedAnimation` to follow `Morph.curve`, which also controls `bounds`.
-Use `uncurvedAnimation` to give custom content its own intervals
-and curves. Both follow the same flight, including changes in direction.
+Use `curvedAnimation` to follow the current direction's target curve, which
+also controls `bounds`. Use `uncurvedAnimation` to give custom content its own
+intervals and curves. Both follow the same flight, including changes in
+direction.
 
 For example, this replacement for the delegate's `buildFlight` fades its visual
 in during the first quarter of the uncurved progress. The color continues to
@@ -584,7 +665,7 @@ Widget buildFlight(BuildContext context, MorphFlight<Color> flight) {
 }
 ```
 
-With an explicit 400 ms Morph duration, that fade takes 100 ms during
+With an explicit 400 ms target duration, that fade takes 100 ms during
 uninterrupted forward playback. When Morph follows a route animation,
 `uncurvedAnimation` follows the route's progress. That progress may already
 be curved or controlled by a gesture, so an interval does not necessarily
@@ -723,48 +804,48 @@ independent visual: resolve the required inherited values in `properties`, and
 do not rebuild the same keyed subtree in `buildFlight`.
 
 Without an enclosing `Overlay`, Morph renders its child normally but cannot
-transition. Endpoints in different overlays do not match. Avoid mounting more
-than one logical shared element with the same tag in one overlay.
+transition. Endpoints in different overlays do not match. Use a separate target instance for each independent shared element.
 
 For exhaustive member contracts, see the
 [Morph API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/Morph-class.html).
 
-## Observe a tag during navigation
+## Observe a target during navigation
 
-Use the observer on the Navigator presenting your route to read or watch the
-result for a shared tag:
+Read `target.status.value` for the current navigation result, or listen for
+changes. The same target returns the same read-only listenable, including when
+accessed before its appearances are mounted. Separate targets have independent
+status even when their tags are equal.
 
 ```dart
-final observer = MorphNavigatorObserver.maybeOfNavigator(navigator);
-final status = observer?.tagStatus('photo');
-final current = status?.value;
+final status = target.status;
+final current = status.value;
 
 void onStatusChanged() {
-  final current = status!.value;
+  final current = status.value;
   // Update your presentation for the current status.
 }
 
-status?.addListener(onStatusChanged);
+status.addListener(onStatusChanged);
 // Remove the listener when its owner is disposed.
-status?.removeListener(onStatusChanged);
+status.removeListener(onStatusChanged);
 ```
 
-Lookup includes observer subclasses and returns null when none is installed.
-Each nested Navigator needs its own observer. Keep the observer installed from
-Navigator creation, including when using a router.
+You can also pass `target.status` to a `ValueListenableBuilder<MorphTagStatus>`.
+Keep the Morph observer installed from Navigator creation, including when using
+a router. Targets that have never been attached remain idle.
 
-| Status | Meaning |
-| --- | --- |
-| `idle` | No navigation has been evaluated yet. |
-| `pending` | Morph is resolving the appearances for the latest navigation. |
-| `unmatched` | No usable flight was accepted. |
-| `flying` | A flight was accepted and is active, including its final handoff. |
-| `completed` | The flight handed off at the navigation destination. |
-| `cancelled` | An accepted flight ended without completing that navigation. |
+| Status      | Meaning                                                           |
+| ----------- | ----------------------------------------------------------------- |
+| `idle`      | No navigation has been evaluated yet.                             |
+| `pending`   | Morph is resolving the appearances for the latest navigation.     |
+| `unmatched` | No usable flight was accepted.                                    |
+| `flying`    | A flight was accepted and is active, including its final handoff. |
+| `completed` | The flight handed off at the navigation destination.              |
+| `cancelled` | An accepted flight ended without completing that navigation.      |
 
 The result remains available after completion or cancellation. A new navigation
 starts a fresh resolution; the result does not describe a particular older
-route or local child-replacement animation. A gesture that starts returning and
+route or local appearance transition. A gesture that starts returning and
 then cancels resolves as cancelled after its accepted flight settles. A gesture
 that never moves does not start a new resolution. An immediate flight can finish
 without listeners observing a separate flying notification.
@@ -774,14 +855,14 @@ destination laid out at its resting position but concealed while pending. Use
 the normal slide only for unmatched; flying, completed, and cancelled must not
 start a second transition. Keep the endpoints available during the destination's
 initial layout. Reading this API does not conceal, position, or animate the route
-for you. Unknown tags resolve as unmatched too.
+for you.
 
 Disabled animations also produce unmatched when no flight starts. Honor reduced
 motion before selecting an animated fallback. When a newer navigation begins,
 an older route must not reinterpret that newer result as its own fallback.
 
 The returned listenable supports `.value`, `addListener`, `removeListener`, and
-`ValueListenableBuilder`. It is owned by Morph; remove your listeners rather than
+`ValueListenableBuilder`. It is owned by the target; remove your listeners rather than
 disposing it. Notifications report current values and may combine changes that
 happen within the same event-loop turn.
 
@@ -823,6 +904,18 @@ Use `endpoint.groupSnapshot(link)` inside a custom delegate's
 `properties` method when the flight includes widgets outside the Morph subtree.
 Build the returned widget in that flight and apply content effects to it as one
 composition. Give each endpoint its own stable `GroupLink`.
+
+Declare that link in the delegate's `contentGroups` so external members follow
+the endpoint's visibility from their first frame:
+
+```dart
+@override
+Iterable<GroupLink> get contentGroups => [contentLink];
+
+@override
+Widget properties(MorphEndpointContext endpoint) =>
+    endpoint.groupSnapshot(contentLink);
+```
 
 The endpoint rectangle defines the snapshot's coordinate frame. Morph manages
 capture, original visibility, and disposal; independently transitioning nested

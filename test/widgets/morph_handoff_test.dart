@@ -41,6 +41,32 @@ void main() {
     }))!;
   }
 
+  Future<Color> nextFrameCenterPixel(
+    WidgetTester tester,
+    ValueKey<String> boundaryKey,
+    Duration duration,
+  ) async {
+    final boundary = tester.renderObject<RenderRepaintBoundary>(find.byKey(boundaryKey));
+    final image = Completer<ui.Image>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => image.complete(boundary.toImageSync()));
+    await tester.pump(duration);
+    return (await tester.runAsync(() async {
+      final frame = await image.future;
+      try {
+        final bytes = await frame.toByteData(format: ui.ImageByteFormat.rawRgba);
+        final offset = (((frame.height ~/ 2) * frame.width) + frame.width ~/ 2) * 4;
+        return Color.fromARGB(
+          bytes!.getUint8(offset + 3),
+          bytes.getUint8(offset),
+          bytes.getUint8(offset + 1),
+          bytes.getUint8(offset + 2),
+        );
+      } finally {
+        frame.dispose();
+      }
+    }))!;
+  }
+
   group('Morph handoff', () {
     testWidgets(
       'when an independently timed flight reaches its terminal frame, '
@@ -59,14 +85,14 @@ void main() {
               destinationOffstage: destinationOffstage,
               morphDuration: const Duration(milliseconds: 400),
               sourceChild: const MorphDescendant(
-                flightBehavior: MorphDescendantFlightBehavior.hide,
+                flightBehavior: MorphDescendantFlightBehavior.hide(),
                 child: SizedBox.square(
                   dimension: 100,
                   child: ColoredBox(color: Colors.red),
                 ),
               ),
               destinationChild: const MorphDescendant(
-                flightBehavior: MorphDescendantFlightBehavior.hide,
+                flightBehavior: MorphDescendantFlightBehavior.hide(),
                 child: SizedBox.square(
                   dimension: 100,
                   child: ColoredBox(color: Colors.blue),
@@ -134,7 +160,7 @@ void main() {
                 valueListenable: destinationColor,
                 builder: (context, color, child) {
                   return MorphDescendant(
-                    flightBehavior: MorphDescendantFlightBehavior.snapshot,
+                    flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
                     child: SizedBox.square(
                       dimension: 100,
                       child: ColoredBox(color: color),
@@ -410,6 +436,53 @@ void main() {
     );
 
     testWidgets(
+      'when a watched grouped route pop hands off with a nested flight, '
+      'it should keep the destination content visible until the overlay is removed',
+      (tester) async {
+        tester.view
+          ..physicalSize = const Size(300, 300)
+          ..devicePixelRatio = 1;
+        addTearDown(() {
+          tester.view
+            ..resetPhysicalSize()
+            ..resetDevicePixelRatio();
+        });
+        const boundaryKey = ValueKey('watched-group-pop-handoff-boundary');
+        final navigatorKey = GlobalKey<NavigatorState>();
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: _WatchedGroupPopHandoffApp(navigatorKey: navigatorKey),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('open-watched-group-destination')));
+        await tester.pumpAndSettle();
+
+        navigatorKey.currentState!.pop();
+        await tester.pump();
+        final transitionPixels = <Color>[];
+        for (var elapsed = 0; elapsed < 272; elapsed += 16) {
+          final pixel = await nextFrameCenterPixel(
+            tester,
+            boundaryKey,
+            const Duration(milliseconds: 16),
+          );
+          transitionPixels.add(pixel);
+        }
+        await tester.pumpAndSettle();
+
+        expect(
+          transitionPixels,
+          everyElement(isNot(const Color(0xFFFFFFFF))),
+          reason: 'A nested cohort flight must cover the watched parent until both handoffs are ready.',
+        );
+        expect(transitionPixels.last, const Color(0xFF4CAF50));
+        expect(flightBoundaryCount(), 0);
+      },
+    );
+
+    testWidgets(
       'when a route reverses during a pending presentation, '
       'it should cancel the stale handoff and return normally',
       (tester) async {
@@ -446,6 +519,76 @@ void main() {
             tester.takeException(),
           ),
           (const Color(0xFFF44336), 0, null),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a route-driven push reverses after destination presentation but before handoff release, '
+      'it should restore exclusive flight paint ownership',
+      (tester) async {
+        tester.view
+          ..physicalSize = const Size(300, 300)
+          ..devicePixelRatio = 1;
+        addTearDown(tester.view.reset);
+        const boundaryKey = ValueKey('presented-reversal-handoff-boundary');
+        MorphFlight<Color>? activeFlight;
+        final flightDelegate = _HandoffColorFlightDelegate(
+          const Color(0xFF2196F3),
+          (flight) => activeFlight = flight,
+        );
+        final navigatorKey = GlobalKey<NavigatorState>();
+        final sourceOffstage = ValueNotifier<bool>(false);
+        final destinationOffstage = ValueNotifier<bool>(true);
+        addTearDown(sourceOffstage.dispose);
+        addTearDown(destinationOffstage.dispose);
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: boundaryKey,
+            child: _HandoffTestApp(
+              navigatorKey: navigatorKey,
+              sourceOffstage: sourceOffstage,
+              destinationOffstage: destinationOffstage,
+              routeDuration: const Duration(milliseconds: 400),
+              sourceFlightDelegate: flightDelegate,
+              destinationFlightDelegate: flightDelegate,
+              destinationChild: const SizedBox.expand(
+                child: ColoredBox(color: Colors.blue),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('open-destination')));
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 440));
+        expect(flightBoundaryCount(), greaterThan(0));
+
+        destinationOffstage.value = false;
+        navigatorKey.currentState!.pop();
+        const probe = Offset(2, 290);
+        var observedUncoveredFlightPixel = false;
+        for (var elapsed = 16; elapsed <= 192; elapsed += 16) {
+          await tester.pump(const Duration(milliseconds: 16));
+          if (activeFlight!.bounds.contains(probe)) continue;
+          observedUncoveredFlightPixel = true;
+          expect(
+            await centerPixel(tester, boundaryKey, probe),
+            Colors.white,
+            reason: 'The live destination must hide again while its existing flight reverses.',
+          );
+          break;
+        }
+        expect(
+          observedUncoveredFlightPixel,
+          isTrue,
+          reason: 'The probe must leave the reversing overlay before the route pop completes.',
+        );
+        await tester.pumpAndSettle();
+        expect(
+          (flightBoundaryCount(), tester.takeException()),
+          (0, null),
         );
       },
     );
@@ -507,6 +650,9 @@ class _HandoffTestApp extends StatefulWidget {
     required this.destinationOffstage,
     this.navigatorKey,
     this.morphDuration,
+    this.routeDuration = const Duration(milliseconds: 200),
+    this.sourceFlightDelegate,
+    this.destinationFlightDelegate,
     this.sourceChild = const SizedBox.square(
       dimension: 100,
       child: ColoredBox(color: Colors.red),
@@ -519,6 +665,9 @@ class _HandoffTestApp extends StatefulWidget {
 
   final GlobalKey<NavigatorState>? navigatorKey;
   final Duration? morphDuration;
+  final Duration routeDuration;
+  final MorphFlightDelegate<Color>? sourceFlightDelegate;
+  final MorphFlightDelegate<Color>? destinationFlightDelegate;
   final ValueNotifier<bool> sourceOffstage;
   final ValueNotifier<bool> destinationOffstage;
   final Widget sourceChild;
@@ -529,8 +678,11 @@ class _HandoffTestApp extends StatefulWidget {
 }
 
 class _HandoffTestAppState extends State<_HandoffTestApp> {
-  final _morphTarget1 = MorphTarget(tag: 'paint-confirmed-handoff');
-  final _morphTarget2 = MorphTarget(tag: 'paint-confirmed-handoff');
+  late final _morphTarget1 = MorphTarget(
+    tag: 'paint-confirmed-handoff',
+    duration: widget.morphDuration,
+  );
+
   final _morphObserver1 = MorphNavigatorObserver();
 
   @override
@@ -554,10 +706,12 @@ class _HandoffTestAppState extends State<_HandoffTestApp> {
                   },
                   child: Center(
                     child: Morph(
-                      animateChildChanges: true,
                       key: const ValueKey('handoff-source'),
-                      target: _morphTarget1,
-                      duration: widget.morphDuration,
+                      targets: [_morphTarget1],
+                      flightConfig: widget.sourceFlightDelegate == null
+                          ? const .auto()
+                          : .custom(widget.sourceFlightDelegate!),
+
                       child: widget.sourceChild,
                     ),
                   ),
@@ -570,12 +724,8 @@ class _HandoffTestAppState extends State<_HandoffTestApp> {
                       Navigator.of(context).push<void>(
                         PageRouteBuilder<void>(
                           opaque: false,
-                          transitionDuration: const Duration(
-                            milliseconds: 200,
-                          ),
-                          reverseTransitionDuration: const Duration(
-                            milliseconds: 200,
-                          ),
+                          transitionDuration: widget.routeDuration,
+                          reverseTransitionDuration: widget.routeDuration,
                           pageBuilder: (_, _, _) {
                             return ValueListenableBuilder<bool>(
                               valueListenable: widget.destinationOffstage,
@@ -590,12 +740,14 @@ class _HandoffTestAppState extends State<_HandoffTestApp> {
                               },
                               child: Center(
                                 child: Morph(
-                                  animateChildChanges: true,
                                   key: const ValueKey(
                                     'handoff-destination',
                                   ),
-                                  target: _morphTarget2,
-                                  duration: widget.morphDuration,
+                                  targets: [_morphTarget1],
+                                  flightConfig: widget.destinationFlightDelegate == null
+                                      ? const .auto()
+                                      : .custom(widget.destinationFlightDelegate!),
+
                                   child: widget.destinationChild,
                                 ),
                               ),
@@ -613,6 +765,29 @@ class _HandoffTestAppState extends State<_HandoffTestApp> {
           );
         },
       ),
+    );
+  }
+}
+
+final class _HandoffColorFlightDelegate extends MorphFlightDelegate<Color> {
+  const new(this.color, this.onFlightBuilt);
+
+  final Color color;
+  final ValueChanged<MorphFlight<Color>> onFlightBuilt;
+
+  @override
+  Color properties(MorphEndpointContext endpoint) => color;
+
+  @override
+  Color lerpProperties(Color source, Color destination, MorphFlightProgress progress) =>
+      Color.lerp(source, destination, progress.curvedProgress)!;
+
+  @override
+  Widget buildFlight(BuildContext context, MorphFlight<Color> flight) {
+    onFlightBuilt(flight);
+    return AnimatedBuilder(
+      animation: flight.curvedAnimation,
+      builder: (context, child) => ColoredBox(color: flight.properties),
     );
   }
 }
@@ -638,7 +813,7 @@ class _FocusedSnapshotSurface extends StatelessWidget {
           alignment: Alignment.topLeft,
           child: MorphDescendant(
             key: const ValueKey('focused-snapshot-descendant'),
-            flightBehavior: MorphDescendantFlightBehavior.snapshot,
+            flightBehavior: const MorphDescendantFlightBehavior.snapshot(),
             child: SizedBox(
               width: 80,
               height: 40,
@@ -655,6 +830,120 @@ class _FocusedSnapshotSurface extends StatelessWidget {
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WatchedGroupPopHandoffApp extends StatefulWidget {
+  const new({required this.navigatorKey});
+
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  @override
+  State<_WatchedGroupPopHandoffApp> createState() => _WatchedGroupPopHandoffAppState();
+}
+
+class _WatchedGroupPopHandoffAppState extends State<_WatchedGroupPopHandoffApp> {
+  final _surfaceTarget = MorphTarget(
+    tag: 'watched-group-pop-surface',
+    watchDestination: true,
+  );
+  final _headerTarget = MorphTarget(tag: 'watched-group-pop-header');
+  final _sourceGroup = GroupLink();
+  final _destinationGroup = GroupLink();
+  final _observer = MorphNavigatorObserver();
+
+  Widget _endpoint({required bool destination}) {
+    final group = destination ? _destinationGroup : _sourceGroup;
+    return SizedBox.square(
+      dimension: destination ? 300 : 240,
+      child: Morph(
+        targets: [_surfaceTarget],
+        flightConfig: .custom(_WatchedGroupPopDelegate(group)),
+        child: ColoredBox(
+          color: Colors.white,
+          child: Group(
+            link: group,
+            child: Morph(
+              targets: [_headerTarget],
+              child: ColoredBox(
+                color: destination ? Colors.green : Colors.blue,
+                child: const SizedBox.expand(),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      navigatorKey: widget.navigatorKey,
+      navigatorObservers: [_observer],
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              _endpoint(destination: true),
+              Positioned(
+                top: 8,
+                child: FilledButton(
+                  key: const ValueKey('open-watched-group-destination'),
+                  onPressed: () {
+                    widget.navigatorKey.currentState!.push<void>(
+                      PageRouteBuilder<void>(
+                        opaque: false,
+                        barrierColor: const Color(0x1F000000),
+                        transitionDuration: const Duration(milliseconds: 200),
+                        reverseTransitionDuration: const Duration(milliseconds: 200),
+                        pageBuilder: (_, _, _) => Scaffold(
+                          backgroundColor: Colors.transparent,
+                          body: Center(child: _endpoint(destination: false)),
+                        ),
+                        transitionsBuilder: (_, _, _, child) => child,
+                      ),
+                    );
+                  },
+                  child: const Text('Open'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+final class _WatchedGroupPopDelegate extends MorphFlightDelegate<Widget> {
+  const new(this.group);
+
+  final GroupLink group;
+
+  @override
+  Iterable<GroupLink> get contentGroups => [group];
+
+  @override
+  Widget properties(MorphEndpointContext endpoint) => endpoint.groupSnapshot(group);
+
+  @override
+  Widget lerpProperties(Widget source, Widget destination, MorphFlightProgress progress) =>
+      progress.curvedProgress < .5 ? source : destination;
+
+  @override
+  Widget buildFlight(BuildContext context, MorphFlight<Widget> flight) {
+    return ColoredBox(
+      color: Colors.white,
+      child: SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.fill,
+          child: flight.destination.properties,
         ),
       ),
     );

@@ -16,7 +16,10 @@ void main() {
   tearDown(() => expanded.dispose());
 
   Future<void> startFlight(WidgetTester tester) async {
-    final morphTarget1 = MorphTarget(tag: 'registration-api');
+    final morphTarget1 = MorphTarget(
+      tag: 'registration-api',
+      duration: const Duration(seconds: 1),
+    );
     final morphObserver1 = MorphNavigatorObserver();
 
     await tester.pumpWidget(
@@ -26,9 +29,10 @@ void main() {
           valueListenable: expanded,
           builder: (context, value, _) => Align(
             child: Morph(
-              animateChildChanges: true,
-              target: morphTarget1,
-              duration: const Duration(seconds: 1),
+              key: ValueKey(value),
+
+              targets: [morphTarget1],
+
               flightConfig: .custom(
                 _RegistrationDelegate(
                   onRegister: (endpoint, registered) => captures.add((endpoint: endpoint, registered: registered)),
