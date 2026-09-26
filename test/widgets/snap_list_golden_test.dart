@@ -33,9 +33,9 @@ Future<void> main() async {
                     axis: axis,
                     controller: controller,
                     duration: const Duration(milliseconds: 260),
-                    incomingTransitionBuilder: (_, progress, isReverse, child) =>
+                    incomingTransitionBuilder: (_, progress, details, child) =>
                         FadeTransition(opacity: progress, child: child),
-                    outgoingTransitionBuilder: (_, progress, isReverse, child) =>
+                    outgoingTransitionBuilder: (_, progress, details, child) =>
                         ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child),
                     spacing: 12,
                     trailingBuilder: loading

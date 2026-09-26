@@ -299,6 +299,248 @@ void main() {
       },
     );
 
+    test(
+      'when edits reuse a formatter, it should match independent formatting',
+      () {
+        final formatter = PhoneNumberTextInputFormatter(
+          country: Country.unitedStates,
+        );
+        const edits = [
+          TextEditingValue(
+            text: '202555',
+            selection: TextSelection.collapsed(offset: 6),
+          ),
+          TextEditingValue(
+            text: '2025550',
+            selection: TextSelection.collapsed(offset: 7),
+          ),
+          TextEditingValue(
+            text: '20255501',
+            selection: TextSelection.collapsed(offset: 8),
+          ),
+          TextEditingValue(
+            text: '2025550',
+            selection: TextSelection.collapsed(offset: 7),
+          ),
+          TextEditingValue(
+            text: '20295550',
+            selection: TextSelection.collapsed(offset: 4),
+          ),
+          TextEditingValue(
+            text: '2029550123',
+            selection: TextSelection.collapsed(offset: 10),
+          ),
+        ];
+        final actual = <PhoneNumberTextInputFormatterResult>[];
+        final expected = <PhoneNumberTextInputFormatterResult>[];
+        var oldValue = TextEditingValue.empty;
+
+        for (final edit in edits) {
+          final result = formatter.formatEditUpdateWithResult(oldValue, edit);
+          actual.add(result);
+          expected.add(
+            PhoneNumberTextInputFormatter(
+              country: Country.unitedStates,
+            ).formatEditUpdateWithResult(oldValue, edit),
+          );
+          oldValue = result.textEditingValue;
+        }
+
+        expect(actual, expected);
+      },
+    );
+
+    test(
+      'when an international edit resolves another country, it should keep the selected formatter reusable',
+      () {
+        final formatter = PhoneNumberTextInputFormatter(
+          country: Country.brazil,
+        );
+        final brazilian = formatter.formatNationalValue(
+          const TextEditingValue(text: '11969230546'),
+        );
+        final international = formatter.formatEditUpdateWithResult(
+          brazilian.textEditingValue,
+          const TextEditingValue(text: '+1 202-555-0123'),
+        );
+        final reformatted = formatter.formatNationalValue(
+          brazilian.textEditingValue,
+        );
+
+        expect(
+          (international.country, reformatted),
+          (Country.unitedStates, brazilian),
+        );
+      },
+    );
+
+    test(
+      'when a later edit has composing text, it should map it like a fresh formatter',
+      () {
+        final formatter = PhoneNumberTextInputFormatter(
+          country: Country.unitedStates,
+        );
+        final oldValue = formatter
+            .formatNationalValue(
+              const TextEditingValue(text: '2025550123'),
+            )
+            .textEditingValue;
+        const edit = TextEditingValue(
+          text: '202555',
+          selection: TextSelection(
+            baseOffset: 6,
+            extentOffset: 3,
+            isDirectional: true,
+          ),
+          composing: TextRange(start: 0, end: 6),
+        );
+
+        final result = formatter.formatEditUpdateWithResult(oldValue, edit);
+        final freshResult = PhoneNumberTextInputFormatter(
+          country: Country.unitedStates,
+        ).formatEditUpdateWithResult(oldValue, edit);
+
+        expect(result, freshResult);
+      },
+    );
+
+    test(
+      'when a prior value selects another formatting region, it should restore the selected region',
+      () {
+        final formatter =
+            PhoneNumberTextInputFormatter(
+              country: Country.unitedStates,
+            )..formatNationalValue(
+              const TextEditingValue(text: '011442071838750'),
+            );
+
+        final result = formatter.formatNationalValue(
+          const TextEditingValue(text: '2025550123'),
+        );
+        final freshResult = PhoneNumberTextInputFormatter(
+          country: Country.unitedStates,
+        ).formatNationalValue(const TextEditingValue(text: '2025550123'));
+
+        expect(result, freshResult);
+      },
+    );
+
+    test(
+      'when common national numbers are entered, it should preserve their output',
+      () {
+        final unitedStates =
+            PhoneNumberTextInputFormatter(
+              country: Country.unitedStates,
+            ).formatEditUpdateWithResult(
+              TextEditingValue.empty,
+              const TextEditingValue(text: '2025550123'),
+            );
+        final brazil =
+            PhoneNumberTextInputFormatter(
+              country: Country.brazil,
+            ).formatEditUpdateWithResult(
+              TextEditingValue.empty,
+              const TextEditingValue(text: '11969230546'),
+            );
+
+        expect(
+          (
+            unitedStates.textEditingValue.text,
+            unitedStates.internationalValue,
+            brazil.textEditingValue.text,
+            brazil.internationalValue,
+          ),
+          (
+            '(202) 555-0123',
+            '+12025550123',
+            '11 96923-0546',
+            '+5511969230546',
+          ),
+        );
+      },
+    );
+
+    test(
+      'when a UK national prefix becomes complete, it should update the national digits',
+      () {
+        final formatter = PhoneNumberTextInputFormatter(
+          country: Country.unitedKingdom,
+        );
+        final incomplete = formatter.formatEditUpdateWithResult(
+          TextEditingValue.empty,
+          const TextEditingValue(text: '0207'),
+        );
+        final complete = formatter.formatEditUpdateWithResult(
+          incomplete.textEditingValue,
+          const TextEditingValue(text: '0207031300'),
+        );
+
+        expect(
+          (
+            incomplete.textEditingValue.text,
+            incomplete.internationalValue,
+            complete.textEditingValue.text,
+            complete.internationalValue,
+          ),
+          ('020 7', '+440207', '207031300', '+44207031300'),
+        );
+      },
+    );
+
+    test(
+      'when national input starts with its country code, it should retain Andorra output',
+      () {
+        final result =
+            PhoneNumberTextInputFormatter(
+              country: Country.andorra,
+            ).formatEditUpdateWithResult(
+              TextEditingValue.empty,
+              const TextEditingValue(text: '376312345'),
+            );
+
+        expect(
+          (result.textEditingValue.text, result.internationalValue),
+          ('312 345', '+376312345'),
+        );
+      },
+    );
+
+    test(
+      'when a national prefix is entered, it should retain UAE output',
+      () {
+        final result =
+            PhoneNumberTextInputFormatter(
+              country: Country.unitedArabEmirates,
+            ).formatEditUpdateWithResult(
+              TextEditingValue.empty,
+              const TextEditingValue(text: '0501234567'),
+            );
+
+        expect(
+          (result.textEditingValue.text, result.internationalValue),
+          ('501234567', '+971501234567'),
+        );
+      },
+    );
+
+    test(
+      'when a shared calling-code region expands a local number, it should retain Antigua output',
+      () {
+        final result =
+            PhoneNumberTextInputFormatter(
+              country: Country.antiguaAndBarbuda,
+            ).formatEditUpdateWithResult(
+              TextEditingValue.empty,
+              const TextEditingValue(text: '5814703'),
+            );
+
+        expect(
+          (result.textEditingValue.text, result.internationalValue),
+          ('(268) 581-4703', '+12685814703'),
+        );
+      },
+    );
+
     test('when results match, they should have equal value semantics', () {
       final formatter = PhoneNumberTextInputFormatter(
         country: Country.brazil,

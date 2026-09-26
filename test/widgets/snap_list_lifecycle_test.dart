@@ -38,8 +38,8 @@ void main() {
         SnapList.builder(
           controller: controller,
           cacheItemCount: 0,
-          incomingTransitionBuilder: (_, progress, isReverse, child) => FadeTransition(opacity: progress, child: child),
-          outgoingTransitionBuilder: (_, progress, isReverse, child) =>
+          incomingTransitionBuilder: (_, progress, details, child) => FadeTransition(opacity: progress, child: child),
+          outgoingTransitionBuilder: (_, progress, details, child) =>
               ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child),
           itemCount: 5,
           itemBuilder: (_, i) => _Counter(key: ValueKey(i), index: i),
@@ -71,9 +71,9 @@ void main() {
             update = setState;
             return SnapList(
               controller: controller,
-              incomingTransitionBuilder: (_, progress, isReverse, child) =>
+              incomingTransitionBuilder: (_, progress, details, child) =>
                   FadeTransition(opacity: progress, child: child),
-              outgoingTransitionBuilder: (_, progress, isReverse, child) =>
+              outgoingTransitionBuilder: (_, progress, details, child) =>
                   ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child),
               children: [for (final i in order) _Counter(key: ValueKey(i), index: i)],
             );

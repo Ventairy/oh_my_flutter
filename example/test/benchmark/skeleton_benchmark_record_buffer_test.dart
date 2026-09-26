@@ -41,7 +41,16 @@ void main() {
         ..add(<String, Object>{'path': 'acceptance', 'details': List<String>.filled(6000, 'x').join()})
         ..flush();
 
-      expect(emitted, everyElement(allOf(hasLength(lessThanOrEqualTo(3000)), startsWith('SKELETON_BENCHMARK_CHUNK '))));
+      expect(emitted, everyElement(allOf(hasLength(lessThanOrEqualTo(900)), startsWith('SKELETON_BENCHMARK_CHUNK '))));
+    });
+
+    test('when a record approaches the Android log limit, it should emit bounded chunks', () {
+      final emitted = <String>[];
+      SkeletonBenchmarkRecordBuffer(emitted.add)
+        ..add(<String, Object>{'path': 'to_content', 'details': List<String>.filled(1100, 'x').join()})
+        ..flush();
+
+      expect(emitted, everyElement(allOf(hasLength(lessThanOrEqualTo(900)), startsWith('SKELETON_BENCHMARK_CHUNK '))));
     });
 
     test('when a record is chunked, '

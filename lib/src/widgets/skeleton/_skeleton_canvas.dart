@@ -5,22 +5,20 @@ class _SkeletonCanvas implements Canvas {
     required this._parent,
     required this._commands,
     required this._paintState,
-    required this._radius,
+    required this._boneShape,
   });
 
   final Canvas _parent;
   final _SkeletonBoneCommands _commands;
   final _SkeletonPaintState _paintState;
-  final Radius _radius;
+  final _SkeletonBoneShape _boneShape;
 
   void _recordFallbackBone() {
     final scope = _paintState.activeScope;
     if (scope == null || scope.fallbackRecorded) return;
     if (!_paintState.beginVisiblePaint()) return;
     scope.fallbackRecorded = true;
-    _addBone(
-      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(scope.bounds, _radius)),
-    );
+    _addBone(_boneShape.forRect(scope.bounds));
   }
 
   void _addBone(_SkeletonBoneCommand command) {
@@ -34,37 +32,24 @@ class _SkeletonCanvas implements Canvas {
   }
 
   void recordBoundsBone(Rect bounds) {
-    _addBone(
-      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(bounds, _radius)),
-    );
+    _addBone(_boneShape.forRect(bounds));
   }
 
   void recordFallbackBone() => _recordFallbackBone();
 
   @override
   void drawRect(Rect rect, Paint paint) {
-    _recordBone(
-      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(rect, _radius)),
-    );
+    _recordBone(_boneShape.forRect(rect));
   }
 
   @override
   void drawRRect(RRect rrect, Paint paint) {
-    _recordBone(
-      _SkeletonDrawRRectCommand(
-        RRect.fromRectAndRadius(rrect.outerRect, _radius),
-      ),
-    );
+    _recordBone(_boneShape.forRect(rrect.outerRect));
   }
 
   @override
   void drawDRRect(RRect outer, RRect inner, Paint paint) {
-    _recordBone(
-      _SkeletonDrawDRRectCommand(
-        RRect.fromRectAndRadius(outer.outerRect, _radius),
-        RRect.fromRectAndRadius(inner.outerRect, _radius),
-      ),
-    );
+    _recordBone(_boneShape.forDoubleRect(outer, inner));
   }
 
   @override
@@ -130,32 +115,24 @@ class _SkeletonCanvas implements Canvas {
           lineBounds = Rect.fromLTRB(lineBounds.left, top, lineBounds.right, bottom);
         }
       }
-      _recordBone(
-        _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(lineBounds, _radius)),
-      );
+      _recordBone(_boneShape.forRect(lineBounds));
     }
   }
 
   @override
   void drawImage(ui.Image image, Offset offset, Paint paint) {
     final rect = offset & Size(image.width.toDouble(), image.height.toDouble());
-    _recordBone(
-      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(rect, _radius)),
-    );
+    _recordBone(_boneShape.forRect(rect));
   }
 
   @override
   void drawImageRect(ui.Image image, Rect src, Rect dst, Paint paint) {
-    _recordBone(
-      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(dst, _radius)),
-    );
+    _recordBone(_boneShape.forRect(dst));
   }
 
   @override
   void drawImageNine(ui.Image image, Rect center, Rect dst, Paint paint) {
-    _recordBone(
-      _SkeletonDrawRRectCommand(RRect.fromRectAndRadius(dst, _radius)),
-    );
+    _recordBone(_boneShape.forRect(dst));
   }
 
   @override

@@ -17,6 +17,8 @@ class _MorphCoordinator extends ChangeNotifier {
   final Map<(_MorphEndpointHandle, _MorphEndpointHandle, MorphTarget), bool> _localMatchDecisions = {};
   final Map<Object, _MorphActiveFlight> _flights = {};
   final List<_MorphActiveFlight> _orderedFlights = [];
+  final List<_MorphNodeHandle> _nodes = [];
+  int _nextNodeOrder = 0;
   final Set<_MorphEndpointHandle> _scheduledIncomingEndpoints = {};
   final Map<(Duration, Duration, Object?), _MorphControllerLease> _sameFrameControllers = {};
   final _MorphTextRasterPool textRasterPool = _MorphTextRasterPool();
@@ -27,6 +29,57 @@ class _MorphCoordinator extends ChangeNotifier {
   bool _structuralOrderRefreshScheduled = false;
 
   Iterable<_MorphActiveFlight> get flights => _orderedFlights;
+
+  Iterable<_MorphNodeHandle> nodesFor(_MorphActiveFlight flight, {required bool above}) sync* {
+    final matching = _nodes.where(
+      (node) =>
+          identical(node.target, flight.destinationHandle.target) ||
+          identical(node.target, flight.sourceHandle?.target),
+    );
+    final ordered = matching.where((node) => node.canPaint && (node.owner.widget.zIndex > 0) == above).toList()
+      ..sort((first, second) {
+        final depth = first.owner.widget.zIndex.compareTo(second.owner.widget.zIndex);
+        return depth != 0 ? depth : first.registrationOrder.compareTo(second.registrationOrder);
+      });
+    yield* ordered;
+  }
+
+  void registerNode(_MorphNodeHandle node) {
+    if (_nodes.contains(node)) return;
+    node.registrationOrder = ++_nextNodeOrder;
+    _nodes.add(node);
+    _notifyListenersSafely();
+  }
+
+  void unregisterNode(_MorphNodeHandle node) {
+    _nodes.remove(node);
+    node.dispose();
+    _notifyListenersSafely();
+  }
+
+  void deactivateNode(_MorphNodeHandle node) {
+    node.active = false;
+    _notifyListenersSafely();
+  }
+
+  void activateNode(_MorphNodeHandle node) {
+    node.active = true;
+    _notifyListenersSafely();
+  }
+
+  void nodeGeometryChanged(_MorphNodeHandle node) {
+    if (!_nodes.contains(node)) return;
+    node.changed();
+    _notifyListenersSafely();
+  }
+
+  bool showsNode(_MorphNodeHandle node) =>
+      node.canPaint &&
+      _orderedFlights.any(
+        (flight) =>
+            identical(node.target, flight.destinationHandle.target) ||
+            identical(node.target, flight.sourceHandle?.target),
+      );
 
   void _installFlight(_MorphActiveFlight flight) {
     flight.updateLandingNavigation(flight.kind.isRoute ? flight.destinationHandle.observer?._request : null);

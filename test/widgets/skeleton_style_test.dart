@@ -8,8 +8,12 @@ void main() {
       const style = SkeletonStyle();
 
       expect(
-        (style.color, style.effect, style.radius),
-        (const Color(0xFFE0E0E0), null, const Radius.circular(4)),
+        (style.color, style.effect, style.shape),
+        (
+          const Color(0xFFE0E0E0),
+          null,
+          const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
+        ),
       );
     });
 
@@ -30,9 +34,9 @@ void main() {
       expect(first, isNot(second));
     });
 
-    test('when radius differs, it should not be equal', () {
-      const first = SkeletonStyle(radius: Radius.zero);
-      const second = SkeletonStyle(radius: Radius.circular(8));
+    test('when shape differs, it should not be equal', () {
+      const first = SkeletonStyle(shape: RoundedRectangleBorder());
+      const second = SkeletonStyle(shape: StadiumBorder());
 
       expect(first, isNot(second));
     });

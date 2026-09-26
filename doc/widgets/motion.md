@@ -16,14 +16,19 @@ const Motion(
 
 Effects own their configuration; `Motion` owns playback and respects the
 platform's reduced-motion preference. Built-in effects can fade, scale, move,
-shake, or continuously float a widget. Unless a constructor documents another
-value, effects start immediately, last 300 milliseconds, use `Curves.linear`,
-and run once:
+shake, continuously float, or pulse a widget's opacity. Unless a constructor
+documents another value, effects start immediately, last 300 milliseconds, use
+`Curves.linear`, and run once:
 
 ```dart
 const Motion(
   effect: FadeInMotionEffect(),
   child: Text('Ready'),
+)
+
+const Motion(
+  effect: PulseFadeMotionEffect(minOpacity: 0.4),
+  child: Icon(Icons.favorite),
 )
 
 const Motion(
@@ -59,6 +64,11 @@ const Motion(
 `ScaleInMotionEffect.scale` is the starting size before the child reaches its
 normal size. `ScaleOutMotionEffect.scale` is the ending size after the child
 leaves its normal size. Both effects preserve the child's layout dimensions.
+
+`PulseFadeMotionEffect` repeatedly dims from full opacity to `minOpacity` and
+back over each cycle. The default minimum is `0.5`, and one cycle lasts two
+seconds. Set `minOpacity` to zero to fade out completely or to one to remain
+fully visible. With reduced motion enabled, the child stays fully visible.
 
 `ShakeMotionEffect.offset` sets both direction and strength. Use a horizontal,
 vertical, or diagonal offset, and reverse its coordinates to reverse the first

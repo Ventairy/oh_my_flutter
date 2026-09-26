@@ -1,5 +1,32 @@
+## 0.26.0
+
+- **Breaking:** Replace `SkeletonStyle.radius` with `SkeletonStyle.shape`.
+  Rectangular bones accept any Flutter `ShapeBorder`, including bounds-aware capsules.
+- Add `MorphNode` to configure a child widget's projection, transition, and
+  paint order during a matching Morph flight.
+- Make country-aware phone-number fields respond faster during ordinary typing
+  and deletion while retaining the same formatting.
+- Add `PulseFadeMotionEffect` for a continuous breathing fade with configurable
+  minimum opacity.
+- Let `Skeleton` animate between its loading shapes and content with an opt-in
+  crossfade or a custom transition.
+- **Breaking:** Configure `SkeletonDescendantBehavior` with
+  `paintAsBone()`, `deferToChildren()`, or `hide()` constructors instead of enum
+  values. `paintAsBone(builder: ...)` draws a custom widget for one loading
+  branch while retaining the original content and automatic bones elsewhere.
+- Add `RouteListener` for reacting to route settlement without changing child
+  visibility or layout.
+- Keep SnapList trailing content ready to scroll in after the final item without
+  a paint jump. Respect `clipBehavior` and apply only the supplied item transitions.
+- **Breaking:** SnapList transition builders receive `SnapListTransitionDetails`
+  instead of the `isReverse` boolean. Read `details.isReverse` for direction,
+  `details.isTrailing` for the trailing child, and `details.involvesTrailing` to
+  customize effects on either side of a trailing reveal.
+
 ## 0.25.0
 
+- Jump directly to any SnapList item without animation using
+  `SnapListController.jumpTo(index)`.
 - **Breaking:** Configure descendant images with `MorphDescendantFlightBehavior.snapshot(changes: notifier)` instead of `MorphDescendant.snapshotChanges`. Flight behaviors now use `live()`, `snapshot()`, and `hide()` constructors.
 - Add independent `MorphTarget.reverseDuration` and `reverseCurve` timing for
   local returns and route pops, including navigation that reverses before its

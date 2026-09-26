@@ -10,27 +10,50 @@ part of 'skeleton.dart';
 ///
 /// See the [Skeleton guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/skeleton.md)
 /// for behavior examples and nesting guidance.
-class SkeletonDescendant extends SingleChildRenderObjectWidget {
+class SkeletonDescendant extends StatelessWidget {
   /// Creates a skeleton annotation around [child].
   const new({
     required this.behavior,
-    required super.child,
+    required this.child,
     super.key,
   });
 
   /// How the annotated subtree appears inside an enabled [Skeleton].
   final SkeletonDescendantBehavior behavior;
 
-  @override
-  RenderObject createRenderObject(BuildContext context) {
-    return _RenderSkeletonDescendant(behavior);
-  }
+  /// The content shown when the enclosing skeleton is disabled.
+  final Widget child;
 
   @override
-  void updateRenderObject(
-    BuildContext context,
-    RenderObject renderObject,
-  ) {
-    (renderObject as _RenderSkeletonDescendant).behavior = behavior;
+  Widget build(BuildContext context) {
+    final builder = switch (behavior) {
+      _SkeletonPaintAsBoneBehavior(:final builder) => builder,
+      _ => null,
+    };
+    if (builder == null) {
+      return _SkeletonDescendantRenderObjectWidget(behavior: behavior, child: child);
+    }
+
+    final scope = _SkeletonScope.maybeOf(context);
+    final enabled = scope?.enabled ?? false;
+    return _SkeletonDescendantRenderObjectWidget(
+      behavior: behavior,
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          Visibility(
+            visible: !enabled,
+            maintainState: true,
+            maintainAnimation: true,
+            maintainSize: true,
+            child: child,
+          ),
+          if (enabled)
+            Positioned.fill(
+              child: Builder(builder: builder),
+            ),
+        ],
+      ),
+    );
   }
 }

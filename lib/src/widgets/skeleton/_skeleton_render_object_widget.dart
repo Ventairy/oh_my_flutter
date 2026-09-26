@@ -6,6 +6,7 @@ class _SkeletonRenderObjectWidget extends SingleChildRenderObjectWidget {
     required this.animate,
     required this.forceFrames,
     required this.style,
+    required this.blend,
     required super.child,
   });
 
@@ -13,6 +14,7 @@ class _SkeletonRenderObjectWidget extends SingleChildRenderObjectWidget {
   final bool animate;
   final bool forceFrames;
   final SkeletonStyle style;
+  final Animation<double>? blend;
 
   @override
   _RenderSkeleton createRenderObject(BuildContext context) {
@@ -21,6 +23,8 @@ class _SkeletonRenderObjectWidget extends SingleChildRenderObjectWidget {
       animate: animate,
       forceFrames: forceFrames,
       style: style,
+      textDirection: Directionality.maybeOf(context) ?? TextDirection.ltr,
+      blend: blend,
     );
   }
 
@@ -31,7 +35,9 @@ class _SkeletonRenderObjectWidget extends SingleChildRenderObjectWidget {
         ..enabled = enabled
         ..animate = animate
         ..forceFrames = forceFrames
-        ..style = style;
+        ..style = style
+        ..textDirection = Directionality.maybeOf(context) ?? TextDirection.ltr
+        ..blend = blend;
     }
   }
 }

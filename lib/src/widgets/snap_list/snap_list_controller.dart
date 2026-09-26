@@ -1,6 +1,6 @@
 part of 'snap_list.dart';
 
-/// Observes a SnapList's position and moves to adjacent items.
+/// Observes a SnapList's position and moves to its items.
 ///
 /// Attach to one list at a time. Dispose the controller when no longer needed.
 class SnapListController extends ChangeNotifier {
@@ -11,7 +11,8 @@ class SnapListController extends ChangeNotifier {
 
   /// The current real item, or null when detached or empty.
   ///
-  /// Changes when an item settles. Trailing content keeps the last item index.
+  /// Changes when an item settles or is jumped to. Trailing content keeps the
+  /// last item index.
   int? get index => _client?._motion.index;
 
   /// Continuous item position; integer values are item anchors.
@@ -30,6 +31,15 @@ class SnapListController extends ChangeNotifier {
 
   /// Returns one item, completing true only when that item is reached.
   Future<bool> previous() => _client?._navigate(-1) ?? Future<bool>.value(false);
+
+  /// Shows an item immediately, without animated travel through other items.
+  ///
+  /// The list must be attached and laid out, and [index] must identify a real
+  /// item. An active drag or navigation is interrupted.
+  void jumpTo(int index) {
+    assert(_client != null, 'A SnapListController must be attached before jumping to an item.');
+    _client!._jumpTo(index);
+  }
 
   void _attach(_SnapListState client) {
     assert(_client == null || identical(_client, client), 'A SnapListController can only attach to one list.');

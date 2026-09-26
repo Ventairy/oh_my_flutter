@@ -87,7 +87,7 @@ Widget _surface({required Widget child, Color color = Colors.red}) {
 Widget _skeleton(Widget child, {bool enabled = true}) {
   return Skeleton(
     enabled: enabled,
-    style: const SkeletonStyle(color: _boneColor, radius: Radius.zero),
+    style: const SkeletonStyle(color: _boneColor, shape: RoundedRectangleBorder()),
     child: child,
   );
 }
@@ -141,7 +141,7 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.paintAsBone,
+                behavior: const SkeletonDescendantBehavior.paintAsBone(),
                 child: _surface(
                   child: const SizedBox(
                     width: 20,
@@ -180,7 +180,7 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.deferToChildren,
+                behavior: const SkeletonDescendantBehavior.deferToChildren(),
                 child: _surface(
                   child: const SizedBox(
                     width: 20,
@@ -219,7 +219,7 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.hide,
+                behavior: const SkeletonDescendantBehavior.hide(),
                 child: _surface(
                   child: const SizedBox(
                     width: 20,
@@ -254,7 +254,7 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.hide,
+                behavior: const SkeletonDescendantBehavior.hide(),
                 child: _surface(
                   child: const SizedBox(
                     width: 20,
@@ -288,7 +288,7 @@ void main() {
           _app(
             boundaryKey: boundaryKey,
             child: SkeletonDescendant(
-              behavior: SkeletonDescendantBehavior.hide,
+              behavior: const SkeletonDescendantBehavior.hide(),
               child: _surface(
                 child: const SizedBox(
                   width: 20,
@@ -324,10 +324,10 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.paintAsBone,
+                behavior: const SkeletonDescendantBehavior.paintAsBone(),
                 child: _surface(
                   child: const SkeletonDescendant(
-                    behavior: SkeletonDescendantBehavior.hide,
+                    behavior: SkeletonDescendantBehavior.hide(),
                     child: SizedBox(
                       width: 20,
                       height: 20,
@@ -364,10 +364,10 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.hide,
+                behavior: const SkeletonDescendantBehavior.hide(),
                 child: _surface(
                   child: const SkeletonDescendant(
-                    behavior: SkeletonDescendantBehavior.paintAsBone,
+                    behavior: SkeletonDescendantBehavior.paintAsBone(),
                     child: SizedBox(
                       width: 20,
                       height: 20,
@@ -401,7 +401,7 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               const SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.paintAsBone,
+                behavior: SkeletonDescendantBehavior.paintAsBone(),
                 child: SizedBox(width: 52, height: 52),
               ),
             ),
@@ -432,10 +432,10 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.deferToChildren,
+                behavior: const SkeletonDescendantBehavior.deferToChildren(),
                 child: _surface(
                   child: SkeletonDescendant(
-                    behavior: SkeletonDescendantBehavior.deferToChildren,
+                    behavior: const SkeletonDescendantBehavior.deferToChildren(),
                     child: _surface(
                       color: Colors.green,
                       child: const SizedBox(
@@ -479,7 +479,7 @@ void main() {
             boundaryKey: boundaryKey,
             child: _skeleton(
               SkeletonDescendant(
-                behavior: SkeletonDescendantBehavior.deferToChildren,
+                behavior: const SkeletonDescendantBehavior.deferToChildren(),
                 child: RepaintBoundary(
                   child: _surface(
                     child: const SizedBox(
@@ -510,7 +510,7 @@ void main() {
       'when behavior changes at runtime, it should repaint the retained skeleton geometry',
       (tester) async {
         const boundaryKey = ValueKey('runtime-behavior-boundary');
-        var behavior = SkeletonDescendantBehavior.hide;
+        var behavior = const SkeletonDescendantBehavior.hide();
         late StateSetter update;
         await tester.pumpWidget(
           _app(
@@ -530,7 +530,7 @@ void main() {
         );
         final hiddenFrame = await _capture(tester, boundaryKey);
 
-        update(() => behavior = SkeletonDescendantBehavior.paintAsBone);
+        update(() => behavior = const SkeletonDescendantBehavior.paintAsBone());
         await tester.pump();
         final paintedFrame = await _capture(tester, boundaryKey);
 
@@ -556,11 +556,11 @@ void main() {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SkeletonDescendant(
-                    behavior: SkeletonDescendantBehavior.hide,
+                    behavior: const SkeletonDescendantBehavior.hide(),
                     child: _surface(child: const SizedBox.shrink()),
                   ),
                   SkeletonDescendant(
-                    behavior: SkeletonDescendantBehavior.paintAsBone,
+                    behavior: const SkeletonDescendantBehavior.paintAsBone(),
                     child: _surface(child: const SizedBox.shrink()),
                   ),
                 ],
@@ -584,7 +584,7 @@ void main() {
     testWidgets(
       'when a runtime behavior change removes every bone, it should stop animated frames',
       (tester) async {
-        var behavior = SkeletonDescendantBehavior.paintAsBone;
+        var behavior = const SkeletonDescendantBehavior.paintAsBone();
         late StateSetter update;
         await tester.pumpWidget(
           MaterialApp(
@@ -605,10 +605,300 @@ void main() {
           ),
         );
 
-        update(() => behavior = SkeletonDescendantBehavior.hide);
+        update(() => behavior = const SkeletonDescendantBehavior.hide());
         await tester.pump();
 
         expect(tester.binding.transientCallbackCount, 0);
+      },
+    );
+
+    testWidgets(
+      'when one branch builds a custom bone, it should paint that widget beside automatic bones',
+      (tester) async {
+        const boundaryKey = ValueKey('custom-bone-boundary');
+        await tester.pumpWidget(
+          _app(
+            boundaryKey: boundaryKey,
+            child: _skeleton(
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SkeletonDescendant(
+                    behavior: SkeletonDescendantBehavior.paintAsBone(
+                      builder: (_) => const ColoredBox(
+                        key: ValueKey('custom-bone'),
+                        color: Colors.purple,
+                      ),
+                    ),
+                    child: _surface(child: const SizedBox.shrink()),
+                  ),
+                  _surface(child: const SizedBox.shrink()),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final frame = await _capture(tester, boundaryKey);
+
+        expect(
+          (
+            custom: _pixelAt(frame, 26, 26).toARGB32(),
+            automatic: _pixelAt(frame, 78, 26).toARGB32(),
+            customSize: tester.getSize(find.byKey(const ValueKey('custom-bone'))),
+          ),
+          (custom: Colors.purple.toARGB32(), automatic: _boneColor.toARGB32(), customSize: const Size(52, 52)),
+        );
+      },
+    );
+
+    testWidgets(
+      'when loading changes, it should retain the original child and remove the custom bone',
+      (tester) async {
+        const childKey = ValueKey('retained-content');
+        var enabled = true;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Skeleton(
+                  enabled: enabled,
+                  child: SkeletonDescendant(
+                    behavior: SkeletonDescendantBehavior.paintAsBone(
+                      builder: (_) => const ColoredBox(color: Colors.purple),
+                    ),
+                    child: StatefulBuilder(
+                      key: childKey,
+                      builder: (context, setState) => const SizedBox(
+                        width: 52,
+                        height: 52,
+                        child: ColoredBox(color: Colors.red),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        final originalElement = tester.element(find.byKey(childKey));
+
+        update(() => enabled = false);
+        await tester.pump();
+
+        expect(
+          (
+            childRetained: identical(tester.element(find.byKey(childKey)), originalElement),
+            customRemoved: find
+                .byType(ColoredBox)
+                .evaluate()
+                .where((element) => (element.widget as ColoredBox).color == Colors.purple)
+                .isEmpty,
+          ),
+          (childRetained: true, customRemoved: true),
+        );
+      },
+    );
+
+    testWidgets(
+      'when the custom bone changes, it should repaint its supplied appearance',
+      (tester) async {
+        const boundaryKey = ValueKey('updated-custom-bone-boundary');
+        var customColor = Colors.purple;
+        late StateSetter update;
+        await tester.pumpWidget(
+          _app(
+            boundaryKey: boundaryKey,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return _skeleton(
+                  SkeletonDescendant(
+                    behavior: SkeletonDescendantBehavior.paintAsBone(
+                      builder: (_) => ColoredBox(color: customColor),
+                    ),
+                    child: _surface(child: const SizedBox.shrink()),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        final before = await _capture(tester, boundaryKey);
+
+        update(() => customColor = Colors.orange);
+        await tester.pump();
+        final after = await _capture(tester, boundaryKey);
+
+        expect(
+          (before: _pixelAt(before, 26, 26).toARGB32(), after: _pixelAt(after, 26, 26).toARGB32()),
+          (before: Colors.purple.toARGB32(), after: Colors.orange.toARGB32()),
+        );
+      },
+    );
+
+    testWidgets(
+      'when loading is enabled, it should hide custom bone interactions and content semantics',
+      (tester) async {
+        final semantics = tester.ensureSemantics();
+        var enabled = true;
+        var taps = 0;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Skeleton(
+                  enabled: enabled,
+                  semanticsLabel: 'Loading action',
+                  child: SkeletonDescendant(
+                    behavior: SkeletonDescendantBehavior.paintAsBone(
+                      builder: (_) => SizedBox(
+                        width: 120,
+                        height: 48,
+                        child: TextButton(
+                          key: const ValueKey('custom-bone-button'),
+                          onPressed: () => taps += 1,
+                          child: const Text('Bone action'),
+                        ),
+                      ),
+                    ),
+                    child: SizedBox(
+                      width: 120,
+                      height: 48,
+                      child: TextButton(
+                        key: const ValueKey('content-button'),
+                        onPressed: () => taps += 1,
+                        child: const Text('Content action'),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(const ValueKey('custom-bone-button')), warnIfMissed: false);
+        final loadingResult = (
+          taps: taps,
+          loadingLabel: find.bySemanticsLabel('Loading action').evaluate().length,
+          boneLabel: find.bySemanticsLabel('Bone action').evaluate().length,
+          contentLabel: find.bySemanticsLabel('Content action').evaluate().length,
+        );
+        update(() => enabled = false);
+        await tester.pump();
+        await tester.tap(find.byKey(const ValueKey('content-button')));
+
+        expect(
+          (loading: loadingResult, contentTaps: taps),
+          (
+            loading: (taps: 0, loadingLabel: 1, boneLabel: 0, contentLabel: 0),
+            contentTaps: 1,
+          ),
+        );
+        semantics.dispose();
+      },
+    );
+
+    testWidgets(
+      'when crossfade reveals content, it should blend the custom bone and retained child',
+      (tester) async {
+        const boundaryKey = ValueKey('custom-bone-transition-boundary');
+        var enabled = true;
+        late StateSetter update;
+        await tester.pumpWidget(
+          _app(
+            boundaryKey: boundaryKey,
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Skeleton(
+                  enabled: enabled,
+                  transition: const SkeletonTransition.crossfade(duration: Duration(milliseconds: 100)),
+                  child: SkeletonDescendant(
+                    behavior: SkeletonDescendantBehavior.paintAsBone(
+                      builder: (_) => const ColoredBox(color: Colors.purple),
+                    ),
+                    child: const SizedBox(width: 52, height: 52, child: ColoredBox(color: Colors.red)),
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        final loadingFrame = await _capture(tester, boundaryKey);
+
+        update(() => enabled = false);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+        final middleFrame = await _capture(tester, boundaryKey);
+        await tester.pump(const Duration(milliseconds: 50));
+        final contentFrame = await _capture(tester, boundaryKey);
+
+        expect(
+          (
+            loading: _pixelAt(loadingFrame, 26, 26).toARGB32(),
+            middleChanges: _pixelAt(middleFrame, 26, 26).toARGB32() != Colors.purple.toARGB32(),
+            content: _pixelAt(contentFrame, 26, 26).toARGB32(),
+          ),
+          (loading: Colors.purple.toARGB32(), middleChanges: true, content: Colors.red.toARGB32()),
+        );
+      },
+    );
+
+    testWidgets(
+      'when a custom bone contains a Morph, it should connect to a matching appearance',
+      (tester) async {
+        final target = MorphTarget(tag: #customSkeletonBone);
+        var showDestination = false;
+        var flightsStarted = 0;
+        late StateSetter update;
+        await tester.pumpWidget(
+          MaterialApp(
+            navigatorObservers: [MorphNavigatorObserver()],
+            home: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return Stack(
+                  children: [
+                    if (!showDestination)
+                      Skeleton(
+                        child: SkeletonDescendant(
+                          behavior: SkeletonDescendantBehavior.paintAsBone(
+                            builder: (_) => Morph(
+                              targets: [target],
+                              onStart: () => flightsStarted += 1,
+                              child: const ColoredBox(color: Colors.purple),
+                            ),
+                          ),
+                          child: const SizedBox(width: 52, height: 52),
+                        ),
+                      ),
+                    if (showDestination)
+                      Positioned(
+                        top: 100,
+                        left: 100,
+                        child: Morph(
+                          targets: [target],
+                          child: const SizedBox(width: 24, height: 24, child: ColoredBox(color: Colors.green)),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+        );
+
+        update(() => showDestination = true);
+        await tester.pump();
+
+        expect(flightsStarted, 1);
+        await tester.pumpAndSettle();
       },
     );
   });

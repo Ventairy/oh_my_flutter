@@ -27,6 +27,35 @@ class _RenderProbe extends RenderBox {
 }
 
 void main() {
+  testWidgets('when earlier items scroll without clipping, it should retain the prepared trailer paint', (
+    tester,
+  ) async {
+    var layouts = 0;
+    var paints = 0;
+    await tester.pumpWidget(
+      SnapListTestHost.app(
+        SnapList.builder(
+          clipBehavior: Clip.none,
+          itemCount: 1000,
+          cacheItemCount: 0,
+          itemBuilder: (_, _) => const SizedBox.expand(),
+          trailingBuilder: (_) => SizedBox(
+            height: 100,
+            child: _Probe(layout: () => layouts++, paint: () => paints++),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final initial = (layouts, paints);
+    final position = tester.state<ScrollableState>(find.byType(Scrollable)).position;
+    for (final pixels in [20.0, 50.0, 100.0, 50.0, 0.0]) {
+      position.jumpTo(pixels);
+      await tester.pump();
+    }
+    expect((layouts - initial.$1, paints - initial.$2), (0, 0));
+  });
+
   testWidgets('when a large eager list moves, it should avoid laying out its content on each animation frame', (
     tester,
   ) async {
@@ -37,8 +66,8 @@ void main() {
       SnapListTestHost.app(
         SnapList(
           controller: controller,
-          incomingTransitionBuilder: (_, progress, isReverse, child) => FadeTransition(opacity: progress, child: child),
-          outgoingTransitionBuilder: (_, progress, isReverse, child) =>
+          incomingTransitionBuilder: (_, progress, details, child) => FadeTransition(opacity: progress, child: child),
+          outgoingTransitionBuilder: (_, progress, details, child) =>
               ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child),
           children: List.generate(
             1000,

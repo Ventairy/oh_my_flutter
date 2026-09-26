@@ -13,8 +13,9 @@ class _SnapListDrag implements Drag {
 
   @override
   void cancel() {
+    final wasDragging = motion.dragging;
     motion.dragging = false;
     delegate.cancel();
-    motion.cancelDrag();
+    if (wasDragging) motion.cancelDrag();
   }
 }

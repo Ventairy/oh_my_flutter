@@ -93,7 +93,7 @@ bool _containsBonePixel(
 
 Skeleton _skeleton(Widget child) {
   return Skeleton(
-    style: const SkeletonStyle(color: _boneColor, radius: Radius.zero),
+    style: const SkeletonStyle(color: _boneColor, shape: RoundedRectangleBorder()),
     child: SizedBox(width: 64, height: 40, child: child),
   );
 }

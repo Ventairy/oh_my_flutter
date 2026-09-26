@@ -9,10 +9,13 @@ class SkeletonExample extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Skeleton(
-      style: SkeletonStyle(effect: SkeletonShimmerEffect(), radius: Radius.circular(6)),
+      style: SkeletonStyle(
+        effect: SkeletonShimmerEffect(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(6))),
+      ),
       child: ListTile(
         leading: SkeletonDescendant(
-          behavior: SkeletonDescendantBehavior.deferToChildren,
+          behavior: SkeletonDescendantBehavior.deferToChildren(),
           child: CircleAvatar(child: Icon(Icons.person)),
         ),
         title: Text('Loading profile'),

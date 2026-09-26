@@ -11,7 +11,7 @@ class _SkeletonPaintingContext extends PaintingContext {
     this._segments,
     this._skeletonPaint,
     this._style,
-    this._radius,
+    this._boneShape,
   ) : _containerLayer = containerLayer,
       super(containerLayer, estimatedBounds);
 
@@ -20,7 +20,7 @@ class _SkeletonPaintingContext extends PaintingContext {
   final List<_SkeletonBoneSegment> _segments;
   final Paint _skeletonPaint;
   final SkeletonStyle _style;
-  final Radius _radius;
+  final _SkeletonBoneShape _boneShape;
 
   _SkeletonCanvas? _skeletonCanvas;
   _SkeletonBoneSegment? _activeSegment;
@@ -38,7 +38,7 @@ class _SkeletonPaintingContext extends PaintingContext {
       parent: super.canvas,
       commands: segment.commands,
       paintState: _paintState,
-      radius: _radius,
+      boneShape: _boneShape,
     );
   }
 
@@ -66,9 +66,9 @@ class _SkeletonPaintingContext extends PaintingContext {
     _SkeletonPaintScope? parentScope,
   ) {
     switch (child.behavior) {
-      case SkeletonDescendantBehavior.hide:
+      case _SkeletonHideBehavior():
         return;
-      case SkeletonDescendantBehavior.deferToChildren:
+      case _SkeletonDeferToChildrenBehavior():
         _paintNode(
           child,
           offset,
@@ -76,7 +76,18 @@ class _SkeletonPaintingContext extends PaintingContext {
           ignoreAnnotations: false,
         );
         return;
-      case SkeletonDescendantBehavior.paintAsBone:
+      case _SkeletonPaintAsBoneBehavior(:final builder) when builder != null:
+        stopRecordingIfNeeded();
+        PaintingContext(
+            _containerLayer,
+            child.paintBounds.shift(offset),
+          )
+          ..paintChild(child, offset)
+          ..stopRecordingIfNeeded();
+        _paintState.boneCount += 1;
+        parentScope?.hasDescendantBone = true;
+        return;
+      case _SkeletonPaintAsBoneBehavior():
         final previousBoneCount = _paintState.boneCount;
         _paintNode(
           child,
@@ -191,7 +202,7 @@ class _SkeletonPaintingContext extends PaintingContext {
       _segments,
       _skeletonPaint,
       _style,
-      _radius,
+      _boneShape,
     );
   }
 

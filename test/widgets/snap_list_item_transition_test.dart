@@ -7,11 +7,19 @@ import 'snap_list_test.dart' show SnapListTestHost;
 class _Item extends StatefulWidget {
   const new({super.key});
 
-  static Widget _incoming(BuildContext context, Animation<double> progress, bool isReverse, Widget child) =>
-      FadeTransition(opacity: isReverse ? const AlwaysStoppedAnimation<double>(1) : progress, child: child);
+  static Widget _incoming(
+    BuildContext context,
+    Animation<double> progress,
+    SnapListTransitionDetails details,
+    Widget child,
+  ) => FadeTransition(opacity: details.isReverse ? const AlwaysStoppedAnimation<double>(1) : progress, child: child);
 
-  static Widget _outgoing(BuildContext context, Animation<double> progress, bool isReverse, Widget child) =>
-      ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child);
+  static Widget _outgoing(
+    BuildContext context,
+    Animation<double> progress,
+    SnapListTransitionDetails details,
+    Widget child,
+  ) => ScaleTransition(scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child);
 
   @override
   State<_Item> createState() => _ItemState();
@@ -75,6 +83,8 @@ void main() {
     var count = 1;
     late StateSetter update;
     final progress = <int, Animation<double>>{};
+    final outgoing = <int, Animation<double>>{};
+    final reverse = <int, bool>{};
     await tester.pumpWidget(
       SnapListTestHost.app(
         StatefulBuilder(
@@ -85,10 +95,19 @@ void main() {
               itemCount: count,
               duration: const Duration(milliseconds: 400),
               itemBuilder: (_, index) => SizedBox.expand(key: ValueKey(index)),
-              trailingBuilder: (_) => const SizedBox(height: 100),
-              incomingTransitionBuilder: (_, value, isReverse, child) {
+              trailingBuilder: (_) => const SizedBox(key: ValueKey(-1), height: 100),
+              incomingTransitionBuilder: (_, value, details, child) {
                 progress[(child.key! as ValueKey<int>).value] = value;
+                reverse[(child.key! as ValueKey<int>).value] = details.isReverse;
                 return FadeTransition(opacity: value, child: child);
+              },
+              outgoingTransitionBuilder: (_, value, details, child) {
+                outgoing[(child.key! as ValueKey<int>).value] = value;
+                return FadeTransition(
+                  key: child.key,
+                  opacity: Tween<double>(begin: 1, end: 0).animate(value),
+                  child: child,
+                );
               },
             );
           },
@@ -103,8 +122,8 @@ void main() {
     await tester.pump();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    final halfway = progress[1]?.value;
+    final halfway = (progress[1]?.value, reverse[1], outgoing[0]?.value);
     await tester.pumpAndSettle();
-    expect((halfway, progress[1]?.value, controller.index), (.625, 1.0, 1));
+    expect((halfway, progress[1]?.value, controller.index), ((.625, false, 1.0), 1.0, 1));
   });
 }

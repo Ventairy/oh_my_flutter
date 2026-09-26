@@ -26,11 +26,11 @@ void main() {
               spacing: 10,
               cacheItemCount: 3,
               itemCount: 5,
-              incomingTransitionBuilder: (_, progress, reverse, child) {
+              incomingTransitionBuilder: (_, progress, details, child) {
                 incoming[(child.key! as ValueKey<int>).value] = progress;
                 return FadeTransition(opacity: progress, child: child);
               },
-              outgoingTransitionBuilder: (_, progress, reverse, child) {
+              outgoingTransitionBuilder: (_, progress, details, child) {
                 outgoing[(child.key! as ValueKey<int>).value] = progress;
                 return FadeTransition(
                   key: child.key,

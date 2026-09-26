@@ -6,13 +6,19 @@ class _RenderSkeleton extends RenderProxyBox {
     required this._animate,
     required this._forceFrames,
     required SkeletonStyle style,
+    required this._textDirection,
+    required Animation<double>? blend,
   }) : _style = style,
+       _blend = blend,
        super() {
     _solidSkeletonPaint.color = style.color;
+    blend?.addListener(_onBlendChanged);
   }
 
   final Paint _solidSkeletonPaint = Paint();
   final LayerHandle<OffsetLayer> _cacheLayer = LayerHandle<OffsetLayer>();
+  final LayerHandle<OpacityLayer> _contentOpacityLayer = LayerHandle<OpacityLayer>();
+  final LayerHandle<OpacityLayer> _skeletonOpacityLayer = LayerHandle<OpacityLayer>();
   final List<_SkeletonBoneSegment> _boneSegments = <_SkeletonBoneSegment>[];
   final _SkeletonPaintState _paintState = _SkeletonPaintState();
 
@@ -20,9 +26,13 @@ class _RenderSkeleton extends RenderProxyBox {
   bool _animate;
   bool _forceFrames;
   SkeletonStyle _style;
+  TextDirection _textDirection;
+  Animation<double>? _blend;
   bool _cacheNeedsUpdate = true;
+  bool _cacheStale = false;
   bool _effectNeedsUpdate = true;
   bool _clockListening = false;
+  double _lastEffectAnimationValue = 0;
 
   bool get enabled => _enabled;
   bool get animate => _animate;
@@ -30,14 +40,47 @@ class _RenderSkeleton extends RenderProxyBox {
   SkeletonStyle get style => _style;
   Color get boneColor => _style.color;
   SkeletonEffect? get effect => _style.effect;
-  Radius get radius => _style.radius;
+  ShapeBorder get shape => _style.shape;
+  TextDirection get textDirection => _textDirection;
+  Animation<double>? get blend => _blend;
+
+  set textDirection(TextDirection value) {
+    if (value == _textDirection) return;
+    _textDirection = value;
+    _cacheNeedsUpdate = true;
+    super.markNeedsPaint();
+  }
+
+  set blend(Animation<double>? value) {
+    if (identical(value, _blend)) return;
+    _blend?.removeListener(_onBlendChanged);
+    _blend = value;
+    value?.addListener(_onBlendChanged);
+    markNeedsCompositingBitsUpdate();
+    super.markNeedsPaint();
+  }
+
+  void _onBlendChanged() {
+    final blendValue = _blend?.value;
+    final contentLayer = _contentOpacityLayer.layer;
+    final skeletonLayer = _skeletonOpacityLayer.layer;
+    if (blendValue != null && blendValue > 0 && blendValue < 1 && contentLayer != null && skeletonLayer != null) {
+      contentLayer.alpha = ui.Color.getAlphaFromOpacity(blendValue);
+      skeletonLayer.alpha = ui.Color.getAlphaFromOpacity(1 - blendValue);
+      return;
+    }
+    super.markNeedsPaint();
+  }
 
   set enabled(bool value) {
     if (value == _enabled) return;
     _enabled = value;
-    _cacheNeedsUpdate = true;
+    if (value) {
+      if (_cacheLayer.layer == null || _cacheStale) _cacheNeedsUpdate = true;
+      _cacheStale = false;
+    }
     _effectNeedsUpdate = true;
-    if (!value) {
+    if (!value && _blend == null) {
       _cacheLayer.layer = null;
       _boneSegments.clear();
     }
@@ -50,7 +93,7 @@ class _RenderSkeleton extends RenderProxyBox {
     final previousMode = _segmentModeFor(_style.effect);
     final nextMode = _segmentModeFor(value.effect);
     final geometryChanged =
-        value.radius != _style.radius ||
+        value.shape != _style.shape ||
         nextMode != previousMode ||
         nextMode == _SkeletonBoneSegmentMode.staticPicture ||
         (nextMode == _SkeletonBoneSegmentMode.fade && value.color != _style.color);
@@ -89,10 +132,10 @@ class _RenderSkeleton extends RenderProxyBox {
   }
 
   @override
-  bool get alwaysNeedsCompositing => _enabled;
+  bool get alwaysNeedsCompositing => _enabled || _blend != null;
 
   @override
-  bool get isRepaintBoundary => _enabled;
+  bool get isRepaintBoundary => _enabled || _blend != null;
 
   @override
   void attach(PipelineOwner owner) {
@@ -114,14 +157,29 @@ class _RenderSkeleton extends RenderProxyBox {
 
   @override
   void markNeedsPaint() {
-    _cacheNeedsUpdate = true;
+    if (_enabled) {
+      _cacheNeedsUpdate = true;
+    } else if (_cacheLayer.layer != null) {
+      _cacheStale = true;
+    }
     _syncClockRegistration();
     super.markNeedsPaint();
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (!_enabled) {
+    final blendValue = _blend?.value;
+    final blendStatus = _blend?.status;
+    final transitioning = blendStatus == AnimationStatus.forward || blendStatus == AnimationStatus.reverse;
+    if (!transitioning) {
+      _contentOpacityLayer.layer = null;
+      _skeletonOpacityLayer.layer = null;
+    }
+    if (blendValue == null && !_enabled || blendValue == 1 && !transitioning) {
+      if (!_enabled) {
+        _cacheLayer.layer = null;
+        _boneSegments.clear();
+      }
       super.paint(context, offset);
       return;
     }
@@ -144,11 +202,12 @@ class _RenderSkeleton extends RenderProxyBox {
         _boneSegments,
         skeletonPaint,
         _style,
-        _style.radius,
+        _SkeletonBoneShape(_style.shape, _textDirection),
       );
       super.paint(skeletonContext, Offset.zero);
       skeletonContext.finish();
       _cacheNeedsUpdate = false;
+      _cacheStale = false;
       if (_style.effect is SkeletonShimmerEffect) {
         _updateRetainedEffect(skeletonPaint);
       }
@@ -162,12 +221,34 @@ class _RenderSkeleton extends RenderProxyBox {
     }
 
     _effectNeedsUpdate = false;
-    context.addLayer(cacheLayer);
+    if (!transitioning) {
+      context.addLayer(cacheLayer);
+    } else {
+      // Capture bones before painting live content. Both passes visit the same
+      // child, whose composited layers must end up in the live content tree.
+      _contentOpacityLayer.layer = context.pushOpacity(
+        offset,
+        ui.Color.getAlphaFromOpacity(blendValue!),
+        (childContext, _) => super.paint(childContext, Offset.zero),
+        oldLayer: _contentOpacityLayer.layer,
+      );
+      _skeletonOpacityLayer.layer = context.pushOpacity(
+        Offset.zero,
+        ui.Color.getAlphaFromOpacity(1 - blendValue),
+        (childContext, _) => childContext.addLayer(cacheLayer),
+        oldLayer: _skeletonOpacityLayer.layer,
+      );
+    }
   }
 
   @override
   OffsetLayer updateCompositedLayer({required OffsetLayer? oldLayer}) {
     final updatedLayer = super.updateCompositedLayer(oldLayer: oldLayer);
+    final blendValue = _blend?.value;
+    if (blendValue != null) {
+      _contentOpacityLayer.layer?.alpha = ui.Color.getAlphaFromOpacity(blendValue);
+      _skeletonOpacityLayer.layer?.alpha = ui.Color.getAlphaFromOpacity(1 - blendValue);
+    }
     if (_effectNeedsUpdate && !_cacheNeedsUpdate && _boneSegments.isNotEmpty) {
       final effectT = _effectAnimationValue();
       _updateRetainedEffect(
@@ -235,8 +316,12 @@ class _RenderSkeleton extends RenderProxyBox {
 
   double _effectAnimationValue() {
     final effect = _style.effect;
-    if (!_animate || effect is! SkeletonAnimatedEffectBase) return 0;
-    return _SkeletonEffectFrameCache.instance.animationValue(
+    if (effect is! SkeletonAnimatedEffectBase) return 0;
+    if (!_animate) {
+      // Keep an outgoing animated skeleton at its last visible phase.
+      return _blend != null && !_enabled && _blend!.value < 1 ? _lastEffectAnimationValue : 0;
+    }
+    return _lastEffectAnimationValue = _SkeletonEffectFrameCache.instance.animationValue(
       effect,
       _SkeletonAnimationClock.instance.elapsed,
     );
@@ -273,7 +358,10 @@ class _RenderSkeleton extends RenderProxyBox {
 
   @override
   void dispose() {
+    _blend?.removeListener(_onBlendChanged);
     _stopClockListening();
+    _contentOpacityLayer.layer = null;
+    _skeletonOpacityLayer.layer = null;
     _cacheLayer.layer = null;
     _boneSegments.clear();
     super.dispose();

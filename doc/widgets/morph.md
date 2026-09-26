@@ -50,6 +50,39 @@ Pass this same instance to both appearances, including through route
 constructors when needed. Separate instances do not match, even with equal
 tags. Targets require no disposal. The tag labels diagnostics; matching and status belong to the target instance.
 
+## Configure another widget during a flight
+
+Use `MorphNode` to configure how a child widget participates in a flight for a
+`MorphTarget`. Give it the same target instance as the moving `Morph`. The child
+keeps its normal layout position; during a matching flight, its visual is
+projected into Morph's overlay and follows that position as the page scrolls.
+
+```dart
+MorphNode(
+  target: target,
+  child: detailBody,
+)
+```
+
+`transitionBuilder` configures the projected visual during the flight. It
+receives the flight's curved and uncurved animations. An ancestor route fade
+does not automatically affect overlay content, so a page that fades its body
+can pass its route animation explicitly:
+
+```dart
+MorphNode(
+  target: target,
+  transitionBuilder: (context, child, curved, uncurved) =>
+      FadeTransition(opacity: routeAnimation, child: child),
+  child: detailBody,
+)
+```
+
+`zIndex` configures the child's paint order relative to the moving `Morph`:
+negative values place it behind the flight (the default), and positive values
+place it in front. The child remains interactive in its normal position. Its
+projected visual does not receive input or duplicate accessibility semantics.
+
 ## Prefer one relationship and fall back to another
 
 Pass alternatives in priority order on the destination:
@@ -229,14 +262,14 @@ delegate defines its own interpolation and child transitions instead.
 
 ## Configure timing and ownership
 
-| Setting                       | Default and ownership                                                                                                                                                                          |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `MorphTarget.duration`        | Omitted values inherit from the departing Morph's nearest configured ancestor target. Without an inherited value, same-screen flights use 300 ms and route pushes follow the route animation.  |
-| `MorphTarget.reverseDuration` | Defaults to `duration`. When both are omitted, reverse timing is inherited; without inherited timing, same-screen returns use 300 ms and route pops follow the route animation.                 |
-| `MorphTarget.curve`           | Omitted values inherit from the departing Morph's nearest configured ancestor target, falling back to `Curves.linear`.                                                                         |
-| `MorphTarget.reverseCurve`    | Defaults to `curve`. When both are omitted, the departing Morph supplies inherited reverse easing, falling back to `Curves.linear`.                                                            |
-| `MorphTarget.watchDestination` | `false`. Enable it when either endpoint in this connection can move, resize, or change captured visuals while it is a destination.                                                           |
-| `flightConfig`                | `const MorphFlightConfig.auto()`. Both endpoints must use automatic configuration or compatible custom delegates; the departing endpoint controls the flight.                                  |
+| Setting                        | Default and ownership                                                                                                                                                                         |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MorphTarget.duration`         | Omitted values inherit from the departing Morph's nearest configured ancestor target. Without an inherited value, same-screen flights use 300 ms and route pushes follow the route animation. |
+| `MorphTarget.reverseDuration`  | Defaults to `duration`. When both are omitted, reverse timing is inherited; without inherited timing, same-screen returns use 300 ms and route pops follow the route animation.               |
+| `MorphTarget.curve`            | Omitted values inherit from the departing Morph's nearest configured ancestor target, falling back to `Curves.linear`.                                                                        |
+| `MorphTarget.reverseCurve`     | Defaults to `curve`. When both are omitted, the departing Morph supplies inherited reverse easing, falling back to `Curves.linear`.                                                           |
+| `MorphTarget.watchDestination` | `false`. Enable it when either endpoint in this connection can move, resize, or change captured visuals while it is a destination.                                                            |
+| `flightConfig`                 | `const MorphFlightConfig.auto()`. Both endpoints must use automatic configuration or compatible custom delegates; the departing endpoint controls the flight.                                 |
 
 Use `duration` and `curve` for a newly mounted appearance or route push. Use
 `reverseDuration` and `reverseCurve` when removing that appearance or popping

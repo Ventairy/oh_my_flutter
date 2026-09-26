@@ -13,12 +13,12 @@ class _AnimationHost {
     await tester.pumpWidget(
       SnapListTestHost.app(
         SnapList(
-          incomingTransitionBuilder: (_, animation, isReverse, child) {
+          incomingTransitionBuilder: (_, animation, details, child) {
             builds++;
             animations[(child.key! as ValueKey<int>).value] = animation;
             return FadeTransition(opacity: animation, child: child);
           },
-          outgoingTransitionBuilder: (_, animation, isReverse, child) {
+          outgoingTransitionBuilder: (_, animation, details, child) {
             outgoing[(child.key! as ValueKey<int>).value] = animation;
             return ScaleTransition(
               key: child.key,
