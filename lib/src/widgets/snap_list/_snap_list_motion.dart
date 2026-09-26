@@ -147,6 +147,18 @@ class _SnapListMotion extends ChangeNotifier {
     return result.future;
   }
 
+  void jumpToItem(int itemIndex) {
+    final destination = itemIndex * stride;
+    dragging = false;
+    interrupt();
+    _trailingChanged = false;
+    index = itemIndex;
+    moving = false;
+    final alreadyAtDestination = pixels == destination;
+    scroll!.jumpTo(destination);
+    if (alreadyAtDestination) notifyListeners();
+  }
+
   Future<void> _settle(double destination, {bool cancel = false, bool reverse = false}) async {
     final position = scroll;
     if (position == null) return;

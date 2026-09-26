@@ -29,6 +29,24 @@ final class PhoneNumberTextInputFormatter extends TextInputFormatter {
   /// The country used to interpret national input.
   final Country country;
 
+  late final parser.PhoneMetadata? _selectedMetadata = _phoneUtil.getMetadataForRegion(
+    regionCode: country.iso2,
+  );
+  late final int _selectedNationalDigitLimit = _digitLimitForMetadata(
+    country,
+    _selectedMetadata,
+  );
+  late final parser.AsYouTypeFormatter _selectedAsYouTypeFormatter = _phoneUtil.getAsYouTypeFormatter(country.iso2);
+  late final String? _selectedMetadataCountryCode = _selectedMetadata == null
+      ? null
+      : '${_selectedMetadata.countryCode}';
+  late final RegExp? _selectedNationalPrefixPattern = _prefixPattern(
+    _selectedMetadata?.nationalPrefixForParsing,
+  );
+  late final RegExp? _selectedInternationalPrefixPattern = _prefixPattern(
+    _selectedMetadata?.internationalPrefix,
+  );
+
   /// Formats an edit and returns its text, country, and international value.
   ///
   /// A value beginning with `+` may return a country different from [country].
@@ -139,7 +157,10 @@ final class PhoneNumberTextInputFormatter extends TextInputFormatter {
   ({Country country, String nationalDigits}) _parseNationalInput(String digits, Country selectedCountry) {
     if (digits.isEmpty ||
         digits.length > _nationalDigitLimit(selectedCountry) ||
-        _phoneUtil.getMetadataForRegion(regionCode: selectedCountry.iso2) == null) {
+        _metadataFor(selectedCountry) == null) {
+      return (country: selectedCountry, nationalDigits: digits);
+    }
+    if (selectedCountry == country && !_mightChangeNationalDigits(digits)) {
       return (country: selectedCountry, nationalDigits: digits);
     }
     try {
@@ -156,8 +177,10 @@ final class PhoneNumberTextInputFormatter extends TextInputFormatter {
     required String nationalDigits,
   }) {
     var formattedText = nationalDigits;
-    if (_phoneUtil.getMetadataForRegion(regionCode: country.iso2) != null) {
-      final formatter = _phoneUtil.getAsYouTypeFormatter(country.iso2);
+    if (_metadataFor(country) != null) {
+      final formatter = country == this.country
+          ? (_selectedAsYouTypeFormatter..clear())
+          : _phoneUtil.getAsYouTypeFormatter(country.iso2);
       for (final digit in nationalDigits.split('')) {
         formattedText = formatter.inputDigit(digit);
       }
@@ -231,8 +254,36 @@ final class PhoneNumberTextInputFormatter extends TextInputFormatter {
     return '+${country.callingCode}$nationalDigits';
   }
 
-  static int _nationalDigitLimit(Country country) {
-    final lengths = _phoneUtil.getMetadataForRegion(regionCode: country.iso2)?.generalDesc.possibleLength;
+  bool _mightChangeNationalDigits(String digits) {
+    final metadata = _selectedMetadata;
+    // Full parsing is needed only when a prefix could rewrite the digits;
+    // an empty international pattern also matches in dlibphonenumber.
+    if (metadata == null || metadata.internationalPrefix.isEmpty) return true;
+    return digits.startsWith(_selectedMetadataCountryCode!) ||
+        _selectedNationalPrefixPattern?.matchAsPrefix(digits) != null ||
+        _selectedInternationalPrefixPattern!.matchAsPrefix(digits) != null;
+  }
+
+  static RegExp? _prefixPattern(String? pattern) {
+    if (pattern == null || pattern.isEmpty) return null;
+    return RegExp(pattern);
+  }
+
+  parser.PhoneMetadata? _metadataFor(Country targetCountry) {
+    if (targetCountry == country) return _selectedMetadata;
+    return _phoneUtil.getMetadataForRegion(regionCode: targetCountry.iso2);
+  }
+
+  int _nationalDigitLimit(Country targetCountry) {
+    if (targetCountry == country) return _selectedNationalDigitLimit;
+    return _digitLimitForMetadata(
+      targetCountry,
+      _metadataFor(targetCountry),
+    );
+  }
+
+  static int _digitLimitForMetadata(Country country, parser.PhoneMetadata? metadata) {
+    final lengths = metadata?.generalDesc.possibleLength;
     if (lengths == null || lengths.isEmpty) {
       // Catalog territories without metadata retain the international fallback.
       return 15 - country.callingCode!.length;

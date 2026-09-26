@@ -7,7 +7,7 @@ class SkeletonStyle {
   const new({
     this.color = const Color(0xFFE0E0E0),
     this.effect,
-    this.radius = const Radius.circular(4),
+    this.shape = const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(4))),
   });
 
   /// The fill color used for skeleton bones.
@@ -16,18 +16,19 @@ class SkeletonStyle {
   /// The optional effect painted across the skeleton bones.
   final SkeletonEffect? effect;
 
-  /// The corner radius applied to rectangular skeleton bones.
+  /// The shape applied to rectangular skeleton bones.
   ///
   /// This includes text lines, images, and rectangular or rounded-rectangular
-  /// painted leaves. Circular and freeform shapes keep their original geometry.
-  final Radius radius;
+  /// painted leaves. The outer path is filled without painting a border stroke.
+  /// Circular and freeform shapes keep their original geometry.
+  final ShapeBorder shape;
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-    return other is SkeletonStyle && other.color == color && other.effect == effect && other.radius == radius;
+    return other is SkeletonStyle && other.color == color && other.effect == effect && other.shape == shape;
   }
 
   @override
-  int get hashCode => Object.hash(color, effect, radius);
+  int get hashCode => Object.hash(color, effect, shape);
 }

@@ -90,9 +90,9 @@ card in while slightly shrinking the outgoing card:
 
 ```dart
 SnapList(
-  incomingTransitionBuilder: (context, animation, isReverse, child) =>
+  incomingTransitionBuilder: (context, animation, details, child) =>
       FadeTransition(opacity: animation, child: child),
-  outgoingTransitionBuilder: (context, animation, isReverse, child) =>
+  outgoingTransitionBuilder: (context, animation, details, child) =>
       ScaleTransition(
         scale: Tween<double>(begin: 1, end: 0.92).animate(animation),
         child: child,
@@ -107,15 +107,15 @@ goes from `0` at rest to `1` after departure, so a fade-out can use
 The inactive effect stays at its resting value. If both are provided, the
 incoming effect wraps the outgoing effect. Omitting a builder adds no effect.
 
-Both builders receive `isReverse: true` when moving toward a previous item,
+Both builders receive `details.isReverse == true` when moving toward a previous item,
 including in horizontal right-to-left lists. To fade only when moving forward,
 keep the same transition widget but supply a constant animation for backward
 movement:
 
 ```dart
-incomingTransitionBuilder: (context, animation, isReverse, child) =>
+incomingTransitionBuilder: (context, animation, details, child) =>
     FadeTransition(
-      opacity: isReverse ? const AlwaysStoppedAnimation<double>(1) : animation,
+      opacity: details.isReverse ? const AlwaysStoppedAnimation<double>(1) : animation,
       child: child,
     ),
 ```
@@ -134,7 +134,7 @@ an `AnimatedBuilder` listening to that animation.
 
 Animation status follows progress: `forward` as progress increases, `reverse`
 as it decreases, `dismissed` at zero, and `completed` at one. This differs from
-`isReverse`, which identifies navigation toward a previous item. Inactive
+`details.isReverse`, which identifies navigation toward a previous item. Inactive
 effects return to their resting values.
 
 Reuse the supplied `child` and keep the returned widget structure consistent
@@ -142,9 +142,41 @@ across progress and direction changes to preserve child state. Each effect
 must produce normal appearance at its resting value. Use visual effects rather
 than changing item layout if the child should keep its normal scroll geometry.
 
-Reduced motion supplies resting values without intermediate effects. Revealing
-trailing content leaves item appearance unchanged; advancing to an appended
-item applies its incoming effect.
+Trailing content uses the same builders when it arrives or departs. Its
+measured reveal distance determines transition progress. While it is shown,
+the last item keeps its completed outgoing effect; returning brings that item
+back with its incoming effect. Appending items applies the incoming effect to
+the first new item. Reduced motion supplies resting values without intermediate
+effects.
+
+Both callbacks receive `SnapListTransitionDetails` as their third argument:
+
+- `isReverse`: navigation toward a previous item; cancellation retains that direction.
+- `isTrailing`: the supplied child is the trailer, never a real item.
+- `involvesTrailing`: the effect belongs to a trailing reveal, including the
+  last item's departure. It stays true for that departure if more items arrive
+  before it finishes.
+
+For example, keep the last card visible while moving it aside for the trailer:
+
+```dart
+outgoingTransitionBuilder: (context, animation, details, child) => FadeTransition(
+  opacity: details.involvesTrailing && !details.isTrailing
+      ? const AlwaysStoppedAnimation<double>(1)
+      : Tween<double>(begin: 1, end: 0).animate(animation),
+  child: child,
+),
+incomingTransitionBuilder: (context, animation, details, child) => FadeTransition(
+  opacity: details.involvesTrailing && !details.isTrailing
+      ? const AlwaysStoppedAnimation<double>(1)
+      : animation,
+  child: child,
+),
+```
+
+Use `details.isTrailing` instead to skip only the trailer's effect, or
+`details.involvesTrailing` to skip the effect on both children. Keeping the
+transition widget and changing only its animation preserves child state.
 
 ## Observe and navigate
 
@@ -153,8 +185,13 @@ Their futures complete true when the adjacent real item settles, or false
 when unavailable, interrupted, or settled on trailing content. Appending items
 while trailing content is shown can advance the list afterward. Dispose the controller when finished.
 
-The controller is listenable. `index` changes when an item settles and stays
-at the last real item while trailing content is shown. `position` is continuous,
+Use `jumpTo(index)` to show any real item immediately, without scrolling through
+the items between it and the current one. Call it after the list has laid out,
+with an index from `0` through the last item. A jump interrupts an active drag or
+navigation. Trailing content has no index to jump to.
+
+The controller is listenable. `index` changes when an item settles or is jumped
+to, and stays at the last real item while trailing content is shown. `position` is continuous,
 with integer values at item anchors. Empty lists have no index or position.
 `isMoving` excludes stationary trailing content.
 

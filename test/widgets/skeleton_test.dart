@@ -673,7 +673,7 @@ void main() {
           _pixelApp(
             boundaryKey: boundaryKey,
             child: const Skeleton(
-              style: SkeletonStyle(color: boneColor, radius: Radius.zero),
+              style: SkeletonStyle(color: boneColor, shape: RoundedRectangleBorder()),
               child: SizedBox(
                 width: 40,
                 height: 24,
@@ -690,7 +690,7 @@ void main() {
     );
 
     testWidgets(
-      'when a rounded radius is provided, it should leave the corner clear and fill the center',
+      'when a rounded shape is provided, it should leave the corner clear and fill the center',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-radius-boundary');
         const boneColor = Color(0xFF536579);
@@ -700,7 +700,7 @@ void main() {
             child: const Skeleton(
               style: SkeletonStyle(
                 color: boneColor,
-                radius: Radius.circular(12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
               ),
               child: SizedBox(
                 width: 40,
@@ -723,6 +723,121 @@ void main() {
       },
     );
 
+    testWidgets('when a capsule shape is provided, its rounding follows each bone size', (tester) async {
+      const boundaryKey = ValueKey('skeleton-capsule-boundary');
+      for (final size in [const Size(40, 20), const Size(80, 40)]) {
+        await tester.pumpWidget(
+          _pixelApp(
+            boundaryKey: boundaryKey,
+            child: Skeleton(
+              style: const SkeletonStyle(shape: StadiumBorder()),
+              child: SizedBox.fromSize(
+                size: size,
+                child: const ColoredBox(color: Colors.red),
+              ),
+            ),
+          ),
+        );
+        final frame = await _capturePixels(tester, boundaryKey);
+        expect(_pixelAt(frame, 2, 2).a, 0, reason: 'corner for $size');
+        expect(_pixelAt(frame, size.width ~/ 2, size.height ~/ 2).a, 1, reason: 'center for $size');
+      }
+    });
+
+    testWidgets('when a directional shape is provided, it resolves the current text direction', (tester) async {
+      const boundaryKey = ValueKey('skeleton-directional-shape-boundary');
+      var direction = TextDirection.ltr;
+      late StateSetter update;
+      await tester.pumpWidget(
+        _pixelApp(
+          boundaryKey: boundaryKey,
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              update = setState;
+              return Directionality(
+                textDirection: direction,
+                child: const Skeleton(
+                  style: SkeletonStyle(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadiusDirectional.only(topStart: Radius.circular(12)),
+                    ),
+                  ),
+                  child: SizedBox(width: 40, height: 40, child: ColoredBox(color: Colors.red)),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      var frame = await _capturePixels(tester, boundaryKey);
+      expect(_pixelAt(frame, 1, 1).a, 0);
+      expect(_pixelAt(frame, 38, 1).a, 1);
+      update(() => direction = TextDirection.rtl);
+      await tester.pump();
+      frame = await _capturePixels(tester, boundaryKey);
+      expect(_pixelAt(frame, 1, 1).a, 1);
+      expect(_pixelAt(frame, 38, 1).a, 0);
+    });
+
+    testWidgets('when a custom shape replaces a rounded rectangle, the cached bone updates', (tester) async {
+      const boundaryKey = ValueKey('skeleton-shape-update-boundary');
+      ShapeBorder shape = const RoundedRectangleBorder();
+      late StateSetter update;
+      await tester.pumpWidget(
+        _pixelApp(
+          boundaryKey: boundaryKey,
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              update = setState;
+              return Skeleton(
+                style: SkeletonStyle(shape: shape),
+                child: const SizedBox(width: 40, height: 20, child: ColoredBox(color: Colors.red)),
+              );
+            },
+          ),
+        ),
+      );
+      expect(_pixelAt(await _capturePixels(tester, boundaryKey), 2, 2).a, 1);
+      update(() => shape = const StadiumBorder());
+      await tester.pump();
+      expect(_pixelAt(await _capturePixels(tester, boundaryKey), 2, 2).a, 0);
+    });
+
+    testWidgets('when a custom shape has a double-rectangle hole, it keeps the center clear', (tester) async {
+      const boundaryKey = ValueKey('skeleton-double-shape-boundary');
+      await tester.pumpWidget(
+        _pixelApp(
+          boundaryKey: boundaryKey,
+          child: const Skeleton(
+            style: SkeletonStyle(shape: StadiumBorder()),
+            child: CustomPaint(size: Size(40, 40), painter: _DoubleRectPainter()),
+          ),
+        ),
+      );
+      final frame = await _capturePixels(tester, boundaryKey);
+      expect(_pixelAt(frame, 20, 4).a, 1);
+      expect(_pixelAt(frame, 20, 20).a, 0);
+    });
+
+    testWidgets('when motion is disabled, it retains the custom shape without animating', (tester) async {
+      const boundaryKey = ValueKey('skeleton-reduced-motion-shape-boundary');
+      await tester.pumpWidget(
+        _pixelApp(
+          boundaryKey: boundaryKey,
+          child: const MediaQuery(
+            data: MediaQueryData(disableAnimations: true),
+            child: Skeleton(
+              style: SkeletonStyle(shape: StadiumBorder(), effect: SkeletonShimmerEffect()),
+              child: SizedBox(width: 40, height: 20, child: ColoredBox(color: Colors.red)),
+            ),
+          ),
+        ),
+      );
+      final frame = await _capturePixels(tester, boundaryKey);
+      expect(_pixelAt(frame, 2, 2).a, 0);
+      expect(_pixelAt(frame, 20, 10).a, 1);
+    });
+
     group('text spacing with a real font', () {
       setUpAll(() async {
         final loader = FontLoader('SkeletonTestInter')
@@ -743,7 +858,7 @@ void main() {
                     width: 300,
                     height: 240,
                     child: Skeleton(
-                      style: const SkeletonStyle(radius: Radius.zero),
+                      style: const SkeletonStyle(shape: RoundedRectangleBorder()),
                       child: Text(
                         'Caminhão\nCaminhão',
                         textScaler: TextScaler.linear(textScale),
@@ -785,7 +900,7 @@ void main() {
               width: 45,
               height: 90,
               child: Skeleton(
-                style: SkeletonStyle(color: boneColor, radius: Radius.zero),
+                style: SkeletonStyle(color: boneColor, shape: RoundedRectangleBorder()),
                 child: Text('AA\nAAA', style: textStyle),
               ),
             ),
@@ -853,7 +968,7 @@ void main() {
             child: const Skeleton(
               style: SkeletonStyle(
                 color: Colors.black,
-                radius: Radius.zero,
+                shape: RoundedRectangleBorder(),
                 effect: SkeletonFadeEffect(),
               ),
               child: SizedBox(
@@ -886,7 +1001,7 @@ void main() {
             child: const Skeleton(
               style: SkeletonStyle(
                 color: Colors.black,
-                radius: Radius.zero,
+                shape: RoundedRectangleBorder(),
                 effect: SkeletonShimmerEffect(color: Colors.white),
               ),
               child: Row(
@@ -929,7 +1044,7 @@ void main() {
       'when active and paused fades share a frame, it should keep the paused effect at its start',
       (tester) async {
         const boundaryKey = ValueKey('skeleton-paused-effect-boundary');
-        var pausedRadius = Radius.zero;
+        var pausedShape = const RoundedRectangleBorder();
         late StateSetter update;
         await tester.pumpWidget(
           _pixelApp(
@@ -943,7 +1058,7 @@ void main() {
                     const Skeleton(
                       style: SkeletonStyle(
                         color: Colors.black,
-                        radius: Radius.zero,
+                        shape: RoundedRectangleBorder(),
                         effect: SkeletonFadeEffect(),
                       ),
                       child: SizedBox(
@@ -957,7 +1072,7 @@ void main() {
                       child: Skeleton(
                         style: SkeletonStyle(
                           color: Colors.black,
-                          radius: pausedRadius,
+                          shape: pausedShape,
                           effect: const SkeletonFadeEffect(),
                         ),
                         child: const SizedBox(
@@ -975,7 +1090,7 @@ void main() {
         );
 
         await tester.pump(const Duration(milliseconds: 250));
-        update(() => pausedRadius = const Radius.circular(1));
+        update(() => pausedShape = const RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(1))));
         await tester.pump();
         final frame = await _capturePixels(tester, boundaryKey);
         final pausedAlpha = _pixelAt(frame, 30, 10).toARGB32() >>> 24;
@@ -993,7 +1108,7 @@ void main() {
           _pixelApp(
             boundaryKey: boundaryKey,
             child: const Skeleton(
-              style: SkeletonStyle(color: boneColor, radius: Radius.zero),
+              style: SkeletonStyle(color: boneColor, shape: RoundedRectangleBorder()),
               child: RepaintBoundary(
                 child: RepaintBoundary(
                   child: SizedBox(
@@ -1042,7 +1157,7 @@ void main() {
                   enabled: enabled,
                   style: const SkeletonStyle(
                     color: boneColor,
-                    radius: Radius.zero,
+                    shape: RoundedRectangleBorder(),
                   ),
                   child: RepaintBoundary(
                     child: CustomPaint(
@@ -1098,7 +1213,7 @@ void main() {
           _pixelApp(
             boundaryKey: boundaryKey,
             child: const Skeleton(
-              style: SkeletonStyle(color: boneColor, radius: Radius.zero),
+              style: SkeletonStyle(color: boneColor, shape: RoundedRectangleBorder()),
               child: Opacity(
                 opacity: 0.15,
                 child: SizedBox(
@@ -1146,7 +1261,7 @@ void main() {
                   enabled: enabled,
                   style: const SkeletonStyle(
                     color: boneColor,
-                    radius: Radius.zero,
+                    shape: RoundedRectangleBorder(),
                   ),
                   child: Opacity(
                     opacity: 0.15,
@@ -1210,7 +1325,7 @@ void main() {
           _pixelApp(
             boundaryKey: boundaryKey,
             child: const Skeleton(
-              style: SkeletonStyle(color: boneColor, radius: Radius.zero),
+              style: SkeletonStyle(color: boneColor, shape: RoundedRectangleBorder()),
               child: ColorFiltered(
                 colorFilter: ColorFilter.mode(Colors.red, BlendMode.srcIn),
                 child: SizedBox(
@@ -1246,7 +1361,7 @@ void main() {
             child: Skeleton(
               style: const SkeletonStyle(
                 color: boneColor,
-                radius: Radius.zero,
+                shape: RoundedRectangleBorder(),
               ),
               child: RepaintBoundary(
                 child: Opacity(
@@ -1301,7 +1416,7 @@ void main() {
             child: Skeleton(
               style: const SkeletonStyle(
                 color: boneColor,
-                radius: Radius.zero,
+                shape: RoundedRectangleBorder(),
               ),
               child: ShaderMask(
                 blendMode: BlendMode.srcIn,
@@ -1389,7 +1504,7 @@ void main() {
             child: Skeleton(
               style: const SkeletonStyle(
                 color: boneColor,
-                radius: Radius.zero,
+                shape: RoundedRectangleBorder(),
               ),
               child: CustomPaint(
                 size: const Size(40, 24),
@@ -1420,7 +1535,7 @@ void main() {
           _pixelApp(
             boundaryKey: boundaryKey,
             child: const Skeleton(
-              style: SkeletonStyle(color: boneColor, radius: Radius.zero),
+              style: SkeletonStyle(color: boneColor, shape: RoundedRectangleBorder()),
               child: _LayerPaintingLeaf(
                 size: Size(40, 24),
                 color: Colors.red,
@@ -1453,7 +1568,7 @@ void main() {
             child: const Skeleton(
               style: SkeletonStyle(
                 effect: _HalfOpacityStaticEffect(),
-                radius: Radius.zero,
+                shape: RoundedRectangleBorder(),
               ),
               child: _SeveralLayerPaintingLeaf(size: Size(40, 24)),
             ),
@@ -1476,7 +1591,7 @@ void main() {
             child: const Skeleton(
               style: SkeletonStyle(
                 color: Color(0xFF68727D),
-                radius: Radius.zero,
+                shape: RoundedRectangleBorder(),
               ),
               child: SizedBox(
                 width: 120,
@@ -1747,6 +1862,22 @@ class _PaintCounter extends CustomPainter {
 
   @override
   bool shouldRepaint(_PaintCounter oldDelegate) => false;
+}
+
+class _DoubleRectPainter extends CustomPainter {
+  const new();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawDRRect(
+      RRect.fromRectAndRadius(Offset.zero & size, const Radius.circular(8)),
+      RRect.fromRectAndRadius(const Rect.fromLTWH(10, 10, 20, 20), const Radius.circular(4)),
+      Paint()..color = Colors.red,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _DoubleRectPainter oldDelegate) => false;
 }
 
 class _PicturePainter extends CustomPainter {

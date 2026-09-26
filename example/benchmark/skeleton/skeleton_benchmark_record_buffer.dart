@@ -8,8 +8,8 @@ final class SkeletonBenchmarkRecordBuffer {
 
   static const String _recordMarker = 'SKELETON_BENCHMARK ';
   static const String _chunkMarker = 'SKELETON_BENCHMARK_CHUNK ';
-  static const int _maximumLogLineLength = 3000;
-  static const int _maximumChunkPayloadLength = 2600;
+  static const int _maximumLogLineLength = 900;
+  static const int _maximumChunkPayloadLength = 700;
 
   final void Function(String message) _emit;
   final List<Map<String, Object>> _records = <Map<String, Object>>[];

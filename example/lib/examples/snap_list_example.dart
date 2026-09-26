@@ -72,14 +72,14 @@ class _SnapListExampleState extends State<SnapListExample> {
             axis: _axis,
             itemCount: _count,
             spacing: 12,
-            incomingTransitionBuilder: (context, progress, isReverse, child) =>
+            incomingTransitionBuilder: (context, progress, details, child) =>
                 FadeTransition(
-                  opacity: isReverse
+                  opacity: details.isReverse
                       ? const AlwaysStoppedAnimation<double>(1)
                       : progress,
                   child: child,
                 ),
-            outgoingTransitionBuilder: (context, progress, isReverse, child) =>
+            outgoingTransitionBuilder: (context, progress, details, child) =>
                 ScaleTransition(
                   scale: Tween<double>(begin: 1, end: .92).animate(progress),
                   child: child,

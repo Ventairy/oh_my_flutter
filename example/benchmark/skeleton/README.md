@@ -92,3 +92,90 @@ comparison. Alternate baseline and candidate process order while holding device
 refresh rate, renderer, thermal state, and workload values constant. Physical
 low-end hardware is the release authority; emulator runs are relative stress
 evidence only.
+
+## Crossfade switch workload
+
+`crossfade_main.dart` measures enabled-state switches rather than a continuously
+running effect. It alternates skeleton-to-content and content-to-skeleton,
+reports them separately, and counts descendant `CustomPainter.paint` calls.
+Run identical commands against the baseline and candidate source trees; the
+variant is an evidence label and does not change benchmark behavior.
+
+```console
+cd example
+
+variant=baseline # use candidate in the candidate source tree
+source=baseline-staged-snapshot # identify this exact source tree
+renderer=skia-opengles # verify this in startup or device logs
+topology=many
+effect=static # repeat with shimmer
+card_count=12
+warmup_switches=12
+measured_switches=40
+run_id="$(date -u +%Y%m%dT%H%M%SZ)-$$-${RANDOM}"
+result_directory="build/benchmark-results/skeleton-crossfade/$variant-$effect-$topology-$run_id"
+mkdir -p "$result_directory"
+
+fvm flutter run --profile --no-dds --no-enable-dart-profiling \
+  --target benchmark/skeleton/crossfade_main.dart \
+  --device-id <device-id> \
+  --dart-define=SKELETON_SWITCH_VARIANT="$variant" \
+  --dart-define=SKELETON_SWITCH_SOURCE="$source" \
+  --dart-define=SKELETON_SWITCH_RENDERER="$renderer" \
+  --dart-define=SKELETON_SWITCH_RUN_ID="$run_id" \
+  --dart-define=SKELETON_SWITCH_TOPOLOGY="$topology" \
+  --dart-define=SKELETON_SWITCH_EFFECT="$effect" \
+  --dart-define=SKELETON_SWITCH_CARD_COUNT="$card_count" \
+  --dart-define=SKELETON_SWITCH_WARMUP_SWITCHES="$warmup_switches" \
+  --dart-define=SKELETON_SWITCH_MEASURED_SWITCHES="$measured_switches" \
+  2>&1 | tee "$result_directory/flutter.log"
+
+fvm dart run benchmark/skeleton/validate_skeleton_crossfade_benchmark_log.dart \
+  --log "$result_directory/flutter.log" \
+  --output-directory "$result_directory/validated" \
+  --expected-run-id "$run_id" \
+  --expected-variant "$variant" \
+  --expected-source "$source" \
+  --expected-renderer "$renderer" \
+  --expected-topology "$topology" \
+  --expected-effect "$effect" \
+  --expected-card-count "$card_count" \
+  --expected-warmup-switches "$warmup_switches" \
+  --expected-measured-switches "$measured_switches"
+```
+
+The validator requires profile mode, a matching run ID, valid display
+metrics, an uninterrupted record for each direction, and nonempty timing
+samples. It writes JSONL and a human-readable summary. After each switch, the
+application schedules a frame and allows 500 ms for batched timings to arrive.
+Frames that rasterize or report later can still be omitted, so inspect unusually
+low frame counts and treat the reported percentiles as a bounded observation.
+Frame attribution and pacing use the frame's vsync timestamp, which matches
+the scheduler timestamp used to start each switch.
+Add
+`--dart-define=SKELETON_SWITCH_ENFORCE_BUDGET=true` to the run and
+`--require-budget-pass --require-enforced` to validation when the test device
+must pass the measured refresh-rate budget. Build, raster, and total-span
+p50/p90/p99/max, budget misses, and probe paints are reported per direction.
+The report also includes per-switch worst build and raster times, per-switch
+vsync gaps (including the start and end of the 300 ms fade), and the
+number of switches with a gap longer than 1.5 frame budgets. These pacing
+numbers show stalls that pooled frame percentiles can
+hide. The budget gate checks build and raster p99; inspect frame gaps and frame
+counts separately when judging visual smoothness. Probe paints are counted
+through switch settlement, slightly beyond the timing window.
+
+`PASS` in the summary means log validation passed. The summary separately
+reports whether the application enforced the timing budget and whether each
+direction met it. The renderer and source labels are supplied by the runner;
+the validator checks their consistency but cannot verify the active renderer,
+APK source, or that a run ID was newly generated. Confirm those from device
+startup logs and the built artifact before using a run as performance evidence.
+
+For comparisons, use the same device, renderer, refresh rate, card count,
+topology, effect, and switch counts. Alternate baseline and candidate process
+order, rerun with fresh IDs, and inspect thermals and startup logs. Run both
+`effect=static` and `effect=shimmer`; use `topology=many` to stress independent
+instances and `topology=single` to isolate one large transition. A 1 GB
+SwiftShader emulator provides relative stress evidence. It cannot establish
+physical Galaxy J5 frame rates or guarantee equal smoothness across devices.

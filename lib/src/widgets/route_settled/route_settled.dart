@@ -1,6 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/widgets.dart';
 import 'package:oh_my_flutter/src/widgets/controlled_visibility/controlled_visibility.dart';
+
+part '_route_settlement_state.dart';
+part 'route_listener.dart';
 
 /// A visibility wrapper that shows [child] after its route settles.
 ///
@@ -73,97 +78,11 @@ class RouteSettled extends StatefulWidget {
   State<RouteSettled> createState() => _RouteSettledState();
 }
 
-class _RouteSettledState extends State<RouteSettled> {
+class _RouteSettledState extends State<RouteSettled> with _RouteSettlementState<RouteSettled> {
   final VisibilityController _controller = VisibilityController();
-  Animation<double>? _routeAnimation;
-  Animation<double>? _secondaryRouteAnimation;
-  ValueListenable<bool>? _gestureNotifier;
-  bool _visible = false;
-  bool _routeIsCurrent = true;
-  bool _waitingForSecondaryDismissal = false;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    final route = ModalRoute.of(context);
-    final wasCurrent = _routeIsCurrent;
-    _routeIsCurrent = route?.isCurrent ?? true;
-    if (!_routeIsCurrent) {
-      _waitingForSecondaryDismissal = true;
-    } else if (!wasCurrent && _waitingForSecondaryDismissal) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _handleRouteBecameCurrent());
-    }
-    if (_routeAnimation != null) {
-      _updateVisibility();
-      return;
-    }
-
-    if (route == null) {
-      _controller.show();
-      _visible = true;
-      return;
-    }
-
-    _routeAnimation = route.animation;
-    _routeAnimation?.addStatusListener(_handleStatusChanged);
-    _secondaryRouteAnimation = route.secondaryAnimation;
-    _secondaryRouteAnimation?.addStatusListener(_handleSecondaryStatusChanged);
-
-    final navigator = Navigator.maybeOf(context);
-    if (navigator != null) {
-      _gestureNotifier = navigator.userGestureInProgressNotifier;
-      _gestureNotifier?.addListener(_handleGestureChanged);
-    }
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _updateVisibility();
-    });
-  }
-
-  void _handleStatusChanged(AnimationStatus status) => _updateVisibility();
-
-  void _handleSecondaryStatusChanged(AnimationStatus status) {
-    if (!status.isDismissed) {
-      _waitingForSecondaryDismissal = true;
-    } else if (_routeIsCurrent) {
-      _waitingForSecondaryDismissal = false;
-    }
-    _updateVisibility();
-  }
-
-  void _handleRouteBecameCurrent() {
-    if (!mounted || !_routeIsCurrent) return;
-    if (_secondaryRouteAnimation?.status.isDismissed ?? true) {
-      _waitingForSecondaryDismissal = false;
-    }
-    _updateVisibility();
-  }
-
-  void _handleGestureChanged() => _updateVisibility();
-
-  void _updateVisibility() {
-    final routeAnimation = _routeAnimation;
-    if (routeAnimation == null) return;
-
-    final secondaryRouteSettled = _secondaryRouteAnimation?.status.isDismissed ?? true;
-    final settled =
-        routeAnimation.status.isCompleted && secondaryRouteSettled && _routeIsCurrent && !_waitingForSecondaryDismissal;
-    final gestureActive = _gestureNotifier?.value ?? false;
-    final shouldShow = settled && !gestureActive;
-    if (shouldShow == _visible) return;
-
-    _visible = shouldShow;
-    shouldShow ? _controller.show() : _controller.hide();
-  }
-
-  @override
-  void dispose() {
-    _routeAnimation?.removeStatusListener(_handleStatusChanged);
-    _secondaryRouteAnimation?.removeStatusListener(_handleSecondaryStatusChanged);
-    _gestureNotifier?.removeListener(_handleGestureChanged);
-    super.dispose();
-  }
+  void onRouteSettlementChanged({required bool settled}) => settled ? _controller.show() : _controller.hide();
 
   @override
   Widget build(BuildContext context) {

@@ -195,12 +195,20 @@ to a step, with optional transition animations.
 and is not being covered or moved by navigation. This can keep buttons and
 headers out of view during page transitions or back-swipe gestures.
 
+### RouteListener
+
+`RouteListener` runs callbacks as a screen becomes ready or starts moving away,
+while leaving its content unchanged. It can, for example, show a message after
+a page transition and dismiss it when another page opens.
+
 ### Skeleton
 
 A skeleton is a temporary loading placeholder that shows the shape of the
 expected interface while real content is still loading. `Skeleton` creates
 those neutral shapes from an existing widget layout and can display them as a
 static placeholder or with fade and shimmer effects.
+An optional switch transition can crossfade between the loading shapes and
+content, or use a custom animation when loading starts or finishes.
 
 ## Networking
 

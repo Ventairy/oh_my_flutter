@@ -15,14 +15,14 @@ class _TransitionHost {
   int builds = 0;
   int effects = 0;
 
-  Widget _incoming(BuildContext context, Animation<double> progress, bool reverse, Widget child) {
-    incomingAnimations[(child.key! as ValueKey<int>).value] = (progress, reverse);
+  Widget _incoming(BuildContext context, Animation<double> progress, SnapListTransitionDetails details, Widget child) {
+    incomingAnimations[(child.key! as ValueKey<int>).value] = (progress, details.isReverse);
     effects++;
     return FadeTransition(key: child.key, opacity: progress, child: child);
   }
 
-  Widget _outgoing(BuildContext context, Animation<double> progress, bool reverse, Widget child) {
-    outgoingAnimations[(child.key! as ValueKey<int>).value] = (progress, reverse);
+  Widget _outgoing(BuildContext context, Animation<double> progress, SnapListTransitionDetails details, Widget child) {
+    outgoingAnimations[(child.key! as ValueKey<int>).value] = (progress, details.isReverse);
     effects++;
     return ScaleTransition(key: child.key, scale: Tween<double>(begin: 1, end: .9).animate(progress), child: child);
   }
@@ -249,16 +249,118 @@ void main() {
     expect((host.builds - initial.$1, host.effects - initial.$2), (0, 0));
   });
 
-  testWidgets('when trailing content reveals, it should leave the last item appearance unchanged', (tester) async {
+  testWidgets('when trailing content reveals and returns, it should use the supplied item transitions', (tester) async {
     final host = _TransitionHost();
-    await host.mount(tester, count: 1, trailingBuilder: (_) => const SizedBox(height: 100));
+    await host.mount(tester, count: 1, trailingBuilder: (_) => const SizedBox(key: ValueKey(1), height: 100));
     final next = host.controller.next();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    final values = (host.incoming[0], host.outgoing[0]);
+    final arriving = (host.incoming[1], host.outgoing[0]);
     await tester.pumpAndSettle();
     await next;
-    expect(values, ((1.0, false), (0.0, false)));
+    final settled = (host.incoming[1], host.outgoing[0]);
+    final previous = host.controller.previous();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    final leaving = (host.incoming[0], host.outgoing[1]);
+    await tester.pumpAndSettle();
+    await previous;
+    expect(
+      [arriving, settled, leaving],
+      [((.5, false), (.5, false)), ((1.0, false), (1.0, false)), ((.5, true), (.5, true))],
+    );
+  });
+
+  testWidgets('when the trailer first mounts, it should start its supplied incoming effect before measurement', (
+    tester,
+  ) async {
+    final initialProgress = <double>[];
+    await tester.pumpWidget(
+      SnapListTestHost.app(
+        SnapList(
+          clipBehavior: Clip.none,
+          incomingTransitionBuilder: (_, progress, details, child) {
+            if (child.key == const ValueKey('trailer')) initialProgress.add(progress.value);
+            return FadeTransition(opacity: progress, child: child);
+          },
+          trailingBuilder: (_) => const SizedBox(key: ValueKey('trailer'), height: 100),
+          children: const [SizedBox.expand()],
+        ),
+      ),
+    );
+    expect(initialProgress, [0.0]);
+  });
+
+  for (final enabled in [(true, false), (false, true), (true, true), (false, false)]) {
+    testWidgets('when trailing builders are $enabled, it should apply only those effects over its measured reveal', (
+      tester,
+    ) async {
+      final host = _TransitionHost();
+      await host.mount(
+        tester,
+        count: 1,
+        withIncoming: enabled.$1,
+        withOutgoing: enabled.$2,
+        trailingBuilder: (_) => const SizedBox(key: ValueKey(1), height: 200),
+      );
+      await host.position(tester, .25);
+      expect((host.incoming[1], host.outgoing[0]), (enabled.$1 ? (.5, false) : null, enabled.$2 ? (.5, false) : null));
+    });
+  }
+
+  testWidgets('when a trailing reveal is cancelled, it should rewind the supplied effects without rebuilding content', (
+    tester,
+  ) async {
+    final host = _TransitionHost();
+    await host.mount(tester, count: 1, trailingBuilder: (_) => const SizedBox(key: ValueKey(1), height: 100));
+    await host.position(tester, .125);
+    final effects = host.effects;
+    final builds = host.builds;
+    await host.position(tester, .0625);
+    final returning = (host.incoming[1], host.outgoing[0]);
+    final rewindEffects = host.effects - effects;
+    await host.position(tester, 0);
+    expect(
+      (returning, host.outgoing[0], rewindEffects, host.builds - builds),
+      (((.25, false), (.25, false)), (0.0, false), 0, 0),
+    );
+  });
+
+  testWidgets(
+    'when items append during a partial trailing reveal, it should preserve departure progress while rewinding',
+    (tester) async {
+      final host = _TransitionHost();
+      await host.mount(tester, count: 1, trailingBuilder: (_) => const SizedBox(key: ValueKey(-1), height: 100));
+      await host.position(tester, .125);
+      final before = host.outgoing[0];
+      await host.mount(
+        tester,
+        count: 2,
+        settle: false,
+        trailingBuilder: (_) => const SizedBox(key: ValueKey(-1), height: 100),
+      );
+      final after = host.outgoing[0];
+      await host.position(tester, .0625);
+      final rewinding = host.outgoing[0];
+      await host.position(tester, 0);
+      expect([before, after, rewinding, host.outgoing[0]], [(.5, false), (.5, false), (.25, false), (0.0, false)]);
+    },
+  );
+
+  testWidgets('when reduced motion reveals trailing content, it should use resting effects for both children', (
+    tester,
+  ) async {
+    final host = _TransitionHost();
+    await host.mount(
+      tester,
+      count: 1,
+      reducedMotion: true,
+      trailingBuilder: (_) => const SizedBox(key: ValueKey(1), height: 100),
+    );
+    final next = host.controller.next();
+    await tester.pumpAndSettle();
+    await next;
+    expect((host.incoming[1], host.outgoing[0]), ((1.0, false), (0.0, false)));
   });
 
   testWidgets('when ticker mode disables during a cancelled drag, it should restore resting effects', (tester) async {

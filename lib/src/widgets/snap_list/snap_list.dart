@@ -12,6 +12,7 @@ import 'snap_list_alignment.dart';
 
 part '_render_snap_list_eager_content.dart';
 part '_render_snap_list_trailing.dart';
+part '_render_snap_list_trailing_sliver.dart';
 part '_snap_list_drag.dart';
 part '_snap_list_eager_content.dart';
 part '_snap_list_item_transition.dart';
@@ -22,9 +23,11 @@ part '_snap_list_physics.dart';
 part '_snap_list_position.dart';
 part '_snap_list_scroll_controller.dart';
 part '_snap_list_trailing.dart';
+part '_snap_list_trailing_sliver.dart';
 part '_snap_list_transition_animation.dart';
 part '_snap_list_transitions.dart';
 part '_snap_list_viewport_offset.dart';
+part 'snap_list_transition_details.dart';
 part 'snap_list_controller.dart';
 part 'snap_list_types.dart';
 
@@ -142,7 +145,7 @@ class SnapList extends StatefulWidget {
   /// Defaults to [curve].
   final Curve reverseCurve;
 
-  /// Optional controller for observing position and moving between items.
+  /// Optional controller for observing position and moving to items.
   final SnapListController? controller;
 
   /// Builds content revealed after the last item, outside the item indexes.
@@ -150,6 +153,7 @@ class SnapList extends StatefulWidget {
   /// The child receives loose main-axis constraints bounded by the viewport.
   /// Its measured size determines the reveal distance. Use SizedBox.expand
   /// to fill the viewport, or a naturally sized child for a smaller reveal.
+  /// It uses the same incoming and outgoing transition builders as the items.
   ///
   /// Appending items while this slot is committed or settled advances to the
   /// first appended item. Returning to an item cancels that automatic advance.
@@ -159,15 +163,15 @@ class SnapList extends StatefulWidget {
   /// Called when a different real item finishes settling, not on first mount.
   final ValueChanged<int>? onIndexChanged;
 
-  /// Animates each arriving item with an effect that follows scrolling.
+  /// Animates arriving items and trailing content with an effect that follows scrolling.
   ///
   /// Progress moves from zero to one as the item arrives, and rewinds when
   /// the swipe is cancelled. The settled item receives one. Both navigation
-  /// directions use this builder; `isReverse` identifies previous-item travel.
+  /// directions use this builder; `details.isReverse` identifies previous-item travel.
   /// Omit it for normal appearance. See [SnapListTransitionBuilder] for usage.
   final SnapListTransitionBuilder? incomingTransitionBuilder;
 
-  /// Animates each departing item independently of its incoming effect.
+  /// Animates departing items and trailing content independently of their incoming effect.
   ///
   /// Progress moves from zero to one as the item leaves, and rewinds when
   /// the swipe is cancelled. The settled item receives zero. For a fade-out,
@@ -274,6 +278,13 @@ class _SnapListState extends State<SnapList> {
 
   Future<bool> _navigate(int direction) => _motion.navigate(direction);
 
+  void _jumpTo(int index) {
+    assert(_motion.scroll?.hasContentDimensions ?? false, 'SnapList must be laid out before jumping to an item.');
+    assert(index >= 0 && index < _motion.count, 'The jump index must identify an item.');
+    _nested.clear();
+    _motion.jumpToItem(index);
+  }
+
   void _scheduleChanged() {
     if (_scheduled) return;
     _scheduled = true;
@@ -307,12 +318,30 @@ class _SnapListState extends State<SnapList> {
 
   void _updateTransitions() {
     if (widget.incomingTransitionBuilder == null && widget.outgoingTransitionBuilder == null) return;
+    final hasTrailing = widget.trailingBuilder != null && _count > 0;
+    final pixels = _motion.displayPixels;
     _transitions.update(
-      _motion.displayPixels / _motion.stride,
-      _count,
+      hasTrailing && _motion.revealExtent > 0 && pixels > _motion.lastAnchor
+          ? _count - 1 + ((pixels - _motion.lastAnchor) / _motion.revealExtent).clamp(0.0, 1.0)
+          : pixels / _motion.stride,
+      _count + (hasTrailing ? 1 : 0),
+      pixels: pixels,
+      trailing: hasTrailing ? (index: _count, anchor: _motion.lastAnchor, extent: _motion.revealExtent) : null,
       reducedMotion: _motion.reducedMotion,
     );
   }
+
+  Widget _transition(int index, Widget child) =>
+      widget.incomingTransitionBuilder == null && widget.outgoingTransitionBuilder == null
+      ? child
+      : _SnapListItemTransition(
+          transitions: _transitions,
+          index: index,
+          isTrailing: index == _count,
+          incomingBuilder: widget.incomingTransitionBuilder,
+          outgoingBuilder: widget.outgoingTransitionBuilder,
+          child: child,
+        );
 
   Widget _item(BuildContext context, int index) {
     final child = widget.children?[index] ?? widget.itemBuilder!(context, index);
@@ -320,15 +349,7 @@ class _SnapListState extends State<SnapList> {
       key: ValueKey(child.key ?? index),
       child: ValueListenableBuilder<(int, int)>(
         valueListenable: _visible,
-        child: widget.incomingTransitionBuilder == null && widget.outgoingTransitionBuilder == null
-            ? child
-            : _SnapListItemTransition(
-                transitions: _transitions,
-                index: index,
-                incomingBuilder: widget.incomingTransitionBuilder,
-                outgoingBuilder: widget.outgoingTransitionBuilder,
-                child: child,
-              ),
+        child: _transition(index, child),
         builder: (context, range, child) {
           final visible = index >= range.$1 && index <= range.$2;
           return TickerMode(
@@ -411,7 +432,9 @@ class _SnapListState extends State<SnapList> {
           ),
         ),
         if (widget.trailingBuilder != null)
-          SliverToBoxAdapter(
+          _SnapListTrailingSliver(
+            viewportOffset: _viewportOffset!,
+            paintOutsideViewport: widget.clipBehavior == Clip.none,
             child: _SnapListTrailing(
               axis: widget.axis,
               extent: _extent,
@@ -425,7 +448,9 @@ class _SnapListState extends State<SnapList> {
                         AxisDirection.right => Offset(-widget.spacing, 0),
                         AxisDirection.left => Offset(widget.spacing, 0),
                       },
-                child: Builder(builder: widget.trailingBuilder!),
+                child: RepaintBoundary(
+                  child: Builder(builder: (context) => _transition(_count, widget.trailingBuilder!(context))),
+                ),
               ),
             ),
           ),

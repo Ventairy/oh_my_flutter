@@ -59,6 +59,7 @@ export 'src/widgets/morph/morph.dart'
         MorphFlightProgress,
         MorphMatchContext,
         MorphNavigatorObserver,
+        MorphNode,
         MorphScope,
         MorphTarget;
 export 'src/widgets/morph/morph_flight_kind.dart' show MorphFlightKind;
@@ -76,13 +77,14 @@ export 'src/widgets/motion/motion.dart'
         MotionPlayback,
         MotionStartup,
         MoveMotionEffect,
+        PulseFadeMotionEffect,
         ScaleInMotionEffect,
         ScaleOutMotionEffect,
         ShakeMotionEffect,
         TextMotion;
 export 'src/widgets/native_selectable_text/native_selectable_text.dart' show NativeSelectableText;
 export 'src/widgets/pause_animations/pause_animations.dart' show PauseAnimations;
-export 'src/widgets/route_settled/route_settled.dart' show RouteSettled;
+export 'src/widgets/route_settled/route_settled.dart' show RouteListener, RouteSettled;
 export 'src/widgets/sequence/sequence.dart' show Sequence, SequenceController, SequenceTransitionBuilder;
 export 'src/widgets/skeleton/skeleton.dart'
     show
@@ -94,6 +96,8 @@ export 'src/widgets/skeleton/skeleton.dart'
         SkeletonFadeEffect,
         SkeletonShimmerEffect,
         SkeletonStaticEffectBase,
-        SkeletonStyle;
-export 'src/widgets/snap_list/snap_list.dart' show SnapList, SnapListController, SnapListTransitionBuilder;
+        SkeletonStyle,
+        SkeletonTransition;
+export 'src/widgets/snap_list/snap_list.dart'
+    show SnapList, SnapListController, SnapListTransitionBuilder, SnapListTransitionDetails;
 export 'src/widgets/snap_list/snap_list_alignment.dart' show SnapListAlignment;
