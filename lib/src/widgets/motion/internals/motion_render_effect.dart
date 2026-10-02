@@ -89,6 +89,7 @@ class _MotionRenderEffect {
     var maximumTranslationX = 0.0;
     var maximumTranslationY = 0.0;
     var maximumScale = 1.0;
+    var maximumRotationDegrees = 0.0;
     for (var index = 0; index <= _boundsSampleCount; index += 1) {
       final timelineProgress = index / _boundsSampleCount;
       final progress = isLinear ? timelineProgress : effect.curve.transform(timelineProgress);
@@ -99,11 +100,13 @@ class _MotionRenderEffect {
       maximumTranslationX = math.max(maximumTranslationX, transform._translationX);
       maximumTranslationY = math.max(maximumTranslationY, transform._translationY);
       maximumScale = math.max(maximumScale, transform._scale.abs());
+      maximumRotationDegrees = math.max(maximumRotationDegrees, transform._rotationDegrees.abs());
     }
     final sampledBounds = MotionEffectBounds(
       minimumOffset: Offset(minimumTranslationX, minimumTranslationY),
       maximumOffset: Offset(maximumTranslationX, maximumTranslationY),
       maximumScale: maximumScale,
+      maximumRotationDegrees: maximumRotationDegrees,
     );
     final declaredBounds = effect.bounds;
     if (declaredBounds == null) {
@@ -134,6 +137,54 @@ class _MotionRenderEffect {
         sampledBounds.maximumScale,
         declaredBounds.maximumScale,
       ),
+      maximumRotationDegrees: math.max(
+        sampledBounds.maximumRotationDegrees,
+        declaredBounds.maximumRotationDegrees,
+      ),
+    );
+  }
+
+  static Rect paintBoundsFor(Size size, List<_MotionRenderEffect> effects) {
+    var maximumScale = 1.0;
+    var horizontalMotion = 0.0;
+    var verticalMotion = 0.0;
+    var maximumRotationDegrees = 0.0;
+    for (final effect in effects) {
+      final bounds = effect.bounds;
+      horizontalMotion += bounds._maximumAbsoluteTranslationX;
+      verticalMotion += bounds._maximumAbsoluteTranslationY;
+      maximumScale *= math.max(1, bounds.maximumScale);
+      maximumRotationDegrees += bounds.maximumRotationDegrees;
+    }
+    if (maximumRotationDegrees > 0) {
+      final halfWidth = size.width / 2;
+      final halfHeight = size.height / 2;
+      final radius = math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
+      final radians = math.min(maximumRotationDegrees, 90) * math.pi / 180;
+      final cosine = math.cos(radians);
+      final sine = math.sin(radians);
+      final horizontalRadius = radians >= math.atan2(halfHeight, halfWidth)
+          ? radius
+          : cosine * halfWidth + sine * halfHeight;
+      final verticalRadius = radians >= math.atan2(halfWidth, halfHeight)
+          ? radius
+          : cosine * halfHeight + sine * halfWidth;
+      final horizontalOutset = (horizontalRadius + horizontalMotion + sine * verticalMotion) * maximumScale - halfWidth;
+      final verticalOutset = (verticalRadius + verticalMotion + sine * horizontalMotion) * maximumScale - halfHeight;
+      return Rect.fromLTRB(
+        -horizontalOutset,
+        -verticalOutset,
+        size.width + horizontalOutset,
+        size.height + verticalOutset,
+      );
+    }
+    final horizontalOutset = horizontalMotion * maximumScale + size.width * (maximumScale - 1) / 2;
+    final verticalOutset = verticalMotion * maximumScale + size.height * (maximumScale - 1) / 2;
+    return Rect.fromLTRB(
+      -horizontalOutset,
+      -verticalOutset,
+      size.width + horizontalOutset,
+      size.height + verticalOutset,
     );
   }
 

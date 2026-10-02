@@ -329,28 +329,44 @@ void main() {
     },
   );
 
-  testWidgets('when an attached title has its own Morph, it should exclude the title from the surface snapshot', (
-    tester,
-  ) async {
-    final key = GlobalKey<_GroupFlightHarnessState>();
-    await tester.pumpWidget(_GroupFlightHarness(key: key, nestedMorph: true));
-    await tester.pumpAndSettle();
-    key.currentState!.show(expanded: true);
-    await tester.pump();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 500));
-    final paint = tester.widget<CustomPaint>(snapshots.first);
-    final recorder = ui.PictureRecorder();
-    paint.painter!.paint(Canvas(recorder), const Size(100, 100));
-    final picture = recorder.endRecording();
-    final image = await tester.runAsync(() => picture.toImage(100, 100));
-    final bytes = await tester.runAsync(() => image!.toByteData(format: ui.ImageByteFormat.rawRgba));
-    const offset = (15 * 100 + 15) * 4;
-    expect(bytes!.buffer.asUint8List().sublist(offset, offset + 4), [255, 0, 0, 255]);
-    image!.dispose();
-    picture.dispose();
-    await tester.pumpAndSettle();
-  });
+  for (final boundaryDepth in [1, 2, 3]) {
+    testWidgets(
+      'when an attached title has its own Morph beneath $boundaryDepth retained boundaries, '
+      'it should exclude the title from the surface snapshot',
+      (tester) async {
+        final key = GlobalKey<_GroupFlightHarnessState>();
+        await tester.pumpWidget(_GroupFlightHarness(key: key, nestedMorph: true, repaintBoundaryDepth: boundaryDepth));
+        await tester.pumpAndSettle();
+        key.currentState!.show(expanded: true);
+        await tester.pump();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 500));
+        final paint = tester.widget<CustomPaint>(snapshots.first);
+        final recorder = ui.PictureRecorder();
+        paint.painter!.paint(Canvas(recorder), const Size(100, 100));
+        final picture = recorder.endRecording();
+        final image = await tester.runAsync(() => picture.toImage(100, 100));
+        final bytes = await tester.runAsync(() => image!.toByteData(format: ui.ImageByteFormat.rawRgba));
+        const offset = (15 * 100 + 15) * 4;
+        final capturedPixel = bytes!.buffer.asUint8List().sublist(offset, offset + 4);
+        image!.dispose();
+        picture.dispose();
+        await tester.pumpAndSettle();
+        final restoredTitle = await colorBounds(
+          tester,
+          boundary: find.byKey(key.currentState!._captureKey),
+          color: Colors.white,
+        );
+        expect(
+          [capturedPixel, restoredTitle],
+          [
+            [255, 0, 0, 255],
+            const Rect.fromLTWH(210, 30, 20, 20),
+          ],
+        );
+      },
+    );
+  }
 
   testWidgets(
     'when an external attachment flies, it should suppress its original semantics and restore them at landing',

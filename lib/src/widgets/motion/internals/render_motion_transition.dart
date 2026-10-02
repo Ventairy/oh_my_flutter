@@ -35,6 +35,8 @@ class _RenderMotionTransition extends RenderProxyBox {
   List<_MotionRenderEffect> _renderEffects;
   double _opacity = 1;
   double _scale = 1;
+  double _cosine = 1;
+  double _sine = 0;
   double _translationX = 0;
   double _translationY = 0;
   Rect _cachedPaintBounds = Rect.zero;
@@ -43,7 +45,7 @@ class _RenderMotionTransition extends RenderProxyBox {
   bool get _usesOpacityLayer => _opacity > 0 && _opacity < 1;
 
   bool get _hasTransform {
-    return _scale != 1 || _translationX != 0 || _translationY != 0;
+    return _scale != 1 || _cosine != 1 || _sine != 0 || _translationX != 0 || _translationY != 0;
   }
 
   @override
@@ -185,6 +187,8 @@ class _RenderMotionTransition extends RenderProxyBox {
     }
     _opacity = _effectTransform._opacity;
     _scale = _effectTransform._scale;
+    _cosine = _effectTransform._cosine;
+    _sine = _effectTransform._sine;
     _translationX = _effectTransform._translationX;
     _translationY = _effectTransform._translationY;
     if (previouslyUsedOpacityLayer != _usesOpacityLayer) {
@@ -201,30 +205,20 @@ class _RenderMotionTransition extends RenderProxyBox {
 
   void _updatePaintTransform() {
     final storage = _paintTransform.storage;
-    storage[0] = _scale;
-    storage[5] = _scale;
-    storage[12] = _translationX + (1 - _scale) * size.width / 2;
-    storage[13] = _translationY + (1 - _scale) * size.height / 2;
+    final scaledCosine = _scale * _cosine;
+    final scaledSine = _scale * _sine;
+    final halfWidth = size.width / 2;
+    final halfHeight = size.height / 2;
+    storage[0] = scaledCosine;
+    storage[1] = scaledSine;
+    storage[4] = -scaledSine;
+    storage[5] = scaledCosine;
+    storage[12] = _translationX + (1 - scaledCosine) * halfWidth + scaledSine * halfHeight;
+    storage[13] = _translationY - scaledSine * halfWidth + (1 - scaledCosine) * halfHeight;
   }
 
   void _updatePaintBounds() {
-    var maximumScale = 1.0;
-    var horizontalMotion = 0.0;
-    var verticalMotion = 0.0;
-    for (final effect in _renderEffects) {
-      final bounds = effect.bounds;
-      horizontalMotion += bounds._maximumAbsoluteTranslationX;
-      verticalMotion += bounds._maximumAbsoluteTranslationY;
-      maximumScale *= math.max(1, bounds.maximumScale);
-    }
-    final horizontalOutset = horizontalMotion * maximumScale + size.width * (maximumScale - 1) / 2;
-    final verticalOutset = verticalMotion * maximumScale + size.height * (maximumScale - 1) / 2;
-    _cachedPaintBounds = Rect.fromLTRB(
-      -horizontalOutset,
-      -verticalOutset,
-      size.width + horizontalOutset,
-      size.height + verticalOutset,
-    );
+    _cachedPaintBounds = _MotionRenderEffect.paintBoundsFor(size, _renderEffects);
   }
 
   void _attachAnimations() {

@@ -1,3 +1,10 @@
+## 0.27.0
+
+- Add `RotateMotionEffect` to turn widgets or individual text characters by a
+  chosen angle, including clockwise and counterclockwise turns.
+- Fix duplicated nested content during Morph transitions, including returns
+  from scrollable views.
+
 ## 0.26.0
 
 - **Breaking:** Replace `SkeletonStyle.radius` with `SkeletonStyle.shape`.

@@ -78,6 +78,7 @@ export 'src/widgets/motion/motion.dart'
         MotionStartup,
         MoveMotionEffect,
         PulseFadeMotionEffect,
+        RotateMotionEffect,
         ScaleInMotionEffect,
         ScaleOutMotionEffect,
         ShakeMotionEffect,

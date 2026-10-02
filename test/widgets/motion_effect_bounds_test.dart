@@ -40,8 +40,16 @@ void main() {
           bounds.minimumOffset,
           bounds.maximumOffset,
           bounds.maximumScale,
+          bounds.maximumRotationDegrees,
         ),
-        (Offset.zero, Offset.zero, 1),
+        (Offset.zero, Offset.zero, 1, 0),
+      );
+    });
+
+    test('when rotation bounds are negative, it should reject the configuration', () {
+      expect(
+        () => MotionEffectBounds(maximumRotationDegrees: -1),
+        throwsAssertionError,
       );
     });
 

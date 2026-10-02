@@ -16,15 +16,25 @@ final class _MorphSnapshotCapture {
 
   static VoidCallback _suppressNestedEndpoints(Iterable<RenderObject> roots) {
     final endpoints = <_RenderMorphEndpoint>{};
+    final repaintBoundaries = <RenderObject>{};
     for (final root in roots) {
-      _collectNestedEndpoints(root, endpoints, isRoot: true);
+      _collectNestedEndpoints(root, endpoints, repaintBoundaries, isRoot: true);
     }
     for (final endpoint in endpoints) {
       endpoint.beginSnapshotSuppression();
     }
+    // Suppression dirties only the nearest boundary. Synchronous capture must
+    // also visit clean retained boundaries above it instead of reusing pixels
+    // recorded before the nested endpoint was suppressed.
+    for (final boundary in repaintBoundaries) {
+      boundary.markNeedsPaint();
+    }
     return () {
       for (final endpoint in endpoints) {
         endpoint.endSnapshotSuppression();
+      }
+      for (final boundary in repaintBoundaries) {
+        boundary.markNeedsPaint();
       }
     };
   }
@@ -112,14 +122,10 @@ final class _MorphSnapshotCapture {
 
     final bounds = Offset.zero & atlasSize;
     final layer = OffsetLayer();
-    final suppressedEndpoints = <_RenderMorphEndpoint>{};
     for (final renderObject in renderObjects) {
       renderObject.beginSnapshotCapture();
-      _collectNestedEndpoints(renderObject, suppressedEndpoints, isRoot: true);
     }
-    for (final endpoint in suppressedEndpoints) {
-      endpoint.beginSnapshotSuppression();
-    }
+    final restoreEndpoints = _suppressNestedEndpoints(renderObjects);
 
     try {
       FlutterErrorDetails? paintError;
@@ -213,9 +219,7 @@ final class _MorphSnapshotCapture {
         physicalPixels: atlasPhysicalPixels,
       );
     } finally {
-      for (final endpoint in suppressedEndpoints) {
-        endpoint.endSnapshotSuppression();
-      }
+      restoreEndpoints();
       for (final renderObject in renderObjects) {
         renderObject.endSnapshotCapture();
       }
@@ -389,17 +393,25 @@ final class _MorphSnapshotCapture {
     );
   }
 
-  static void _collectNestedEndpoints(
+  static bool _collectNestedEndpoints(
     RenderObject renderObject,
-    Set<_RenderMorphEndpoint> result, {
+    Set<_RenderMorphEndpoint> result,
+    Set<RenderObject> repaintBoundaries, {
     required bool isRoot,
   }) {
     if (!isRoot && renderObject is _RenderMorphEndpoint) {
       result.add(renderObject);
-      return;
+      return true;
     }
-    renderObject.visitChildren(
-      (child) => _collectNestedEndpoints(child, result, isRoot: false),
-    );
+    var hasNestedEndpoint = false;
+    renderObject.visitChildren((child) {
+      if (_collectNestedEndpoints(child, result, repaintBoundaries, isRoot: false)) {
+        hasNestedEndpoint = true;
+      }
+    });
+    if (hasNestedEndpoint && renderObject.isRepaintBoundary) {
+      repaintBoundaries.add(renderObject);
+    }
+    return hasNestedEndpoint;
   }
 }
