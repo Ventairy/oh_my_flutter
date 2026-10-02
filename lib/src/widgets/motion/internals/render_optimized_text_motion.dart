@@ -68,6 +68,8 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
   ui.Shader? _overflowShader;
   double _computedOpacity = 1;
   double _computedScale = 1;
+  double _computedCosine = 1;
+  double _computedSine = 0;
   double _computedTranslationX = 0;
   double _computedTranslationY = 0;
   Rect _cachedPaintBounds = Rect.zero;
@@ -87,23 +89,22 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       return;
     }
 
-    var maximumScale = 1.0;
-    var horizontalMotion = 0.0;
-    var verticalMotion = 0.0;
-    for (final effect in _renderEffects) {
-      final bounds = effect.bounds;
-      horizontalMotion += bounds._maximumAbsoluteTranslationX;
-      verticalMotion += bounds._maximumAbsoluteTranslationY;
-      maximumScale *= math.max(1, bounds.maximumScale);
+    if (_renderEffects.every((effect) => effect.bounds.maximumRotationDegrees == 0)) {
+      _cachedPaintBounds = _MotionRenderEffect.paintBoundsFor(size, _renderEffects);
+      return;
     }
-    final horizontalOutset = horizontalMotion * maximumScale + size.width * (maximumScale - 1) / 2;
-    final verticalOutset = verticalMotion * maximumScale + size.height * (maximumScale - 1) / 2;
-    _cachedPaintBounds = Rect.fromLTRB(
-      -horizontalOutset,
-      -verticalOutset,
-      size.width + horizontalOutset,
-      size.height + verticalOutset,
-    );
+
+    var bounds = Offset.zero & size;
+    final paintCount = math.min(_placeholderBoxes.length, _spriteIndexByCharacter.length);
+    for (var index = 0; index < paintCount; index += 1) {
+      final box = _placeholderBoxes[index];
+      final characterBounds = _MotionRenderEffect.paintBoundsFor(
+        Size(box.right - box.left, box.bottom - box.top),
+        _renderEffects,
+      ).shift(Offset(box.left, box.top));
+      bounds = bounds.expandToInclude(characterBounds);
+    }
+    _cachedPaintBounds = bounds;
   }
 
   void updateConfiguration({
@@ -315,6 +316,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
         return (
           opacity: _computedOpacity,
           scale: _computedScale,
+          rotation: _effectTransform._rotationDegrees,
           translationX: _computedTranslationX,
           translationY: _computedTranslationY,
         );
@@ -342,6 +344,12 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
         IterableProperty<double>(
           'characterScales',
           states.map((state) => state.scale),
+        ),
+      )
+      ..add(
+        IterableProperty<double>(
+          'characterRotations',
+          states.map((state) => state.rotation),
         ),
       )
       ..add(
@@ -638,11 +646,22 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       final bufferIndex = index * 4;
       final centerIndex = index * 2;
       final rasterScale = _computedScale * inverseDevicePixelRatio;
-      transforms[bufferIndex] = rasterScale;
+      final scaledCosine = rasterScale * _computedCosine;
+      final scaledSine = rasterScale * _computedSine;
+      transforms[bufferIndex] = scaledCosine;
+      transforms[bufferIndex + 1] = scaledSine;
       transforms[bufferIndex + 2] =
-          offsetX + centers[centerIndex] + _computedTranslationX - rasterScale * anchors[centerIndex];
+          offsetX +
+          centers[centerIndex] +
+          _computedTranslationX -
+          scaledCosine * anchors[centerIndex] +
+          scaledSine * anchors[centerIndex + 1];
       transforms[bufferIndex + 3] =
-          offsetY + centers[centerIndex + 1] + _computedTranslationY - rasterScale * anchors[centerIndex + 1];
+          offsetY +
+          centers[centerIndex + 1] +
+          _computedTranslationY -
+          scaledSine * anchors[centerIndex] -
+          scaledCosine * anchors[centerIndex + 1];
       final alpha = _computedOpacity >= 1 ? 255 : (_computedOpacity.clamp(0.0, 1.0) * 255).round();
       colors[index] = alpha << 24;
       usesOpacity = usesOpacity || alpha < 255;
@@ -688,7 +707,11 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
         ..translate(
           offsetX + centers[centerIndex] + _computedTranslationX,
           offsetY + centers[centerIndex + 1] + _computedTranslationY,
-        )
+        );
+      if (_computedSine != 0 || _computedCosine != 1) {
+        canvas.rotate(math.atan2(_computedSine, _computedCosine));
+      }
+      canvas
         ..scale(_computedScale, _computedScale)
         ..translate(-painter.width / 2, -painter.height / 2);
       final opacity = _computedOpacity.clamp(0.0, 1.0);
@@ -712,6 +735,8 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     }
     _computedOpacity = _effectTransform._opacity;
     _computedScale = _effectTransform._scale;
+    _computedCosine = _effectTransform._cosine;
+    _computedSine = _effectTransform._sine;
     _computedTranslationX = _effectTransform._translationX;
     _computedTranslationY = _effectTransform._translationY;
   }

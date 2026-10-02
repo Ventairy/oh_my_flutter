@@ -34,6 +34,11 @@ const TextMotion.list(
 )
 ```
 
+`RotateMotionEffect` turns each visible grapheme around its own center. For
+example, `RotateMotionEffect(degrees: -45)` turns each character
+counterclockwise by 45 degrees, with neighboring characters starting according
+to `stagger`.
+
 One-shot effects finish after the last grapheme completes. Looping effects keep
 their configured cycle duration and use the stagger as a phase offset. Each
 effect has one shared lifecycle, so `onStart` and `onEnd` fire once for the

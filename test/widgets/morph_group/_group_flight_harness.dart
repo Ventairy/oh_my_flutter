@@ -6,11 +6,13 @@ class _GroupFlightHarness extends StatefulWidget {
     this.reducedMotion = false,
     this.emptyDestination = false,
     this.nestedMorph = false,
+    this.repaintBoundaryDepth = 1,
     this.relayoutDestination = false,
   });
   final bool reducedMotion;
   final bool emptyDestination;
   final bool nestedMorph;
+  final int repaintBoundaryDepth;
   final bool relayoutDestination;
 
   @override
@@ -87,15 +89,7 @@ class _GroupFlightHarnessState extends State<_GroupFlightHarness> {
                   label: destination ? 'destination attachment' : 'source attachment',
                   child: GestureDetector(
                     onTap: () => taps++,
-                    child: widget.nestedMorph
-                        ? RepaintBoundary(
-                            child: Morph(
-                              targets: [_sourceTitle],
-
-                              child: const ColoredBox(color: Color(0xffffffff)),
-                            ),
-                          )
-                        : const ColoredBox(color: Color(0xffffffff)),
+                    child: widget.nestedMorph ? _nestedTitle() : const ColoredBox(color: Color(0xffffffff)),
                   ),
                 ),
               ),
@@ -103,6 +97,17 @@ class _GroupFlightHarnessState extends State<_GroupFlightHarness> {
         ],
       ),
     );
+  }
+
+  Widget _nestedTitle() {
+    Widget title = Morph(
+      targets: [_sourceTitle],
+      child: const ColoredBox(color: Color(0xffffffff)),
+    );
+    for (var depth = 0; depth < widget.repaintBoundaryDepth; depth++) {
+      title = RepaintBoundary(child: title);
+    }
+    return title;
   }
 
   @override

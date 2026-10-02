@@ -16,7 +16,7 @@ const Motion(
 
 Effects own their configuration; `Motion` owns playback and respects the
 platform's reduced-motion preference. Built-in effects can fade, scale, move,
-shake, continuously float, or pulse a widget's opacity. Unless a constructor
+rotate, shake, continuously float, or pulse a widget's opacity. Unless a constructor
 documents another value, effects start immediately, last 300 milliseconds, use
 `Curves.linear`, and run once:
 
@@ -50,6 +50,11 @@ const Motion(
 )
 
 const Motion(
+  effect: RotateMotionEffect(degrees: 90),
+  child: Icon(Icons.refresh),
+)
+
+const Motion(
   effect: ShakeMotionEffect(
     offset: Offset(6, 0),
     count: 3,
@@ -64,6 +69,11 @@ const Motion(
 `ScaleInMotionEffect.scale` is the starting size before the child reaches its
 normal size. `ScaleOutMotionEffect.scale` is the ending size after the child
 leaves its normal size. Both effects preserve the child's layout dimensions.
+
+`RotateMotionEffect.degrees` is the angle relative to the child's starting
+orientation. Positive values turn clockwise on screen; negative values turn
+counterclockwise. The child rotates around its center without changing layout.
+Set `degrees: 360` for a full turn.
 
 `PulseFadeMotionEffect` repeatedly dims from full opacity to `minOpacity` and
 back over each cycle. The default minimum is `0.5`, and one cycle lasts two
@@ -218,9 +228,9 @@ render equivalent states at progress 0 and 1 so their cycles remain seamless.
 
 `apply` is called during both effect setup and visible playback. Keep it
 deterministic, synchronous, and free of side effects. `MotionEffectTransform`
-supports opacity, translation, and uniform scale.
+supports opacity, translation, uniform scale, and rotation in degrees.
 
-### Declare bounds for oscillating or abrupt movement
+### Declare bounds for brief or abrupt transformations
 
 Built-in effects and custom effects whose complete curved path is monotonic,
 such as the slide above with a non-overshooting curve, can leave `bounds` null.
@@ -228,9 +238,9 @@ Account for the configured curve as part of that path: a monotonic formula may
 stop being monotonic when its curve overshoots or oscillates.
 
 An oscillating, abrupt, or short-lived custom effect must declare conservative
-bounds when its translation or growth extrema may be missed. If its exact range
-is difficult to calculate, declare a safely larger range; bounds reserve paint
-area but do not restrict the effect's movement.
+bounds when its translation, growth, or rotation extrema may be missed. If its
+exact range is difficult to calculate, declare a safely larger range; bounds
+reserve paint area but do not restrict the effect's movement.
 
 During setup, when Motion mounts or receives different effects, it evaluates
 65 evenly spaced timeline positions from `0` through `1`. Each position passes
@@ -289,3 +299,13 @@ The offset fields default to zero and `maximumScale` defaults to one.
 values below one require no additional paint area. Motion may keep more area
 available when it finds a larger translation, scale, or configured curve
 overshoot than the declared range.
+
+For a brief rotation that samples may miss, declare its largest absolute angle:
+
+```dart
+@override
+MotionEffectBounds get bounds =>
+    const MotionEffectBounds(maximumRotationDegrees: 90);
+```
+
+`maximumRotationDegrees` reserves room for the child to turn around its center.

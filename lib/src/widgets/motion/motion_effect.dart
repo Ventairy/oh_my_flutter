@@ -73,6 +73,7 @@ abstract class MotionEffect {
   /// Straightforward monotonic effects can leave this null. Custom effects
   /// must provide bounds when oscillating, abrupt, or short-lived
   /// transformations can reach extremes that would otherwise be clipped.
+  /// This includes brief rotations that may be missed during sampling.
   /// Declaring bounds does not restrict movement; Motion may preserve more
   /// visual space for the effect and its configured curve.
   MotionEffectBounds? get bounds => null;
