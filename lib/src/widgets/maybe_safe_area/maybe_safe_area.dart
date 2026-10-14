@@ -15,6 +15,7 @@ part 'safe_area_observer.dart';
 part 'safe_area_observer_handle.dart';
 part 'maybe_safe_area_behavior.dart';
 part 'maybe_safe_area_handle.dart';
+part 'maybe_safe_area_transform.dart';
 
 /// Keeps a compact [child] away from device cutouts and system UI, but only
 /// when the child reaches an unsafe edge.

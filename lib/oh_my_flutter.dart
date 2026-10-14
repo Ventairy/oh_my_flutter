@@ -45,7 +45,13 @@ export 'src/widgets/interactive_swipe_dismiss/interactive_swipe_dismiss.dart'
 export 'src/widgets/marquee/marquee.dart' show Marquee;
 export 'src/widgets/marquee/marquee_direction.dart' show MarqueeDirection;
 export 'src/widgets/maybe_safe_area/maybe_safe_area.dart'
-    show MaybeSafeArea, MaybeSafeAreaBehavior, MaybeSafeAreaHandle, SafeAreaObserver, SafeAreaObserverHandle;
+    show
+        MaybeSafeArea,
+        MaybeSafeAreaBehavior,
+        MaybeSafeAreaHandle,
+        MaybeSafeAreaTransform,
+        SafeAreaObserver,
+        SafeAreaObserverHandle;
 export 'src/widgets/morph/morph.dart'
     show
         Morph,

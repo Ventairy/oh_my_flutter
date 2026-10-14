@@ -68,6 +68,27 @@ const MaybeSafeArea(
 )
 ```
 
+## Moving complete surfaces
+
+For a page or panel that enters from outside the viewport, safe-area placement
+can use the surface's resting position. This keeps a header away from the
+status bar within the page, including while the whole page moves or is captured.
+It also lets content moving independently inside the page continue to avoid
+unsafe edges.
+
+Authors of custom moving surfaces can implement `MaybeSafeAreaTransform` on
+their surface's `RenderObject`. Return `true` from
+`usesRestingSafeAreaGeometry` while descendants should use that resting
+position. In `applyRestingPaintTransform`, map the child's coordinates into the
+surface's coordinates at rest, retaining its own positioning and transforms.
+For a surface that only translates as a whole, this method leaves the supplied
+matrix unchanged. Keep the actual movement in `applyPaintTransform` so taps and
+accessibility bounds continue to follow the visible page.
+
+This capability does not change layout or reserve space. Use
+[`MaybeSafeAreaHandle`](#observing-adjusted-bounds) to observe corrected bounds
+at the appropriate time.
+
 ## Morph transitions
 
 For a compact `Morph` child, place a live `MaybeSafeArea` outside the `Morph`
