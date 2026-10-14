@@ -195,7 +195,11 @@ class _RenderMaybeSafeArea extends RenderProxyBox {
       super.paint(context, offset);
       return;
     }
-    layer ??= _MaybeSafeAreaLayer(resolveOriginalTransform: _resolveUnadjustedToView, onTransform: _publishBounds);
+    layer ??= _MaybeSafeAreaLayer(
+      resolveOriginalTransform: _resolveUnadjustedToView,
+      resolveRestingTransform: () => _viewTransform.resolveResting(this),
+      onTransform: _publishBounds,
+    );
     layer!.configure(
       behavior: _behavior,
       devicePixelRatio: _devicePixelRatio,

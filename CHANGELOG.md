@@ -1,3 +1,8 @@
+## 0.28.0
+
+- Let moving surfaces keep `MaybeSafeArea` placement at their resting position,
+  including captured page content, with `MaybeSafeAreaTransform`.
+
 ## 0.27.0
 
 - Add `RotateMotionEffect` to turn widgets or individual text characters by a

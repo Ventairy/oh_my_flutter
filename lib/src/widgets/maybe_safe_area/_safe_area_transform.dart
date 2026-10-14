@@ -11,11 +11,30 @@ class _SafeAreaTransform {
   Matrix4? resolve(RenderObject source) {
     final path = _validatedTransformPath(source);
     if (path == null) return null;
+    return _resolveTransform(path);
+  }
+
+  Matrix4 _resolveTransform(List<RenderObject> path) {
     final result = _transform..setIdentity();
     for (var index = path.length - 2; index > 0; index -= 1) {
-      path[index].applyPaintTransform(path[index - 1], result);
+      final ancestor = path[index];
+      if (ancestor is MaybeSafeAreaTransform && ancestor.usesRestingSafeAreaGeometry) {
+        ancestor.applyRestingPaintTransform(path[index - 1], result);
+      } else {
+        ancestor.applyPaintTransform(path[index - 1], result);
+      }
     }
     return result;
+  }
+
+  Matrix4? resolveResting(RenderObject source) {
+    final path = _validatedTransformPath(source);
+    if (path == null) return null;
+    for (var index = 1; index + 1 < path.length; index++) {
+      final ancestor = path[index];
+      if (ancestor is MaybeSafeAreaTransform && ancestor.usesRestingSafeAreaGeometry) return _resolveTransform(path);
+    }
+    return null;
   }
 
   List<RenderObject>? _validatedTransformPath(RenderObject source) {

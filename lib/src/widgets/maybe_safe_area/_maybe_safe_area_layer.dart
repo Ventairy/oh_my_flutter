@@ -1,11 +1,12 @@
 part of 'maybe_safe_area.dart';
 
 class _MaybeSafeAreaLayer extends ContainerLayer {
-  new({required this.resolveOriginalTransform, required this.onTransform});
+  new({required this.resolveOriginalTransform, required this.resolveRestingTransform, required this.onTransform});
 
   final ValueChanged<Matrix4> onTransform;
 
   final Matrix4? Function() resolveOriginalTransform;
+  final Matrix4? Function() resolveRestingTransform;
   double devicePixelRatio = 1;
 
   MaybeSafeAreaBehavior behavior = MaybeSafeAreaBehavior.live;
@@ -123,16 +124,16 @@ class _MaybeSafeAreaLayer extends ContainerLayer {
       _addTransformedChildrenToScene(builder);
       return;
     }
-    if (attached) {
+    final restingTransform = attached ? resolveRestingTransform() : null;
+    if (attached && restingTransform == null) {
       _resolveParentToViewTransform();
       _unadjustedTransform
         ..setFrom(_parentToView)
         ..translateByDouble(unadjustedOffset.dx, unadjustedOffset.dy, 0, 1);
     } else {
-      // A detached capture tree describes atlas coordinates, not the viewport.
-      // Resolve the original geometry without treating the capture's origin
-      // or raster scale as a new on-screen position.
-      final originalTransform = resolveOriginalTransform();
+      // Use the same surface geometry for live and captured content. A
+      // detached capture's origin and raster scale are not on-screen movement.
+      final originalTransform = restingTransform ?? resolveOriginalTransform();
       if (originalTransform == null) {
         _applyPreservedCorrection();
         _updateInteractionTransforms();
