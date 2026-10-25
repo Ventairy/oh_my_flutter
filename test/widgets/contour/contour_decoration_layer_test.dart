@@ -17,8 +17,9 @@ void main() {
 
   setUpAll(() async {
     if (kIsWeb) return;
+    final sdkRoot = Platform.environment['FLUTTER_ROOT'] ?? '.fvm/flutter_sdk';
     await (FontLoader('ContourFrameTestRoboto')..addFont(
-          File('.fvm/flutter_sdk/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf')
+          File('$sdkRoot/bin/cache/artifacts/material_fonts/Roboto-Regular.ttf')
               .readAsBytes()
               .then(ByteData.sublistView),
         ))

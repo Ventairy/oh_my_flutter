@@ -106,6 +106,80 @@ void main() {
     );
   }, skip: kIsWeb);
 
+  test('when the last client leaves while a worker start waits for the previous exit, it should cancel the trace without an error', () async {
+    final barrier = Completer<void>();
+    final entered = Completer<void>();
+    var hookCalls = 0;
+    ContourProcessorTestHarness.afterSpawn = (isolate) async {
+      if (hookCalls++ > 0) return;
+      entered.complete();
+      await barrier.future;
+    };
+    ContourProcessorTestHarness.acquire();
+    ContourProcessorTestHarness.prepare();
+    await entered.future;
+    ContourProcessorTestHarness.release();
+    ContourProcessorTestHarness.acquire();
+    final lease = await ContourProcessorTestHarness.admission
+        .request(width: 16, height: 16, legacyBytes: 1024 * 1024, owner: Object())
+        .future;
+    final trace = ContourProcessorTestHarness.trace(coverage(16, 16), 16, 16, lease: lease).then<(int?, String?)>(
+      (value) => (value, null),
+      onError: (Object error, StackTrace stack) => (null, error.toString()),
+    );
+    ContourProcessorTestHarness.release();
+    final before = (ContourProcessorTestHarness.stopping, ContourWorkBudget.shared.activeBytes > 0);
+    barrier.complete();
+    final result = await trace;
+    lease!.release();
+    ContourProcessorTestHarness.afterSpawn = null;
+    await ContourProcessorTestHarness.waitForStop();
+    await Future<void>.delayed(Duration.zero);
+    expect(
+      (
+        before,
+        result,
+        ContourWorkBudget.shared.activeBytes,
+        ContourProcessorTestHarness.acknowledgements,
+        ContourProcessorTestHarness.activeNative,
+        ContourProcessorTestHarness.queuedNative,
+      ),
+      ((true, true), (null, null), 0, 0, null, 0),
+    );
+  }, skip: kIsWeb);
+
+  test(
+    'when a live client encounters a worker startup failure, it should preserve the error and release capacity',
+    () async {
+      final failure = StateError('controlled worker startup failure');
+      ContourProcessorTestHarness.afterSpawn = (isolate) async => throw failure;
+      ContourProcessorTestHarness.acquire();
+      final lease = await ContourProcessorTestHarness.admission
+          .request(width: 16, height: 16, legacyBytes: 1024 * 1024, owner: Object())
+          .future;
+      final result = await ContourProcessorTestHarness.trace(
+        coverage(16, 16),
+        16,
+        16,
+        lease: lease,
+      ).then<Object?>((value) => value, onError: (Object error, StackTrace stack) => error);
+      lease!.release();
+      ContourProcessorTestHarness.afterSpawn = null;
+      ContourProcessorTestHarness.release();
+      await ContourProcessorTestHarness.waitForStop();
+      await Future<void>.delayed(Duration.zero);
+      expect(
+        (
+          identical(result, failure),
+          ContourWorkBudget.shared.activeBytes,
+          ContourProcessorTestHarness.acknowledgements,
+        ),
+        (true, 0, 0),
+      );
+    },
+    skip: kIsWeb,
+  );
+
   test('when the last client detaches during spawn, it should retain scratch until exit before a new generation dispatches', () async {
     final barrier = Completer<void>();
     final entered = Completer<void>();

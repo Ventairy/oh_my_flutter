@@ -30,5 +30,5 @@ void main() {
       return {'result': output, 'heldBytes': session.stats['heldBytes'], 'jobs': session.stats['jobs']};
     });
     expect(actual, {'result': null, 'heldBytes': 0, 'jobs': 0});
-  });
+  }, skip: !ContourNativePortSession.isSupported);
 }

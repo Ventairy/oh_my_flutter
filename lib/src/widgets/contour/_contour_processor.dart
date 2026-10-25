@@ -230,8 +230,15 @@ class _ContourProcessor {
       }
       work.clearPayload();
     } catch (error, stack) {
-      _pending.remove(work.id)?.completeError(error, stack);
-      _verificationPending.remove(work.id)?.completeError(error, stack);
+      final traceCompletion = _pending.remove(work.id);
+      final verificationCompletion = _verificationPending.remove(work.id);
+      if (work.cancelled) {
+        traceCompletion?.complete();
+        verificationCompletion?.complete();
+      } else {
+        traceCompletion?.completeError(error, stack);
+        verificationCompletion?.completeError(error, stack);
+      }
       _nativeResponseFinished(work.id);
     }
   }

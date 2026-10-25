@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/src/widgets/contour/composite/contour_composite_result.dart';
 import 'package:oh_my_flutter/src/widgets/contour/composite/contour_composite_source.dart';
 import 'package:oh_my_flutter/src/widgets/contour/tracing/contour_native_port_bindings.dart';
+import 'package:oh_my_flutter/src/widgets/contour/tracing/contour_native_port_session.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -58,7 +59,7 @@ void main() {
       return actual;
     });
     expect(result, {'ready': 70, 'nativeBatches': 2});
-  });
+  }, skip: !ContourNativePortSession.isSupported);
 
   testWidgets(
     'when a caller disposes its picture immediately, it should retain its independent source until decoration is ready',
@@ -76,5 +77,6 @@ void main() {
       });
       expect(result, isTrue);
     },
+    skip: !ContourNativePortSession.isSupported,
   );
 }

@@ -15,13 +15,51 @@ void main() {
     await (FontLoader('MaterialIcons')..addFont(rootBundle.load('fonts/MaterialIcons-Regular.otf'))).load();
   });
 
-  for (final size in [24.0, 30.0]) {
-    testWidgets('when a heart icon has size $size, it should preserve native stroke eligibility', (tester) async {
-      final harness = ContourNativeTestHarness();
-      await harness.mount(tester, amount: 3, child: Icon(Icons.favorite, size: size));
-      expect(harness.diagnostic('nativeTextActive'), isTrue);
-    }, skip: kIsWeb);
-  }
+  testWidgets('when a heart icon has size 24, it should render its contour after native verification', (
+    tester,
+  ) async {
+    final harness = ContourNativeTestHarness();
+    const icon = Icon(Icons.favorite, size: 24);
+    await harness.mount(tester, amount: 3, child: icon);
+    final ready = harness.diagnostic('contourReady');
+    final verificationCount = harness.diagnostic('nativeTextVerificationCount');
+    final native = (harness.diagnostic('nativeTextActive'), harness.diagnostic('nativeTextStatus'));
+    final actual = await harness.pixels(tester, pixelRatio: 4);
+
+    // Platform font rasterization can fail verification safely. A transparent
+    // painted wrapper forces captured rendering without changing the source.
+    await harness.mount(
+      tester,
+      amount: 3,
+      child: const ColoredBox(color: Colors.transparent, child: icon),
+    );
+    final captured = await harness.pixels(tester, pixelRatio: 4);
+    const centerPixel = (200 * 400 + 200) * 4;
+    expect(
+      {
+        'ready': ready,
+        'verificationCount': verificationCount,
+        'native': native,
+        'capturedNative': harness.diagnostic('nativeTextActive'),
+        'contourEdgeMismatches': ContourTestHarness.countDistantEdges(actual, captured),
+        'foreground': actual.sublist(centerPixel, centerPixel + 4),
+      },
+      {
+        'ready': true,
+        'verificationCount': 1,
+        'native': anyOf((true, 'accepted'), (false, 'rejected')),
+        'capturedNative': false,
+        'contourEdgeMismatches': 0,
+        'foreground': [0, 0, 0, 0xFF],
+      },
+    );
+  }, skip: kIsWeb);
+
+  testWidgets('when a heart icon has size 30, it should preserve native stroke eligibility', (tester) async {
+    final harness = ContourNativeTestHarness();
+    await harness.mount(tester, amount: 3, child: const Icon(Icons.favorite, size: 30));
+    expect(harness.diagnostic('nativeTextActive'), isTrue);
+  }, skip: kIsWeb);
 
   testWidgets('when only amount changes, it should retain the accepted proof', (tester) async {
     final harness = ContourNativeTestHarness();

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/src/widgets/contour/composite/contour_composite_result.dart';
 import 'package:oh_my_flutter/src/widgets/contour/composite/contour_composite_source.dart';
 import 'package:oh_my_flutter/src/widgets/contour/tracing/contour_native_port_bindings.dart';
+import 'package:oh_my_flutter/src/widgets/contour/tracing/contour_native_port_session.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -63,6 +64,7 @@ void main() {
       });
       expect(result, {'results': true, 'images': 0, 'nativeBatches': 0});
     },
+    skip: !ContourNativePortSession.isSupported,
   );
 
   testWidgets('when eighty copied sources are already owned, it should decline the next request without retaining it', (
@@ -82,5 +84,5 @@ void main() {
       return rejected;
     });
     expect(result, isNull);
-  });
+  }, skip: !ContourNativePortSession.isSupported);
 }

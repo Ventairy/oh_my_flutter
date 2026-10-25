@@ -6,6 +6,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oh_my_flutter/src/widgets/contour/composite/contour_composite_source.dart';
+import 'package:oh_my_flutter/src/widgets/contour/tracing/contour_native_port_session.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -61,5 +62,6 @@ void main() {
         [0, 0, 255, 255],
       ]);
     },
+    skip: !ContourNativePortSession.isSupported,
   );
 }
