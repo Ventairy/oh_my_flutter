@@ -34,6 +34,7 @@ export 'src/phone_number.dart' show PhoneNumber;
 export 'src/phone_number_text_input_formatter/phone_number_text_input_formatter.dart'
     show PhoneNumberTextInputFormatter, PhoneNumberTextInputFormatterResult;
 export 'src/whatsapp.dart' show Whatsapp;
+export 'src/widgets/contour/contour.dart' show Contour, ContourController;
 export 'src/widgets/controlled_visibility/controlled_visibility.dart' show ControlledVisibility, VisibilityController;
 export 'src/widgets/group/group.dart' show Group, GroupLink, GroupSnapshot;
 export 'src/widgets/interactive_swipe_dismiss/interactive_swipe_dismiss.dart'
@@ -83,6 +84,7 @@ export 'src/widgets/motion/motion.dart'
         MotionPlayback,
         MotionStartup,
         MoveMotionEffect,
+        PopMotionEffect,
         PulseFadeMotionEffect,
         RotateMotionEffect,
         ScaleInMotionEffect,

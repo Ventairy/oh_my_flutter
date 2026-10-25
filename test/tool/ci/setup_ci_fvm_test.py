@@ -10,7 +10,7 @@ class SetupCiFvmTest(unittest.TestCase):
     def test_when_bootstrapping_it_should_export_the_registered_sdk_cache(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory).resolve()
-            (root / '.fvmrc').write_text('{"flutter":"3.47.1"}')
+            (root / '.fvmrc').write_text('{"flutter":"3.48.0-0.5.pre"}')
             for package in ('example', 'tool/country_bindings', 'tool/device_location_bindings'):
                 (root / package).mkdir(parents=True)
             binary = root / 'bin'
@@ -22,7 +22,7 @@ class SetupCiFvmTest(unittest.TestCase):
 if [ "$3" = list ]; then
   echo "fvm 4.3.0"
 elif [ "$3" = run ]; then
-  test -e "$FVM_CACHE_PATH/versions/3.47.1/bin/flutter" || exit 1
+  test -e "$FVM_CACHE_PATH/versions/3.48.0-0.5.pre/bin/flutter" || exit 1
   echo "$PWD" >> "$SDK_CALLS"
 fi
 ''',
@@ -32,7 +32,7 @@ fi
                 path.write_text(content)
                 path.chmod(0o755)
             flutter = sdk / 'bin/flutter'
-            flutter.write_text('#!/bin/sh\necho \'{"frameworkVersion":"3.47.1"}\'\n')
+            flutter.write_text('#!/bin/sh\necho \'{"frameworkVersion":"3.48.0-0.5.pre"}\'\n')
             flutter.chmod(0o755)
             environment_file = root / 'environment'
             env = dict(os.environ, PATH=f'{binary}:{os.environ["PATH"]}',

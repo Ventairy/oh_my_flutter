@@ -98,6 +98,22 @@ test:
 test-skeleton:
 	fvm flutter test test/widgets/skeleton*_test.dart
 
+.PHONY: test-motion
+test-motion:
+	fvm flutter test test/widgets/motion*_test.dart test/widgets/motion test/rendering/resting_paint_transform_test.dart
+
+.PHONY: test-contour
+test-contour:
+	fvm flutter test test/widgets/contour_test.dart test/widgets/contour_golden_test.dart test/widgets/contour
+
+.PHONY: test-contour-native-proofs
+test-contour-native-proofs:
+	python3 ./tool/run_contour_native_port_proofs.py
+
+.PHONY: test-contour-web
+test-contour-web:
+	./tool/test_contour_web.sh $(TEST_ARGS)
+
 .PHONY: test-snap-list
 test-snap-list:
 	fvm flutter test test/widgets/snap_list*_test.dart

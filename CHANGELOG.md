@@ -1,3 +1,15 @@
+## Unreleased
+
+## 0.29.0
+
+- **Breaking:** Require Flutter 3.48.0-0.5.pre and Dart 3.14.0-95.2.beta or
+  newer.
+
+- Add `PopMotionEffect` to reveal widgets or text characters by scaling and
+  fading them in together, with configurable starting size and timing.
+
+- Add `Contour` to outline a widget's visible shape.
+
 ## 0.28.0
 
 - Let moving surfaces keep `MaybeSafeArea` placement at their resting position,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
+import 'package:oh_my_flutter_example/examples/contour_example.dart';
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
 import 'package:oh_my_flutter_example/examples/device_display_example.dart';
 import 'package:oh_my_flutter_example/examples/device_location_example.dart';
@@ -67,6 +68,10 @@ class _UtilityExampleState extends State<UtilityExample> {
                         GroupExample(),
                         SizedBox(height: 24),
                         GroupMorphExample(),
+                        SizedBox(height: 32),
+                        Text('Contour', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        ContourExample(),
                         SizedBox(height: 32),
                         Text('Motion', style: _sectionStyle),
                         SizedBox(height: 12),
