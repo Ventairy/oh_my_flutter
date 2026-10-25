@@ -45,3 +45,7 @@ pubspec_overrides.yaml
 
 # Python CI tooling
 __pycache__/
+
+# Temporary browser-test shader fixtures
+/lib/src/gen/contour_web_test_assets.*/
+/test/widgets/contour/assets

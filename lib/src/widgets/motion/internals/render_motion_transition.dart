@@ -1,7 +1,7 @@
 part of '../motion.dart';
 
 /// Paints one widget through a composed list of motion effects.
-class _RenderMotionTransition extends RenderProxyBox {
+class _RenderMotionTransition extends RenderProxyBox implements RestingPaintTransform {
   new({required List<_MotionApplication> applications})
     : _applications = applications,
       _renderEffects = applications.map(_MotionRenderEffect.forMotion).toList(growable: false) {
@@ -145,6 +145,13 @@ class _RenderMotionTransition extends RenderProxyBox {
   @override
   void applyPaintTransform(RenderBox child, Matrix4 transform) {
     transform.multiply(_paintTransform);
+  }
+
+  @override
+  void applyRestingPaintTransform(RenderObject child, Matrix4 transform) {
+    assert(identical(child, this.child), 'The child must be attached to this Motion.');
+    // The proxy's child has a zero layout offset. Its animation affects paint
+    // without changing that stable layout frame.
   }
 
   @override

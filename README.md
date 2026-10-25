@@ -99,6 +99,13 @@ and constraints.
 change can happen immediately or with an animation, and hidden content can
 either stay loaded or be removed.
 
+### Contour
+
+`Contour` follows a widget's visible edges with a colored border. It can do
+things such as give text a contrasting white outline and a soft shadow while
+keeping the text visible and interactive. Inner spaces shrink as the outline
+expands; they close when its edges meet. Expansion and shadows are optional.
+
 ### InteractiveSwipeDismiss
 
 `InteractiveSwipeDismiss` lets a user drag a widget, such as a page or card,

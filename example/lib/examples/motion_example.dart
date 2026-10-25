@@ -42,8 +42,7 @@ class _MotionExampleState extends State<MotionExample> {
             const SizedBox(width: 24),
             Motion(
               controller: _controller,
-              effect: ScaleInMotionEffect(
-                scale: 0.4,
+              effect: PopMotionEffect(
                 delay: const Duration(milliseconds: 100),
                 onStart: _handleStarted,
                 onEnd: _handleCompleted,

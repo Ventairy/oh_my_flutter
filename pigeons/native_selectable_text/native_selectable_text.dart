@@ -125,7 +125,5 @@ abstract class NativeSelectableTextMenuFlutterApi {
 
   /// Reports that a menu closed and whether a command caused the dismissal.
   @asyncCallback
-  // Pigeon APIs support positional parameters only.
-  // ignore: avoid_positional_boolean_parameters
   void onDismissed(int sessionIdentifier, bool actionInvoked);
 }

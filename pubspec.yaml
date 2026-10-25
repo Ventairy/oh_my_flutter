@@ -1,6 +1,6 @@
 name: oh_my_flutter
 description: Empower Flutter with utilities that make development 10x faster.
-version: 0.28.0
+version: 0.29.0-beta.1
 homepage: https://github.com/Ventairy/oh_my_flutter
 repository: https://github.com/Ventairy/oh_my_flutter
 issue_tracker: https://github.com/Ventairy/oh_my_flutter/issues
@@ -12,8 +12,8 @@ topics:
   - widgets
 
 environment:
-  sdk: ">=3.13.0 <4.0.0"
-  flutter: ">=3.47.0"
+  sdk: ">=3.14.0-95.2.beta <4.0.0"
+  flutter: ">=3.48.0-0.5.pre"
 
 dependencies:
   clock: ^1.1.2
@@ -22,6 +22,8 @@ dependencies:
   dlibphonenumber: ^1.1.71
   ffi: ^2.2.0
   flutter:
+    sdk: flutter
+  flutter_gpu:
     sdk: flutter
   hooks: ^2.2.0
   internet_connection_checker_plus: ^3.1.0
@@ -52,6 +54,13 @@ platforms:
   windows:
 
 flutter:
+  licenses:
+    - src/contour_native_port/sdk/LICENSE
+    - src/contour_native_port/llvm/libcxx/LICENSE.TXT
+    - src/contour_native_port/llvm/libcxxabi/LICENSE.TXT
+    - src/contour_native_port/llvm/libunwind/LICENSE.TXT
+    - src/contour_native_port/composite/portable/deps/backing/clipper2/LICENSE
+    - src/contour_native_port/composite/portable/deps/compositor/SKIA_LICENSE
   plugin:
     platforms:
       android:
@@ -65,4 +74,6 @@ flutter:
         pluginClass: OhMyFlutterPlugin
       windows:
         pluginClass: OhMyFlutterPluginCApi
+  shaders:
+    - shaders/contour_shadow_atlas.frag
   uses-material-design: true

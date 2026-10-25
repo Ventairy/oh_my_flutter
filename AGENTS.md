@@ -7,7 +7,7 @@ small, portable, strongly typed, and useful outside Cataquí applications.
 
 ## Environment and commands
 
-- Use Flutter 3.47.1 through FVM. Never invoke an untracked global Flutter SDK.
+- Use Flutter 3.48.0-0.5.pre through FVM. Never invoke an untracked global Flutter SDK.
 - Do not commit the root `pubspec.lock`; resolve the package's newest compatible
   dependencies during normal development and CI. Commit `example/pubspec.lock`
   and enforce it for the runnable example application.

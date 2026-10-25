@@ -40,14 +40,14 @@ body:
     id: flutter_version
     attributes:
       label: Flutter version
-      placeholder: "e.g. 3.47.1"
+      placeholder: "e.g. 3.48.0-0.5.pre"
     validations:
       required: true
   - type: input
     id: dart_version
     attributes:
       label: Dart version
-      placeholder: "e.g. 3.13.1"
+      placeholder: "e.g. 3.14.0-95.2.beta"
     validations:
       required: true
   - type: checkboxes
