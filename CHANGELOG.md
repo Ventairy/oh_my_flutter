@@ -1,6 +1,6 @@
 ## Unreleased
 
-## 0.29.0
+## 0.29.0-beta.1
 
 - **Breaking:** Require Flutter 3.48.0-0.5.pre and Dart 3.14.0-95.2.beta or
   newer.
