@@ -884,7 +884,7 @@ class _MorphActiveFlight {
     }
     int? captureFailureSignature;
     try {
-      final watchedGeometry = destinationHandle.owner._readSettledLiveGeometry();
+      final watchedGeometry = destinationHandle.owner._readSettledLiveGeometry(routeFlight: kind.isRoute);
       if (watchedGeometry != null) {
         final destinationRecords = _watchedCapture?.records ?? const <_MorphDescendantFlightRecord>[];
         final pixelRatio = _watchedView.devicePixelRatio;
@@ -973,7 +973,7 @@ class _MorphActiveFlight {
     if (!_watchesDestination || destinationHandle.disposed || !destinationHandle.active) {
       return false;
     }
-    final watchedGeometry = destinationHandle.owner._readLiveGeometry();
+    final watchedGeometry = destinationHandle.owner._readLiveGeometry(routeFlight: kind.isRoute);
     if (watchedGeometry == null) return true;
     final destinationRecords = _watchedCapture?.records ?? const <_MorphDescendantFlightRecord>[];
     final pixelRatio = _watchedView.devicePixelRatio;

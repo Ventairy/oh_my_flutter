@@ -14,6 +14,7 @@ class _MorphCoordinator extends ChangeNotifier {
   final Map<Object, List<_MorphEndpointHandle>> _appearancesByTag = {};
   final Set<_MorphTargetGroup> _pendingGroups = {};
   bool _reconciliationScheduled = false;
+  bool _reconcilingRetainedGesture = false;
   final Map<(_MorphEndpointHandle, _MorphEndpointHandle, MorphTarget), bool> _localMatchDecisions = {};
   final Map<Object, _MorphActiveFlight> _flights = {};
   final List<_MorphActiveFlight> _orderedFlights = [];
@@ -206,27 +207,77 @@ class _MorphCoordinator extends ChangeNotifier {
       // Resolve after all of them have restored the routes' actual animations.
       scheduleMicrotask(() {
         _reconciliationScheduled = false;
-        _resolveTargetAlternatives();
-        final pending = _pendingGroups.toList(growable: false);
-        _pendingGroups.clear();
-        for (final group in pending) {
-          if (identical(_groups[group.tag], group)) {
-            _reconcile(group);
-            final flight = _flights[group.tag];
-            if (flight != null) flight.destinationHandle.observer?._acceptTagFlight(flight);
-          }
-        }
-        _localMatchDecisions.clear();
-        _scheduledIncomingEndpoints.removeWhere(
-          (endpoint) {
-            if (_pendingGroups.contains(_groups[endpoint.tag])) return false;
-            endpoint.preparedTarget = null;
-            return true;
-          },
-        );
+        _flushReconciliation();
       });
     });
     SchedulerBinding.instance.ensureVisualUpdate();
+  }
+
+  void _flushReconciliation({MorphNavigatorObserver? gestureObserver}) {
+    _resolveTargetAlternatives(gestureObserver: gestureObserver);
+    final pending = _pendingGroups.toList(growable: false);
+    for (final group in pending) {
+      if (gestureObserver != null && !_canReconcileRetainedGesture(group, gestureObserver)) continue;
+      _pendingGroups.remove(group);
+      if (identical(_groups[group.tag], group)) {
+        _reconcile(group);
+        final flight = _flights[group.tag];
+        if (flight != null) flight.destinationHandle.observer?._acceptTagFlight(flight);
+      }
+    }
+    _localMatchDecisions.clear();
+    _scheduledIncomingEndpoints.removeWhere((endpoint) {
+      if (_pendingGroups.contains(_groups[endpoint.tag])) return false;
+      endpoint.preparedTarget = null;
+      return true;
+    });
+  }
+
+  bool _hasRetainedGestureLayout(_MorphEndpointHandle endpoint) {
+    _MorphEndpointHandle? current = endpoint;
+    while (current != null) {
+      if (!current.active ||
+          current.disposed ||
+          !current.owner.mounted ||
+          current.owner._readLiveGeometry(routeFlight: true) == null) {
+        return false;
+      }
+      current = current.parentEndpoint;
+    }
+    return true;
+  }
+
+  bool _canReconcileRetainedGesture(_MorphTargetGroup group, MorphNavigatorObserver observer) {
+    final request = observer._request;
+    if (request == null || !request.preview || request.cancelled) return false;
+    final source = _lastMounted(group, request.source);
+    final destination = _lastMounted(group, request.destination);
+    return source != null &&
+        destination != null &&
+        identical(source.observer, observer) &&
+        identical(destination.observer, observer) &&
+        _hasRetainedGestureLayout(source) &&
+        _hasRetainedGestureLayout(destination);
+  }
+
+  void _reconcileRetainedGesture(MorphNavigatorObserver observer) {
+    // Waiting until post-frame would paint the departing endpoint translated
+    // once before the overlay can take over. Retained layout needs no new frame.
+    final request = observer._request;
+    final phase = SchedulerBinding.instance.schedulerPhase;
+    if (_reconcilingRetainedGesture ||
+        request == null ||
+        !request.preview ||
+        request.cancelled ||
+        (phase != .idle && phase != .transientCallbacks && phase != .midFrameMicrotasks)) {
+      return;
+    }
+    _reconcilingRetainedGesture = true;
+    try {
+      _flushReconciliation(gestureObserver: observer);
+    } finally {
+      _reconcilingRetainedGesture = false;
+    }
   }
 
   _MorphEndpointHandle? _lastMounted(
@@ -269,6 +320,7 @@ class _MorphCoordinator extends ChangeNotifier {
         _scheduleReconciliation(group);
       }
     }
+    _reconcileRetainedGesture(observer);
   }
 
   void _reconcile(_MorphTargetGroup group) {
@@ -837,6 +889,7 @@ class _MorphCoordinator extends ChangeNotifier {
     final destinationProperties = _capture(
       destination,
       reuseSameFrame: true,
+      routeFlight: crossesRoutes,
     );
     if (destinationProperties == null) {
       _claimOwnership(destination);
@@ -1130,7 +1183,7 @@ class _MorphCoordinator extends ChangeNotifier {
     }
 
     final sampledSource = current.sample();
-    final destinationProperties = _capture(destination);
+    final destinationProperties = _capture(destination, routeFlight: true);
     final timing = _resolveTiming(
       current.destinationHandle,
       route: current.destinationHandle.route,
@@ -1204,10 +1257,11 @@ class _MorphCoordinator extends ChangeNotifier {
       return;
     }
 
-    final source = _capture(sourceHandle, reuseSameFrame: true);
+    final source = _capture(sourceHandle, reuseSameFrame: true, routeFlight: kind.isRoute);
     final destination = _capture(
       destinationHandle,
       reuseSameFrame: true,
+      routeFlight: kind.isRoute,
     );
     if (source == null || destination == null) {
       _claimOwnership(destinationHandle);
@@ -1351,9 +1405,15 @@ class _MorphCoordinator extends ChangeNotifier {
     _MorphEndpointHandle endpoint, {
     MorphTarget? target,
     bool reuseSameFrame = false,
+    bool routeFlight = false,
   }) {
     try {
-      final captured = endpoint.capture(target: target ?? endpoint.target, reuseSameFrame: reuseSameFrame);
+      final captured = endpoint.capture(
+        target: target ?? endpoint.target,
+        reuseSameFrame: reuseSameFrame,
+        routeFlight: routeFlight,
+        settleLayout: !_reconcilingRetainedGesture,
+      );
       if (captured != null) endpoint.captureFailed = false;
       return captured;
     } on Object catch (exception, stack) {
@@ -1365,10 +1425,13 @@ class _MorphCoordinator extends ChangeNotifier {
 
   void _captureDeparture(_MorphEndpointHandle endpoint) {
     endpoint.releaseDeparture();
+    final request = endpoint.observer?._request;
+    final routeFlight =
+        request != null && identical(request.source, endpoint.route) && !identical(request.destination, endpoint.route);
     for (final target in endpoint.targets) {
       try {
         endpoint
-          ..captureDeparture(target)
+          ..captureDeparture(target, routeFlight: routeFlight)
           ..captureFailed = false;
       } on Object catch (exception, stack) {
         endpoint.captureFailed = true;

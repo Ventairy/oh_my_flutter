@@ -40,6 +40,8 @@ class _MorphEndpointHandle {
   MorphEndpoint<Object?>? _cachedEndpoint;
   MorphTarget? _cachedTarget;
   bool captureFailed = false;
+  bool _cachedRouteFlight = false;
+  bool _sameFrameRouteFlight = false;
   _MorphDescendantCapture? _cachedGroupCapture;
   VoidCallback? _releaseCachedGroupPresentation;
 
@@ -306,7 +308,7 @@ class _MorphEndpointHandle {
     }
   }
 
-  void _cacheCapture(MorphTarget target, MorphEndpoint<Object?> endpoint) {
+  void _cacheCapture(MorphTarget target, MorphEndpoint<Object?> endpoint, {bool routeFlight = false}) {
     final capture = _MorphDescendantSnapshots.captureOf(endpoint);
     final groupCapture = capture != null && capture.hasGroups ? capture : null;
     if (!identical(groupCapture, _cachedGroupCapture)) {
@@ -315,6 +317,8 @@ class _MorphEndpointHandle {
       _cachedGroupCapture = groupCapture;
       _releaseCachedGroupPresentation = groupCapture?.beginGroupPresentation(visibility);
     }
+    _cachedRouteFlight = routeFlight;
+    _sameFrameRouteFlight = routeFlight;
     _cachedEndpoint = endpoint;
     _cachedTarget = target;
     _sameFrameEndpoint = endpoint;
@@ -332,15 +336,16 @@ class _MorphEndpointHandle {
     required MorphEndpoint<Object?> endpoint,
   }) {
     if (!active || disposed || !identical(this.target, target)) return;
-    _cacheCapture(target, endpoint);
+    _cacheCapture(target, endpoint, routeFlight: _cachedRouteFlight);
   }
 
-  void captureDeparture(MorphTarget candidate) {
+  void captureDeparture(MorphTarget candidate, {required bool routeFlight}) {
     // Only descendant pixels are shared across alternatives. The delegate still
     // resolves each target's properties and group snapshots independently.
     final sharedRecords = _departureRecords;
     final capturedEndpoint = owner._captureLastPainted(
       target: candidate,
+      routeFlight: routeFlight,
       departureRecords: sharedRecords,
       departureDescendantRevision: _departureDescendantRevision,
     );
@@ -354,7 +359,7 @@ class _MorphEndpointHandle {
       if (_departureCaptures.add(capture)) capture.retain();
     }
     _departureEndpoints[candidate] = capturedEndpoint;
-    if (identical(candidate, target)) _cacheCapture(candidate, capturedEndpoint);
+    if (identical(candidate, target)) _cacheCapture(candidate, capturedEndpoint, routeFlight: routeFlight);
   }
 
   void releaseDeparture() {
@@ -367,17 +372,34 @@ class _MorphEndpointHandle {
     _departureDescendantRevision = null;
   }
 
-  MorphEndpoint<Object?>? capture({required MorphTarget target, bool reuseSameFrame = false}) {
+  MorphEndpoint<Object?>? capture({
+    required MorphTarget target,
+    bool reuseSameFrame = false,
+    bool routeFlight = false,
+    bool settleLayout = true,
+  }) {
     final sameFrameEndpoint = _sameFrameEndpoint;
-    if (reuseSameFrame && identical(_sameFrameTarget, target) && sameFrameEndpoint != null) {
+    if (reuseSameFrame &&
+        _sameFrameRouteFlight == routeFlight &&
+        identical(_sameFrameTarget, target) &&
+        sameFrameEndpoint != null) {
       return sameFrameEndpoint;
     }
     if (active && owner.mounted) {
-      final capturedEndpoint = owner._capture(target: target);
+      final capturedEndpoint = owner._capture(target: target, routeFlight: routeFlight, settleLayout: settleLayout);
       if (capturedEndpoint != null) {
-        _cacheCapture(target, capturedEndpoint);
+        _cacheCapture(target, capturedEndpoint, routeFlight: routeFlight);
       }
     }
-    return identical(_cachedTarget, target) ? _cachedEndpoint : _departureEndpoints[target];
+    if (identical(_cachedTarget, target) && _cachedRouteFlight == routeFlight) return _cachedEndpoint;
+    if (routeFlight) {
+      return owner._captureLastPainted(
+        target: target,
+        routeFlight: true,
+        departureRecords: _departureRecords,
+        departureDescendantRevision: _departureDescendantRevision,
+      );
+    }
+    return _departureEndpoints[target];
   }
 }

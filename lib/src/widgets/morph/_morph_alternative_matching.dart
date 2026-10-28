@@ -71,7 +71,7 @@ extension _MorphAlternativeMatching on _MorphCoordinator {
     return _lastMounted(group, route);
   }
 
-  void _resolveTargetAlternatives() {
+  void _resolveTargetAlternatives({MorphNavigatorObserver? gestureObserver}) {
     final alternatives = _appearancesByTag.values
         .expand((appearances) => appearances)
         .where((endpoint) => endpoint.targets.length > 1)
@@ -87,6 +87,7 @@ extension _MorphAlternativeMatching on _MorphCoordinator {
           ..sort((a, b) => a.registrationOrder.compareTo(b.registrationOrder));
     final reserved = <_MorphEndpointHandle>{};
     for (final destination in destinations) {
+      if (gestureObserver != null && !identical(destination.observer, gestureObserver)) continue;
       final request = destination.observer?._request;
       if (request?.cancelled ?? false) continue;
       final newNavigation =
@@ -108,6 +109,10 @@ extension _MorphAlternativeMatching on _MorphCoordinator {
         if (!newNavigation && !identical(source.route, destination.route)) continue;
         final sourceTarget = source.targets.where((candidate) => identical(candidate, target)).firstOrNull;
         if (sourceTarget == null) continue;
+        if (_reconcilingRetainedGesture &&
+            (!_hasRetainedGestureLayout(source) || !_hasRetainedGestureLayout(destination))) {
+          continue;
+        }
         // An already accepted relationship owns both visuals until it hands off.
         // Reorders and unrelated registrations cannot start a second entrance.
         if ((_flightUses(source) && source.tag != target) || (_flightUses(destination) && destination.tag != target)) {
@@ -130,8 +135,8 @@ extension _MorphAlternativeMatching on _MorphCoordinator {
           continue;
         }
         if (!_flightUses(source) &&
-            (_capture(source, target: sourceTarget, reuseSameFrame: true) == null ||
-                _capture(destination, target: target, reuseSameFrame: true) == null)) {
+            (_capture(source, target: sourceTarget, reuseSameFrame: true, routeFlight: newNavigation) == null ||
+                _capture(destination, target: target, reuseSameFrame: true, routeFlight: newNavigation) == null)) {
           continue;
         }
         destination.alternativeMatchAvailable = true;
