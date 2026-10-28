@@ -26,15 +26,18 @@ bool exactInteger(double value, uint64_t maximum) {
          std::floor(value) == value;
 }
 int32_t executeComposite(const std::shared_ptr<Job> &job, Dart_CObject **fields) {
+  constexpr intptr_t kTileValueCount = 25;
   const auto &data = fields[7]->value.as_typed_data;
-  if (data.type != Dart_TypedData_kFloat64 || data.length < 25 || data.length > 40 * 25 ||
-      data.length % 25)
+  if (data.type != Dart_TypedData_kFloat64 || data.length < kTileValueCount ||
+      data.length > 40 * kTileValueCount || data.length % kTileValueCount)
     return 2;
-  const size_t count = size_t(data.length) / 25;
-  const auto *values = reinterpret_cast<const double *>(data.values);
+  const size_t count = size_t(data.length) / kTileValueCount;
+  std::array<double, kTileValueCount> values;
   std::array<contour_cpu::Tile, 40> tiles{};
   for (size_t i = 0; i < count; i++) {
-    const auto *v = values + i * 25;
+    // Native-port byte buffers need not be double-aligned on ARM32.
+    std::memcpy(values.data(), data.values + i * sizeof(values), sizeof(values));
+    const auto *v = values.data();
     for (int j = 0; j < 4; j++)
       if (!exactInteger(v[j], 4096))
         return 2;

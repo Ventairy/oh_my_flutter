@@ -104,9 +104,13 @@ class _MorphState extends State<Morph> {
   ModalRoute<Object?>? _route;
   _RenderMorphEndpoint? _renderObject;
   RenderBox? _overlayRenderObject;
-  List<RenderObject>? _transformPath;
+  final _transformPath = <RenderObject>[];
+  final _routeTransformPath = <RenderObject>[];
+  final _navigatorTransformPath = <RenderObject>[];
+  final _navigatorTransform = Matrix4.identity();
   _MorphEndpointGeometry? _geometryScratch;
   _MorphEndpointGeometry? _lastPaintedGeometry;
+  _MorphEndpointGeometry? _lastPaintedRouteGeometry;
   Widget? _lastPaintedChild;
   MorphFlightDelegate<Object?>? _lastPaintedFlightDelegate;
   late MorphFlightDelegate<Object?> _resolvedFlightDelegate;
@@ -132,8 +136,12 @@ class _MorphState extends State<Morph> {
     required MorphTarget target,
     Widget? child,
     MorphFlightDelegate<Object?>? flightDelegate,
+    bool routeFlight = false,
+    bool settleLayout = true,
   }) {
-    final geometry = _readSettledLiveGeometry();
+    final geometry = settleLayout
+        ? _readSettledLiveGeometry(routeFlight: routeFlight)
+        : _readLiveGeometry(routeFlight: routeFlight);
     if (geometry == null) return null;
     return _resolveEndpoint(
       target: target,
@@ -143,7 +151,7 @@ class _MorphState extends State<Morph> {
     );
   }
 
-  _MorphEndpointGeometry? _readSettledLiveGeometry() {
+  _MorphEndpointGeometry? _readSettledLiveGeometry({bool routeFlight = false}) {
     final phase = SchedulerBinding.instance.schedulerPhase;
     if (phase == .idle || phase == .postFrameCallbacks) {
       // Post-frame observers can invalidate layout before capture runs. Paint
@@ -153,7 +161,7 @@ class _MorphState extends State<Morph> {
         ?..flushLayout()
         ..flushCompositingBits();
     }
-    return _readLiveGeometry();
+    return _readLiveGeometry(routeFlight: routeFlight);
   }
 
   MorphEndpoint<Object?>? _captureWatchedEndpoint({
@@ -176,9 +184,10 @@ class _MorphState extends State<Morph> {
     required MorphTarget target,
     List<_MorphDescendantFlightRecord>? departureRecords,
     int? departureDescendantRevision,
+    bool routeFlight = false,
   }) {
     final overlayRenderObject = _overlayRenderObject;
-    final geometry = _lastPaintedGeometry;
+    final geometry = routeFlight ? _lastPaintedRouteGeometry : _lastPaintedGeometry;
     final child = _lastPaintedChild;
     final flightDelegate = _lastPaintedFlightDelegate;
     if (overlayRenderObject == null ||
@@ -199,7 +208,7 @@ class _MorphState extends State<Morph> {
     );
   }
 
-  _MorphEndpointGeometry? _readLiveGeometry() {
+  _MorphEndpointGeometry? _readLiveGeometry({bool routeFlight = false}) {
     final renderObject = _renderObject;
     final overlayRenderObject = _overlayRenderObject ?? _overlay?.context.findRenderObject();
     if (renderObject is! _RenderMorphEndpoint ||
@@ -223,12 +232,44 @@ class _MorphState extends State<Morph> {
       axisScale: Offset.zero,
     );
     final transform = scratch.transform;
+    final route = _route;
+    var coordinateRoot = overlayRenderObject;
+    RenderBox? navigatorRenderObject;
+    if (routeFlight && route is PageRoute<Object?>) {
+      final routeRoot = route.subtreeContext?.findRenderObject();
+      final navigatorRoot = route.navigator?.context.findRenderObject();
+      if (routeRoot is! RenderBox ||
+          !routeRoot.attached ||
+          !routeRoot.hasSize ||
+          navigatorRoot is! RenderBox ||
+          !navigatorRoot.attached ||
+          !navigatorRoot.hasSize) {
+        return null;
+      }
+      coordinateRoot = routeRoot;
+      navigatorRenderObject = navigatorRoot;
+    }
     if (!_resolveTransformPath(
       renderObject: renderObject,
-      overlayRenderObject: overlayRenderObject,
+      coordinateRoot: coordinateRoot,
       transform: transform,
+      path: routeFlight ? _routeTransformPath : _transformPath,
     )) {
       return null;
+    }
+    if (navigatorRenderObject != null) {
+      // Page content uses Navigator-local coordinates. Its transition ancestors
+      // are excluded, while the Navigator's placement in this overlay remains.
+      if (!_resolveTransformPath(
+            renderObject: overlayRenderObject,
+            coordinateRoot: navigatorRenderObject,
+            transform: _navigatorTransform,
+            path: _navigatorTransformPath,
+          ) ||
+          _navigatorTransform.invert() == 0) {
+        return null;
+      }
+      transform.setFrom(_navigatorTransform..multiply(transform));
     }
     final bounds = MatrixUtils.transformRect(
       transform,
@@ -248,19 +289,16 @@ class _MorphState extends State<Morph> {
   }
 
   bool _resolveTransformPath({
-    required _RenderMorphEndpoint renderObject,
-    required RenderBox overlayRenderObject,
+    required RenderBox renderObject,
+    required RenderBox coordinateRoot,
     required Matrix4 transform,
+    required List<RenderObject> path,
   }) {
-    final cachedPath = _transformPath;
-    if (cachedPath != null &&
-        cachedPath.isNotEmpty &&
-        identical(cachedPath.first, renderObject) &&
-        identical(cachedPath.last, overlayRenderObject)) {
+    if (path.isNotEmpty && identical(path.first, renderObject) && identical(path.last, coordinateRoot)) {
       transform.setIdentity();
-      for (var index = cachedPath.length - 1; index > 0; index -= 1) {
-        final parent = cachedPath[index];
-        final child = cachedPath[index - 1];
+      for (var index = path.length - 1; index > 0; index -= 1) {
+        final parent = path[index];
+        final child = path[index - 1];
         if ((parent is RenderBox && !parent.hasSize) ||
             (child is RenderBox && !child.hasSize) ||
             !identical(child.parent, parent)) {
@@ -269,15 +307,14 @@ class _MorphState extends State<Morph> {
         parent.applyPaintTransform(child, transform);
         if (index == 1) return true;
       }
+      if (path.length == 1) return true;
     }
-
-    final path = (cachedPath ?? <RenderObject>[])..clear();
+    path.clear();
     RenderObject? node = renderObject;
     while (node != null) {
       if (node case final RenderBox box when !box.hasSize) return false;
       path.add(node);
-      if (identical(node, overlayRenderObject)) {
-        _transformPath = path;
+      if (identical(node, coordinateRoot)) {
         transform.setIdentity();
         for (var index = path.length - 1; index > 0; index -= 1) {
           path[index].applyPaintTransform(path[index - 1], transform);
@@ -305,6 +342,25 @@ class _MorphState extends State<Morph> {
       );
     } else {
       lastPaintedGeometry.updateFrom(geometry);
+    }
+    if (_route is PageRoute<Object?>) {
+      final routeGeometry = _readLiveGeometry(routeFlight: true);
+      if (routeGeometry != null) {
+        final previous = _lastPaintedRouteGeometry;
+        if (previous == null) {
+          _lastPaintedRouteGeometry = _MorphEndpointGeometry(
+            renderObject: routeGeometry.renderObject,
+            localSize: routeGeometry.localSize,
+            overlayBounds: routeGeometry.overlayBounds,
+            transform: routeGeometry.transform,
+            axisScale: routeGeometry.axisScale,
+          );
+        } else {
+          previous.updateFrom(routeGeometry);
+        }
+      }
+    } else {
+      _lastPaintedRouteGeometry = _lastPaintedGeometry;
     }
     _lastPaintedChild = widget.child;
     _lastPaintedFlightDelegate = _resolvedFlightDelegate;
@@ -475,7 +531,10 @@ class _MorphState extends State<Morph> {
     _route = null;
     _renderObject = null;
     _overlayRenderObject = null;
-    _transformPath = null;
+    _transformPath.clear();
+    _routeTransformPath.clear();
+    _navigatorTransformPath.clear();
+    _lastPaintedRouteGeometry = null;
     _geometryScratch = null;
     _lastPaintedGeometry = null;
     _lastPaintedChild = null;
@@ -597,7 +656,9 @@ class _MorphState extends State<Morph> {
       visibility: visibility,
       onRenderObjectReady: (renderObject) {
         if (!identical(_renderObject, renderObject)) {
-          _transformPath = null;
+          _transformPath.clear();
+          _routeTransformPath.clear();
+          _navigatorTransformPath.clear();
         }
         _renderObject = renderObject;
       },

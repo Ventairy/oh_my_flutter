@@ -1,4 +1,8 @@
-## Unreleased
+## 0.29.0-beta.2
+
+- Fix shared Morph elements drifting and jumping during page transitions, including the first frame of interactive Back swipes.
+
+- Fix `Contour` crashes on 32-bit Android while preparing outlines.
 
 ## 0.29.0-beta.1
 

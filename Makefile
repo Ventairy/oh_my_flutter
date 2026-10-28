@@ -110,6 +110,10 @@ test-contour:
 test-contour-native-proofs:
 	python3 ./tool/run_contour_native_port_proofs.py
 
+.PHONY: test-contour-native-alignment
+test-contour-native-alignment:
+	python3 -m unittest discover -s test/native/contour_native_port/composite -p '*_test.py'
+
 .PHONY: test-contour-web
 test-contour-web:
 	./tool/test_contour_web.sh $(TEST_ARGS)
@@ -119,7 +123,7 @@ test-snap-list:
 	fvm flutter test test/widgets/snap_list*_test.dart
 
 test-morph:
-	fvm flutter test test/widgets/morph*_test.dart
+	fvm flutter test $(or $(TEST_FILES),test/widgets/morph*_test.dart)
 
 update-goldens:
 	fvm flutter test --update-goldens $(TEST_FILES)
@@ -216,3 +220,16 @@ generate-device-locale-pigeon:
 
 check-device-locale-pigeon:
 	./tool/check_device_locale_pigeon.sh
+
+.PHONY: test-morph-route-geometry analyze-morph
+
+test-morph-route-geometry:
+	fvm flutter test test/widgets/morph_route_geometry_test.dart
+
+analyze-morph:
+	fvm dart analyze --fatal-infos lib/src/widgets/morph test/widgets/morph*_test.dart test/widgets/morph_route_geometry test/widgets/morph_gesture_start
+
+.PHONY: format-morph
+
+format-morph:
+	fvm dart format lib/src/widgets/morph test/widgets/morph_route_geometry* test/widgets/morph_gesture_start*
