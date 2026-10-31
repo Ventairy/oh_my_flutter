@@ -1,3 +1,9 @@
+## 0.29.0-beta.3
+
+- Add `DeviceAccelerometer` and `Device.accelerometer` for timed foreground
+  acceleration streams on Android and iOS, with configurable sampling and
+  automatic background suspension.
+
 ## 0.29.0-beta.2
 
 - Fix shared Morph elements drifting and jumping during page transitions, including the first frame of interactive Back swipes.

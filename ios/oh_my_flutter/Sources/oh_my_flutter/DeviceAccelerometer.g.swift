@@ -1,0 +1,1 @@
+../../../../lib/src/gen/device_accelerometer/apple/DeviceAccelerometer.g.swift

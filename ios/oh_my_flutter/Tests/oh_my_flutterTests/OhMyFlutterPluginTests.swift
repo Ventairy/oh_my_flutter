@@ -4,6 +4,19 @@ import XCTest
 @testable import oh_my_flutter
 
 final class OhMyFlutterPluginTests: XCTestCase {
+  func testWhenThePluginRegistersItShouldConnectAccelerometerAccess() {
+    let registrar = IOSFlutterPluginRegistrarSpy()
+    OhMyFlutterPlugin.register(with: registrar)
+    XCTAssertNotNil(registrar.binaryMessenger.messageHandlers["dev.flutter.pigeon.oh_my_flutter.DeviceAccelerometerHostApi.configure"])
+  }
+
+  func testWhenThePluginDetachesItShouldDisconnectAccelerometerAccess() {
+    let registrar = IOSFlutterPluginRegistrarSpy()
+    OhMyFlutterPlugin.register(with: registrar)
+    let plugin = registrar.publishedValue as! OhMyFlutterPlugin
+    plugin.detachFromEngine(for: registrar)
+    XCTAssertNil(registrar.binaryMessenger.messageHandlers["dev.flutter.pigeon.oh_my_flutter.DeviceAccelerometerHostApi.configure"])
+  }
   private let deviceLocaleChannel = "dev.flutter.pigeon.oh_my_flutter.DeviceLocaleHostApi.getCountry"
 
   func testWhenThePluginRegistersItShouldConnectLocaleAccess() {

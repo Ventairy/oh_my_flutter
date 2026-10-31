@@ -1,3 +1,4 @@
+import 'device_accelerometer/device_accelerometer.dart';
 import 'device_display/device_display.dart';
 import 'device_locale/device_locale.dart';
 import 'device_location/device_location.dart';
@@ -21,11 +22,15 @@ final class Device {
   ///
   /// Supply implementations to substitute device behavior in tests.
   const new({
+    this.accelerometer = const DeviceAccelerometer(),
     this.location = const DeviceLocation(),
     this.display = const DeviceDisplay(),
     this.sim = const DeviceSim(),
     this.locale = const DeviceLocale(),
   });
+
+  /// Provides foreground access to acceleration measured by the device.
+  final DeviceAccelerometer accelerometer;
 
   /// Manages foreground location access and retrieves device location data.
   final DeviceLocation location;

@@ -10,6 +10,8 @@ library;
 export 'src/country/country.dart' show Country;
 export 'src/debouncer.dart' show Debouncer;
 export 'src/device/device.dart' show Device;
+export 'src/device/device_accelerometer/device_accelerometer.dart' show DeviceAccelerometer;
+export 'src/device/device_accelerometer/device_accelerometer_sample.dart' show DeviceAccelerometerSample;
 export 'src/device/device_display/device_display.dart' show DeviceDisplay;
 export 'src/device/device_locale/device_locale.dart' show DeviceLocale;
 export 'src/device/device_location/device_location.dart' show DeviceLocation;
@@ -19,6 +21,8 @@ export 'src/device/device_location/device_location_permission_status.dart' show 
 export 'src/device/device_sim/device_sim.dart' show DeviceSim;
 export 'src/dio_interceptors/offline_error_dio_interceptor.dart' show OfflineErrorDioInterceptor;
 export 'src/exceptions/debouncer_canceled_exception.dart' show DebouncerCanceledException;
+export 'src/exceptions/device_accelerometer_exception.dart' show DeviceAccelerometerException;
+export 'src/exceptions/device_accelerometer_exception_reason.dart' show DeviceAccelerometerExceptionReason;
 export 'src/exceptions/device_location_exception.dart' show DeviceLocationException;
 export 'src/exceptions/device_location_exception_reason.dart' show DeviceLocationExceptionReason;
 export 'src/exceptions/offline_connection_dio_exception.dart' show OfflineConnectionDioException;

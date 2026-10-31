@@ -6,9 +6,17 @@ part '_fake_device_display.dart';
 part '_fake_device_location.dart';
 part '_fake_device_sim.dart';
 part '_fake_device_locale.dart';
+part '_fake_device_accelerometer.dart';
 
 void main() {
   group('Device', () {
+    test('when created with defaults, it should provide accelerometer access', () {
+      expect(const Device().accelerometer, isA<DeviceAccelerometer>());
+    });
+    test('when an accelerometer is supplied, it should retain the substitution', () {
+      const accelerometer = _FakeDeviceAccelerometer();
+      expect(const Device(accelerometer: accelerometer).accelerometer, same(accelerometer));
+    });
     test('when created with defaults, it should provide locale access', () {
       expect(const Device().locale, isA<DeviceLocale>());
     });
