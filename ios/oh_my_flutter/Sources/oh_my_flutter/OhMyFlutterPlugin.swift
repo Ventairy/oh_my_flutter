@@ -5,6 +5,7 @@ import UIKit
 public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
   private let binaryMessenger: FlutterBinaryMessenger
   private let deviceLocaleHandler = AppleDeviceLocaleHandler()
+  private let deviceAccelerometerHandler = IOSDeviceAccelerometerHandler()
   private let deviceDisplayHandler: IOSDeviceDisplayHandler
   private let nativeSelectableTextMenuHandler: IOSNativeSelectableTextMenuHandler
 
@@ -43,6 +44,8 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
       api: handler
     )
     DeviceLocaleHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: instance.deviceLocaleHandler)
+    DeviceAccelerometerHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: instance.deviceAccelerometerHandler)
+    DeviceAccelerometerSamplesStreamHandler.register(with: binaryMessenger, streamHandler: instance.deviceAccelerometerHandler)
     registrar.publish(instance)
   }
 
@@ -55,6 +58,9 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
   }
 
   public func detachFromEngine(for _: FlutterPluginRegistrar) {
+    deviceAccelerometerHandler.dispose()
+    DeviceAccelerometerHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
+    FlutterEventChannel(name: "dev.flutter.pigeon.oh_my_flutter.DeviceAccelerometerEventApi.deviceAccelerometerSamples", binaryMessenger: binaryMessenger, codec: deviceAccelerometerPigeonMethodCodec).setStreamHandler(nil)
     DeviceLocaleHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
     DeviceDisplayHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
     NativeSelectableTextMenuHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
@@ -62,6 +68,7 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
   }
 
   deinit {
+    deviceAccelerometerHandler.dispose()
     nativeSelectableTextMenuHandler.dispose()
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'package:oh_my_flutter_example/examples/contour_example.dart';
 import 'package:oh_my_flutter_example/examples/controlled_visibility_example.dart';
+import 'package:oh_my_flutter_example/examples/device_accelerometer_example.dart';
 import 'package:oh_my_flutter_example/examples/device_display_example.dart';
 import 'package:oh_my_flutter_example/examples/device_location_example.dart';
 import 'package:oh_my_flutter_example/examples/group_example.dart';
@@ -51,6 +52,10 @@ class _UtilityExampleState extends State<UtilityExample> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        Text('Device accelerometer', style: _sectionStyle),
+                        SizedBox(height: 12),
+                        DeviceAccelerometerExample(),
+                        SizedBox(height: 32),
                         Text('Device display', style: _sectionStyle),
                         SizedBox(height: 12),
                         DeviceDisplayExample(),

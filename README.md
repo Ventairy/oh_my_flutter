@@ -239,6 +239,13 @@ and configuration.
 `Device` provides one place to access several device-related features. Use it
 when the same part of an application needs several device capabilities.
 
+#### Accelerometer
+
+`DeviceAccelerometer` lets applications respond to device movement on Android
+and iOS. It can do things such as supply timed acceleration readings for a
+tilt-responsive interface, with a configurable update interval. Use it directly
+or through `Device().accelerometer`.
+
 #### Display
 
 `DeviceDisplay` reads information about the physical screen. It can report the

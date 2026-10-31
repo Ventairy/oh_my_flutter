@@ -12,12 +12,14 @@ final coordinates = await device.location.getCurrentCoordinates();
 final cornerRadii = await device.display.cornerRadii(context);
 final simCountry = await device.sim.getCountry();
 final configuredCountry = await device.locale.getCountry();
+final accelerometerAvailable = await device.accelerometer.isAvailable;
 ```
 
 Each property exposes the same independently usable feature class that can be
 created directly. Use `Device` when one owner, service, or widget needs a
 single object for several device capabilities; use `DeviceLocation` or
-`DeviceDisplay`, `DeviceSim`, or `DeviceLocale` directly when only that capability is needed.
+`DeviceDisplay`, `DeviceSim`, `DeviceLocale`, or `DeviceAccelerometer` directly
+when only that capability is needed.
 
 The default constructor creates the standard feature objects. A caller can
 also supply its own instances when it needs configured implementations or test
@@ -29,6 +31,7 @@ final device = Device(
   display: applicationDisplay,
   sim: applicationSim,
   locale: applicationLocale,
+  accelerometer: applicationAccelerometer,
 );
 ```
 
@@ -38,6 +41,7 @@ contract of the feature property being used.
 
 See the [device location](device_location.md),
 [device display](device_display.md), [device SIM](device_sim.md), and
-[device locale](device_locale.md) guides for each feature's behavior and
+[device locale](device_locale.md), and [accelerometer](device_accelerometer.md)
+guides for each feature's behavior and
 constraints. The [generated API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/Device-class.html)
 lists the complete constructor and member contracts.

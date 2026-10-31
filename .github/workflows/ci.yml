@@ -72,12 +72,13 @@ jobs:
           case "$CHECK" in
             source)
               fvm dart run tool/generate_country_names.dart --check
+              ./tool/check_device_accelerometer_pigeon.sh
               ./tool/check_device_locale_pigeon.sh
               ./tool/check_device_sim_pigeon.sh
               ./tool/check_device_location_pigeon.sh
               ./tool/check_device_display_pigeon.sh
               ./tool/check_native_selectable_text_pigeon.sh
-              fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
+              fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark example/test_driver
               fvm flutter analyze --fatal-infos --no-pub
               fvm dart doc --validate-links
               (

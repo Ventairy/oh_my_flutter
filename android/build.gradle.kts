@@ -47,6 +47,7 @@ android {
             java.directories.add("src/main/kotlin")
             kotlin.directories.add("../lib/src/gen/device_sim/android")
             kotlin.directories.add("../lib/src/gen/device_locale/android")
+            kotlin.directories.add("../lib/src/gen/device_accelerometer/android")
         }
         getByName("test") {
             java.directories.add("src/test/kotlin")

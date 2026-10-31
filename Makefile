@@ -11,7 +11,7 @@ gen: generate-country-names generate-pigeons generate-country-bindings generate-
 
 gen-check: check-country-names check-pigeons check-country-bindings check-device-location-bindings
 
-generate-pigeons: generate-device-locale-pigeon generate-device-sim-pigeon generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon
+generate-pigeons: generate-device-accelerometer-pigeon generate-device-locale-pigeon generate-device-sim-pigeon generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon
 
 generate-country-names:
 	fvm dart run tool/generate_country_names.dart
@@ -74,16 +74,16 @@ generate-device-sim-pigeon:
 check-device-sim-pigeon:
 	./tool/check_device_sim_pigeon.sh
 
-check-pigeons: check-device-locale-pigeon check-device-sim-pigeon check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon
+check-pigeons: check-device-accelerometer-pigeon check-device-locale-pigeon check-device-sim-pigeon check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon
 
 check-native-selectable-text-pigeon:
 	./tool/check_native_selectable_text_pigeon.sh
 
 format:
-	fvm dart format hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
+	fvm dart format hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark example/test_driver
 
 check-format:
-	fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark
+	fvm dart format --output none --set-exit-if-changed hook lib pigeons test tool example/lib example/test example/integration_test example/benchmark example/test_driver
 
 analyze:
 	fvm flutter analyze --fatal-infos
@@ -233,3 +233,49 @@ analyze-morph:
 
 format-morph:
 	fvm dart format lib/src/widgets/morph test/widgets/morph_route_geometry* test/widgets/morph_gesture_start*
+
+DEVICE_ACCELEROMETER_DART_SOURCES := lib/src/device/device_accelerometer lib/src/device/device.dart lib/src/exceptions/device_accelerometer* lib/oh_my_flutter.dart pigeons/device_accelerometer test/device/device_accelerometer test/device/device_test.dart test/device/_fake_device_accelerometer.dart test/exceptions/device_accelerometer*_test.dart example/lib/examples/device_accelerometer_example.dart example/lib/main.dart example/test/examples/device_accelerometer_example_test.dart example/test/examples/_fake_device_accelerometer.dart example/test/utility_example_test.dart example/integration_test/device_accelerometer_test.dart example/test_driver/device_accelerometer_test.dart
+
+.PHONY: generate-device-accelerometer-pigeon check-device-accelerometer-pigeon test-device-accelerometer analyze-device-accelerometer format-device-accelerometer
+
+generate-device-accelerometer-pigeon:
+	./tool/generate_device_accelerometer_pigeon.sh
+
+check-device-accelerometer-pigeon:
+	./tool/check_device_accelerometer_pigeon.sh
+
+test-device-accelerometer:
+	fvm flutter test test/device/device_accelerometer test/device/device_test.dart test/exceptions/device_accelerometer*_test.dart
+
+analyze-device-accelerometer:
+	fvm dart analyze --fatal-infos lib/src/device lib/src/exceptions/device_accelerometer* lib/oh_my_flutter.dart pigeons/device_accelerometer test/device/device_accelerometer test/device/device_test.dart test/exceptions/device_accelerometer*_test.dart
+
+format-device-accelerometer:
+	fvm dart format $(DEVICE_ACCELEROMETER_DART_SOURCES)
+
+.PHONY: test-device-accelerometer-on-android test-device-accelerometer-on-ios test-device-accelerometer-example
+
+test-device-accelerometer-on-android:
+	cd example/android && ./gradlew :oh_my_flutter:testDebugUnitTest --tests 'dev.ventairy.oh_my_flutter.DeviceAccelerometerHandlerTest'
+
+test-device-accelerometer-on-ios:
+	./tool/test_device_accelerometer_ios.sh
+
+test-device-accelerometer-example:
+	cd example && fvm flutter test test/examples/device_accelerometer_example_test.dart test/utility_example_test.dart
+
+.PHONY: validate-device-accelerometer-on-device
+validate-device-accelerometer-on-device:
+	cd example && fvm flutter drive --profile --driver=test_driver/device_accelerometer_test.dart --target=integration_test/device_accelerometer_test.dart -d '$(DEVICE_ID)'
+
+.PHONY: run-example
+run-example:
+	cd example && fvm flutter run --no-pub -d '$(DEVICE_ID)'
+
+.PHONY: check-device-accelerometer-format
+check-device-accelerometer-format:
+	fvm dart format --output=none --set-exit-if-changed $(DEVICE_ACCELEROMETER_DART_SOURCES)
+
+.PHONY: test-device-accelerometer-on-web
+test-device-accelerometer-on-web:
+	fvm flutter test --platform chrome test/device/device_accelerometer/device_accelerometer_test.dart test/device/device_accelerometer/device_accelerometer_platform_test.dart test/device/device_accelerometer/device_accelerometer_unsupported_test.dart

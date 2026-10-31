@@ -1,5 +1,10 @@
 package dev.ventairy.oh_my_flutter
 
+import dev.ventairy.oh_my_flutter.device_accelerometer.DeviceAccelerometerHostApi
+import dev.ventairy.oh_my_flutter.device_accelerometer.DeviceAccelerometerSamplesStreamHandler
+import dev.ventairy.oh_my_flutter.device_accelerometer.DeviceAccelerometerPigeonMethodCodec
+import io.flutter.plugin.common.EventChannel
+
 import dev.ventairy.oh_my_flutter.device_display.DeviceDisplayHostApi
 import dev.ventairy.oh_my_flutter.device_sim.DeviceSimHostApi
 import dev.ventairy.oh_my_flutter.device_locale.DeviceLocaleHostApi
@@ -14,11 +19,16 @@ class OhMyFlutterPlugin :
     ActivityAware,
     PluginRegistry.RequestPermissionsResultListener {
     private var activityBinding: ActivityPluginBinding? = null
+    private var deviceAccelerometerHandler: DeviceAccelerometerHandler? = null
     private var deviceDisplayHandler: DeviceDisplayHandler? = null
     private var deviceLocationHandler: DeviceLocationHandler? = null
     private var nativeSelectableTextMenuHandler: NativeSelectableTextMenuHandler? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        val accelerometerHandler = DeviceAccelerometerHandler(binding.applicationContext)
+        deviceAccelerometerHandler = accelerometerHandler
+        DeviceAccelerometerHostApi.setUp(binding.binaryMessenger, accelerometerHandler)
+        DeviceAccelerometerSamplesStreamHandler.register(binding.binaryMessenger, accelerometerHandler)
         DeviceSimHostApi.setUp(binding.binaryMessenger, DeviceSimHandler(binding.applicationContext))
         DeviceLocaleHostApi.setUp(binding.binaryMessenger, DeviceLocaleHandler(binding.applicationContext))
         val displayHandler = DeviceDisplayHandler()
@@ -74,6 +84,10 @@ class OhMyFlutterPlugin :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        deviceAccelerometerHandler?.dispose()
+        deviceAccelerometerHandler = null
+        DeviceAccelerometerHostApi.setUp(binding.binaryMessenger, null)
+        EventChannel(binding.binaryMessenger, "dev.flutter.pigeon.oh_my_flutter.DeviceAccelerometerEventApi.deviceAccelerometerSamples", DeviceAccelerometerPigeonMethodCodec).setStreamHandler(null)
         activityBinding?.removeRequestPermissionsResultListener(this)
         activityBinding = null
         deviceDisplayHandler?.detachActivity()
