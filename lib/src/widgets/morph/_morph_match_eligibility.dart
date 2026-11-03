@@ -57,6 +57,33 @@ extension _MorphMatchEligibility on _MorphCoordinator {
     return null;
   }
 
+  bool _shouldSuppressSnapshot(_MorphEndpointHandle endpoint) {
+    // Departures are captured before the next appearance can register. Preserve
+    // their independent endpoints for matching rather than baking them in.
+    var ancestor = endpoint.parentEndpoint;
+    while (ancestor != null) {
+      if (ancestor.isCapturingDeparture) return true;
+      ancestor = ancestor.parentEndpoint;
+    }
+    if (_flightUses(endpoint)) return true;
+    if (endpoint.active && !endpoint.disposed && _findEligibleIncomingTarget(endpoint) != null) return true;
+    for (final target in endpoint.targets) {
+      for (final incoming in _appearancesByTag[target] ?? const <_MorphEndpointHandle>[]) {
+        if (!incoming.active ||
+            incoming.disposed ||
+            identical(incoming, endpoint) ||
+            !identical(_findEligibleIncomingTarget(incoming), target)) {
+          continue;
+        }
+        final request = incoming.observer?._request;
+        final isNavigation =
+            request != null && request.source != null && _groups[incoming.tag]?.navigationRevision != request.revision;
+        if (identical(_sourceForMatch(incoming, target, request: isNavigation ? request : null), endpoint)) return true;
+      }
+    }
+    return false;
+  }
+
   bool _canMatch(
     _MorphEndpointHandle source,
     _MorphEndpointHandle destination, {

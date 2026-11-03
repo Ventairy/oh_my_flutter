@@ -279,3 +279,14 @@ check-device-accelerometer-format:
 .PHONY: test-device-accelerometer-on-web
 test-device-accelerometer-on-web:
 	fvm flutter test --platform chrome test/device/device_accelerometer/device_accelerometer_test.dart test/device/device_accelerometer/device_accelerometer_platform_test.dart test/device/device_accelerometer/device_accelerometer_unsupported_test.dart
+
+.PHONY: test-route-listener analyze-route-listener format-route-listener
+
+test-route-listener:
+	fvm flutter test --no-pub test/widgets/route_listener_test.dart test/widgets/route_settled_test.dart
+
+analyze-route-listener:
+	fvm dart analyze --fatal-infos lib/src/widgets/route_settled test/widgets/route_listener_test.dart test/widgets/route_listener test/widgets/route_settled_test.dart
+
+format-route-listener:
+	fvm dart format lib/src/widgets/route_settled test/widgets/route_listener_test.dart test/widgets/route_listener test/widgets/route_settled_test.dart

@@ -399,7 +399,7 @@ final class _MorphSnapshotCapture {
     Set<RenderObject> repaintBoundaries, {
     required bool isRoot,
   }) {
-    if (!isRoot && renderObject is _RenderMorphEndpoint) {
+    if (!isRoot && renderObject is _RenderMorphEndpoint && (renderObject.shouldSuppressSnapshot?.call() ?? true)) {
       result.add(renderObject);
       return true;
     }

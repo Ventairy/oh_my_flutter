@@ -1,3 +1,10 @@
+## 0.29.0-beta.4
+
+- Keep incoming nested `Morph` elements visible during parent transitions when they have no matching element.
+
+- Add `RouteListener.onProgressChanged` to trigger actions during route
+  transitions using the route's animation progress.
+
 ## 0.29.0-beta.3
 
 - Add `DeviceAccelerometer` and `Device.accelerometer` for timed foreground
