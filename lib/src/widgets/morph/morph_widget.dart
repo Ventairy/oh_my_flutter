@@ -665,6 +665,10 @@ class _MorphState extends State<Morph> {
       onPaint: _rememberPaintedGeometry,
       onPresented: _rememberPresentation,
       onSnapshotSuppressed: _invalidatePresentation,
+      shouldSuppressSnapshot: () {
+        final endpoint = _endpoint;
+        return endpoint != null && _MorphCoordinator.of(endpoint.overlay)._shouldSuppressSnapshot(endpoint);
+      },
       child: ValueListenableBuilder<bool>(
         valueListenable: visibility.tickersEnabled,
         builder: (context, tickersEnabled, child) {

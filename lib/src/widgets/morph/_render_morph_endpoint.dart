@@ -6,12 +6,14 @@ class _RenderMorphEndpoint extends RenderProxyBox {
     this.onPaint,
     this.onPresented,
     this.onSnapshotSuppressed,
+    this.shouldSuppressSnapshot,
   );
 
   _MorphVisibilityHandle _visibility;
   VoidCallback onPaint;
   VoidCallback onPresented;
   VoidCallback onSnapshotSuppressed;
+  bool Function()? shouldSuppressSnapshot;
   int _snapshotSuppressionDepth = 0;
   LayerHandle<OpacityLayer>? _hiddenOpacityLayer;
 

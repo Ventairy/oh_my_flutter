@@ -56,6 +56,7 @@ class _MorphEndpointHandle {
   final Map<MorphTarget, MorphEndpoint<Object?>> _departureEndpoints = {};
   List<_MorphDescendantFlightRecord>? _departureRecords;
   int? _departureDescendantRevision;
+  bool isCapturingDeparture = false;
   int registrationOrder = 0;
   bool alternativesResolved = false;
   bool alternativeMatchAvailable = true;
@@ -340,6 +341,15 @@ class _MorphEndpointHandle {
   }
 
   void captureDeparture(MorphTarget candidate, {required bool routeFlight}) {
+    isCapturingDeparture = true;
+    try {
+      _captureDepartureSnapshot(candidate, routeFlight: routeFlight);
+    } finally {
+      isCapturingDeparture = false;
+    }
+  }
+
+  void _captureDepartureSnapshot(MorphTarget candidate, {required bool routeFlight}) {
     // Only descendant pixels are shared across alternatives. The delegate still
     // resolves each target's properties and group snapshots independently.
     final sharedRecords = _departureRecords;
