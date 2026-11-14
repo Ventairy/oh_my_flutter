@@ -143,6 +143,7 @@ class _ContourNativeTextCache {
         source.textDirection,
         scalerKey,
         source.maxLines,
+        source.hyphens,
         _locale(source.locale),
         strut.style,
         source.textWidthBasis,

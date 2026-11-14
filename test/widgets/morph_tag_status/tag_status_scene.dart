@@ -1,13 +1,14 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 import 'tag_status_route.dart';
 
 class TagStatusScene {
-  new({this.matched = true, this.reducedMotion = false});
+  new({this.matched = true, this.reducedMotion = false, this.reduceMotion = false});
 
   final bool matched;
   final bool reducedMotion;
+  final bool reduceMotion;
   final observer = MorphNavigatorObserver();
   final navigator = GlobalKey<NavigatorState>();
   final source = MorphTarget(
@@ -21,7 +22,7 @@ class TagStatusScene {
     navigatorKey: navigator,
     navigatorObservers: [observer],
     builder: (context, child) => MediaQuery(
-      data: MediaQuery.of(context).copyWith(disableAnimations: reducedMotion),
+      data: MediaQuery.of(context).copyWith(disableAnimations: reducedMotion, reduceMotion: reduceMotion),
       child: child!,
     ),
     home: ColoredBox(

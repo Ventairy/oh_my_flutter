@@ -41,6 +41,7 @@ class _TransitionHost {
     bool withIncoming = true,
     bool withOutgoing = true,
     bool reducedMotion = false,
+    bool reduceMotion = false,
     bool settle = true,
     Axis axis = Axis.vertical,
     TextDirection direction = TextDirection.ltr,
@@ -76,6 +77,7 @@ class _TransitionHost {
                 ),
         ),
         reducedMotion: reducedMotion,
+        reduceMotion: reduceMotion,
       ),
     );
     if (settle) await tester.pumpAndSettle();
@@ -213,22 +215,46 @@ void main() {
         expect(after, (before!.$1 - 25 / 400, false));
       });
 
-      testWidgets('when reduced motion turns on during a swipe, it should restore appearance in the same frame', (
-        tester,
-      ) async {
-        final host = _TransitionHost();
-        await host.mount(tester, lazy: lazy);
-        await host.position(tester, .5);
-        await host.mount(tester, lazy: lazy, reducedMotion: true, settle: false);
-        expect((host.incoming[0], host.outgoing[0]), ((1.0, false), (0.0, false)));
-      });
+      for (final settings in [
+        (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+        (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+        (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+      ]) {
+        testWidgets(
+          'when the platform requests ${settings.label} during a swipe, it should restore appearance immediately',
+          (
+            tester,
+          ) async {
+            final host = _TransitionHost();
+            await host.mount(tester, lazy: lazy);
+            await host.position(tester, .5);
+            await host.mount(
+              tester,
+              lazy: lazy,
+              reducedMotion: settings.disableAnimations,
+              reduceMotion: settings.reduceMotion,
+              settle: false,
+            );
 
-      testWidgets('when reduced motion is enabled, it should use only resting appearance', (tester) async {
-        final host = _TransitionHost();
-        await host.mount(tester, lazy: lazy, reducedMotion: true);
-        await host.position(tester, .5);
-        expect((host.incoming[0], host.outgoing[0]), ((1.0, false), (0.0, false)));
-      });
+            expect((host.incoming[0], host.outgoing[0]), ((1.0, false), (0.0, false)));
+          },
+        );
+
+        testWidgets('when the platform requests ${settings.label}, it should use only resting appearance', (
+          tester,
+        ) async {
+          final host = _TransitionHost();
+          await host.mount(
+            tester,
+            lazy: lazy,
+            reducedMotion: settings.disableAnimations,
+            reduceMotion: settings.reduceMotion,
+          );
+          await host.position(tester, .5);
+
+          expect((host.incoming[0], host.outgoing[0]), ((1.0, false), (0.0, false)));
+        });
+      }
     });
   }
 

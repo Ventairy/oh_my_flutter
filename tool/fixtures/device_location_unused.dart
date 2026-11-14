@@ -1,6 +1,6 @@
 // Release-build fixture proving that importing oh_my_flutter without using
 // DeviceLocation leaves its native iOS framework out of the final application.
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 void main() {

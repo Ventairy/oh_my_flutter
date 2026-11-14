@@ -1,5 +1,5 @@
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 /// Shows a relative time label evaluated against a deterministic clock.

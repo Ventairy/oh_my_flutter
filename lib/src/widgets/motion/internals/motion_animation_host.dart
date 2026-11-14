@@ -61,7 +61,8 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final animationsDisabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final animationsDisabled =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
     final tickerMode = TickerMode.valuesOf(context);
     final tickersEnabled = tickerMode.enabled;
     final forceFrames = tickerMode.forceFrames;

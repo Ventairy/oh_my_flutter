@@ -27,16 +27,16 @@ void main(){
   vec2 point=FlutterFragCoord().xy-uOrigin;
   if(uCubic<.5){
     fragColor=mix(tileSample(uIndex,point),tileSample(min(uIndex+1.0,uMaximumIndex),point),uFraction);
-    return;
+  }else{
+    vec4 v0=tileSample(max(uIndex-1.0,0.0),point);
+    vec4 v1=tileSample(uIndex,point);
+    vec4 v2=tileSample(uIndex+1.0,point);
+    vec4 v3=tileSample(min(uIndex+2.0,uMaximumIndex),point);
+    vec4 d0=v1-v0,d1=v2-v1,d2=v3-v2;
+    vec4 m1=uIndex<.5?endpoint(d1,d2):harmonic(d0,d1);
+    vec4 m2=uIndex>uMaximumIndex-1.5?endpoint(d1,d0):harmonic(d1,d2);
+    float t=uFraction,t2=t*t,t3=t2*t;
+    fragColor=clamp((2.0*t3-3.0*t2+1.0)*v1+(t3-2.0*t2+t)*m1+(-2.0*t3+3.0*t2)*v2+(t3-t2)*m2,0.0,1.0);
+    fragColor.rgb=min(fragColor.rgb,vec3(fragColor.a));
   }
-  vec4 v0=tileSample(max(uIndex-1.0,0.0),point);
-  vec4 v1=tileSample(uIndex,point);
-  vec4 v2=tileSample(uIndex+1.0,point);
-  vec4 v3=tileSample(min(uIndex+2.0,uMaximumIndex),point);
-  vec4 d0=v1-v0,d1=v2-v1,d2=v3-v2;
-  vec4 m1=uIndex<.5?endpoint(d1,d2):harmonic(d0,d1);
-  vec4 m2=uIndex>uMaximumIndex-1.5?endpoint(d1,d0):harmonic(d1,d2);
-  float t=uFraction,t2=t*t,t3=t2*t;
-  fragColor=clamp((2.0*t3-3.0*t2+1.0)*v1+(t3-2.0*t2+t)*m1+(-2.0*t3+3.0*t2)*v2+(t3-t2)*m2,0.0,1.0);
-  fragColor.rgb=min(fragColor.rgb,vec3(fragColor.a));
 }

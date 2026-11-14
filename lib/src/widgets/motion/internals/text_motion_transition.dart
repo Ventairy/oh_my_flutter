@@ -89,6 +89,7 @@ class _TextMotionTransition extends StatelessWidget {
       maxLines: maxLines,
       textWidthBasis: textWidthBasis,
       textHeightBehavior: textHeightBehavior,
+      hyphens: text.hyphens ?? ui.Hyphens.manual,
       baseline: baseline,
       devicePixelRatio: View.of(context).devicePixelRatio,
       semanticsIdentifier: text.semanticsIdentifier,

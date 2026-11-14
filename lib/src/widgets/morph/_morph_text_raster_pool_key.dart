@@ -22,6 +22,7 @@ final class _MorphTextRasterPoolKey {
     required this.textWidthBasis,
     required this.textHeightBehavior,
     required this.strutStyle,
+    required this.hyphens,
   });
 
   final int viewId;
@@ -43,6 +44,7 @@ final class _MorphTextRasterPoolKey {
   final TextWidthBasis? textWidthBasis;
   final TextHeightBehavior? textHeightBehavior;
   final StrutStyle? strutStyle;
+  final ui.Hyphens hyphens;
 
   int get pixels => rasterWidth * rasterHeight;
 
@@ -67,7 +69,8 @@ final class _MorphTextRasterPoolKey {
         maxLines == other.maxLines &&
         textWidthBasis == other.textWidthBasis &&
         textHeightBehavior == other.textHeightBehavior &&
-        strutStyle == other.strutStyle;
+        strutStyle == other.strutStyle &&
+        hyphens == other.hyphens;
   }
 
   @override
@@ -91,5 +94,6 @@ final class _MorphTextRasterPoolKey {
     textWidthBasis,
     textHeightBehavior,
     strutStyle,
+    hyphens,
   ]);
 }

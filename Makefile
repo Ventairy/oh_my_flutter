@@ -92,6 +92,10 @@ analyze:
 test-ci:
 	python3 -m unittest discover -s test/tool/ci -p '*_test.py'
 
+.PHONY: test-shaders
+test-shaders:
+	python3 -m unittest discover -s test/shaders -p '*_test.py'
+
 test:
 	fvm flutter test
 

@@ -305,7 +305,9 @@ class _MorphEndpointHandle {
     onEnd = widget.onEnd;
     onReceived = widget.onReceived;
     if (owner.mounted) {
-      animationsDisabled = MediaQuery.maybeDisableAnimationsOf(owner.context) ?? false;
+      animationsDisabled =
+          (MediaQuery.maybeDisableAnimationsOf(owner.context) ?? false) ||
+          (MediaQuery.maybeReduceMotionOf(owner.context) ?? false);
     }
   }
 

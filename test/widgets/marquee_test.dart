@@ -1,15 +1,16 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 Widget _testApp({
   required Widget child,
   bool disableAnimations = false,
+  bool reduceMotion = false,
   bool tickersEnabled = true,
   TextDirection textDirection = TextDirection.ltr,
 }) {
   return MediaQuery(
-    data: MediaQueryData(disableAnimations: disableAnimations),
+    data: MediaQueryData(disableAnimations: disableAnimations, reduceMotion: reduceMotion),
     child: Directionality(
       textDirection: textDirection,
       child: TickerMode(
@@ -48,11 +49,13 @@ Widget _horizontalMarquee({
   bool interactive = false,
   bool infinity = false,
   bool disableAnimations = false,
+  bool reduceMotion = false,
   bool tickersEnabled = true,
   List<Widget>? children,
 }) {
   return _testApp(
     disableAnimations: disableAnimations,
+    reduceMotion: reduceMotion,
     tickersEnabled: tickersEnabled,
     child: SizedBox(
       width: 200,
@@ -659,11 +662,39 @@ void main() {
       expect(tester.getTopLeft(find.byKey(const ValueKey('first'))).dx, pausedPosition);
     });
 
-    testWidgets('when reduced motion is requested, it should keep the strip static at the origin', (tester) async {
-      await tester.pumpWidget(_horizontalMarquee(disableAnimations: true));
-      await tester.pump(const Duration(milliseconds: 500));
+    for (final settings in [
+      (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+      (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+      (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+    ]) {
+      testWidgets('when the platform requests ${settings.label}, it should keep the strip static at the origin', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _horizontalMarquee(
+            disableAnimations: settings.disableAnimations,
+            reduceMotion: settings.reduceMotion,
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 500));
 
-      expect(tester.getTopLeft(find.byKey(const ValueKey('first'))), Offset.zero);
+        expect(
+          (tester.getTopLeft(find.byKey(const ValueKey('first'))), tester.hasRunningAnimations),
+          (Offset.zero, false),
+        );
+      });
+    }
+
+    testWidgets('when reduced motion starts during marquee playback, it should stop at the origin', (tester) async {
+      await tester.pumpWidget(_horizontalMarquee());
+      await tester.pump(const Duration(milliseconds: 250));
+      await tester.pumpWidget(_horizontalMarquee(reduceMotion: true));
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(
+        (tester.getTopLeft(find.byKey(const ValueKey('first'))), tester.hasRunningAnimations),
+        (Offset.zero, false),
+      );
     });
   });
 

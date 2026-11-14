@@ -136,7 +136,8 @@ class _MarqueeState extends State<Marquee> with SingleTickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final animationsDisabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final animationsDisabled =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
     if (_dependenciesReady && animationsDisabled == _animationsDisabled) {
       return;
     }

@@ -4,12 +4,14 @@ publish_to: none
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.14.0-95.2.beta <4.0.0"
+  sdk: ">=3.14.0 <4.0.0"
+  flutter: ">=3.50.0"
 
 dependencies:
   clock: ^1.1.2
   flutter:
     sdk: flutter
+  material_ui: ^1.11.0
   oh_my_flutter:
     path: ../
 

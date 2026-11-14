@@ -113,10 +113,10 @@ sys.exit(97)
             (result.returncode, compiler['host'],
              '--json' in compiler['args'], '--sksl' in compiler['args'],
              f'--input={self.root}/shaders/contour_shadow_atlas.frag' in compiler['args'],
-             flutter['args'][:4], len([arg for arg in flutter['args'] if arg.endswith('_test.dart')]),
+             flutter['args'][:5], len([arg for arg in flutter['args'] if arg.endswith('_test.dart')]),
              flutter['shader'], flutter['link'].startswith('../../../lib/src/gen/contour_web_test_assets.'),
              (self.root / 'global-called').exists(), self._remaining()),
-            (0, 'darwin-x64', True, True, True, ['test', '--ipv6', '--platform', 'chrome'],
+            (0, 'darwin-x64', True, True, True, ['test', '--ipv6', '--platform', 'chrome', '--no-deprecated-js-interop'],
              4, 'browser shader', True, False, (False, [])),
         )
 

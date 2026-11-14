@@ -4,6 +4,7 @@ import UIKit
 /// Records plugin registration state for iOS tests.
 internal final class IOSFlutterPluginRegistrarSpy: NSObject, FlutterPluginRegistrar {
   internal let binaryMessenger = IOSNativeSelectableTextMenuBinaryMessengerSpy()
+  internal let engineIdentifier: Int64 = 1
   internal private(set) var publishedValue: NSObject?
   internal var viewController: UIViewController?
 

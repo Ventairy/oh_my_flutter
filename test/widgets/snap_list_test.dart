@@ -1,21 +1,25 @@
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 class SnapListTestHost {
-  static Widget app(Widget child, {bool reducedMotion = false, TextDirection direction = TextDirection.ltr}) =>
-      MaterialApp(
-        home: Directionality(
-          textDirection: direction,
-          child: MediaQuery(
-            data: MediaQueryData(disableAnimations: reducedMotion),
-            child: Scaffold(
-              body: Center(child: SizedBox(width: 300, height: 400, child: child)),
-            ),
-          ),
+  static Widget app(
+    Widget child, {
+    bool reducedMotion = false,
+    bool reduceMotion = false,
+    TextDirection direction = TextDirection.ltr,
+  }) => MaterialApp(
+    home: Directionality(
+      textDirection: direction,
+      child: MediaQuery(
+        data: MediaQueryData(disableAnimations: reducedMotion, reduceMotion: reduceMotion),
+        child: Scaffold(
+          body: Center(child: SizedBox(width: 300, height: 400, child: child)),
         ),
-      );
+      ),
+    ),
+  );
 
   static List<Widget> cards(int count) => List.generate(
     count,
@@ -28,6 +32,37 @@ class SnapListTestHost {
 }
 
 void main() {
+  for (final settings in [
+    (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+    (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+    (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+  ]) {
+    testWidgets('when the platform requests ${settings.label}, it should navigate without interpolation', (
+      tester,
+    ) async {
+      final controller = SnapListController();
+      await tester.pumpWidget(
+        SnapListTestHost.app(
+          SnapList(
+            controller: controller,
+            duration: const Duration(seconds: 1),
+            children: SnapListTestHost.cards(3),
+          ),
+          reducedMotion: settings.disableAnimations,
+          reduceMotion: settings.reduceMotion,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final navigation = controller.next();
+      await tester.pump();
+      final immediatePosition = (controller.index, controller.position, controller.isMoving);
+      await tester.pumpAndSettle();
+      await navigation;
+
+      expect(immediatePosition, (1, 1.0, false));
+    });
+  }
+
   test('when using default motion, it should use neutral linear curves on both constructors', () {
     const eager = SnapList(children: []);
     final lazy = SnapList.builder(itemCount: 0, itemBuilder: (_, _) => const SizedBox());

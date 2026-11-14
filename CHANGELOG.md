@@ -1,3 +1,14 @@
+## 0.29.0
+
+- **Breaking:** Require Flutter 3.50.0 and Dart 3.14.0 or newer. Use the
+  standalone `material_ui` and `cupertino_ui` packages when supplying Material
+  or Cupertino types to these utilities.
+- Respect iOS Reduce Motion alongside Disable Animations in animated widgets
+  and transitions.
+- Preserve the chosen soft-hyphen behavior in text motion, Morph transitions,
+  and Contour rendering.
+- Avoid a Windows shader compilation crash when drawing animated Contour shadows.
+
 ## 0.29.0-beta.4
 
 - Keep incoming nested `Morph` elements visible during parent transitions when they have no matching element.

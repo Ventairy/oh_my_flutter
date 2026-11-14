@@ -1,6 +1,6 @@
 // dart format width=80
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter_example/examples/snap_list_example.dart';
 
 void main() {

@@ -486,7 +486,8 @@ class _SnapListState extends State<SnapList> {
       !widget.duration.isNegative && !widget.reverseDuration.isNegative,
       'Durations must be nonnegative.',
     );
-    _motion.reducedMotion = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    _motion.reducedMotion =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
     final direction = getAxisDirectionFromAxisReverseAndDirectionality(context, widget.axis, false);
     if (_direction != null && _direction != direction) _motion.reset();
     _direction = direction;

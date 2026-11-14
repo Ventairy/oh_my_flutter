@@ -52,8 +52,9 @@ class _SkeletonState extends State<_SkeletonTransitionHost> with SingleTickerPro
     }
 
     final transition = widget.skeleton.transition;
-    final disableAnimations = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
-    if (transition == null || transition.duration == Duration.zero || disableAnimations) {
+    final reduceMotion =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
+    if (transition == null || transition.duration == Duration.zero || reduceMotion) {
       _clearOutgoing();
       _customActive = false;
       _controller?.value = widget.skeleton.enabled ? 0 : 1;
@@ -98,7 +99,9 @@ class _SkeletonState extends State<_SkeletonTransitionHost> with SingleTickerPro
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!(MediaQuery.maybeDisableAnimationsOf(context) ?? false)) return;
+    final reduceMotion =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
+    if (!reduceMotion) return;
     _clearOutgoing();
     _customActive = false;
     _controller?.value = widget.skeleton.enabled ? 0 : 1;
@@ -132,10 +135,11 @@ class _SkeletonState extends State<_SkeletonTransitionHost> with SingleTickerPro
 
   @override
   Widget build(BuildContext context) {
-    final disableAnimations = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final reduceMotion =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
     final transition = widget.skeleton.transition!;
     final controller = _ensureController(initialEnabled: widget.skeleton.enabled);
-    final transitionEnabled = transition.duration > Duration.zero && !disableAnimations;
+    final transitionEnabled = transition.duration > Duration.zero && !reduceMotion;
     var visual = widget.skeleton._buildAppearance(
       context,
       blend: transitionEnabled && transition._builder == null ? _animationFor(transition.curve, controller) : null,

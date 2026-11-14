@@ -24,6 +24,7 @@ final class _MorphTextParagraphMetricsCache {
       properties.textWidthBasis,
       properties.textHeightBehavior,
       properties.strutStyle,
+      properties.hyphens,
     );
     final cached = sourceSegment ? _source : _destination;
     if (cached?.key == key) return cached!.metrics;
@@ -37,6 +38,7 @@ final class _MorphTextParagraphMetricsCache {
       textWidthBasis: properties.textWidthBasis ?? TextWidthBasis.parent,
       textHeightBehavior: properties.textHeightBehavior,
       strutStyle: properties.strutStyle,
+      hyphens: properties.hyphens,
       maxLines: properties.maxLines,
       ellipsis: properties.overflow == TextOverflow.ellipsis ? '…' : null,
     );

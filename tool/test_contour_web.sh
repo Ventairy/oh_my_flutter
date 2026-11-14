@@ -86,7 +86,7 @@ link_target="../../../lib/src/gen/${generated_directory##*/}"
 python3 -c 'import os, sys; os.symlink(sys.argv[1], sys.argv[2])' "$link_target" "$assets_link"
 
 # Additional Flutter arguments can filter these suites or add test files.
-run_command "$flutter" test --ipv6 --platform chrome \
+run_command "$flutter" test --ipv6 --platform chrome --no-deprecated-js-interop \
   test/widgets/contour/contour_declared_source_test.dart \
   test/widgets/contour/contour_known_box_source_test.dart \
   test/widgets/contour/contour_known_box_shadow_test.dart \

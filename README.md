@@ -9,6 +9,8 @@ features, networking, and other common application tasks.
 
 ## Installation
 
+Requires Flutter 3.50 or newer and Dart 3.14 or newer.
+
 Add the latest compatible release from pub.dev:
 
 ```console
@@ -19,7 +21,7 @@ Or add it directly to your `pubspec.yaml`:
 
 ```yaml
 dependencies:
-  oh_my_flutter: ^0.24.0
+  oh_my_flutter: ^0.29.0
 ```
 
 Import the public library wherever you need it:
@@ -41,7 +43,7 @@ This example starts with an accent color, makes it lighter, produces a hex
 color value, and converts it to the OKLCH color model:
 
 ```dart
-import 'package:flutter/material.dart';
+import 'dart:ui';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 final accent = const Color(0xFFFF4A4B);

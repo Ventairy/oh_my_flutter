@@ -33,6 +33,7 @@ final class MorphTextProperties {
     required this.endpointScaleY,
     required this.baselineOffset,
     required this.reservedLayoutWidth,
+    this.hyphens = ui.Hyphens.manual,
   });
 
   /// Visible text content.
@@ -70,6 +71,9 @@ final class MorphTextProperties {
 
   /// Paragraph height behavior.
   final TextHeightBehavior? textHeightBehavior;
+
+  /// Whether a soft hyphen becomes visible when a line breaks there.
+  final ui.Hyphens hyphens;
 
   /// Optional strut configuration.
   final StrutStyle? strutStyle;

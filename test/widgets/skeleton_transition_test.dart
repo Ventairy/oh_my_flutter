@@ -1,8 +1,8 @@
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 Widget _scene({
@@ -10,9 +10,10 @@ Widget _scene({
   required SkeletonTransition? transition,
   Key? childKey,
   bool disableAnimations = false,
+  bool reduceMotion = false,
 }) => MaterialApp(
   home: MediaQuery(
-    data: MediaQueryData(disableAnimations: disableAnimations),
+    data: MediaQueryData(disableAnimations: disableAnimations, reduceMotion: reduceMotion),
     child: Scaffold(
       body: Center(
         child: RepaintBoundary(
@@ -458,13 +459,41 @@ void main() {
     expect((await _centerPixel(tester)).toARGB32(), Colors.blue.toARGB32());
   });
 
-  testWidgets('when reduced motion is requested, it should reveal content immediately', (tester) async {
-    const transition = SkeletonTransition.crossfade();
-    await tester.pumpWidget(_scene(enabled: true, transition: transition, disableAnimations: true));
-    await tester.pumpWidget(_scene(enabled: false, transition: transition, disableAnimations: true));
+  for (final settings in [
+    (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+    (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+    (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+  ]) {
+    for (final transitionCase in [
+      (label: 'crossfade', transition: const SkeletonTransition.crossfade()),
+      (label: 'custom transition', transition: const SkeletonTransition.custom(transitionBuilder: _crossfade)),
+    ]) {
+      final transition = transitionCase.transition;
+      testWidgets(
+        'when ${settings.label} is requested with ${transitionCase.label}, it should reveal content immediately',
+        (tester) async {
+          await tester.pumpWidget(
+            _scene(
+              enabled: true,
+              transition: transition,
+              disableAnimations: settings.disableAnimations,
+              reduceMotion: settings.reduceMotion,
+            ),
+          );
+          await tester.pumpWidget(
+            _scene(
+              enabled: false,
+              transition: transition,
+              disableAnimations: settings.disableAnimations,
+              reduceMotion: settings.reduceMotion,
+            ),
+          );
 
-    expect((await _centerPixel(tester)).toARGB32(), Colors.red.toARGB32());
-  });
+          expect((await _centerPixel(tester)).toARGB32(), Colors.red.toARGB32());
+        },
+      );
+    }
+  }
 
   testWidgets('when custom reveals content, it should expose only target semantics', (tester) async {
     final semantics = tester.ensureSemantics();
@@ -533,15 +562,27 @@ void main() {
     expect((await _centerPixel(tester)).toARGB32(), Colors.red.toARGB32());
   });
 
-  testWidgets('when reduced motion starts during crossfade, it should settle immediately', (tester) async {
-    const transition = SkeletonTransition.crossfade();
-    await tester.pumpWidget(_scene(enabled: true, transition: transition));
-    await tester.pumpWidget(_scene(enabled: false, transition: transition));
-    await tester.pump(const Duration(milliseconds: 100));
-    await tester.pumpWidget(_scene(enabled: false, transition: transition, disableAnimations: true));
+  for (final settings in [
+    (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+    (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+  ]) {
+    testWidgets('when ${settings.label} starts during crossfade, it should settle immediately', (tester) async {
+      const transition = SkeletonTransition.crossfade();
+      await tester.pumpWidget(_scene(enabled: true, transition: transition));
+      await tester.pumpWidget(_scene(enabled: false, transition: transition));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(
+        _scene(
+          enabled: false,
+          transition: transition,
+          disableAnimations: settings.disableAnimations,
+          reduceMotion: settings.reduceMotion,
+        ),
+      );
 
-    expect((await _centerPixel(tester)).toARGB32(), Colors.red.toARGB32());
-  });
+      expect((await _centerPixel(tester)).toARGB32(), Colors.red.toARGB32());
+    });
+  }
 
   testWidgets('when transition is omitted, it should reveal content immediately', (tester) async {
     await tester.pumpWidget(_scene(enabled: true, transition: null));

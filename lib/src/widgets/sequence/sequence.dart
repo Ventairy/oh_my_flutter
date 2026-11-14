@@ -209,7 +209,8 @@ class _SequenceState extends State<Sequence> with TickerProviderStateMixin {
     _index = targetIndex;
     _controller._setIndex(targetIndex);
 
-    final animationsDisabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final animationsDisabled =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
     if (transition == null ||
         animationsDisabled ||
         (widget.duration == Duration.zero && widget.reverseDuration == Duration.zero)) {

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Paint-only translation used by the resting-endpoint Morph benchmark.
 final class MorphBenchmarkRestingFlowDelegate extends FlowDelegate {
