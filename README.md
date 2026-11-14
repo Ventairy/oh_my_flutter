@@ -296,6 +296,12 @@ number matches its country's current numbering plan before continuing. Use
 `PhoneNumberTextInputFormatter` to keep editable text in the selected country's
 national format while returning its country and international value.
 
+### Handle input
+
+`HandleTextInputFormatter` keeps account-handle entry free of `@` prefixes and
+whitespace. It can do things such as turn a pasted ` @Some.Name ` into
+`Some.Name` while preserving case and Unicode.
+
 ### WhatsApp
 
 Use `Whatsapp` to interact with WhatsApp recipients throughout an application.

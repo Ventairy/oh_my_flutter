@@ -1,3 +1,8 @@
+## Unreleased
+
+- Add `HandleTextInputFormatter` for bare account-handle entry that preserves
+  case, Unicode, composition, and selection while removing `@` and whitespace.
+
 ## 0.29.0
 
 - **Breaking:** Require Flutter 3.50.0 and Dart 3.14.0 or newer. Use the

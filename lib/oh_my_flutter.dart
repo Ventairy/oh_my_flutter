@@ -35,7 +35,8 @@ export 'src/extensions/string_extension.dart' show StringExtension;
 export 'src/extensions/velocity_extension.dart' show VelocityExtension;
 export 'src/oklch/oklch.dart' show Oklch;
 export 'src/phone_number.dart' show PhoneNumber;
-export 'src/phone_number_text_input_formatter/phone_number_text_input_formatter.dart'
+export 'src/text_input_formatters/handle_text_input_formatter.dart' show HandleTextInputFormatter;
+export 'src/text_input_formatters/phone_number_text_input_formatter/phone_number_text_input_formatter.dart'
     show PhoneNumberTextInputFormatter, PhoneNumberTextInputFormatterResult;
 export 'src/whatsapp.dart' show Whatsapp;
 export 'src/widgets/contour/contour.dart' show Contour, ContourController;

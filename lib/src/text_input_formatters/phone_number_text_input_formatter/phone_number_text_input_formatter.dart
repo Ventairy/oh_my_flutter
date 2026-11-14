@@ -2,7 +2,7 @@ import 'package:dlibphonenumber/dlibphonenumber.dart' as parser;
 import 'package:flutter/services.dart';
 import 'package:meta/meta.dart';
 
-import '../country/country.dart';
+import '../../country/country.dart';
 
 part 'phone_number_text_input_formatter_result.dart';
 
@@ -12,7 +12,7 @@ part 'phone_number_text_input_formatter_result.dart';
 /// explicitly international value may select another country, then create a
 /// new formatter with the returned country before the next edit.
 ///
-/// See the [phone number guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/phone_number.md)
+/// See the [text input formatters guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/utilities/text_input_formatters.md#phonenumbertextinputformatter)
 /// for field integration and country-change examples.
 final class PhoneNumberTextInputFormatter extends TextInputFormatter {
   /// Creates a formatter for [country].
