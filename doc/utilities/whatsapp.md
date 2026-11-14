@@ -15,8 +15,13 @@ final phoneRecipient = Whatsapp('+1 (202) 555-0123');
 ```
 
 Usernames may include or omit their leading `@`. They are normalized to
-lowercase and must contain 3 to 35 letters, numbers, periods, or underscores.
-A username cannot contain only numbers.
+lowercase and must contain 3 to 35 ASCII letters, digits, periods, or underscores.
+They must include at least one ASCII letter. Leading, trailing, or consecutive
+periods, a `www.` prefix, and reserved domain or file suffixes are rejected.
+
+Use `StringExtension.isValidWhatsappUsername` to check a username before
+construction. The [string guide](../extensions/string.md#whatsapp-usernames)
+describes the complete accepted format.
 
 Phone numbers may use common visual formatting but must include a country
 calling code and have a possible length for their country. Their prefixes do

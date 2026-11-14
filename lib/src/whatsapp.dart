@@ -24,7 +24,8 @@ import 'package:url_launcher/url_launcher.dart';
 class Whatsapp {
   /// Creates a WhatsApp recipient from [identifier].
   ///
-  /// Usernames may include or omit their leading `@`. Phone numbers may use
+  /// Usernames must satisfy [StringExtension.isValidWhatsappUsername] and may
+  /// include or omit their leading `@`. Phone numbers may use
   /// common visual formatting but must include a country calling code and have
   /// a possible length for their country.
   ///
@@ -53,7 +54,7 @@ class Whatsapp {
 
     if (trimmedIdentifier.startsWith('@')) {
       return Whatsapp._fromUsername(
-        username: trimmedIdentifier.substring(1),
+        username: trimmedIdentifier,
         source: identifier,
         launcher: launcher,
         isWeb: isWeb,
@@ -85,15 +86,17 @@ class Whatsapp {
     required Future<bool> Function(Uri uri) launcher,
     required bool isWeb,
   }) {
-    final normalizedUsername = username.toLowerCase();
-    if (!_usernamePattern.hasMatch(normalizedUsername) || normalizedUsername.isDigitsOnly) {
+    if (!username.isValidWhatsappUsername) {
       throw FormatException(
         'A WhatsApp identifier must be a valid phone number with a country '
-        'calling code or a username containing 3 to 35 letters, numbers, '
-        'periods, or underscores.',
+        'calling code or a username containing 3 to 35 ASCII letters, digits, '
+        'periods, or underscores, including at least one letter. Usernames '
+        'cannot have leading, trailing, or consecutive periods, start with '
+        'www., or end with a reserved domain or file suffix.',
         source,
       );
     }
+    final normalizedUsername = (username.startsWith('@') ? username.substring(1) : username).toLowerCase();
 
     return Whatsapp._(
       identifier: normalizedUsername,
@@ -121,7 +124,9 @@ class Whatsapp {
     );
   }
 
-  static final _usernamePattern = RegExp(r'^[a-z0-9._]{3,35}$');
+  static String _encodeQuery(Map<String, String> parameters) => parameters.entries
+      .map((entry) => '${Uri.encodeComponent(entry.key)}=${Uri.encodeComponent(entry.value)}')
+      .join('&');
 
   final Object _identifier;
   final Future<bool> Function(Uri uri) _launcher;
@@ -172,7 +177,7 @@ class Whatsapp {
 
     try {
       final launched = await _launcher(
-        Uri(scheme: 'whatsapp', host: 'send', queryParameters: queryParameters),
+        Uri(scheme: 'whatsapp', host: 'send', query: _encodeQuery(queryParameters)),
       );
       if (launched) return true;
     } catch (_) {
@@ -190,7 +195,7 @@ class Whatsapp {
         scheme: 'https',
         host: 'wa.me',
         path: '/$_identifierForUri',
-        queryParameters: hasMessage ? <String, String>{'text': message} : null,
+        query: hasMessage ? _encodeQuery({'text': message}) : null,
       );
     }
 
@@ -198,10 +203,10 @@ class Whatsapp {
       scheme: 'https',
       host: 'wa.me',
       path: '/',
-      queryParameters: <String, String>{
+      query: _encodeQuery({
         'username': _identifierForUri,
         if (hasMessage) 'text': message,
-      },
+      }),
     );
   }
 }

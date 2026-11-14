@@ -1,4 +1,19 @@
-## Unreleased
+## 0.30.0
+
+- Preserve spaces and special characters in prefilled WhatsApp messages on
+  mobile, web, and fallback links.
+
+- Add string validation getters for email addresses, international phone
+  numbers, and Telegram, Instagram, and WhatsApp usernames, including reserved
+  Telegram and Instagram route exclusions.
+  **Breaking:** `Whatsapp` now shares the stricter username rules, rejecting
+  names without a letter, invalid period placement, `www.` prefixes, and
+  reserved domain or file suffixes.
+
+- Add composable disintegration to `Motion` and `TextMotion`, including custom
+  `apply` effects, directional or stationary pieces, captured overlays, and
+  optimized Android and iOS playback without native host configuration.
+  **Breaking:** Android now requires API 26 or newer.
 
 - Add `HandleTextInputFormatter` for bare account-handle entry that preserves
   case, Unicode, composition, and selection while removing `@` and whitespace.

@@ -15,7 +15,7 @@ longitude='-46.844076'
 latitude='-23.556391'
 
 matrix=(
-  '24;default;arm64-v8a;pixel_2'
+  '26;default;arm64-v8a;pixel_2'
   '27;default;arm64-v8a;pixel_2'
   '28;default;arm64-v8a;pixel_2'
   '30;default;arm64-v8a;pixel_2'
@@ -174,7 +174,7 @@ for entry in "${matrix[@]}"; do
     "$application_id" android.permission.ACCESS_COARSE_LOCATION
   run_permission_prompt_scenario
 
-  if [[ "$api" == '24' || "$api" == '31' || "$api" == '36' ]]; then
+  if [[ "$api" == '26' || "$api" == '31' || "$api" == '36' ]]; then
     "$adb" -s "$emulator_id" install -r "$apk"
     "$adb" -s "$emulator_id" shell pm revoke \
       "$application_id" android.permission.ACCESS_FINE_LOCATION

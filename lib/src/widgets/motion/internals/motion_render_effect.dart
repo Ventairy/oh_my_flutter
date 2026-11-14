@@ -144,13 +144,12 @@ class _MotionRenderEffect {
     );
   }
 
-  static Rect paintBoundsFor(Size size, List<_MotionRenderEffect> effects) {
+  static Rect paintBoundsFor(Size size, Iterable<MotionEffectBounds> effectBounds) {
     var maximumScale = 1.0;
     var horizontalMotion = 0.0;
     var verticalMotion = 0.0;
     var maximumRotationDegrees = 0.0;
-    for (final effect in effects) {
-      final bounds = effect.bounds;
+    for (final bounds in effectBounds) {
       horizontalMotion += bounds._maximumAbsoluteTranslationX;
       verticalMotion += bounds._maximumAbsoluteTranslationY;
       maximumScale *= math.max(1, bounds.maximumScale);

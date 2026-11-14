@@ -9,7 +9,8 @@ features, networking, and other common application tasks.
 
 ## Installation
 
-Requires Flutter 3.50 or newer and Dart 3.14 or newer.
+Requires Flutter 3.50 or newer and Dart 3.14 or newer. Android requires API 26
+(Android 8.0) or newer.
 
 Add the latest compatible release from pub.dev:
 
@@ -82,7 +83,8 @@ and hue, and converts between OKLCH and Flutter colors.
 ### String classification
 
 `StringExtension` adds convenient operations to Dart strings. It can do things
-such as checking whether a value contains only digits.
+such as checking contact details before submitting a form or determining
+whether a value contains only digits.
 
 ### Velocity classification
 
@@ -133,8 +135,10 @@ stay hidden while the transition runs.
 
 ### Motion
 
-`Motion` adds reusable visual effects, such as fading, scaling, moving, floating, shaking, etc. to any widget. Effects can run once, repeat, start automatically,
-or be controlled by the application.
+`Motion` applies reusable visual treatments to widgets without changing their
+layout. It can do things such as make a card break into drifting pieces while
+shrinking, or gently shake an icon. Effects can run once, repeat, start
+automatically, or be controlled by the application.
 
 ### TextMotion
 

@@ -309,3 +309,72 @@ MotionEffectBounds get bounds =>
 ```
 
 `maximumRotationDegrees` reserves room for the child to turn around its center.
+
+## Disintegrate content
+
+`DisintegrateMotionEffect` breaks a widget into small pieces that shrink and
+fade away. Direction controls travel rather than speed. Nonzero vectors are
+normalized; `Offset.zero` keeps every piece in place, including its random
+movement. The default desired piece size is 2.2 logical source pixels. Large
+widgets may use larger pieces to keep the effect affordable.
+
+```dart
+Motion(
+  effect: const DisintegrateMotionEffect(
+    direction: Offset(0, -1),
+    duration: Duration(seconds: 2),
+  ),
+  child: const Text('See you around'),
+)
+```
+
+The child is captured once when playback is requested. Its appearance stays
+frozen for that run. Preparation finishes before playback and `onStart` begin;
+the configured duration does not include preparation. Calling `play()` again
+captures the current child and replaces the previous run. With looping playback,
+the same captured content is reused until replay.
+
+### Compose a custom effect
+
+Use `disintegrate` inside the same `apply` method as the other operations:
+
+```dart
+class ShrinkingDisintegrateMotionEffect extends MotionEffect {
+  const ShrinkingDisintegrateMotionEffect({
+    super.duration = const Duration(seconds: 2),
+    super.onEnd,
+  });
+
+  @override
+  void apply(double progress, MotionEffectTransform transform) {
+    transform.disintegrate(
+      progress: progress,
+      direction: const Offset(0, -1),
+    );
+    transform.scale(1 - 0.2 * progress);
+  }
+}
+```
+
+Operations apply in declaration order. Scaling after disintegration scales the
+pieces and their displacement together. Scaling before it changes the input
+before the pieces move. Multiple disintegration calls compose in order too.
+
+Keep the number/order of `disintegrate` calls and each call's `particleSize`
+constant throughout playback. To delay breakup, pass an interval-transformed
+progress instead of conditionally calling the method. Progress outside zero
+through one is clamped. Particle patterns are repeatable without a seed setting.
+
+### Keep changing content underneath
+
+The default `renderPresentation: MotionRenderPresentation.replace` displays
+captured motion instead of the live child. Use `.overlay` when the child should
+change underneath, such as removing an item from a feed while its old pixels
+continue disappearing above the next item. Make that update in `onStart`, when
+the captured output is ready, and set `interactive: true` to keep the live child
+interactive during the animation. The overlay does not accept pointer input.
+
+Captured effects need paintable Flutter content. Native platform views are not
+guaranteed to appear in captures. If preparation is unavailable, motion skips the
+visual treatment while preserving lifecycle callbacks. The same primitive works
+in `TextMotion`, with its existing typography and per-character timing rules.

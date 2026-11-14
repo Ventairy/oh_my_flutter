@@ -92,7 +92,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     }
 
     if (_renderEffects.every((effect) => effect.bounds.maximumRotationDegrees == 0)) {
-      _cachedPaintBounds = _MotionRenderEffect.paintBoundsFor(size, _renderEffects);
+      _cachedPaintBounds = _MotionRenderEffect.paintBoundsFor(size, _renderEffects.map((effect) => effect.bounds));
       return;
     }
 
@@ -102,7 +102,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       final box = _placeholderBoxes[index];
       final characterBounds = _MotionRenderEffect.paintBoundsFor(
         Size(box.right - box.left, box.bottom - box.top),
-        _renderEffects,
+        _renderEffects.map((effect) => effect.bounds),
       ).shift(Offset(box.left, box.top));
       bounds = bounds.expandToInclude(characterBounds);
     }

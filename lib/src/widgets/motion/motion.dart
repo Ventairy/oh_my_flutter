@@ -5,10 +5,12 @@ import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../rendering/resting_paint_transform.dart';
 
+part 'effects/disintegrate_motion_effect.dart';
 part 'effects/fade_in_motion_effect.dart';
 part 'effects/floating_motion_effect.dart';
 part 'effects/move_motion_effect.dart';
@@ -18,6 +20,19 @@ part 'effects/rotate_motion_effect.dart';
 part 'effects/scale_in_motion_effect.dart';
 part 'effects/scale_out_motion_effect.dart';
 part 'effects/shake_motion_effect.dart';
+part 'internals/disintegration/motion_disintegration_table.dart';
+part 'internals/disintegration/motion_visual_operation_kind.dart';
+part 'internals/disintegration/motion_visual_operation.dart';
+part 'internals/disintegration/motion_disintegration_host.dart';
+part 'internals/disintegration/motion_particle_stage.dart';
+part 'internals/disintegration/motion_particle_fragment.dart';
+part 'internals/disintegration/motion_particle_painter.dart';
+part 'internals/disintegration/motion_disintegration_frame.dart';
+part 'internals/disintegration/motion_texture_readiness.dart';
+part 'internals/disintegration/motion_disintegration_source.dart';
+part 'internals/disintegration/motion_disintegration_bounds.dart';
+part 'internals/disintegration/motion_disintegration_shaders.dart';
+part 'internals/disintegration/motion_disintegration_parameters.dart';
 part 'internals/motion_animation.dart';
 part 'internals/motion_animation_group.dart';
 part 'internals/motion_animation_host.dart';
@@ -35,6 +50,7 @@ part 'motion_controller.dart';
 part 'motion_effect.dart';
 part 'motion_effect_bounds.dart';
 part 'motion_effect_transform.dart';
+part 'motion_render_presentation.dart';
 part 'motion_playback.dart';
 part 'motion_startup.dart';
 part 'text_motion.dart';
@@ -65,6 +81,7 @@ class Motion extends StatelessWidget {
     this.controller,
     this.startup = MotionStartup.play,
     this.interactive = false,
+    this.renderPresentation = MotionRenderPresentation.replace,
     super.key,
   }) : effects = null;
 
@@ -80,6 +97,7 @@ class Motion extends StatelessWidget {
     this.controller,
     this.startup = MotionStartup.play,
     this.interactive = false,
+    this.renderPresentation = MotionRenderPresentation.replace,
     super.key,
   }) : effect = null;
 
@@ -123,9 +141,22 @@ class Motion extends StatelessWidget {
   /// Widget receiving the motion treatment.
   final Widget child;
 
+  /// Whether captured motion replaces the child or appears above its live content.
+  final MotionRenderPresentation renderPresentation;
+
   @override
   Widget build(BuildContext context) {
     final resolvedEffects = effect == null ? List<MotionEffect>.of(effects!) : <MotionEffect>[effect!];
+    if (MotionEffectTransform._usesDisintegration(resolvedEffects)) {
+      return _MotionDisintegrationHost(
+        effects: resolvedEffects,
+        controller: controller,
+        startup: startup,
+        interactive: interactive,
+        presentation: renderPresentation,
+        child: child,
+      );
+    }
     return _MotionAnimationHost(
       controller: controller,
       effects: resolvedEffects,

@@ -79,6 +79,7 @@ export 'src/widgets/morph/morph_match_operation.dart' show MorphMatchOperation;
 export 'src/widgets/morph/morph_tag_status.dart' show MorphTagStatus;
 export 'src/widgets/motion/motion.dart'
     show
+        DisintegrateMotionEffect,
         FadeInMotionEffect,
         FloatingMotionEffect,
         Motion,
@@ -87,6 +88,7 @@ export 'src/widgets/motion/motion.dart'
         MotionEffectBounds,
         MotionEffectTransform,
         MotionPlayback,
+        MotionRenderPresentation,
         MotionStartup,
         MoveMotionEffect,
         PopMotionEffect,

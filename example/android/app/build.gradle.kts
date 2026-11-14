@@ -15,7 +15,7 @@ android {
 
     defaultConfig {
         applicationId = "dev.ventairy.oh_my_flutter_example"
-        minSdk = flutter.minSdkVersion
+        minSdk = maxOf(flutter.minSdkVersion, 26)
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName

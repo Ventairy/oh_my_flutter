@@ -90,6 +90,13 @@ class _MotionExampleState extends State<MotionExample> {
         ),
         const SizedBox(height: 12),
         Text(_status),
+        const SizedBox(height: 20),
+        Motion(
+          controller: _controller,
+          startup: .hold,
+          effect: const DisintegrateMotionEffect(direction: Offset(1, -1), duration: Duration(seconds: 2)),
+          child: const Icon(Icons.auto_awesome, size: 48),
+        ),
         const SizedBox(height: 12),
         FilledButton.tonalIcon(
           onPressed: _controller.play,
