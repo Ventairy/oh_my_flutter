@@ -98,6 +98,7 @@ jobs:
               fvm flutter test --no-pub
               ;;
             web-and-example)
+              fvm flutter precache --linux
               python3 -m unittest discover -s test/shaders -p '*_test.py'
               fvm flutter test \
                 --no-pub \

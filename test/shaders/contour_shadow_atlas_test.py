@@ -1,6 +1,7 @@
 """Compile the Contour shader with the project SDK to catch platform hazards."""
 from pathlib import Path
 import platform
+import os
 import subprocess
 import tempfile
 import unittest
@@ -19,7 +20,8 @@ class ContourShadowAtlasTest(unittest.TestCase):
             ('Windows', 'AMD64'): 'windows-x64',
             ('Windows', 'ARM64'): 'windows-arm64',
         }[(platform.system(), platform.machine())]
-        compiler = root / '.fvm/flutter_sdk/bin/cache/artifacts/engine' / host / (
+        sdk = Path(os.environ.get('FLUTTER_ROOT', str(root / '.fvm/flutter_sdk')))
+        compiler = sdk / 'bin/cache/artifacts/engine' / host / (
             'impellerc.exe' if platform.system() == 'Windows' else 'impellerc'
         )
         results = []
