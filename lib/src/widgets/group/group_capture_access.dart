@@ -52,7 +52,6 @@ final class GroupCaptureAccess {
             }
           })
           // Finish the offscreen render operation before rasterization.
-          // ignore: invalid_use_of_protected_member
           ..stopRecordingIfNeeded();
       } finally {
         FlutterError.onError = previousOnError;
