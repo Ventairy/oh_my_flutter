@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Displays the benchmark result only after all timed work has finished.
 class MorphBenchmarkStatus extends StatelessWidget {

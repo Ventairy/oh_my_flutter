@@ -5,9 +5,9 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'dart:ui' hide Image;
 
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
 
 part '_skeleton_animation_clock.dart';
 part '_skeleton_bone_command.dart';
@@ -110,15 +110,16 @@ class Skeleton extends StatelessWidget {
 
   Widget _buildAppearance(BuildContext context, {required Widget child, Animation<double>? blend}) {
     final effect = style.effect;
-    final disableAnimations = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final reduceMotion =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
     final tickerMode = TickerMode.valuesOf(context);
     final animate =
         enabled &&
         effect is SkeletonAnimatedEffectBase &&
         effect.duration > Duration.zero &&
-        !disableAnimations &&
+        !reduceMotion &&
         tickerMode.enabled;
-    final effectiveStyle = effect is SkeletonAnimatedEffectBase && disableAnimations
+    final effectiveStyle = effect is SkeletonAnimatedEffectBase && reduceMotion
         ? SkeletonStyle(color: style.color, shape: style.shape)
         : style;
 

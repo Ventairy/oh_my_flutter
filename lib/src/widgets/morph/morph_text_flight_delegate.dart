@@ -50,6 +50,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
     final textWidthBasis = text.textWidthBasis ?? defaultTextStyle.textWidthBasis;
     final textHeightBehavior = text.textHeightBehavior ?? defaultTextStyle.textHeightBehavior;
     final locale = text.locale ?? Localizations.maybeLocaleOf(context);
+    final hyphens = text.hyphens ?? ui.Hyphens.manual;
     final resolvedStyle = axisScale.dy == 1 ? baseStyle : baseStyle.apply(fontSizeFactor: axisScale.dy);
     final resolvedStrutStyle = _scaleStrutStyle(
       text.strutStyle,
@@ -66,6 +67,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
       textWidthBasis: textWidthBasis,
       textHeightBehavior: textHeightBehavior,
       strutStyle: resolvedStrutStyle,
+      hyphens: hyphens,
       maxLines: maxLines,
       ellipsis: overflow == TextOverflow.ellipsis ? '…' : null,
     );
@@ -95,6 +97,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
         textWidthBasis: textWidthBasis,
         textHeightBehavior: textHeightBehavior,
         strutStyle: resolvedStrutStyle,
+        hyphens: hyphens,
         selectionColor: text.selectionColor,
         switchThreshold: switchThreshold,
         measuredLineCount: math.max(1, lineMetrics.length),
@@ -304,6 +307,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
       textWidthBasis: selected.textWidthBasis,
       textHeightBehavior: selected.textHeightBehavior,
       strutStyle: selected.strutStyle,
+      hyphens: selected.hyphens,
       selectionColor: Color.lerp(
         source.selectionColor,
         destination.selectionColor,
@@ -379,6 +383,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
       textWidthBasis: selected.textWidthBasis ?? TextWidthBasis.parent,
       textHeightBehavior: selected.textHeightBehavior,
       strutStyle: selected.strutStyle,
+      hyphens: selected.hyphens,
       maxLines: maxLines,
       ellipsis: selected.overflow == TextOverflow.ellipsis ? '…' : null,
     );
@@ -409,6 +414,7 @@ final class MorphTextFlightDelegate extends MorphFlightDelegate<MorphTextPropert
       textWidthBasis: properties.textWidthBasis,
       textHeightBehavior: properties.textHeightBehavior,
       strutStyle: properties.strutStyle,
+      hyphens: properties.hyphens,
       selectionColor: properties.selectionColor,
     );
     if (properties.paintScaleX == 1 &&

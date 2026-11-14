@@ -1017,6 +1017,7 @@ class _MorphCompoundFlightPlan extends ChangeNotifier {
         source.textWidthBasis == destination.textWidthBasis &&
         source.textHeightBehavior == destination.textHeightBehavior &&
         source.strutStyle == destination.strutStyle &&
+        source.hyphens == destination.hyphens &&
         source.selectionColor == destination.selectionColor &&
         source.switchThreshold == destination.switchThreshold &&
         source.measuredLineCount == destination.measuredLineCount &&

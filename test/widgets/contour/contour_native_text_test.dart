@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 import 'contour_native_test_harness.dart';
@@ -67,6 +67,29 @@ void main() {
       await harness.mount(tester, amount: amount, child: ContourNativeTestHarness.glyph);
     }
     expect(harness.diagnostic('nativeTextVerificationCount'), 1);
+  });
+
+  testWidgets('when soft hyphens become hidden, it should refresh the visible text contour', (tester) async {
+    final harness = ContourNativeTestHarness();
+    Widget text(Hyphens hyphens) => SizedBox(
+      width: 72,
+      child: Text(
+        'OO\u00adOO',
+        hyphens: hyphens,
+        style: const TextStyle(fontFamily: 'Ahem', fontSize: 24, height: 1),
+      ),
+    );
+
+    await harness.mount(tester, amount: 3, child: text(Hyphens.manual));
+    await harness.mount(tester, amount: 3, child: text(Hyphens.hidden));
+    final updated = await harness.pixels(tester, pixelRatio: 4);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await harness.mount(tester, amount: 3, child: text(Hyphens.hidden));
+
+    expect(
+      (listEquals(updated, await harness.pixels(tester, pixelRatio: 4)), harness.diagnostic('nativeTextActive')),
+      (true, true),
+    );
   });
 
   testWidgets('when glyphs change repeatedly during generation, it should display the newest source', (tester) async {

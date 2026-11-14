@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show OffsetLayer, TransformLayer;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 void main() {
@@ -61,17 +61,32 @@ void main() {
       });
     }
 
-    for (final reducedMotion in [false, true]) {
-      testWidgets('when return is immediate with reduced motion $reducedMotion, it should restore without a ticker', (
+    for (final settings in [
+      (label: 'zero return duration', disableAnimations: false, reduceMotion: false, returnDuration: Duration.zero),
+      (
+        label: 'disabled animations',
+        disableAnimations: true,
+        reduceMotion: false,
+        returnDuration: const Duration(seconds: 1),
+      ),
+      (
+        label: 'reduced motion',
+        disableAnimations: false,
+        reduceMotion: true,
+        returnDuration: const Duration(seconds: 1),
+      ),
+    ]) {
+      testWidgets('when return is immediate with ${settings.label}, it should restore without a ticker', (
         tester,
       ) async {
         await tester.pumpWidget(
           _TestApp(
-            disableAnimations: reducedMotion,
+            disableAnimations: settings.disableAnimations,
+            reduceMotion: settings.reduceMotion,
             onDismiss: _TestApp.rejectDismissal,
             dragConfig: InteractiveSwipeDismissDragConfig(
               returnCurve: Curves.easeInQuad,
-              returnDuration: reducedMotion ? const Duration(seconds: 1) : Duration.zero,
+              returnDuration: settings.returnDuration,
             ),
           ),
         );
@@ -648,30 +663,35 @@ void main() {
       expect(dismissals, 0);
     });
 
-    testWidgets('when motion is reduced, it should dismiss without translation', (
-      tester,
-    ) async {
-      var dismissals = 0;
-      await tester.pumpWidget(
-        _TestApp(
-          disableAnimations: true,
-          onDismiss: () {
-            dismissals += 1;
-            return true;
-          },
-        ),
-      );
-      final initial = _topLeft(tester);
-      final gesture = await tester.startGesture(_center(tester));
+    for (final settings in [
+      (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+      (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+      (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+    ]) {
+      testWidgets('when ${settings.label} is requested, it should dismiss without translation', (tester) async {
+        var dismissals = 0;
+        await tester.pumpWidget(
+          _TestApp(
+            disableAnimations: settings.disableAnimations,
+            reduceMotion: settings.reduceMotion,
+            onDismiss: () {
+              dismissals += 1;
+              return true;
+            },
+          ),
+        );
+        final initial = _topLeft(tester);
+        final gesture = await tester.startGesture(_center(tester));
 
-      await gesture.moveBy(const Offset(0, 360));
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(_topLeft(tester), initial);
+        await gesture.moveBy(const Offset(0, 360));
+        await tester.pump(const Duration(milliseconds: 500));
+        final draggedPosition = _topLeft(tester);
+        await gesture.up();
+        await tester.pump();
 
-      await gesture.up();
-      await tester.pump();
-      expect(dismissals, 1);
-    });
+        expect((draggedPosition, dismissals), (initial, 1));
+      });
+    }
 
     for (final entry in <(InteractiveSwipeDismissDirection, Offset)>[
       (InteractiveSwipeDismissDirection.up, const Offset(0, -360)),
@@ -1394,6 +1414,7 @@ class _TestApp extends StatelessWidget {
     this.direction = InteractiveSwipeDismissDirection.down,
     this.dragConfig = const InteractiveSwipeDismissDragConfig(),
     this.disableAnimations = false,
+    this.reduceMotion = false,
     this.child = const ColoredBox(key: childKey, color: Colors.white),
   });
 
@@ -1405,6 +1426,7 @@ class _TestApp extends StatelessWidget {
   final InteractiveSwipeDismissDirection direction;
   final InteractiveSwipeDismissDragConfig dragConfig;
   final bool disableAnimations;
+  final bool reduceMotion;
   final Widget child;
 
   @override
@@ -1414,6 +1436,7 @@ class _TestApp extends StatelessWidget {
         data: MediaQueryData(
           size: const Size(800, 600),
           disableAnimations: disableAnimations,
+          reduceMotion: reduceMotion,
         ),
         child: InteractiveSwipeDismiss(
           direction: direction,

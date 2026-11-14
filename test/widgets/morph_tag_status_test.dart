@@ -49,16 +49,27 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('when reduced motion skips the flight, it should show the destination without sliding', (tester) async {
-    final scene = TagStatusScene(reducedMotion: true);
-    await tester.pumpWidget(scene.app);
-    await tester.pumpAndSettle();
-    scene.push();
-    await tester.pumpAndSettle();
-    expect(
-      (scene.route.status.value, scene.route.concealed, scene.route.translation),
-      (MorphTagStatus.unmatched, false, Offset.zero),
-    );
-    await tester.pumpAndSettle();
-  });
+  for (final settings in [
+    (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+    (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+    (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+  ]) {
+    testWidgets('when the platform requests ${settings.label}, it should show the destination without a Morph flight', (
+      tester,
+    ) async {
+      final scene = TagStatusScene(
+        reducedMotion: settings.disableAnimations,
+        reduceMotion: settings.reduceMotion,
+      );
+      await tester.pumpWidget(scene.app);
+      await tester.pumpAndSettle();
+      scene.push();
+      await tester.pumpAndSettle();
+      expect(
+        (scene.route.status.value, scene.route.concealed, scene.route.translation),
+        (MorphTagStatus.unmatched, false, Offset.zero),
+      );
+      await tester.pumpAndSettle();
+    });
+  }
 }

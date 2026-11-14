@@ -52,7 +52,7 @@ jobs:
           persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: beta
+          channel: stable
           flutter-version-file: .fvmrc
           cache: true
       - name: Set up FVM
@@ -98,9 +98,12 @@ jobs:
               fvm flutter test --no-pub
               ;;
             web-and-example)
+              fvm flutter precache --linux
+              python3 -m unittest discover -s test/shaders -p '*_test.py'
               fvm flutter test \
                 --no-pub \
                 --platform chrome \
+                --no-deprecated-js-interop \
                 test/country/country_names_browser_test.dart \
                 test/device/device_test.dart \
                 test/device/device_locale/device_locale_test.dart \
@@ -147,7 +150,7 @@ jobs:
           persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: beta
+          channel: stable
           flutter-version-file: .fvmrc
           cache: true
       - name: Set up FVM
@@ -170,12 +173,17 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
+      - name: Set up Java 21 for Android build tooling
+        uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '21'
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: beta
+          channel: stable
           flutter-version-file: .fvmrc
           cache: true
       - name: Set up FVM
@@ -215,7 +223,7 @@ jobs:
           persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: beta
+          channel: stable
           flutter-version-file: .fvmrc
           cache: true
       - name: Set up FVM
@@ -269,7 +277,7 @@ jobs:
           persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: beta
+          channel: stable
           flutter-version-file: .fvmrc
           cache: true
       - name: Set up FVM
@@ -312,7 +320,7 @@ jobs:
           persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: beta
+          channel: stable
           flutter-version-file: .fvmrc
           cache: true
       - name: Set up FVM
@@ -341,7 +349,7 @@ jobs:
           persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: beta
+          channel: stable
           flutter-version-file: .fvmrc
           cache: true
       - name: Set up FVM
@@ -371,7 +379,7 @@ jobs:
           persist-credentials: false
       - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
         with:
-          channel: beta
+          channel: stable
           flutter-version-file: .fvmrc
           cache: true
       - name: Set up FVM

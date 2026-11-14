@@ -16,6 +16,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     required this._maxLines,
     required this._textWidthBasis,
     required this._textHeightBehavior,
+    required this._hyphens,
     required this._baseline,
     required this._devicePixelRatio,
     required this._attributedLabel,
@@ -46,6 +47,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
   int? _maxLines;
   TextWidthBasis _textWidthBasis;
   ui.TextHeightBehavior? _textHeightBehavior;
+  ui.Hyphens _hyphens;
   TextBaseline _baseline;
   double _devicePixelRatio;
   AttributedString _attributedLabel;
@@ -121,6 +123,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     required int? maxLines,
     required TextWidthBasis textWidthBasis,
     required ui.TextHeightBehavior? textHeightBehavior,
+    required ui.Hyphens hyphens,
     required TextBaseline baseline,
     required double devicePixelRatio,
     required AttributedString attributedLabel,
@@ -143,6 +146,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
         _maxLines != maxLines ||
         _textWidthBasis != textWidthBasis ||
         _textHeightBehavior != textHeightBehavior ||
+        _hyphens != hyphens ||
         _baseline != baseline ||
         _devicePixelRatio != devicePixelRatio;
     if (layoutChanged) {
@@ -158,6 +162,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       _maxLines = maxLines;
       _textWidthBasis = textWidthBasis;
       _textHeightBehavior = textHeightBehavior;
+      _hyphens = hyphens;
       _baseline = baseline;
       _devicePixelRatio = devicePixelRatio;
       _clearTextResources();
@@ -376,6 +381,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
           _textHeightBehavior,
         ),
       )
+      ..add(EnumProperty<ui.Hyphens>('hyphens', _hyphens))
       ..add(EnumProperty<TextBaseline>('baseline', _baseline))
       ..add(
         FlagProperty(
@@ -468,6 +474,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       strutStyle: _strutStyle,
       textWidthBasis: _textWidthBasis,
       textHeightBehavior: _textHeightBehavior,
+      hyphens: _hyphens,
     )..setPlaceholderDimensions(dimensions);
     _textPainter = painter;
     _glyphPainters = glyphPainters;
@@ -486,6 +493,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       strutStyle: _strutStyle,
       textWidthBasis: TextWidthBasis.longestLine,
       textHeightBehavior: _textHeightBehavior,
+      hyphens: _hyphens,
     );
   }
 
@@ -750,6 +758,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
   void _configureOverflow(Size textSize, bool didExceedMaxLines) {
     _overflowShader = null;
     _paintsParagraph =
+        (_hyphens == ui.Hyphens.manual && _graphemes.contains('\u00AD')) ||
         _style.background != null ||
         _style.backgroundColor != null ||
         (_style.decoration != null && _style.decoration != TextDecoration.none) ||

@@ -16,6 +16,7 @@ class _OptimizedTextMotion extends LeafRenderObjectWidget {
     required this.maxLines,
     required this.textWidthBasis,
     required this.textHeightBehavior,
+    required this.hyphens,
     required this.baseline,
     required this.devicePixelRatio,
     required this.attributedLabel,
@@ -49,6 +50,8 @@ class _OptimizedTextMotion extends LeafRenderObjectWidget {
 
   final ui.TextHeightBehavior? textHeightBehavior;
 
+  final ui.Hyphens hyphens;
+
   final TextBaseline baseline;
 
   final double devicePixelRatio;
@@ -73,6 +76,7 @@ class _OptimizedTextMotion extends LeafRenderObjectWidget {
       maxLines: maxLines,
       textWidthBasis: textWidthBasis,
       textHeightBehavior: textHeightBehavior,
+      hyphens: hyphens,
       baseline: baseline,
       devicePixelRatio: devicePixelRatio,
       attributedLabel: attributedLabel,
@@ -99,6 +103,7 @@ class _OptimizedTextMotion extends LeafRenderObjectWidget {
       maxLines: maxLines,
       textWidthBasis: textWidthBasis,
       textHeightBehavior: textHeightBehavior,
+      hyphens: hyphens,
       baseline: baseline,
       devicePixelRatio: devicePixelRatio,
       attributedLabel: attributedLabel,

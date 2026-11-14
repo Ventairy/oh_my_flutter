@@ -8,7 +8,7 @@ example, becomes one complete avatar bone. Use it when the final layout is
 already known and the content will appear in that same space.
 
 ```dart
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 const placeholder = Skeleton(

@@ -226,7 +226,8 @@ class _ControlledVisibilityState extends State<ControlledVisibility> with Single
   }
 
   void _applyVisibility(bool visible) {
-    final animationsDisabled = MediaQuery.maybeDisableAnimationsOf(context) ?? false;
+    final animationsDisabled =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
     final transition = visible ? widget.showTransition : widget.hideTransition;
     final animate = transition != null && !animationsDisabled;
 

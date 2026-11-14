@@ -2,10 +2,10 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
 
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 RenderObject _findSkeletonRenderObject(WidgetTester tester) {
@@ -236,30 +236,55 @@ void main() {
       },
     );
 
-    testWidgets(
-      'when the platform disables animations with style.effect, it should not schedule shimmer frames',
-      (tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: ThemeData(),
-            home: const MediaQuery(
-              data: MediaQueryData(disableAnimations: true),
-              child: Scaffold(
-                body: Skeleton(
-                  style: SkeletonStyle(
-                    effect: SkeletonShimmerEffect(),
+    for (final settings in [
+      (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+      (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+      (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+    ]) {
+      testWidgets(
+        'when the platform requests ${settings.label}, it should not schedule shimmer frames',
+        (tester) async {
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: ThemeData(),
+              home: MediaQuery(
+                data: MediaQueryData(
+                  disableAnimations: settings.disableAnimations,
+                  reduceMotion: settings.reduceMotion,
+                ),
+                child: const Scaffold(
+                  body: Skeleton(
+                    style: SkeletonStyle(effect: SkeletonShimmerEffect()),
+                    child: Text('Hello'),
                   ),
-                  child: Text('Hello'),
                 ),
               ),
             ),
-          ),
-        );
-        await tester.pump();
+          );
+          await tester.pump();
 
-        expect(tester.binding.hasScheduledFrame, isFalse);
-      },
-    );
+          expect(tester.binding.hasScheduledFrame, isFalse);
+        },
+      );
+    }
+
+    testWidgets('when reduced motion starts during shimmer, it should stop scheduling frames', (tester) async {
+      Widget scene({required bool reduceMotion}) => _app(
+        child: MediaQuery(
+          data: MediaQueryData(reduceMotion: reduceMotion),
+          child: const Skeleton(
+            style: SkeletonStyle(effect: SkeletonShimmerEffect()),
+            child: Text('Hello'),
+          ),
+        ),
+      );
+      await tester.pumpWidget(scene(reduceMotion: false));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(scene(reduceMotion: true));
+      await tester.pump();
+
+      expect(tester.binding.transientCallbackCount, 0);
+    });
 
     testWidgets(
       'when skeletonizing a child, it should isolate repaint work inside a render boundary',

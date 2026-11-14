@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 const _firstKey = Key('first');
@@ -9,10 +9,11 @@ const _thirdKey = Key('third');
 Widget _testApp({
   required Widget child,
   bool disableAnimations = false,
+  bool reduceMotion = false,
 }) {
   return MaterialApp(
     home: MediaQuery(
-      data: MediaQueryData(disableAnimations: disableAnimations),
+      data: MediaQueryData(disableAnimations: disableAnimations, reduceMotion: reduceMotion),
       child: Scaffold(body: Center(child: child)),
     ),
   );
@@ -440,33 +441,40 @@ void main() {
       },
     );
 
-    testWidgets(
-      'when reduced motion is requested, it should skip the transition',
-      (tester) async {
-        final controller = SequenceController();
-        await tester.pumpWidget(
-          _testApp(
-            disableAnimations: true,
-            child: Sequence(
-              controller: controller,
-              nextTransition: _fade,
-              children: _children(),
+    for (final settings in [
+      (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+      (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+      (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+    ]) {
+      testWidgets(
+        'when the platform requests ${settings.label}, it should skip the transition',
+        (tester) async {
+          final controller = SequenceController();
+          await tester.pumpWidget(
+            _testApp(
+              disableAnimations: settings.disableAnimations,
+              reduceMotion: settings.reduceMotion,
+              child: Sequence(
+                controller: controller,
+                nextTransition: _fade,
+                children: _children(),
+              ),
             ),
-          ),
-        );
+          );
 
-        controller.next();
-        await tester.pump();
+          controller.next();
+          await tester.pump();
 
-        expect(
-          find.descendant(
-            of: find.byType(Sequence),
-            matching: find.byType(FadeTransition),
-          ),
-          findsNothing,
-        );
-      },
-    );
+          expect(
+            find.descendant(
+              of: find.byType(Sequence),
+              matching: find.byType(FadeTransition),
+            ),
+            findsNothing,
+          );
+        },
+      );
+    }
 
     testWidgets(
       'when a command interrupts motion, it should select the latest target',

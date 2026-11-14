@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'dart:ui';
 
 import '../oklch/oklch.dart';
 
@@ -12,7 +12,7 @@ extension ColorExtension on Color {
   /// [amount] is clamped between `0` and `1`. A value of `0` leaves the color
   /// unchanged and a value of `1` returns white.
   Color lighten(double amount) {
-    return Color.lerp(this, Colors.white, amount.clamp(0, 1))!;
+    return Color.lerp(this, const Color(0xFFFFFFFF), amount.clamp(0, 1))!;
   }
 
   /// Returns this color darkened toward black by [amount].
@@ -20,7 +20,7 @@ extension ColorExtension on Color {
   /// [amount] is clamped between `0` and `1`. A value of `0` leaves the color
   /// unchanged and a value of `1` returns black.
   Color darken(double amount) {
-    return Color.lerp(this, Colors.black, amount.clamp(0, 1))!;
+    return Color.lerp(this, const Color(0xFF000000), amount.clamp(0, 1))!;
   }
 
   /// Returns the `#RRGGBB` hex string of this color.

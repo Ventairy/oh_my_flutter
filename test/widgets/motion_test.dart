@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 const _childKey = Key('motion_child');
@@ -8,11 +8,12 @@ const _childKey = Key('motion_child');
 Widget _testApp({
   required Widget child,
   bool disableAnimations = false,
+  bool reduceMotion = false,
   bool tickersEnabled = true,
 }) {
   return MaterialApp(
     home: MediaQuery(
-      data: MediaQueryData(disableAnimations: disableAnimations),
+      data: MediaQueryData(disableAnimations: disableAnimations, reduceMotion: reduceMotion),
       child: TickerMode(
         enabled: tickersEnabled,
         child: Scaffold(body: Center(child: child)),
@@ -2343,80 +2344,89 @@ void main() {
   });
 
   group('Motion accessibility', () {
-    testWidgets(
-      'when animations are disabled, it should pin one-shot motion at the end',
-      (tester) async {
-        await tester.pumpWidget(
-          _testApp(
-            disableAnimations: true,
-            child: const Motion(
-              effect: _ScaleMotionEffect(delay: Duration(seconds: 1)),
-              child: SizedBox(width: 40, height: 20),
+    for (final settings in [
+      (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+      (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+      (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+    ]) {
+      testWidgets(
+        'when the platform requests ${settings.label}, it should pin one-shot motion at the end',
+        (tester) async {
+          await tester.pumpWidget(
+            _testApp(
+              disableAnimations: settings.disableAnimations,
+              reduceMotion: settings.reduceMotion,
+              child: const Motion(
+                effect: _ScaleMotionEffect(delay: Duration(seconds: 1)),
+                child: SizedBox(width: 40, height: 20),
+              ),
             ),
-          ),
-        );
+          );
 
-        expect(
-          (
-            _scaleValue(tester),
-            tester.hasRunningAnimations,
-          ),
-          (1, false),
-        );
-      },
-    );
+          expect((_scaleValue(tester), tester.hasRunningAnimations), (1, false));
+        },
+      );
 
-    testWidgets(
-      'when reduced motion is turned off, it should not replay a skipped one-shot',
-      (tester) async {
-        late StateSetter rebuild;
-        var disableAnimations = true;
-        await tester.pumpWidget(
-          StatefulBuilder(
-            builder: (context, setState) {
-              rebuild = setState;
-              return _testApp(
-                disableAnimations: disableAnimations,
-                child: const Motion(
-                  effect: _ScaleMotionEffect(),
-                  child: SizedBox(width: 40, height: 20),
-                ),
-              );
-            },
-          ),
-        );
-        rebuild(() => disableAnimations = false);
-        await tester.pump();
-
-        expect(
-          (
-            _scaleValue(tester),
-            tester.hasRunningAnimations,
-          ),
-          (1, false),
-        );
-      },
-    );
-
-    testWidgets(
-      'when animations are disabled, it should pin looping motion at rest',
-      (tester) async {
-        await tester.pumpWidget(
-          _testApp(
-            disableAnimations: true,
-            child: const Motion(
-              effect: FloatingMotionEffect(),
-              child: SizedBox(width: 40, height: 20),
+      testWidgets(
+        'when the platform requests ${settings.label}, it should pin looping motion at rest',
+        (tester) async {
+          await tester.pumpWidget(
+            _testApp(
+              disableAnimations: settings.disableAnimations,
+              reduceMotion: settings.reduceMotion,
+              child: const Motion(
+                effect: FloatingMotionEffect(),
+                child: SizedBox(width: 40, height: 20),
+              ),
             ),
-          ),
-        );
+          );
 
-        expect(
-          (_translationY(tester).abs() < 0.01, tester.hasRunningAnimations),
-          (true, false),
-        );
-      },
-    );
+          expect((_translationY(tester).abs() < 0.01, tester.hasRunningAnimations), (true, false));
+        },
+      );
+
+      testWidgets(
+        'when ${settings.label} is turned off, it should not replay a skipped one-shot',
+        (tester) async {
+          late StateSetter rebuild;
+          var preferenceEnabled = true;
+          await tester.pumpWidget(
+            StatefulBuilder(
+              builder: (context, setState) {
+                rebuild = setState;
+                return _testApp(
+                  disableAnimations: settings.disableAnimations && preferenceEnabled,
+                  reduceMotion: settings.reduceMotion && preferenceEnabled,
+                  child: const Motion(
+                    effect: _ScaleMotionEffect(),
+                    child: SizedBox(width: 40, height: 20),
+                  ),
+                );
+              },
+            ),
+          );
+          rebuild(() => preferenceEnabled = false);
+          await tester.pump();
+
+          expect((_scaleValue(tester), tester.hasRunningAnimations), (1, false));
+        },
+      );
+    }
+
+    testWidgets('when reduced motion starts during looping motion, it should stop at rest', (tester) async {
+      Widget scene({required bool reduceMotion}) => _testApp(
+        reduceMotion: reduceMotion,
+        child: const Motion(
+          effect: FloatingMotionEffect(),
+          child: SizedBox(width: 40, height: 20),
+        ),
+      );
+      await tester.pumpWidget(scene(reduceMotion: false));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpWidget(scene(reduceMotion: true));
+
+      expect((_translationY(tester).abs() < 0.01, tester.hasRunningAnimations), (true, false));
+    });
   });
 }
 

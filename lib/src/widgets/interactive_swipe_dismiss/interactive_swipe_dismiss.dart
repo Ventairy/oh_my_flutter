@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
+import 'package:flutter/widgets.dart';
 
 part '_interactive_swipe_dismiss_coordinator.dart';
 part '_interactive_swipe_dismiss_handle_gesture_recognizer.dart';
@@ -566,7 +566,8 @@ class _InteractiveSwipeDismissState extends State<InteractiveSwipeDismiss> with 
     _gestureOnPositionChanged = widget.onPositionChanged;
     _activePointer = event.pointer;
     _pointerOwnedByHandle = fromHandle;
-    _isReducedMotion = MediaQuery.disableAnimationsOf(context);
+    _isReducedMotion =
+        (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
     _pointerDownTimeStamp = event.timeStamp;
     _previousPointerTimeStamp = event.timeStamp;
     _pointerDownPosition = event.position;

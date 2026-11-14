@@ -5,9 +5,9 @@ import 'dart:ui' as ui;
 import 'dart:ui' show FramePhase, FrameTiming, ViewFocusEvent;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 import 'morph_benchmark_custom_flight_delegate.dart';

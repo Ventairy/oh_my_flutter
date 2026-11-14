@@ -1,17 +1,18 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 Widget _testApp({
   required Widget child,
   bool disableAnimations = false,
+  bool reduceMotion = false,
   bool tickersEnabled = true,
 }) {
   return MaterialApp(
     home: MediaQuery(
-      data: MediaQueryData(disableAnimations: disableAnimations),
+      data: MediaQueryData(disableAnimations: disableAnimations, reduceMotion: reduceMotion),
       child: TickerMode(
         enabled: tickersEnabled,
         child: Scaffold(body: Center(child: child)),
@@ -55,6 +56,29 @@ List<double> _probeValues(WidgetTester tester) {
 }
 
 void main() {
+  for (final settings in [
+    (label: 'disabled animations', disableAnimations: true, reduceMotion: false),
+    (label: 'reduced motion', disableAnimations: false, reduceMotion: true),
+    (label: 'both motion preferences', disableAnimations: true, reduceMotion: true),
+  ]) {
+    testWidgets('when the platform requests ${settings.label}, it should reveal every character immediately', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _testApp(
+          disableAnimations: settings.disableAnimations,
+          reduceMotion: settings.reduceMotion,
+          child: const TextMotion(
+            effect: FadeInMotionEffect(delay: Duration(seconds: 1)),
+            child: Text('AB'),
+          ),
+        ),
+      );
+
+      expect((_fadeValues(tester).join(','), tester.hasRunningAnimations), ('1.0,1.0', false));
+    });
+  }
+
   group('TextMotion startup', () {
     test('when omitted, it should default every constructor to play', () {
       expect(
@@ -346,6 +370,115 @@ void main() {
           ),
           (3, 'A B\nC'),
         );
+      },
+    );
+
+    testWidgets(
+      'when soft hyphens are hidden, it should preserve the source paragraph width',
+      (tester) async {
+        const sourceKey = Key('hidden-hyphen-source');
+        const motionKey = Key('hidden-hyphen-motion');
+        await tester.pumpWidget(
+          _testApp(
+            child: const SizedBox(
+              width: 70,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ABC\u00ADDEF',
+                    key: sourceKey,
+                    style: TextStyle(fontSize: 20),
+                    textWidthBasis: TextWidthBasis.longestLine,
+                    hyphens: Hyphens.hidden,
+                  ),
+                  TextMotion(
+                    startup: MotionStartup.skip,
+                    effect: FadeInMotionEffect(),
+                    child: Text(
+                      'ABC\u00ADDEF',
+                      key: motionKey,
+                      style: TextStyle(fontSize: 20),
+                      textWidthBasis: TextWidthBasis.longestLine,
+                      hyphens: Hyphens.hidden,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        expect(tester.getSize(find.byKey(motionKey)).width, tester.getSize(find.byKey(sourceKey)).width);
+      },
+    );
+
+    testWidgets(
+      'when soft hyphens use the default policy, it should paint the inserted paragraph glyphs',
+      (tester) async {
+        await tester.pumpWidget(
+          _testApp(
+            child: const SizedBox(
+              width: 70,
+              child: TextMotion(
+                startup: MotionStartup.skip,
+                effect: FadeInMotionEffect(),
+                child: Text('ABC\u00ADDEF', style: TextStyle(fontSize: 20)),
+              ),
+            ),
+          ),
+        );
+
+        expect(_optimizedTextMotion(), paintsExactlyCountTimes(#drawParagraph, 1));
+      },
+    );
+
+    testWidgets(
+      'when soft hyphens become hidden, it should refresh the paragraph layout',
+      (tester) async {
+        const sourceKey = Key('updated-hyphen-source');
+        const motionKey = Key('updated-hyphen-motion');
+        var hyphens = Hyphens.manual;
+        late StateSetter update;
+        await tester.pumpWidget(
+          _testApp(
+            child: StatefulBuilder(
+              builder: (context, setState) {
+                update = setState;
+                return SizedBox(
+                  width: 70,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ABC\u00ADDEF',
+                        key: sourceKey,
+                        style: const TextStyle(fontSize: 20),
+                        textWidthBasis: TextWidthBasis.longestLine,
+                        hyphens: hyphens,
+                      ),
+                      TextMotion(
+                        startup: MotionStartup.skip,
+                        effect: const FadeInMotionEffect(),
+                        child: Text(
+                          'ABC\u00ADDEF',
+                          key: motionKey,
+                          style: const TextStyle(fontSize: 20),
+                          textWidthBasis: TextWidthBasis.longestLine,
+                          hyphens: hyphens,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        );
+        update(() => hyphens = Hyphens.hidden);
+        await tester.pump();
+
+        expect(tester.getSize(find.byKey(motionKey)).width, tester.getSize(find.byKey(sourceKey)).width);
       },
     );
 

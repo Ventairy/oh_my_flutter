@@ -1,9 +1,9 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 import 'package:oh_my_flutter/src/widgets/morph/morph.dart'
     show MorphColumnFlightDelegate, MorphColumnProperties, MorphTextFlightDelegate, MorphTextProperties;
@@ -213,6 +213,48 @@ MorphTextProperties _textProperties(
 
 void main() {
   group('Morph Text', () {
+    testWidgets(
+      'when soft hyphens are hidden, it should preserve the paragraph measurement policy',
+      (tester) async {
+        const sourceKey = Key('hidden-hyphen-source');
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 70,
+                child: Align(
+                  alignment: Alignment.topLeft,
+                  child: Text(
+                    'ABC\u00ADDEF',
+                    key: sourceKey,
+                    style: TextStyle(fontSize: 20),
+                    textWidthBasis: TextWidthBasis.longestLine,
+                    hyphens: ui.Hyphens.hidden,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        final measurements = <TextPainter>[];
+        void listener(ObjectEvent event) {
+          final object = event.object;
+          if (event is ObjectCreated && object is TextPainter) {
+            measurements.add(object);
+          }
+        }
+
+        FlutterMemoryAllocations.instance.addListener(listener);
+        try {
+          _textProperties(tester, sourceKey, switchThreshold: 0.5);
+        } finally {
+          FlutterMemoryAllocations.instance.removeListener(listener);
+        }
+
+        expect(measurements.single.hyphens, ui.Hyphens.hidden);
+      },
+    );
+
     test('when no curve is provided, it should defer curve resolution', () {
       final morphTarget1 = MorphTarget(tag: 'default-curve');
 

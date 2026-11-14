@@ -6,10 +6,10 @@ import 'dart:ui' show FrameTiming, ViewFocusEvent;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 import 'interactive_swipe_dismiss_benchmark_interruption_tracker.dart';

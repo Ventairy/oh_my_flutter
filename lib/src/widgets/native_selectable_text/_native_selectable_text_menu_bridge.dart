@@ -29,7 +29,7 @@ class _NativeSelectableTextMenuBridgeState extends State<_NativeSelectableTextMe
   Map<int, VoidCallback> _currentTableActions = const <int, VoidCallback>{};
   Map<int, VoidCallback> _pendingActions = const <int, VoidCallback>{};
   List<String> _tableLabels = const <String>[];
-  List<ContextMenuButtonType> _tableTypes = const <ContextMenuButtonType>[];
+  List<ContextMenuButtonKind> _tableKinds = const <ContextMenuButtonKind>[];
   List<NativeSelectableTextMenuItemMessage> _tableItems = const <NativeSelectableTextMenuItemMessage>[];
   List<NativeSelectableTextMenuItemMessage> _pendingItems = const <NativeSelectableTextMenuItemMessage>[];
   int _nextActionIdentifier = 1;
@@ -265,7 +265,7 @@ class _NativeSelectableTextMenuBridgeState extends State<_NativeSelectableTextMe
       return;
     }
     _tableLabels = const <String>[];
-    _tableTypes = const <ContextMenuButtonType>[];
+    _tableKinds = const <ContextMenuButtonKind>[];
     _tableItems = const <NativeSelectableTextMenuItemMessage>[];
     _currentTableActions = const <int, VoidCallback>{};
     _tableRevision += 1;
@@ -297,7 +297,7 @@ class _NativeSelectableTextMenuBridgeState extends State<_NativeSelectableTextMe
       return false;
     }
     for (var index = 0; index < _candidateButtonItems.length; index += 1) {
-      if (_candidateLabels[index] != _tableLabels[index] || _candidateButtonItems[index].type != _tableTypes[index]) {
+      if (_candidateLabels[index] != _tableLabels[index] || _candidateButtonItems[index].kind != _tableKinds[index]) {
         return false;
       }
     }
@@ -305,29 +305,29 @@ class _NativeSelectableTextMenuBridgeState extends State<_NativeSelectableTextMe
   }
 
   void _replaceActionTable() {
-    final types = <ContextMenuButtonType>[];
+    final kinds = <ContextMenuButtonKind>[];
     final items = <NativeSelectableTextMenuItemMessage>[];
     final actions = <int, VoidCallback>{};
     for (var index = 0; index < _candidateButtonItems.length; index += 1) {
-      final type = _candidateButtonItems[index].type;
+      final kind = _candidateButtonItems[index].kind;
       final label = _candidateLabels[index];
       final identifier = _nextActionIdentifier++;
       var occurrence = 0;
       for (var previousIndex = 0; previousIndex < index; previousIndex += 1) {
-        if (_candidateButtonItems[previousIndex].type == type &&
-            (type != ContextMenuButtonType.custom || _candidateLabels[previousIndex] == label)) {
+        if (_candidateButtonItems[previousIndex].kind == kind &&
+            (kind != ContextMenuButtonKind.custom || _candidateLabels[previousIndex] == label)) {
           occurrence += 1;
         }
       }
       void invokeAction() {
         _invokeCurrentAction(
-          type: type,
+          kind: kind,
           label: label,
           occurrence: occurrence,
         );
       }
 
-      types.add(type);
+      kinds.add(kind);
       items.add(
         NativeSelectableTextMenuItemMessage(
           identifier: identifier,
@@ -337,14 +337,14 @@ class _NativeSelectableTextMenuBridgeState extends State<_NativeSelectableTextMe
       actions[identifier] = invokeAction;
     }
     _tableLabels = List<String>.unmodifiable(_candidateLabels);
-    _tableTypes = List<ContextMenuButtonType>.unmodifiable(types);
+    _tableKinds = List<ContextMenuButtonKind>.unmodifiable(kinds);
     _tableItems = List<NativeSelectableTextMenuItemMessage>.unmodifiable(items);
     _currentTableActions = Map<int, VoidCallback>.unmodifiable(actions);
     _tableRevision += 1;
   }
 
   void _invokeCurrentAction({
-    required ContextMenuButtonType type,
+    required ContextMenuButtonKind kind,
     required String label,
     required int occurrence,
   }) {
@@ -355,10 +355,10 @@ class _NativeSelectableTextMenuBridgeState extends State<_NativeSelectableTextMe
     var matchingOccurrence = 0;
     for (final buttonItem in editableTextState.contextMenuButtonItems) {
       final onPressed = buttonItem.onPressed;
-      if (onPressed == null || buttonItem.type != type) {
+      if (onPressed == null || buttonItem.kind != kind) {
         continue;
       }
-      if (type == ContextMenuButtonType.custom) {
+      if (kind == ContextMenuButtonKind.custom) {
         final currentLabel = AdaptiveTextSelectionToolbar.getButtonLabel(
           context,
           buttonItem,

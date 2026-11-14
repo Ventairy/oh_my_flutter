@@ -317,6 +317,7 @@ class _MorphTextRasterCache extends ChangeNotifier {
       textWidthBasis: properties.textWidthBasis,
       textHeightBehavior: properties.textHeightBehavior,
       strutStyle: properties.strutStyle,
+      hyphens: properties.hyphens,
     );
     final pooledLease = rasterPool?.acquire(poolKey);
     if (pooledLease != null) {
@@ -507,7 +508,8 @@ class _MorphTextRasterCache extends ChangeNotifier {
         cached.maxLines == properties.maxLines &&
         cached.textWidthBasis == properties.textWidthBasis &&
         cached.textHeightBehavior == properties.textHeightBehavior &&
-        cached.strutStyle == properties.strutStyle;
+        cached.strutStyle == properties.strutStyle &&
+        cached.hyphens == properties.hyphens;
   }
 
   void _layout(
@@ -529,6 +531,7 @@ class _MorphTextRasterCache extends ChangeNotifier {
       ..textWidthBasis = properties.textWidthBasis ?? TextWidthBasis.parent
       ..textHeightBehavior = properties.textHeightBehavior
       ..strutStyle = properties.strutStyle
+      ..hyphens = properties.hyphens
       ..layout(
         minWidth: layoutWidth,
         maxWidth: (properties.softWrap ?? true) || properties.overflow == TextOverflow.ellipsis
