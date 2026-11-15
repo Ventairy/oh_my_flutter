@@ -99,6 +99,23 @@ test-shaders:
 test:
 	fvm flutter test
 
+STRING_VALIDATION_DART_SOURCES := \
+	lib/src/extensions/string_extension.dart \
+	lib/src/whatsapp.dart \
+	test/extensions/string_extension_test.dart \
+	test/whatsapp_test.dart
+
+.PHONY: test-string-validation analyze-string-validation format-string-validation
+
+test-string-validation:
+	fvm flutter test --no-pub test/extensions/string_extension_test.dart test/whatsapp_test.dart
+
+analyze-string-validation:
+	fvm dart analyze --fatal-infos $(STRING_VALIDATION_DART_SOURCES)
+
+format-string-validation:
+	fvm dart format $(STRING_VALIDATION_DART_SOURCES)
+
 test-skeleton:
 	fvm flutter test test/widgets/skeleton*_test.dart
 
@@ -294,3 +311,7 @@ analyze-route-listener:
 
 format-route-listener:
 	fvm dart format lib/src/widgets/route_settled test/widgets/route_listener_test.dart test/widgets/route_listener test/widgets/route_settled_test.dart
+
+.PHONY: test-motion-native
+test-motion-native:
+	sh tool/test_motion_native.sh

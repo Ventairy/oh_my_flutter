@@ -3,6 +3,7 @@ import UIKit
 
 /// Records plugin registration state for iOS tests.
 internal final class IOSFlutterPluginRegistrarSpy: NSObject, FlutterPluginRegistrar {
+  internal let textureRegistry = IOSDisintegrateTextureRegistrySpy()
   internal let binaryMessenger = IOSNativeSelectableTextMenuBinaryMessengerSpy()
   internal let engineIdentifier: Int64 = 1
   internal private(set) var publishedValue: NSObject?
@@ -13,7 +14,7 @@ internal final class IOSFlutterPluginRegistrarSpy: NSObject, FlutterPluginRegist
   }
 
   internal func textures() -> FlutterTextureRegistry {
-    fatalError("Textures are not used by these tests.")
+    textureRegistry
   }
 
   internal func register(_: FlutterPlatformViewFactory, withId _: String) {}

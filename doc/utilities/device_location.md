@@ -3,7 +3,7 @@
 Use `DeviceLocation` to manage foreground location permission and retrieve
 fresh coordinates or a device-formatted current address on Android or iOS.
 
-The supported native targets are Android 7.0 (API 24) or newer and iOS 15 or
+The supported native targets are Android 8.0 (API 26) or newer and iOS 15 or
 newer, matching the minimums of the supported Flutter toolchain.
 
 ```dart

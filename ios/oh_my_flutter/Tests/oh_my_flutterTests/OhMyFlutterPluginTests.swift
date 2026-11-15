@@ -66,4 +66,21 @@ final class OhMyFlutterPluginTests: XCTestCase {
 
     XCTAssertNil(registrar.binaryMessenger.messageHandlers[deviceDisplayChannel])
   }
+  func testWhenThePluginRegistersItShouldConnectDisintegrationWithoutPreparingTextures() {
+    let registrar = IOSFlutterPluginRegistrarSpy()
+    OhMyFlutterPlugin.register(with: registrar)
+
+    XCTAssertNotNil(registrar.binaryMessenger.messageHandlers["dev.ventairy.oh_my_flutter.motion"])
+    XCTAssertTrue(registrar.textureRegistry.textures.isEmpty)
+  }
+
+  func testWhenThePluginDetachesItShouldDisconnectDisintegration() {
+    let registrar = IOSFlutterPluginRegistrarSpy()
+    OhMyFlutterPlugin.register(with: registrar)
+    let plugin = registrar.publishedValue as! OhMyFlutterPlugin
+    plugin.detachFromEngine(for: registrar)
+
+    XCTAssertNil(registrar.binaryMessenger.messageHandlers["dev.ventairy.oh_my_flutter.motion"])
+  }
+
 }

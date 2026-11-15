@@ -18,6 +18,8 @@ class OhMyFlutterPlugin :
     FlutterPlugin,
     ActivityAware,
     PluginRegistry.RequestPermissionsResultListener {
+    private val motionDisintegrationPlugin = dev.ventairy.oh_my_flutter.motion.MotionDisintegrationPlugin()
+
     private var activityBinding: ActivityPluginBinding? = null
     private var deviceAccelerometerHandler: DeviceAccelerometerHandler? = null
     private var deviceDisplayHandler: DeviceDisplayHandler? = null
@@ -25,6 +27,7 @@ class OhMyFlutterPlugin :
     private var nativeSelectableTextMenuHandler: NativeSelectableTextMenuHandler? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        motionDisintegrationPlugin.onAttachedToEngine(binding)
         val accelerometerHandler = DeviceAccelerometerHandler(binding.applicationContext)
         deviceAccelerometerHandler = accelerometerHandler
         DeviceAccelerometerHostApi.setUp(binding.binaryMessenger, accelerometerHandler)
@@ -84,6 +87,7 @@ class OhMyFlutterPlugin :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        motionDisintegrationPlugin.onDetachedFromEngine(binding)
         deviceAccelerometerHandler?.dispose()
         deviceAccelerometerHandler = null
         DeviceAccelerometerHostApi.setUp(binding.binaryMessenger, null)

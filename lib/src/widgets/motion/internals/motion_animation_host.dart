@@ -8,7 +8,10 @@ class _MotionAnimationHost extends StatefulWidget {
     required this.startup,
     required this.interactive,
     required this.transitionBuilder,
+    this.preparePlayback,
   });
+
+  final Future<void> Function()? preparePlayback;
 
   final MotionController? controller;
 
@@ -41,6 +44,7 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   bool _dependenciesReady = false;
   bool _startupApplied = false;
   bool _playbackRequested = false;
+  int _preparation = 0;
 
   @override
   void initState() {
@@ -181,6 +185,7 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   }
 
   void _play() {
+    final preparation = ++_preparation;
     _startupApplied = true;
     _playbackRequested = true;
     for (var index = 0; index < _effects.length; index += 1) {
@@ -200,6 +205,29 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
       return;
     }
 
+    if (widget.preparePlayback != null) {
+      for (final animation in _animations) {
+        animation.stopAt(0);
+      }
+      unawaited(_preparePlayback(preparation));
+      return;
+    }
+    _scheduleAllPlayback();
+  }
+
+  Future<void> _preparePlayback(int preparation) async {
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted || preparation != _preparation) return;
+    await widget.preparePlayback!();
+    if (!mounted || preparation != _preparation) return;
+    if (_animationsDisabled) {
+      _applyReducedMotionEndpoint();
+      return;
+    }
+    _scheduleAllPlayback();
+  }
+
+  void _scheduleAllPlayback() {
     for (var index = 0; index < _effects.length; index += 1) {
       _schedulePlayback(index);
     }
@@ -210,6 +238,10 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
     _startupApplied = true;
     switch (_startup) {
       case MotionStartup.play:
+        if (widget.preparePlayback != null) {
+          _play();
+          return;
+        }
         _playbackRequested = true;
         if (_animationsDisabled) {
           _applyReducedMotionEndpoint();

@@ -44,7 +44,7 @@ must also be a `TextSpan`.
 
 ## Platform behavior
 
-Android 24 and later, iOS 16 and later, macOS, Windows, and Linux use a menu
+Android API 26 and later, iOS 16 and later, macOS, Windows, and Linux use a menu
 rendered by their native UI toolkit. The operating system chooses the menu's
 final placement and handles screen-edge avoidance and dismissal.
 

@@ -225,7 +225,7 @@ class _RenderMotionTransition extends RenderProxyBox implements RestingPaintTran
   }
 
   void _updatePaintBounds() {
-    _cachedPaintBounds = _MotionRenderEffect.paintBoundsFor(size, _renderEffects);
+    _cachedPaintBounds = _MotionRenderEffect.paintBoundsFor(size, _renderEffects.map((effect) => effect.bounds));
   }
 
   void _attachAnimations() {

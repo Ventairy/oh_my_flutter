@@ -92,6 +92,23 @@ void main() {
         },
       );
 
+      for (final username in [
+        '@.poster',
+        '@poster.',
+        '@poster..name',
+        '@www.poster',
+        '@___',
+        '@123.45',
+        '@@poster',
+        '@ poster',
+        for (final suffix in ['com', 'org', 'net', 'int', 'edu', 'gov', 'mil', 'arpa', 'html', 'htm', 'txt', 'xml'])
+          '@poster.$suffix',
+      ]) {
+        test('when the username is $username, it should reject the invalid WhatsApp recipient', () {
+          expect(() => Whatsapp(username), throwsFormatException);
+        });
+      }
+
       test(
         'when a username is shorter than three characters, '
         'it should throw a FormatException',
@@ -238,7 +255,7 @@ void main() {
 
           expect(
             launchedUris.single.toString(),
-            'https://wa.me/?username=ventairy&text=Ol%C3%A1%2C+Ventairy%21',
+            'https://wa.me/?username=ventairy&text=Ol%C3%A1%2C%20Ventairy!',
           );
         },
       );
@@ -293,6 +310,51 @@ void main() {
         },
       );
     });
+
+    for (final recipient in [
+      (
+        label: 'phone number',
+        identifier: '+1 (202) 555-0123',
+        nativeQuery: 'phone=12025550123',
+        webUrl: 'https://wa.me/12025550123?',
+      ),
+      (
+        label: 'username',
+        identifier: '@ventairy',
+        nativeQuery: 'username=ventairy',
+        webUrl: 'https://wa.me/?username=ventairy&',
+      ),
+    ]) {
+      for (final route in ['native', 'web', 'rejected native fallback', 'throwing native fallback']) {
+        test(
+          'when opening a $route chat for a ${recipient.label} with special characters and line breaks, '
+          'it should preserve the message using percent-encoded spaces',
+          () async {
+            final launchedUris = <Uri>[];
+            final whatsapp = Whatsapp.test(
+              recipient.identifier,
+              isWeb: route == 'web',
+              launcher: (uri) async {
+                launchedUris.add(uri);
+                if (launchedUris.length == 1) {
+                  if (route == 'rejected native fallback') return false;
+                  if (route == 'throwing native fallback') throw PlatformException(code: 'ACTIVITY_NOT_FOUND');
+                }
+                return true;
+              },
+            );
+
+            await whatsapp.chat(message: 'Oi! Ação "C++" & 50% #1 🚀\n%20');
+
+            const encodedMessage = 'Oi!%20A%C3%A7%C3%A3o%20%22C%2B%2B%22%20%26%2050%25%20%231%20%F0%9F%9A%80%0A%2520';
+            expect(launchedUris.map((uri) => uri.toString()), [
+              if (route != 'web') 'whatsapp://send?${recipient.nativeQuery}&text=$encodedMessage',
+              if (route != 'native') '${recipient.webUrl}text=$encodedMessage',
+            ]);
+          },
+        );
+      }
+    }
 
     group('when opening a chat on mobile', () {
       test(
@@ -378,7 +440,7 @@ void main() {
 
           expect(
             launchedUri.toString(),
-            'whatsapp://send?username=ventairy&text=Ol%C3%A1%2C+Ventairy%21',
+            'whatsapp://send?username=ventairy&text=Ol%C3%A1%2C%20Ventairy!',
           );
         },
       );

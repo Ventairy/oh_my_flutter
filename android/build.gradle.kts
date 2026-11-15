@@ -36,6 +36,13 @@ val mockitoAgent = configurations.create("mockitoAgent")
 android {
     namespace = "dev.ventairy.oh_my_flutter"
     compileSdk = 36
+    ndkVersion = "28.2.13676358"
+    externalNativeBuild {
+        cmake {
+            path = file("src/main/cpp/motion/CMakeLists.txt")
+            version = "3.22.1"
+        }
+    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -55,7 +62,7 @@ android {
     }
 
     defaultConfig {
-        minSdk = 24
+        minSdk = 26
     }
 
     testOptions {

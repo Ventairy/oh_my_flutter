@@ -81,6 +81,8 @@ abstract class MotionEffect {
   /// Applies this effect at curved [progress].
   ///
   /// Implementations must be deterministic, side-effect free, synchronous,
-  /// and must not retain [transform].
+  /// and must not retain [transform]. Keep the number and order of
+  /// disintegration calls, and their particle sizes, constant across progress.
+  /// Delay an operation by keeping its progress at zero rather than omitting it.
   void apply(double progress, MotionEffectTransform transform);
 }

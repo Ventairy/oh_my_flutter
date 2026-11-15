@@ -109,3 +109,24 @@ accepts `Text('...')`; `Text.rich` is not supported.
 
 Use ordinary `Text` or an editable text widget when exact paragraph shaping,
 selection, or editing behavior matters more than per-grapheme motion.
+
+
+## Disintegrate letters
+
+Use `DisintegrateMotionEffect` or `transform.disintegrate` in a custom effect to
+break each visible grapheme into pieces. Normal staggering, direction, replay,
+callbacks and composition rules apply:
+
+```dart
+TextMotion(
+  stagger: const Duration(milliseconds: 40),
+  effect: const DisintegrateMotionEffect(
+    direction: Offset(1, -1),
+    duration: Duration(milliseconds: 800),
+  ),
+  child: const Text('See you around'),
+)
+```
+
+Use `Offset.zero` to disintegrate in place. See [Motion](motion.md#disintegrate-content)
+for custom effects, capture behavior and Android setup.

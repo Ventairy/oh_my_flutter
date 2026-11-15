@@ -39,6 +39,7 @@ class TextMotion extends StatefulWidget {
     this.startup = MotionStartup.play,
     this.stagger = const Duration(milliseconds: 30),
     this.interactive = false,
+    this.renderPresentation = MotionRenderPresentation.replace,
     super.key,
   }) : effects = null;
 
@@ -55,6 +56,7 @@ class TextMotion extends StatefulWidget {
     this.startup = MotionStartup.play,
     this.stagger = const Duration(milliseconds: 30),
     this.interactive = false,
+    this.renderPresentation = MotionRenderPresentation.replace,
     super.key,
   }) : effect = null;
 
@@ -99,6 +101,9 @@ class TextMotion extends StatefulWidget {
   ///
   /// The text must be created with [Text.new]. [Text.rich] is not supported.
   final Text child;
+
+  /// Whether captured motion replaces the text or appears above its live content.
+  final MotionRenderPresentation renderPresentation;
 
   @override
   State<TextMotion> createState() => _TextMotionState();
@@ -146,6 +151,19 @@ class _TextMotionState extends State<TextMotion> {
   Widget build(BuildContext context) {
     if (_transition.animatedCharacterCount == 0) {
       return widget.child;
+    }
+    final effects = widget.effect == null ? widget.effects! : [widget.effect!];
+    if (MotionEffectTransform._usesDisintegration(effects)) {
+      return _MotionDisintegrationHost(
+        effects: _adaptedEffects,
+        controller: widget.controller,
+        startup: widget.startup,
+        interactive: widget.interactive,
+        presentation: widget.renderPresentation,
+        stagger: widget.stagger,
+        characterCount: _transition.animatedCharacterCount,
+        child: _transition.withApplications(const []),
+      );
     }
     return _MotionAnimationHost(
       controller: widget.controller,

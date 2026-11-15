@@ -7,6 +7,12 @@ part of 'motion.dart';
 final class MotionEffectTransform {
   new _();
 
+  /// Default desired size of a disintegrating piece in logical source pixels.
+  static const defaultParticleSize = 2.2;
+
+  List<_MotionVisualOperation>? _operations;
+  int _operationCount = 0;
+
   double _opacity = 1;
   double _scale = 1;
   double _rotationDegrees = 0;
@@ -58,7 +64,100 @@ final class MotionEffectTransform {
     _rotationDegrees += degrees;
   }
 
+  /// Breaks the current content into shrinking, fading pieces.
+  ///
+  /// [progress] is clamped to zero through one. [direction] is normalized;
+  /// zero disables all movement. [particleSize] uses logical source pixels.
+  /// Keep particle size and the number/order of disintegration calls constant
+  /// throughout playback. Delay breakup by changing progress rather than
+  /// conditionally calling this method. Later operations affect the pieces.
+  void disintegrate({required double progress, required Offset direction, double particleSize = defaultParticleSize}) {
+    assert(progress.isFinite, 'progress must be finite.');
+    assert(direction.isFinite, 'direction must be finite.');
+    assert(particleSize.isFinite && particleSize > 0, 'particleSize must be positive and finite.');
+    _recordTransform();
+    final operation = _nextOperation(.disintegrate);
+    final largest = math.max(direction.dx.abs(), direction.dy.abs());
+    final x = largest == 0 ? 0.0 : direction.dx / largest;
+    final y = largest == 0 ? 0.0 : direction.dy / largest;
+    final length = math.sqrt(x * x + y * y);
+    operation
+      ..progress = progress.clamp(0.0, 1.0)
+      ..directionX = length == 0 ? 0 : x / length
+      ..directionY = length == 0 ? 0 : y / length
+      ..particleSize = particleSize;
+    _resetTransform();
+  }
+
+  _MotionVisualOperation _nextOperation(_MotionVisualOperationKind kind) {
+    final operations = _operations ??= [];
+    if (_operationCount == operations.length) operations.add(_MotionVisualOperation(kind));
+    final operation = operations[_operationCount++];
+    assert(operation.kind == kind, 'Rendering operation order must remain constant.');
+    return operation;
+  }
+
+  void _recordTransform() {
+    _nextOperation(.transform)
+      ..opacity = _opacity
+      ..scale = _scale
+      ..cosine = _cosine
+      ..sine = _sine
+      ..x = _translationX
+      ..y = _translationY;
+  }
+
+  void _finishOperations() {
+    if (_operationCount != 0) _recordTransform();
+  }
+
+  bool get _hasDisintegration => _operationCount != 0;
+
+  static final _disintegrationEffects = Expando<bool>();
+
+  static bool _usesDisintegration(List<MotionEffect> effects) {
+    var found = false;
+    for (final effect in effects) {
+      var uses = kDebugMode ? null : _disintegrationEffects[effect];
+      if (uses == null) {
+        final transform = MotionEffectTransform._();
+        effect.apply(effect.curve.transform(0), transform);
+        uses = transform._hasDisintegration;
+        assert(
+          _validateOperationTopology(effect, transform._operationCount),
+          'Rendering operation order must remain constant.',
+        );
+        _disintegrationEffects[effect] = uses;
+      }
+      found = found || uses;
+    }
+    return found;
+  }
+
+  static bool _validateOperationTopology(MotionEffect effect, int expected) {
+    final transform = MotionEffectTransform._();
+    final sizes = <double>[];
+    for (var index = 0; index <= _MotionRenderEffect._boundsSampleCount; index++) {
+      transform._reset();
+      effect.apply(effect.curve.transform(index / _MotionRenderEffect._boundsSampleCount), transform);
+      assert(transform._operationCount == expected, 'Disintegration calls must not depend on progress.');
+      var stage = 0;
+      for (var operation = 0; operation < transform._operationCount; operation++) {
+        final value = transform._operations![operation];
+        if (value.kind != .disintegrate) continue;
+        if (index == 0) sizes.add(value.particleSize);
+        assert(sizes[stage++] == value.particleSize, 'particleSize must remain constant throughout playback.');
+      }
+    }
+    return true;
+  }
+
   void _reset() {
+    _operationCount = 0;
+    _resetTransform();
+  }
+
+  void _resetTransform() {
     _opacity = 1;
     _scale = 1;
     _rotationDegrees = 0;

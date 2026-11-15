@@ -3,6 +3,7 @@ import UIKit
 
 /// Registers package-owned iOS capabilities with a Flutter engine.
 public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
+  private let disintegrationHandler: IOSMotionDisintegrationHandler
   private let binaryMessenger: FlutterBinaryMessenger
   private let deviceLocaleHandler = AppleDeviceLocaleHandler()
   private let deviceAccelerometerHandler = IOSDeviceAccelerometerHandler()
@@ -11,10 +12,12 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
 
   private init(
     binaryMessenger: FlutterBinaryMessenger,
+    textureRegistry: FlutterTextureRegistry,
     deviceDisplayHandler: IOSDeviceDisplayHandler,
     nativeSelectableTextMenuHandler: IOSNativeSelectableTextMenuHandler
   ) {
     self.binaryMessenger = binaryMessenger
+    disintegrationHandler = IOSMotionDisintegrationHandler(binaryMessenger: binaryMessenger, registry: textureRegistry)
     self.deviceDisplayHandler = deviceDisplayHandler
     self.nativeSelectableTextMenuHandler = nativeSelectableTextMenuHandler
   }
@@ -32,6 +35,7 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
     )
     let instance = OhMyFlutterPlugin(
       binaryMessenger: binaryMessenger,
+      textureRegistry: registrar.textures(),
       deviceDisplayHandler: deviceDisplayHandler,
       nativeSelectableTextMenuHandler: handler
     )
@@ -58,6 +62,7 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
   }
 
   public func detachFromEngine(for _: FlutterPluginRegistrar) {
+    disintegrationHandler.dispose()
     deviceAccelerometerHandler.dispose()
     DeviceAccelerometerHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
     FlutterEventChannel(name: "dev.flutter.pigeon.oh_my_flutter.DeviceAccelerometerEventApi.deviceAccelerometerSamples", binaryMessenger: binaryMessenger, codec: deviceAccelerometerPigeonMethodCodec).setStreamHandler(nil)
@@ -68,6 +73,7 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
   }
 
   deinit {
+    disintegrationHandler.dispose()
     deviceAccelerometerHandler.dispose()
     nativeSelectableTextMenuHandler.dispose()
   }

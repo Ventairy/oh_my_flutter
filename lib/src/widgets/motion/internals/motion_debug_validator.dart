@@ -9,6 +9,9 @@ class _MotionDebugValidator {
     for (final effect in effects) {
       assert(effect.delay >= Duration.zero, 'delay must not be negative.');
       assert(effect.duration > Duration.zero, 'duration must be positive.');
+      if (effect case DisintegrateMotionEffect(:final direction)) {
+        assert(direction.isFinite, 'direction must be finite.');
+      }
       if (effect case MoveMotionEffect(:final begin, :final end)) {
         assert(begin.isFinite, 'begin must contain finite coordinates.');
         assert(end.isFinite, 'end must contain finite coordinates.');
