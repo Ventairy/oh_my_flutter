@@ -33,6 +33,7 @@ flat out vec2 vCenter;
 flat out vec2 vSize;
 flat out float vAlpha;
 flat out vec2 vRotation;
+flat out vec4 vRestMapping;
 void main() {
     float life = clamp((uProgress - aMotion.x) / aMotion.y, 0.0, 1.0);
     float unbroken = 1.0 - clamp(life * ${_MotionDisintegrationParameters.breakupRate}, 0.0, 1.0);
@@ -54,6 +55,12 @@ void main() {
                       uSuffix.y * uPrefix.x + uSuffix.x * uPrefix.y);
     float magnitude = length(basis);
     vRotation = magnitude == 0.0 ? vec2(1.0, 0.0) : basis / magnitude;
+    vRestMapping = vec4(0.0);
+    if (life == 0.0 && magnitude > 0.0) {
+        vec2 shift = vec2(uSuffix.x * uPrefix.z - uSuffix.y * uPrefix.w,
+                          uSuffix.y * uPrefix.z + uSuffix.x * uPrefix.w);
+        vRestMapping = vec4(pivot + shift + uSuffix.zw, basis / dot(basis, basis));
+    }
     vec2 screen = uOrigin + center * uScale;
     vSource = aSource;
     vCenter = vec2(screen.x, uViewport.y - screen.y);
@@ -75,19 +82,33 @@ void main() {
 precision highp float;
 uniform sampler2D uImage;
 uniform vec2 uImageSize;
+uniform vec2 uViewport;
+uniform vec2 uOrigin;
+uniform vec2 uScale;
 flat in vec4 vSource;
 flat in vec2 vCenter;
 flat in vec2 vSize;
 flat in float vAlpha;
 flat in vec2 vRotation;
+flat in vec4 vRestMapping;
 out vec4 fragColor;
 void main() {
-    vec2 delta = vec2(gl_FragCoord.x - vCenter.x, vCenter.y - gl_FragCoord.y);
-    delta = vec2(vRotation.x * delta.x + vRotation.y * delta.y,
-                  -vRotation.y * delta.x + vRotation.x * delta.y);
-    if (abs(delta.x) >= vSize.x * 0.5 || abs(delta.y) >= vSize.y * 0.5) discard;
-    vec2 cellCoordinate = delta / vSize + 0.5;
-    vec2 source = mix(vSource.xy, vSource.zw, cellCoordinate);
+    vec2 source;
+    if (any(notEqual(vRestMapping.zw, vec2(0.0)))) {
+        vec2 screen = vec2(gl_FragCoord.x, uViewport.y - gl_FragCoord.y);
+        vec2 delta = (screen - uOrigin) / uScale - vRestMapping.xy;
+        vec2 inverse = vRestMapping.zw;
+        // Intact neighbors must agree on which side of their shared edge owns each pixel.
+        source = vec2(inverse.x * delta.x + inverse.y * delta.y,
+                     -inverse.y * delta.x + inverse.x * delta.y) + uImageSize * 0.5;
+        if (any(lessThan(source, vSource.xy)) || any(greaterThanEqual(source, vSource.zw))) discard;
+    } else {
+        vec2 delta = vec2(gl_FragCoord.x - vCenter.x, vCenter.y - gl_FragCoord.y);
+        delta = vec2(vRotation.x * delta.x + vRotation.y * delta.y,
+                    -vRotation.y * delta.x + vRotation.x * delta.y);
+        if (abs(delta.x) >= vSize.x * 0.5 || abs(delta.y) >= vSize.y * 0.5) discard;
+        source = mix(vSource.xy, vSource.zw, delta / vSize + 0.5);
+    }
     fragColor = texture(uImage, source / uImageSize) * vAlpha;
 }
 ''';

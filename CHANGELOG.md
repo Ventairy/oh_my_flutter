@@ -1,3 +1,7 @@
+## Unreleased
+
+- Keep widgets sharp and free of visible seams as `Motion` starts disintegrating them.
+
 ## 0.30.0
 
 - Preserve spaces and special characters in prefilled WhatsApp messages on

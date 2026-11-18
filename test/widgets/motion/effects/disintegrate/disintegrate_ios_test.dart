@@ -16,10 +16,18 @@ void main() {
       effect: DisintegrateMotionEffect(direction: Offset.zero, onStart: () => starts++),
     );
     await harness.start();
-    final before = starts;
+    final pending = (starts, find.byType(Texture).evaluate().length);
     harness.firstFrame!.complete(null);
     await harness.prepare();
-    expect((before, starts, harness.calls.where((call) => call.method == 'awaitFirstFrame').length), (0, 1, 1));
+    expect(
+      (
+        pending,
+        starts,
+        find.byType(Texture).evaluate().length,
+        harness.calls.where((call) => call.method == 'awaitFirstFrame').length,
+      ),
+      ((0, 0), 1, 1, 1),
+    );
   }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
   testWidgets('when iOS cannot prepare native drawing, it should fall back and finish playback', (tester) async {

@@ -9,6 +9,9 @@ class _MotionTextureReadiness {
     required this.contentTop,
   });
 
+  // Must match the probe row emitted by Android's ParticleRenderer.
+  static const androidProbeWidth = 22;
+
   final int texture;
   final int handle;
   final Size size;
@@ -16,21 +19,31 @@ class _MotionTextureReadiness {
   final double contentTop;
   bool _disposed = false;
 
+  static Future<void> acquire({required int texture, required Size size}) async {
+    final image = await _renderProbe(texture: texture, size: size, width: 1);
+    image.dispose();
+  }
+
+  static Future<ui.Image> _renderProbe({required int texture, required Size size, required int width}) async {
+    final scene = (ui.SceneBuilder()..addTexture(texture, width: size.width, height: size.height, filterQuality: .none))
+        .build();
+    try {
+      return await scene.toImage(width, 1);
+    } finally {
+      scene.dispose();
+    }
+  }
+
   Future<bool> waitForImage() async {
     final elapsed = Stopwatch()..start();
     while (!_disposed && elapsed.elapsed < const Duration(seconds: 1)) {
-      final scene =
-          (ui.SceneBuilder()..addTexture(texture, width: size.width, height: size.height, filterQuality: .none))
-              .build();
-      ui.Image? image;
+      final image = await _renderProbe(texture: texture, size: size, width: probeWidth);
       try {
-        image = await scene.toImage(probeWidth, 1);
         final pixels = await image.toByteData();
         if (_disposed) return false;
         if (pixels != null && _matchesHandle(pixels)) return true;
       } finally {
-        image?.dispose();
-        scene.dispose();
+        image.dispose();
       }
       await WidgetsBinding.instance.endOfFrame;
     }

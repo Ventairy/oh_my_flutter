@@ -57,6 +57,7 @@ class DisintegrateTestHarness {
     bool overlay = false,
     Widget? child,
     bool reducedMotion = false,
+    Size canvasSize = const Size(240, 180),
   }) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -66,8 +67,8 @@ class DisintegrateTestHarness {
             child: RepaintBoundary(
               key: captureKey,
               child: SizedBox(
-                width: 240,
-                height: 180,
+                width: canvasSize.width,
+                height: canvasSize.height,
                 child: Center(
                   child: Motion.list(
                     controller: motionController,
@@ -104,10 +105,10 @@ class DisintegrateTestHarness {
     await tester.pump();
   }
 
-  Future<Uint8List> pixels() async {
+  Future<Uint8List> pixels({double pixelRatio = 1}) async {
     final boundary = captureKey.currentContext!.findRenderObject()! as RenderRepaintBoundary;
     final result = await tester.runAsync(() async {
-      final image = await boundary.toImage();
+      final image = await boundary.toImage(pixelRatio: pixelRatio);
       final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
       image.dispose();
       return data!.buffer.asUint8List();

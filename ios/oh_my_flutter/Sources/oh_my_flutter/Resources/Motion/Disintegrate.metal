@@ -9,6 +9,7 @@ struct DisintegrateVertex {
   float2 size [[flat]];
   float alpha [[flat]];
   float2 rotation [[flat]];
+  float4 restMapping [[flat]];
 };
 
 vertex DisintegrateVertex omf_disintegrate_vertex(
@@ -52,6 +53,12 @@ vertex DisintegrateVertex omf_disintegrate_vertex(
   float magnitude = length(basis);
   DisintegrateVertex result;
   result.rotation = magnitude == 0.0f ? float2(1.0f, 0.0f) : basis / magnitude;
+  result.restMapping = float4(0.0f);
+  if (life == 0.0f && magnitude > 0.0f) {
+    float2 shift = float2(suffix.x * prefix.z - suffix.y * prefix.w,
+                         suffix.y * prefix.z + suffix.x * prefix.w);
+    result.restMapping = float4(pivot + shift + suffix.zw, basis / dot(basis, basis));
+  }
   float2 screen = origin + center * outputScale;
   result.source = source;
   result.center = screen;
@@ -72,12 +79,24 @@ fragment float4 omf_disintegrate_fragment(
   texture2d<float> image [[texture(0)]],
   constant float* uniforms [[buffer(1)]]
 ) {
-  float2 delta = particle.position.xy - particle.center;
-  delta = float2(particle.rotation.x * delta.x + particle.rotation.y * delta.y,
-                 -particle.rotation.y * delta.x + particle.rotation.x * delta.y);
-  if (abs(delta.x) >= particle.size.x * 0.5f || abs(delta.y) >= particle.size.y * 0.5f) discard_fragment();
-  float2 cellCoordinate = delta / particle.size + 0.5f;
-  float2 source = mix(particle.source.xy, particle.source.zw, cellCoordinate);
+  float2 imageSize = float2(uniforms[0], uniforms[1]);
+  float2 source;
+  if (any(particle.restMapping.zw != 0.0f)) {
+    float2 origin = float2(uniforms[4], uniforms[5]);
+    float2 outputScale = float2(uniforms[6], uniforms[7]);
+    float2 delta = (particle.position.xy - origin) / outputScale - particle.restMapping.xy;
+    float2 inverse = particle.restMapping.zw;
+    // Intact neighbors must agree on which side of their shared edge owns each pixel.
+    source = float2(inverse.x * delta.x + inverse.y * delta.y,
+                    -inverse.y * delta.x + inverse.x * delta.y) + imageSize * 0.5f;
+    if (any(source < particle.source.xy) || any(source >= particle.source.zw)) discard_fragment();
+  } else {
+    float2 delta = particle.position.xy - particle.center;
+    delta = float2(particle.rotation.x * delta.x + particle.rotation.y * delta.y,
+                   -particle.rotation.y * delta.x + particle.rotation.x * delta.y);
+    if (abs(delta.x) >= particle.size.x * 0.5f || abs(delta.y) >= particle.size.y * 0.5f) discard_fragment();
+    source = mix(particle.source.xy, particle.source.zw, delta / particle.size + 0.5f);
+  }
   constexpr sampler sourceSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
-  return image.sample(sourceSampler, source / float2(uniforms[0], uniforms[1])) * particle.alpha;
+  return image.sample(sourceSampler, source / imageSize) * particle.alpha;
 }

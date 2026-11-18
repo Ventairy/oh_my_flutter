@@ -6,13 +6,9 @@ class _MotionDisintegrationFrame {
     required this.instance,
     required List<_MotionApplication> applications,
     required Duration stagger,
-    required List<MotionEffect> effects,
   }) : image = source.image,
-       outputBounds = _MotionDisintegrationBounds.calculate(
-         size: source.size,
-         fragments: source.fragments,
-         effects: effects,
-       ),
+       outputBounds = source.outputBounds,
+       _pixelRatio = source.pixelRatio,
        _applications = applications {
     painter = _MotionParticlePainter(
       image: image,
@@ -27,6 +23,7 @@ class _MotionDisintegrationFrame {
   final ui.Image image;
   final int instance;
   final Rect outputBounds;
+  final double _pixelRatio;
   final List<_MotionApplication> _applications;
 
   static const channel = MethodChannel('dev.ventairy.oh_my_flutter.motion');
@@ -55,6 +52,9 @@ class _MotionDisintegrationFrame {
   int _playbackGeneration = 0;
 
   bool get usesNative => texture != null && !nativeFailed;
+
+  int get _viewportWidth => (outputBounds.width * _pixelRatio).ceil();
+  int get _viewportHeight => (outputBounds.height * _pixelRatio).ceil();
 
   Future<void> prepare({required bool isText}) async {
     if (!isText) await _prepareNative(painter.singleOperations);
@@ -90,7 +90,12 @@ class _MotionDisintegrationFrame {
         nativeFailed = !await readiness.waitForImage();
         return;
       }
-      await channel.invokeMethod<void>('awaitFirstFrame', _arguments);
+      await _MotionTextureReadiness.acquire(
+        texture: texture!,
+        size: Size(_viewportWidth.toDouble(), _viewportHeight.toDouble()),
+      );
+      if (_disposed) return;
+      await channel.invokeMethod<void>('awaitFirstFrame', _arguments).timeout(const Duration(seconds: 1));
     } on Exception {
       nativeFailed = true;
     }
@@ -115,19 +120,28 @@ class _MotionDisintegrationFrame {
     if (texture != null) _releaseImage();
   }
 
-  Widget buildNativeOutput() {
-    final output = Texture(key: ValueKey(handle), textureId: texture!, filterQuality: .none);
+  Widget buildNativeOutput({required double devicePixelRatio}) {
     final readiness = _readiness;
-    if (readiness == null) return output;
+    final output = Texture(
+      key: ValueKey(handle),
+      textureId: texture!,
+      // Interpolation could bleed the Android probe row past its clip.
+      filterQuality: readiness == null && _pixelRatio < devicePixelRatio ? .low : .none,
+    );
+    final textureWidth = (readiness?.size.width ?? _viewportWidth) / _pixelRatio;
+    final textureHeight = (readiness?.size.height ?? _viewportHeight) / _pixelRatio;
+    if (readiness == null && textureWidth == outputBounds.width && textureHeight == outputBounds.height) {
+      return output;
+    }
     return ClipRect(
       child: Stack(
         clipBehavior: .none,
         children: [
           Positioned(
             left: 0,
-            top: -readiness.contentTop,
-            width: readiness.size.width,
-            height: readiness.size.height,
+            top: -(readiness?.contentTop ?? 0) / _pixelRatio,
+            width: textureWidth,
+            height: textureHeight,
             child: output,
           ),
         ],
@@ -150,14 +164,14 @@ class _MotionDisintegrationFrame {
         'image': pixels.buffer.asUint8List(pixels.offsetInBytes, pixels.lengthInBytes),
         'width': image.width,
         'height': image.height,
-        'viewportWidth': outputBounds.width.ceil(),
-        'viewportHeight': outputBounds.height.ceil(),
-        'originX': -outputBounds.left,
-        'originY': -outputBounds.top,
+        'viewportWidth': _viewportWidth,
+        'viewportHeight': _viewportHeight,
+        'originX': -outputBounds.left * _pixelRatio,
+        'originY': -outputBounds.top * _pixelRatio,
         'scaleX': 1.0,
         'scaleY': 1.0,
         'maximumParticleCount': _MotionDisintegrationParameters.maximumParticleCount,
-        'minimumCellSize': operations._operations![1].particleSize,
+        'minimumCellSize': operations._operations![1].particleSize * _pixelRatio,
         'seed': _MotionDisintegrationParameters.seed,
         'pointPadding': _MotionDisintegrationShaders.pointPadding,
         'geometryParameters': _MotionDisintegrationParameters.geometryParameters,
@@ -197,12 +211,12 @@ class _MotionDisintegrationFrame {
     _frameParameters[0] = particles.progress;
     _frameParameters[1] = before.scale * before.cosine;
     _frameParameters[2] = before.scale * before.sine;
-    _frameParameters[3] = before.x;
-    _frameParameters[4] = before.y;
+    _frameParameters[3] = before.x * _pixelRatio;
+    _frameParameters[4] = before.y * _pixelRatio;
     _frameParameters[5] = after.scale * after.cosine;
     _frameParameters[6] = after.scale * after.sine;
-    _frameParameters[7] = after.x;
-    _frameParameters[8] = after.y;
+    _frameParameters[7] = after.x * _pixelRatio;
+    _frameParameters[8] = after.y * _pixelRatio;
     _frameParameters[9] = before.opacity.clamp(0.0, 1.0);
     _frameParameters[10] = after.opacity.clamp(0.0, 1.0);
     _frameParameters[11] = -(particles.directionX + particles.directionY) * math.sqrt(0.5);

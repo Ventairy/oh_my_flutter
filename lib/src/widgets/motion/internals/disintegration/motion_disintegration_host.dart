@@ -123,13 +123,17 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
     _MotionDisintegrationSource? source;
     _MotionDisintegrationFrame? prepared;
     try {
-      source = await _MotionDisintegrationSource.capture(boundary, isText: widget.characterCount != 0);
+      source = await _MotionDisintegrationSource.capture(
+        boundary,
+        isText: widget.characterCount != 0,
+        devicePixelRatio: View.of(context).devicePixelRatio,
+        effects: widget.effects,
+      );
       prepared = _MotionDisintegrationFrame(
         source: source,
         instance: _instance,
         applications: _applications,
         stagger: widget.stagger,
-        effects: widget.effects,
       );
       if (!mounted || preparation != _preparation) {
         prepared.dispose();
@@ -141,11 +145,7 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
         return;
       }
       _frame = prepared;
-      _rebuild();
-      await WidgetsBinding.instance.endOfFrame;
-      if (!mounted || preparation != _preparation) return;
       await prepared.waitUntilReady();
-      if (mounted && prepared.nativeFailed) _rebuild();
     } on Object catch (error, stackTrace) {
       prepared?.dispose();
       if (prepared == null) source?.image.dispose();
@@ -218,7 +218,7 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
           fit: .passthrough,
           children: [
             _buildSource(),
-            if (frame != null && !_fullyDisintegrated)
+            if (frame != null && _sourceReplaced && !_fullyDisintegrated)
               Positioned.fromRect(
                 rect: frame.outputBounds,
                 child: IgnorePointer(
@@ -226,7 +226,7 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
                     child: RepaintBoundary(
                       key: const ValueKey('motion_render_surface'),
                       child: frame.usesNative
-                          ? frame.buildNativeOutput()
+                          ? frame.buildNativeOutput(devicePixelRatio: View.of(context).devicePixelRatio)
                           : CustomPaint(key: ObjectKey(frame), painter: frame.painter),
                     ),
                   ),

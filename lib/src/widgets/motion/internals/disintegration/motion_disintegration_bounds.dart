@@ -1,6 +1,47 @@
 part of '../../motion.dart';
 
 abstract final class _MotionDisintegrationBounds {
+  static const int _maximumRasterPixels = 512 * 1024;
+  static const _maximumRasterDimension = 2048;
+
+  static double capturePixelRatio({
+    required Size sourceSize,
+    required Size outputSize,
+    required double devicePixelRatio,
+    required bool androidReadinessProbe,
+  }) {
+    bool fits(double ratio) {
+      final sourceWidth = (sourceSize.width * ratio).ceil();
+      final sourceHeight = (sourceSize.height * ratio).ceil();
+      final outputWidth = (outputSize.width * ratio).ceil();
+      final outputHeight = (outputSize.height * ratio).ceil();
+      final textureWidth = androidReadinessProbe
+          ? math.max(_MotionTextureReadiness.androidProbeWidth, outputWidth)
+          : outputWidth;
+      final textureHeight = androidReadinessProbe ? outputHeight + 1 : outputHeight;
+      return sourceWidth <= _maximumRasterDimension &&
+          sourceHeight <= _maximumRasterDimension &&
+          sourceWidth * sourceHeight <= _maximumRasterPixels &&
+          textureWidth <= _maximumRasterDimension &&
+          textureHeight <= _maximumRasterDimension &&
+          textureWidth * textureHeight <= _maximumRasterPixels;
+    }
+
+    if (fits(devicePixelRatio)) return devicePixelRatio;
+    var floor = 0.0;
+    var ceiling = devicePixelRatio;
+    // Test the rounded pixel dimensions, including the Android readiness row.
+    for (var step = 0; step < 24; step++) {
+      final candidate = (floor + ceiling) / 2;
+      if (fits(candidate)) {
+        floor = candidate;
+      } else {
+        ceiling = candidate;
+      }
+    }
+    return floor;
+  }
+
   static Rect calculate({required Size size, required List<Rect> fragments, required List<MotionEffect> effects}) {
     final operations = MotionEffectTransform._();
     final pivot = size.center(Offset.zero);

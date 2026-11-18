@@ -1,14 +1,26 @@
 part of '../../motion.dart';
 
 class _MotionDisintegrationSource {
-  const new({required this.image, required this.size, required this.fragments, this.regions});
+  const new({
+    required this.image,
+    required this.outputBounds,
+    required this.fragments,
+    this.regions,
+    this.pixelRatio = 1,
+  });
 
   final ui.Image image;
-  final Size size;
+  final Rect outputBounds;
   final List<Rect> fragments;
   final List<Rect>? regions;
+  final double pixelRatio;
 
-  static Future<_MotionDisintegrationSource> capture(RenderRepaintBoundary boundary, {required bool isText}) async {
+  static Future<_MotionDisintegrationSource> capture(
+    RenderRepaintBoundary boundary, {
+    required bool isText,
+    required double devicePixelRatio,
+    required List<MotionEffect> effects,
+  }) async {
     final size = boundary.size;
     final text = isText ? _findText(boundary) : null;
     if (text?._atlas != null && !text!._needsClipping && text._characterCenters != null) {
@@ -27,7 +39,7 @@ class _MotionDisintegrationSource {
       }
       return _MotionDisintegrationSource(
         image: text._atlas!.clone(),
-        size: size,
+        outputBounds: _MotionDisintegrationBounds.calculate(size: size, fragments: fragments, effects: effects),
         fragments: fragments,
         regions: regions,
       );
@@ -46,8 +58,24 @@ class _MotionDisintegrationSource {
       }
     }
     if (fragments.isEmpty) fragments.add(Offset.zero & size);
-    final image = await boundary.toImage(pixelRatio: 1);
-    return _MotionDisintegrationSource(image: image, size: size, fragments: fragments);
+    final outputBounds = _MotionDisintegrationBounds.calculate(size: size, fragments: fragments, effects: effects);
+    final pixelRatio = _MotionDisintegrationBounds.capturePixelRatio(
+      sourceSize: size,
+      outputSize: outputBounds.size,
+      devicePixelRatio: devicePixelRatio,
+      androidReadinessProbe: !isText && !kIsWeb && defaultTargetPlatform == .android,
+    );
+    final image = await boundary.toImage(pixelRatio: pixelRatio);
+    return _MotionDisintegrationSource(
+      image: image,
+      outputBounds: outputBounds,
+      fragments: fragments,
+      regions: [
+        for (final fragment in fragments)
+          Rect.fromPoints(fragment.topLeft * pixelRatio, fragment.bottomRight * pixelRatio),
+      ],
+      pixelRatio: pixelRatio,
+    );
   }
 
   static _RenderOptimizedTextMotion? _findText(RenderObject object) {
