@@ -1,4 +1,4 @@
-## 0.31.0
+## 0.31.1
 
 - Keep replaced `Morph` visuals visible through the first frame of their transition.
 
