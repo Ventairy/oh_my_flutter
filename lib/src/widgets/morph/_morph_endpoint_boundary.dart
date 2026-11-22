@@ -8,12 +8,14 @@ class _MorphEndpointBoundary extends SingleChildRenderObjectWidget {
     required this.onPresented,
     required this.onSnapshotSuppressed,
     required super.child,
+    this.onDetach,
     this.shouldSuppressSnapshot,
   });
 
   final _MorphVisibilityHandle visibility;
   final ValueChanged<_RenderMorphEndpoint> onRenderObjectReady;
   final VoidCallback onPaint;
+  final VoidCallback? onDetach;
   final VoidCallback onPresented;
   final VoidCallback onSnapshotSuppressed;
   final bool Function()? shouldSuppressSnapshot;
@@ -23,6 +25,7 @@ class _MorphEndpointBoundary extends SingleChildRenderObjectWidget {
     final renderObject = _RenderMorphEndpoint(
       visibility,
       onPaint,
+      onDetach,
       onPresented,
       onSnapshotSuppressed,
       shouldSuppressSnapshot,
@@ -39,6 +42,7 @@ class _MorphEndpointBoundary extends SingleChildRenderObjectWidget {
     renderObject
       ..visibility = visibility
       ..onPaint = onPaint
+      ..onDetach = onDetach
       ..onPresented = onPresented
       ..onSnapshotSuppressed = onSnapshotSuppressed
       ..shouldSuppressSnapshot = shouldSuppressSnapshot;

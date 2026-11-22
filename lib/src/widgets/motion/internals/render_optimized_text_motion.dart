@@ -1,10 +1,11 @@
 part of '../motion.dart';
 
-/// Paints every text effect through one cached atlas draw operation.
+/// Paints animated graphemes from a shared glyph atlas.
 class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsChangeMixin {
   new({
     required this._graphemes,
     required this._applications,
+    required this._previewScale,
     required this._style,
     required this._strutStyle,
     required this._textAlign,
@@ -25,16 +26,27 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
 
   static const int _maximumAtlasDimension = 2048;
   static const int _maximumAtlasPixels = 1024 * 1024;
+  static const int _minimumEqualBlurGlyphs = 16;
 
+  final _glyphBlur = _MotionBlur();
+  Float64List? _glyphSigmas;
+  _MotionPackedTextBlur? _packedBlur;
+  late final _sparseBlur = _MotionSparseTextBlur();
+  _MotionShaderTextBlur? _shaderBlur;
+  bool _shaderBlurUnavailable = false;
+  bool _paintedShaderBlur = false;
   final Paint _atlasPaint = Paint()..filterQuality = FilterQuality.low;
+  final Paint _filteredAtlasPaint = Paint()..filterQuality = FilterQuality.low;
   final Paint _fallbackOpacityPaint = Paint();
   final Paint _overflowLayerPaint = Paint();
   final Paint _overflowShaderPaint = Paint()..blendMode = BlendMode.modulate;
   final MotionEffectTransform _effectTransform = MotionEffectTransform._();
   late final VoidCallback _animationListener = markNeedsPaint;
+  late final AnimationStatusListener _atlasStatusListener = _prepareAtlasOnPlayback;
 
   List<String> _graphemes;
   List<_TextMotionApplication> _applications;
+  double? _previewScale;
   List<_MotionRenderEffect> _renderEffects;
   TextStyle _style;
   StrutStyle? _strutStyle;
@@ -65,10 +77,13 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
   Float64List? _characterCenters;
   Float64List? _spriteAnchors;
   bool _atlasDisabled = false;
+  int? _firstOversizedAtlasGlyphCount;
+  bool _atlasDeferred = false;
   bool _needsClipping = false;
   bool _paintsParagraph = false;
   ui.Shader? _overflowShader;
   double _computedOpacity = 1;
+  double _computedBlurSigma = 0;
   double _computedScale = 1;
   double _computedCosine = 1;
   double _computedSine = 0;
@@ -112,6 +127,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
   void updateConfiguration({
     required List<String> graphemes,
     required List<_TextMotionApplication> applications,
+    required double? previewScale,
     required TextStyle style,
     required StrutStyle? strutStyle,
     required TextAlign textAlign,
@@ -169,6 +185,10 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       markNeedsLayout();
     }
 
+    if (_previewScale != previewScale) {
+      _previewScale = previewScale;
+      markNeedsPaint();
+    }
     if (!listEquals(_applications, applications)) {
       _replaceApplications(applications);
     }
@@ -252,6 +272,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     final textSize = painter.size;
     size = constraints.constrain(textSize);
     _placeholderBoxes = painter.inlinePlaceholderBoxes ?? const <ui.TextBox>[];
+    if (!_atlasDeferred) _buildAtlas();
     _preparePaintBuffers();
     _configureOverflow(textSize, painter.didExceedMaxLines);
     _updatePaintBounds();
@@ -259,12 +280,16 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    final painter = _textPainter;
-    if (painter == null) {
-      return;
-    }
+    _paintContent(context.canvas, offset);
+  }
 
-    final canvas = context.canvas;
+  void _paintContent(Canvas canvas, Offset offset, {bool applyBlur = true}) {
+    final painter = _textPainter;
+    if (painter == null) return;
+    if (_atlasDeferred) {
+      if (applyBlur && !_paintsParagraph && _isHiddenWhileWaiting) return;
+      _prepareDeferredAtlas();
+    }
     if (_needsClipping) {
       final bounds = offset & size;
       if (_overflowShader == null) {
@@ -280,9 +305,9 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     }
     final atlas = _atlas;
     if (atlas == null) {
-      _paintGlyphsWithoutAtlas(canvas, offset);
+      _paintGlyphsWithoutAtlas(canvas, offset, applyBlur: applyBlur);
     } else {
-      _paintAtlas(canvas, atlas, offset);
+      _paintAtlas(canvas, atlas, offset, applyBlur: applyBlur);
     }
 
     if (_needsClipping) {
@@ -330,6 +355,14 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     );
     properties
       ..add(IntProperty('animatedCharacterCount', states.length))
+      ..add(
+        FlagProperty(
+          'glyphBlurProgram',
+          value: _MotionShaderTextBlur.prepared != null,
+          ifTrue: 'glyph blur shader warmed',
+        ),
+      )
+      ..add(FlagProperty('glyphBlurShader', value: _paintedShaderBlur, ifTrue: 'glyph blur shader was used'))
       ..add(IterableProperty<String>('graphemes', _graphemes))
       ..add(
         IterableProperty<String>(
@@ -479,8 +512,46 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     _textPainter = painter;
     _glyphPainters = glyphPainters;
     _spriteIndexByCharacter = spriteIndexByCharacter;
-    _buildAtlas();
+    if (_isHiddenWhileWaiting) {
+      _setAtlasDeferred(true);
+    }
     return painter;
+  }
+
+  bool get _isHiddenWhileWaiting {
+    // A disintegration preview may still need a sharp source for capture.
+    if (_previewScale != null ||
+        !_renderEffects.any((effect) => effect.bounds.maximumBlurSigma > 0) ||
+        _renderEffects.any((effect) => !effect.animation.status.isDismissed)) {
+      return false;
+    }
+    _prepareMotionFrame();
+    _computeMotionState();
+    return _computedOpacity <= 0 && _computedBlurSigma > 0;
+  }
+
+  void _setAtlasDeferred(bool deferred) {
+    if (_atlasDeferred == deferred) return;
+    _atlasDeferred = deferred;
+    if (!attached) return;
+    for (final effect in _renderEffects) {
+      if (deferred) {
+        effect.animation.addStatusListener(_atlasStatusListener);
+      } else {
+        effect.animation.removeStatusListener(_atlasStatusListener);
+      }
+    }
+  }
+
+  void _prepareAtlasOnPlayback(AnimationStatus status) {
+    if (status.isAnimating) _prepareDeferredAtlas();
+  }
+
+  void _prepareDeferredAtlas() {
+    if (!_atlasDeferred) return;
+    _setAtlasDeferred(false);
+    _buildAtlas();
+    _preparePaintBuffers();
   }
 
   TextPainter _createGlyphPainter(String grapheme) {
@@ -498,7 +569,22 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
   }
 
   void _buildAtlas() {
-    if (_atlasDisabled || _glyphPainters.isEmpty) {
+    if (_atlasDisabled || _sprites.length == _glyphPainters.length) return;
+
+    final paintCount = math.min(_placeholderBoxes.length, _spriteIndexByCharacter.length);
+    var glyphCount = _glyphPainters.length;
+    if (paintCount < _spriteIndexByCharacter.length) {
+      // Sprite indices follow first appearance. The visible text needs
+      // only the prefix through the highest index it references.
+      glyphCount = 0;
+      for (var index = 0; index < paintCount; index++) {
+        glyphCount = math.max(glyphCount, _spriteIndexByCharacter[index] + 1);
+      }
+    }
+    if (glyphCount <= _sprites.length) return;
+    final oversizedCount = _firstOversizedAtlasGlyphCount;
+    if (oversizedCount != null && glyphCount >= oversizedCount) {
+      _discardAtlas();
       return;
     }
 
@@ -509,13 +595,14 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     var y = 0;
     var rowHeight = 0;
     var atlasWidth = 0;
-    for (final painter in _glyphPainters) {
+    for (var index = 0; index < glyphCount; index++) {
+      final painter = _glyphPainters[index];
       final glyphWidth = (painter.width * _devicePixelRatio).ceil();
       final glyphHeight = (painter.height * _devicePixelRatio).ceil();
       final spriteWidth = math.max(1, glyphWidth + paddingPixels * 2);
       final spriteHeight = math.max(1, glyphHeight + paddingPixels * 2);
       if (spriteWidth > _maximumAtlasDimension || spriteHeight > _maximumAtlasDimension) {
-        _atlasDisabled = true;
+        _noteAtlasTooLarge(index + 1);
         return;
       }
       if (x > 0 && x + spriteWidth > _maximumAtlasDimension) {
@@ -524,7 +611,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
         rowHeight = 0;
       }
       if (y + spriteHeight > _maximumAtlasDimension) {
-        _atlasDisabled = true;
+        _noteAtlasTooLarge(index + 1);
         return;
       }
       sprites.add((
@@ -541,13 +628,13 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     }
     final atlasHeight = y + rowHeight;
     if (atlasWidth * atlasHeight > _maximumAtlasPixels) {
-      _atlasDisabled = true;
+      _noteAtlasTooLarge(glyphCount);
       return;
     }
 
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder)..scale(_devicePixelRatio, _devicePixelRatio);
-    for (var index = 0; index < _glyphPainters.length; index += 1) {
+    for (var index = 0; index < glyphCount; index += 1) {
       final sprite = sprites[index];
       final left = sprite.left / _devicePixelRatio;
       final top = sprite.top / _devicePixelRatio;
@@ -566,9 +653,28 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       canvas.restore();
     }
     final picture = recorder.endRecording();
-    _atlas = picture.toImageSync(atlasWidth, atlasHeight);
-    picture.dispose();
+    final ui.Image atlas;
+    try {
+      atlas = picture.toImageSync(atlasWidth, atlasHeight);
+    } finally {
+      picture.dispose();
+    }
+    _discardAtlas();
+    _atlas = atlas;
     _sprites = sprites;
+  }
+
+  void _noteAtlasTooLarge(int glyphCount) {
+    _firstOversizedAtlasGlyphCount = glyphCount;
+    _discardAtlas();
+  }
+
+  void _discardAtlas() {
+    _shaderBlur?.dispose();
+    _shaderBlur = null;
+    _atlas?.dispose();
+    _atlas = null;
+    _sprites = const <_TextMotionSprite>[];
   }
 
   double get _atlasPadding {
@@ -622,6 +728,8 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     }
     if (_atlasColors?.length != paintCount) {
       _atlasColors = Int32List(paintCount);
+      _glyphSigmas = null;
+      _packedBlur = null;
     }
     final rects = _atlasRects!;
     for (var index = 0; index < paintCount; index += 1) {
@@ -634,7 +742,8 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     }
   }
 
-  void _paintAtlas(Canvas canvas, ui.Image atlas, Offset offset) {
+  void _paintAtlas(Canvas canvas, ui.Image atlas, Offset offset, {required bool applyBlur}) {
+    _paintedShaderBlur = false;
     final rects = _atlasRects;
     final transforms = _atlasTransforms;
     if (rects == null || transforms == null || rects.isEmpty) {
@@ -648,6 +757,8 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     final offsetX = offset.dx;
     final offsetY = offset.dy;
     var usesOpacity = false;
+    var filterRuns = 0;
+    var previousSigma = 0.0;
     _prepareMotionFrame();
     for (var index = 0; index < paintCount; index += 1) {
       _computeMotionState();
@@ -673,28 +784,255 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       final alpha = _computedOpacity >= 1 ? 255 : (_computedOpacity.clamp(0.0, 1.0) * 255).round();
       colors[index] = alpha << 24;
       usesOpacity = usesOpacity || alpha < 255;
+      final sigma = applyBlur && alpha > 0 && rasterScale != 0 ? _computedBlurSigma : 0.0;
+      if (sigma > 0) {
+        _glyphSigmas ??= Float64List(paintCount);
+        if (sigma != previousSigma) filterRuns++;
+      }
+      previousSigma = sigma;
+      _glyphSigmas?[index] = sigma;
     }
 
     final atlasColors = usesOpacity ? colors : null;
     try {
-      canvas.drawRawAtlas(
-        atlas,
-        transforms,
-        rects,
-        atlasColors,
-        atlasColors == null ? null : BlendMode.srcIn,
-        null,
-        _atlasPaint,
-      );
+      if (filterRuns > 0) {
+        _paintFilteredAtlas(canvas, atlas, transforms, rects, atlasColors, filterRuns: filterRuns);
+        return;
+      }
+      _paintGlyphAtlasRange(canvas, atlas, transforms, rects, atlasColors, start: 0, end: paintCount);
     } on ui.PictureRasterizationException {
-      atlas.dispose();
-      _atlas = null;
+      _discardAtlas();
       _atlasDisabled = true;
-      _paintGlyphsWithoutAtlas(canvas, offset);
+      _paintGlyphsWithoutAtlas(canvas, offset, applyBlur: applyBlur);
     }
   }
 
-  void _paintGlyphsWithoutAtlas(Canvas canvas, Offset offset) {
+  void _paintGlyphAtlasRange(
+    Canvas canvas,
+    ui.Image atlas,
+    Float32List transforms,
+    Float32List rects,
+    Int32List? colors, {
+    required int start,
+    required int end,
+    double sigma = 0,
+  }) {
+    var first = start;
+    var stop = end;
+    if (sigma == 0 && colors != null) {
+      while (first < stop && colors[first] == 0) {
+        first++;
+      }
+      if (first == stop) return;
+      while (colors[stop - 1] == 0) {
+        stop--;
+      }
+    }
+
+    final paint = sigma > 0 ? (_filteredAtlasPaint..imageFilter = _glyphBlur.filter(sigma)) : _atlasPaint;
+    if (first == 0 && stop * 4 == rects.length) {
+      canvas.drawRawAtlas(atlas, transforms, rects, colors, colors == null ? null : BlendMode.srcIn, null, paint);
+      return;
+    }
+    _MotionBlur.drawAtlasRange(canvas, atlas, transforms, rects, colors, paint, start: first, end: stop);
+  }
+
+  void _paintFilteredAtlas(
+    Canvas canvas,
+    ui.Image atlas,
+    Float32List transforms,
+    Float32List rects,
+    Int32List? colors, {
+    required int filterRuns,
+  }) {
+    final sigmas = _glyphSigmas!;
+    // Reuse the warmed shader for the last few glyphs instead of issuing
+    // a separate filter pass for each remaining strength.
+    final useShader =
+        filterRuns >= _MotionPackedTextBlur.minimumFilters ||
+        (_MotionShaderTextBlur.prepared != null && _hasFewBlurredGlyphs(sigmas));
+    if (useShader && _paintShaderBlur(canvas, atlas, transforms, rects, colors, sigmas)) {
+      return;
+    }
+    final packer = filterRuns >= _MotionPackedTextBlur.minimumFilters
+        ? _packedBlur ??= _MotionPackedTextBlur(sigmas.length)
+        : null;
+    final packed = packer?.prepare(atlas, sigmas, transforms, rects, colors);
+    try {
+      var start = 0;
+      while (start < sigmas.length) {
+        var end = start + 1;
+        if (packed != null && packer!.includes(start)) {
+          while (end < sigmas.length && packer.includes(end)) {
+            end++;
+          }
+          packer.paint(canvas, packed, _atlasPaint, startGlyph: start, endGlyph: end, usesOpacity: colors != null);
+        } else {
+          final sigma = sigmas[start];
+          while (end < sigmas.length && sigmas[end] == sigma && (packed == null || !packer!.includes(end))) {
+            end++;
+          }
+          final sigmaInPixels = sigma * _devicePixelRatio;
+          if (sigma > 0 &&
+              sigmaInPixels <= _MotionSparseTextBlur.maximumSigmaInPixels &&
+              end == start + 1 &&
+              _canUseShaderBlur &&
+              _sparseBlur.paint(
+                canvas,
+                atlas,
+                transforms,
+                rects,
+                colors,
+                _atlasPaint,
+                glyph: start,
+                sigmaInPixels: sigmaInPixels,
+                devicePixelRatio: _devicePixelRatio,
+              )) {
+            start = end;
+            continue;
+          }
+          _paintGlyphAtlasRange(canvas, atlas, transforms, rects, colors, start: start, end: end, sigma: sigma);
+        }
+        start = end;
+      }
+    } finally {
+      packed?.dispose();
+    }
+  }
+
+  bool _hasFewBlurredGlyphs(Float64List sigmas) {
+    var count = 0;
+    for (final sigma in sigmas) {
+      if (sigma > 0 && ++count >= _MotionPackedTextBlur.minimumFilters) return false;
+    }
+    return true;
+  }
+
+  // Custom paint and shadows can reach the edges of a padded atlas sprite.
+  bool get _canUseShaderBlur =>
+      !_shaderBlurUnavailable &&
+      _style.foreground == null &&
+      _style.background == null &&
+      _style.backgroundColor == null &&
+      !(_style.shadows?.isNotEmpty ?? false);
+
+  bool _paintShaderBlur(
+    Canvas canvas,
+    ui.Image atlas,
+    Float32List transforms,
+    Float32List rects,
+    Int32List? colors,
+    Float64List sigmas,
+  ) {
+    if (!_canUseShaderBlur) return false;
+
+    final prepared = _MotionShaderTextBlur.prepared;
+    if (prepared == null) {
+      _MotionShaderTextBlur.requestWarmUp(devicePixelRatio: _devicePixelRatio);
+      return false;
+    }
+
+    final _MotionShaderTextBlur shader;
+    try {
+      shader = _shaderBlur ??= _MotionShaderTextBlur(
+        prepared.program,
+        atlas,
+        useMesh: prepared.useMesh,
+        paddingPixels: (_atlasPadding * _devicePixelRatio).ceilToDouble(),
+      );
+    } on Exception {
+      _shaderBlurUnavailable = true;
+      return false;
+    }
+    if (!shader.available) {
+      shader.dispose();
+      _shaderBlur = null;
+      _shaderBlurUnavailable = true;
+      return false;
+    }
+
+    if (!shader.prepare(transforms, rects, sigmas)) return false;
+
+    var glyph = 0;
+    var equalRunEnd = 0;
+    while (glyph < sigmas.length) {
+      final sigma = sigmas[glyph];
+      if (sigma > 0 && glyph >= equalRunEnd) {
+        equalRunEnd = glyph + 1;
+        while (equalRunEnd < sigmas.length && sigmas[equalRunEnd] == sigma) {
+          equalRunEnd++;
+        }
+        if (equalRunEnd - glyph >= _minimumEqualBlurGlyphs &&
+            _isCompactBlurRun(transforms, rects, start: glyph, end: equalRunEnd, sigma: sigma)) {
+          shader.flush(canvas);
+          _MotionBlur.drawAtlasRange(
+            canvas,
+            atlas,
+            transforms,
+            rects,
+            colors,
+            _filteredAtlasPaint..imageFilter = _glyphBlur.filter(sigma),
+            start: glyph,
+            end: equalRunEnd,
+          );
+          glyph = equalRunEnd;
+          continue;
+        }
+      }
+      final level = shader.sampleLevel(glyph);
+      if (level >= 0) {
+        final alpha = colors == null ? 255 : (colors[glyph] >> 24) & 255;
+        if (shader.paint(canvas, transforms, rects, glyph, sigma, alpha / 255, level: level)) {
+          _paintedShaderBlur = true;
+          glyph++;
+          continue;
+        }
+      }
+
+      var end = glyph + 1;
+      while (end < sigmas.length && sigmas[end] == sigma && (!shader.available || shader.sampleLevel(end) < 0)) {
+        end++;
+      }
+      shader.flush(canvas);
+      _paintGlyphAtlasRange(canvas, atlas, transforms, rects, colors, start: glyph, end: end, sigma: sigma);
+      glyph = end;
+    }
+    shader.flush(canvas);
+    return true;
+  }
+
+  static bool _isCompactBlurRun(
+    Float32List transforms,
+    Float32List rects, {
+    required int start,
+    required int end,
+    required double sigma,
+  }) {
+    var left = double.infinity;
+    var top = double.infinity;
+    var right = double.negativeInfinity;
+    var bottom = double.negativeInfinity;
+    var spriteArea = 0.0;
+    final halo = 2 * _MotionBlur.outset(sigma);
+    for (var index = start * 4; index < end * 4; index += 4) {
+      final scale = transforms[index];
+      if (scale <= 0 || transforms[index + 1] != 0) return false;
+      final x = transforms[index + 2];
+      final y = transforms[index + 3];
+      final width = (rects[index + 2] - rects[index]) * scale;
+      final height = (rects[index + 3] - rects[index + 1]) * scale;
+      left = math.min(left, x);
+      top = math.min(top, y);
+      right = math.max(right, x + width);
+      bottom = math.max(bottom, y + height);
+      spriteArea += (width + halo) * (height + halo);
+    }
+
+    // A shared layer is wasteful when glyphs are scattered across the canvas.
+    return (right - left + halo) * (bottom - top + halo) <= spriteArea;
+  }
+
+  void _paintGlyphsWithoutAtlas(Canvas canvas, Offset offset, {required bool applyBlur}) {
     final centers = _characterCenters;
     if (centers == null) {
       return;
@@ -710,12 +1048,26 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
       }
       final centerIndex = index * 2;
       final painter = _glyphPainters[_spriteIndexByCharacter[index]];
+      final x = offsetX + centers[centerIndex] + _computedTranslationX;
+      final y = offsetY + centers[centerIndex + 1] + _computedTranslationY;
+      final sigma = applyBlur ? _computedBlurSigma : 0.0;
+      if (sigma > 0) {
+        final scale = _computedScale.abs();
+        final cosine = _computedCosine.abs();
+        final sine = _computedSine.abs();
+        _glyphBlur.save(
+          canvas,
+          Rect.fromCenter(
+            center: Offset(x, y),
+            width: scale * (cosine * painter.width + sine * painter.height),
+            height: scale * (sine * painter.width + cosine * painter.height),
+          ),
+          sigma,
+        );
+      }
       canvas
         ..save()
-        ..translate(
-          offsetX + centers[centerIndex] + _computedTranslationX,
-          offsetY + centers[centerIndex + 1] + _computedTranslationY,
-        );
+        ..translate(x, y);
       if (_computedSine != 0 || _computedCosine != 1) {
         canvas.rotate(math.atan2(_computedSine, _computedCosine));
       }
@@ -732,6 +1084,7 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
         canvas.restore();
       }
       canvas.restore();
+      if (sigma > 0) canvas.restore();
     }
   }
 
@@ -740,6 +1093,14 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     for (var effectIndex = 0; effectIndex < _renderEffects.length; effectIndex += 1) {
       final effect = _renderEffects[effectIndex];
       effect.effect.apply(effect.nextProgress(), _effectTransform);
+    }
+    final previewScale = _previewScale;
+    if (previewScale == null) {
+      _computedBlurSigma = _effectTransform._blurSigma;
+    } else {
+      _effectTransform._finishOperations();
+      _computedBlurSigma = previewScale > 0 ? _effectTransform._previewBlurSigma / previewScale : 0;
+      _effectTransform._resetTransform();
     }
     _computedOpacity = _effectTransform._opacity;
     _computedScale = _effectTransform._scale;
@@ -824,16 +1185,21 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
   void _attachAnimations() {
     for (final effect in _renderEffects) {
       effect.animation.addListener(_animationListener);
+      if (_atlasDeferred) effect.animation.addStatusListener(_atlasStatusListener);
     }
   }
 
   void _detachAnimations() {
     for (final effect in _renderEffects) {
       effect.animation.removeListener(_animationListener);
+      if (_atlasDeferred) effect.animation.removeStatusListener(_atlasStatusListener);
     }
   }
 
   void _clearTextResources() {
+    _setAtlasDeferred(false);
+    _discardAtlas();
+    _paintedShaderBlur = false;
     _textPainter?.dispose();
     _textPainter = null;
     for (final painter in _glyphPainters) {
@@ -842,15 +1208,15 @@ class _RenderOptimizedTextMotion extends RenderBox with RelayoutWhenSystemFontsC
     _glyphPainters = const <TextPainter>[];
     _placeholderBoxes = const <ui.TextBox>[];
     _spriteIndexByCharacter = const <int>[];
-    _sprites = const <_TextMotionSprite>[];
-    _atlas?.dispose();
-    _atlas = null;
     _atlasRects = null;
     _atlasTransforms = null;
     _atlasColors = null;
+    _glyphSigmas = null;
+    _packedBlur = null;
     _characterCenters = null;
     _spriteAnchors = null;
     _atlasDisabled = false;
+    _firstOversizedAtlasGlyphCount = null;
     _paintsParagraph = false;
     _overflowShader = null;
   }

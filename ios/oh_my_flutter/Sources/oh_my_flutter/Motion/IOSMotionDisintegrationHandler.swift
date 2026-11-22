@@ -76,7 +76,9 @@ internal final class IOSMotionDisintegrationHandler {
           throw IOSDisintegrateError.invalidArguments("Expected finite progress and a positive duration.")
         }
         scene.play(from: Float(progress), duration: milliseconds / 1000, result: result)
-      case "setFrame": scene.setFrame(try IOSDisintegrateConfiguration.frame(from: arguments["frame"]), result: result)
+      case "setFrame":
+        let frame = try IOSDisintegrateConfiguration.frame(from: arguments["frame"], nativeGaussian: scene.configuration.nativeGaussian)
+        scene.setFrame(frame, result: result)
       case "pause": scene.pause(); result(nil)
       case "dispose": scene.releaseImage(result: result)
       default: result(FlutterMethodNotImplemented)

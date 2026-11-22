@@ -7,6 +7,8 @@ internal final class IOSDisintegrateMetalContext {
   internal let commandQueue: MTLCommandQueue
   internal let pipeline: MTLRenderPipelineState
   internal let textureCache: CVMetalTextureCache
+  private let library: MTLLibrary
+  internal private(set) lazy var gaussianPipeline = try? IOSDisintegrateGaussian.makePipeline(device: device, library: library)
 
   internal init() throws {
     guard let device = MTLCreateSystemDefaultDevice(), let commandQueue = device.makeCommandQueue() else {
@@ -15,6 +17,7 @@ internal final class IOSDisintegrateMetalContext {
     self.device = device
     self.commandQueue = commandQueue
     let library = try Self.loadLibrary(device: device)
+    self.library = library
     let descriptor = MTLRenderPipelineDescriptor()
     descriptor.vertexFunction = library.makeFunction(name: "omf_disintegrate_vertex")
     descriptor.fragmentFunction = library.makeFunction(name: "omf_disintegrate_fragment")

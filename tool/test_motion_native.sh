@@ -12,4 +12,14 @@ clang \
   "$task_package_dir/test/native/motion/particle_geometry_test.c" \
   -lm -o "$task_temp_dir/particle_geometry_test"
 "$task_temp_dir/particle_geometry_test"
+
+clang \
+  -std=c11 -O3 -Wall -Wextra -Werror \
+  -ffp-contract=off -fno-builtin-sin -fno-builtin-cos \
+  -fsanitize=address,undefined -fno-omit-frame-pointer \
+  "$task_package_dir/android/src/main/cpp/motion/particle_frozen_pose.c" \
+  "$task_package_dir/test/native/motion/particle_frozen_pose_test.c" \
+  -lm -o "$task_temp_dir/particle_frozen_pose_test"
+"$task_temp_dir/particle_frozen_pose_test"
+
 sh "$task_package_dir/tool/test_motion_lifecycle.sh"

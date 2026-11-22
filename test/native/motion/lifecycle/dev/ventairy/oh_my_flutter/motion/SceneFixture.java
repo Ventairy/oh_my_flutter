@@ -16,7 +16,11 @@ final class SceneFixture {
     int invalidationCount;
 
     SceneFixture() {
-        scene = new DisintegrateScene(configuration(), () -> entry, new Handler(Looper.getMainLooper()), invalidated -> {
+        this(configuration());
+    }
+
+    SceneFixture(DisintegrateConfiguration configuration) {
+        scene = new DisintegrateScene(configuration, () -> entry, new Handler(Looper.getMainLooper()), invalidated -> {
             invalidationCount++;
             invalidated.close(null);
         });
@@ -24,9 +28,24 @@ final class SceneFixture {
     }
 
     static DisintegrateConfiguration configuration() {
+        return configuration(false);
+    }
+
+    static DisintegrateConfiguration configuration(boolean nativeGaussian) {
+        return configuration(nativeGaussian, false);
+    }
+
+    static DisintegrateConfiguration configuration(boolean nativeGaussian, boolean skiaGaussian) {
+        return configuration(nativeGaussian, skiaGaussian, false);
+    }
+
+    static DisintegrateConfiguration configuration(boolean nativeGaussian, boolean skiaGaussian, boolean legacyGaussian) {
         return new DisintegrateConfiguration(Map.ofEntries(
             Map.entry("width", 2), Map.entry("height", 2),
             Map.entry("viewportWidth", 10), Map.entry("viewportHeight", 10),
+            Map.entry("nativeGaussian", nativeGaussian),
+            Map.entry("skiaGaussian", skiaGaussian),
+            Map.entry("legacyGaussian", legacyGaussian),
             Map.entry("originX", 0), Map.entry("originY", 0),
             Map.entry("scaleX", 1), Map.entry("scaleY", 1),
             Map.entry("pointPadding", 2), Map.entry("maximumParticleCount", 4),

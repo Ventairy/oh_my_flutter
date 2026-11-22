@@ -100,3 +100,29 @@ fragment float4 omf_disintegrate_fragment(
   constexpr sampler sourceSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
   return image.sample(sourceSampler, source / imageSize) * particle.alpha;
 }
+
+struct DisintegrateGaussianUniforms {
+  float2 step;
+  float center;
+  uint count;
+};
+
+vertex float4 omf_disintegrate_gaussian_vertex(uint vertexID [[vertex_id]]) {
+  return float4(vertexID == 1 ? 3.0f : -1.0f, vertexID == 2 ? 3.0f : -1.0f, 0.0f, 1.0f);
+}
+
+fragment float4 omf_disintegrate_gaussian_fragment(
+  float4 position [[position]],
+  constant DisintegrateGaussianUniforms& uniforms [[buffer(0)]],
+  constant float2* taps [[buffer(1)]],
+  texture2d<float> image [[texture(0)]]
+) {
+  constexpr sampler imageSampler(coord::normalized, address::clamp_to_zero, filter::linear);
+  float2 uv = position.xy / float2(image.get_width(), image.get_height());
+  float4 color = image.sample(imageSampler, uv) * uniforms.center;
+  for (uint index = 0; index < uniforms.count; ++index) {
+    float2 delta = uniforms.step * taps[index].x;
+    color += (image.sample(imageSampler, uv + delta) + image.sample(imageSampler, uv - delta)) * taps[index].y;
+  }
+  return color;
+}

@@ -1,4 +1,10 @@
-## Unreleased
+## 0.31.0
+
+- Keep replaced `Morph` visuals visible through the first frame of their transition.
+
+- Add `CountdownBuilder` for deadline-aligned countdown updates and an optional completion callback.
+
+- Add Gaussian blur to custom Motion effects for widgets, staggered text, and moving particles.
 
 - Keep widgets sharp and free of visible seams as `Motion` starts disintegrating them.
 

@@ -23,6 +23,7 @@ class _TextMotionTransition extends StatelessWidget {
     required this.graphemes,
     required this.animatedCharacterCount,
     required this.applications,
+    this.previewScale,
   });
 
   final Text text;
@@ -30,6 +31,8 @@ class _TextMotionTransition extends StatelessWidget {
   final List<String> graphemes;
 
   final List<_TextMotionApplication> applications;
+
+  final double? previewScale;
 
   final int animatedCharacterCount;
 
@@ -43,13 +46,15 @@ class _TextMotionTransition extends StatelessWidget {
   }
 
   _TextMotionTransition withApplications(
-    List<_TextMotionApplication> nextApplications,
-  ) {
+    List<_TextMotionApplication> nextApplications, {
+    double? previewScale,
+  }) {
     return _TextMotionTransition._(
       text: text,
       graphemes: graphemes,
       animatedCharacterCount: animatedCharacterCount,
       applications: nextApplications,
+      previewScale: previewScale,
     );
   }
 
@@ -77,6 +82,7 @@ class _TextMotionTransition extends StatelessWidget {
       key: text.key,
       graphemes: graphemes,
       applications: applications,
+      previewScale: previewScale,
       style: effectiveStyle,
       strutStyle: strutStyle,
       textAlign: textAlign,

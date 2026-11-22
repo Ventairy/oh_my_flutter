@@ -23,6 +23,18 @@ class _TextMotionEffect extends MotionEffect {
 
   final Duration stagger;
 
+  static List<_TextMotionApplication> applicationsFor(List<_MotionApplication> applications) => [
+    for (final application in applications)
+      _applicationFor(application.animation, application.effect as _TextMotionEffect),
+  ];
+
+  static _TextMotionApplication _applicationFor(Animation<double> animation, _TextMotionEffect effect) => (
+    animation: animation,
+    effect: effect.effect,
+    stagger: effect.stagger,
+    timelineDuration: effect.duration,
+  );
+
   static Duration _timelineDuration({
     required MotionEffect effect,
     required Duration stagger,

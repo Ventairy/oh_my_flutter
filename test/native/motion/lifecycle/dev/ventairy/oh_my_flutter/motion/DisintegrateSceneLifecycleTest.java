@@ -1,8 +1,10 @@
 package dev.ventairy.oh_my_flutter.motion;
 
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Looper;
+import android.os.Process;
 
 public final class DisintegrateSceneLifecycleTest {
     public static void main(String[] arguments) {
@@ -17,8 +19,26 @@ public final class DisintegrateSceneLifecycleTest {
         memoryPressureRejectsPendingAwait();
         pausesWithoutDisposingThePreparedImage();
         updatesAComposedFrameWithoutReplacingItsScene();
+        rejectsAReleasedDrivenFrameOnTheWorker();
         rejectsImageHandlesAfterReplacementAndClose();
-        System.out.println("DisintegrateScene lifecycle regressions passed (12 cases).");
+        whenUsingLegacySkiaGaussianItShouldUseDefaultWorkerPriority();
+        System.out.println("DisintegrateScene lifecycle regressions passed (14 cases).");
+    }
+
+    private static void whenUsingLegacySkiaGaussianItShouldUseDefaultWorkerPriority() {
+        int sdkVersion = Build.VERSION.SDK_INT;
+        try {
+            Build.VERSION.SDK_INT = 28;
+            SceneFixture fixture = new SceneFixture(SceneFixture.configuration(true, true, true));
+            try {
+                require(fixture.worker.priority() == Process.THREAD_PRIORITY_DEFAULT,
+                    "Legacy Skia blur must use default worker priority.");
+            } finally {
+                fixture.close();
+            }
+        } finally {
+            Build.VERSION.SDK_INT = sdkVersion;
+        }
     }
 
     private static void rejectsImageHandlesAfterReplacementAndClose() {
@@ -55,12 +75,29 @@ public final class DisintegrateSceneLifecycleTest {
         SceneFixture fixture = new SceneFixture();
         fixture.prepare(1);
         RecordingResult update = new RecordingResult();
+        int before = EglWindow.presentCount;
         double[] values = new double[14];
         values[0] = 0.3;
         fixture.scene.setFrame(values, update);
+        fixture.worker.getLooper().drain();
+        require(update.successCount == 1 && update.errorCount == 0 && EglWindow.presentCount == before + 1
+                && fixture.entry.releaseCount == 0,
+            "A driven frame must present and reply on the worker without replacing the native surface.");
+        fixture.close();
+    }
+
+    private static void rejectsAReleasedDrivenFrameOnTheWorker() {
+        SceneFixture fixture = new SceneFixture();
+        fixture.prepare(1);
+        fixture.scene.releaseImage(false, new RecordingResult());
         fixture.drain();
-        require(update.successCount == 1 && update.errorCount == 0, "A driven frame must render through the existing scene.");
-        require(fixture.entry.releaseCount == 0, "Updating parameters must not replace the native surface.");
+        int before = EglWindow.presentCount;
+        RecordingResult update = new RecordingResult();
+        fixture.scene.setFrame(new double[14], update);
+        fixture.worker.getLooper().drain();
+        require(update.successCount == 0 && update.errorCount == 1 && "disposed".equals(update.errorCode)
+                && EglWindow.presentCount == before,
+            "A frame for a released image must be rejected on the worker without presenting.");
         fixture.close();
     }
 
@@ -149,10 +186,12 @@ public final class DisintegrateSceneLifecycleTest {
     private static void waitsPastCachedTransparentFrame() {
         SceneFixture fixture = new SceneFixture();
         fixture.prepare(1);
+        int firstPresent = EglWindow.presentCount;
         RecordingResult disposal = new RecordingResult();
-        fixture.scene.releaseImage(disposal);
+        fixture.scene.releaseImage(true, disposal);
         fixture.drain();
         require(disposal.successCount == 1, "Image disposal must finish before reuse.");
+        require(EglWindow.presentCount == firstPresent + 1, "Legacy disposal must still clear the texture.");
         long transparentTimestamp = EglWindow.lastPresentedTimestamp;
         long expectedTimestamp = fixture.prepare(2);
         require(expectedTimestamp > transparentTimestamp, "A reused source must have a fresh presentation timestamp.");
@@ -206,7 +245,7 @@ public final class DisintegrateSceneLifecycleTest {
         fixture.scene.awaitFirstFrame(result);
         fixture.drain();
         RecordingResult disposal = new RecordingResult();
-        fixture.scene.releaseImage(disposal);
+        fixture.scene.releaseImage(false, disposal);
         fixture.drain();
         require(result.errorCount == 1 && "disposed".equals(result.errorCode), "Disposing pixels must reject their pending wait.");
         require(disposal.successCount == 1, "The disposal request must still complete.");

@@ -7,6 +7,15 @@ Future<void> main(List<String> arguments) async {
   await build(arguments, (input, output) async {
     if (!input.config.buildCodeAssets) return;
     final target = input.config.code.targetOS;
+    if (target == OS.android && input.config.code.targetArchitecture == Architecture.arm) {
+      output.assets.code.add(
+        CodeAsset(
+          package: input.packageName,
+          name: 'src/widgets/motion/internals/disintegration/motion_particle_abi_native.dart',
+          linkMode: DynamicLoadingSystem(Uri.file('libomf_motion_particles.so')),
+        ),
+      );
+    }
     if (target == OS.iOS) {
       await DeviceLocationCLibrary.library.build(input: input, output: output);
     }

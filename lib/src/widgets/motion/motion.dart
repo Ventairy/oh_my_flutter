@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:typed_data' show Uint16List, Uint32List;
 import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
@@ -9,6 +10,10 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../rendering/resting_paint_transform.dart';
+import 'internals/disintegration/motion_particle_abi_stub.dart'
+    if (dart.library.ffi) 'internals/disintegration/motion_particle_abi_native.dart';
+import 'internals/motion_platform_stub.dart' if (dart.library.io) 'dart:io' show Platform;
+import 'internals/motion_shader_preparation.dart';
 
 part 'effects/disintegrate_motion_effect.dart';
 part 'effects/fade_in_motion_effect.dart';
@@ -25,6 +30,8 @@ part 'internals/disintegration/motion_visual_operation_kind.dart';
 part 'internals/disintegration/motion_visual_operation.dart';
 part 'internals/disintegration/motion_disintegration_host.dart';
 part 'internals/disintegration/motion_particle_stage.dart';
+part 'internals/disintegration/motion_particle_blurred_source.dart';
+part 'internals/disintegration/motion_particle_raster.dart';
 part 'internals/disintegration/motion_particle_fragment.dart';
 part 'internals/disintegration/motion_particle_painter.dart';
 part 'internals/disintegration/motion_disintegration_frame.dart';
@@ -36,6 +43,15 @@ part 'internals/disintegration/motion_disintegration_parameters.dart';
 part 'internals/motion_animation.dart';
 part 'internals/motion_animation_group.dart';
 part 'internals/motion_animation_host.dart';
+part 'internals/motion_blur.dart';
+part 'internals/motion_packed_fine_family.dart';
+part 'internals/motion_packed_text_blur.dart';
+part 'internals/motion_packed_text_shelf.dart';
+part 'internals/motion_shader_text_blur.dart';
+part 'internals/motion_vertex_glyph_batch.dart';
+part 'internals/motion_sparse_text_blur.dart';
+part 'internals/motion_particle_blur.dart';
+part 'internals/render_motion_particle_blur.dart';
 part 'internals/motion_debug_validator.dart';
 part 'internals/motion_render_effect.dart';
 part 'internals/motion_scheduler.dart';

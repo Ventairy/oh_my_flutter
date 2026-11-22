@@ -33,6 +33,10 @@ public final class MotionDisintegrationPlugin implements FlutterPlugin, MethodCh
 
     @Override
     public void onMethodCall(MethodCall call, MethodChannel.Result result) {
+        if (call.method.equals("supportsManagedGaussian")) {
+            result.success(DisintegrateOutput.supportsManagedOutput());
+            return;
+        }
         if (call.method.equals("releaseRenderer")) {
             Long instance = call.arguments instanceof Map<?, ?> values && values.get("instanceId") instanceof Number id ? id.longValue() : null;
             if (instance == null) {
@@ -85,7 +89,7 @@ public final class MotionDisintegrationPlugin implements FlutterPlugin, MethodCh
                     current.pause(result);
                     return;
                 case "dispose":
-                    current.releaseImage(result);
+                    current.releaseImage(Boolean.TRUE.equals(arguments.get("retainOutput")), result);
                     return;
                 default:
                     result.notImplemented();

@@ -5,6 +5,7 @@ class _OptimizedTextMotion extends LeafRenderObjectWidget {
   const new({
     required this.graphemes,
     required this.applications,
+    required this.previewScale,
     required this.style,
     required this.strutStyle,
     required this.textAlign,
@@ -27,6 +28,8 @@ class _OptimizedTextMotion extends LeafRenderObjectWidget {
   final List<String> graphemes;
 
   final List<_TextMotionApplication> applications;
+
+  final double? previewScale;
 
   final TextStyle style;
 
@@ -65,6 +68,7 @@ class _OptimizedTextMotion extends LeafRenderObjectWidget {
     return _RenderOptimizedTextMotion(
       graphemes: graphemes,
       applications: applications,
+      previewScale: previewScale,
       style: style,
       strutStyle: strutStyle,
       textAlign: textAlign,
@@ -92,6 +96,7 @@ class _OptimizedTextMotion extends LeafRenderObjectWidget {
     renderObject.updateConfiguration(
       graphemes: graphemes,
       applications: applications,
+      previewScale: previewScale,
       style: style,
       strutStyle: strutStyle,
       textAlign: textAlign,

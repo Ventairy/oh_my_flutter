@@ -1,3 +1,4 @@
+import CoreVideo
 import Flutter
 import Foundation
 import QuartzCore
@@ -67,7 +68,13 @@ internal final class IOSDisintegrateScene: NSObject {
               self.isPrepared = true
               self.output.publish(image, handle: handle)
               self.registry.textureFrameAvailable(self.textureId)
-              result(["textureId": self.textureId, "handle": handle])
+              var response: [String: Any] = ["textureId": self.textureId, "handle": handle]
+              if self.configuration.nativeGaussian {
+                response["nativeGaussian"] = true
+                response["textureWidth"] = CVPixelBufferGetWidth(image)
+                response["textureHeight"] = CVPixelBufferGetHeight(image)
+              }
+              result(response)
             case .failure(let error): result(Self.flutterError(error))
             }
           }

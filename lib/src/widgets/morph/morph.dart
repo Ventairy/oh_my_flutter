@@ -70,6 +70,8 @@ part '_morph_node_boundary.dart';
 part '_morph_node_handle.dart';
 part '_morph_node_paint.dart';
 part '_morph_overlay.dart';
+part '_morph_departure_bridge.dart';
+part '_render_morph_departure_bridge.dart';
 part '_morph_positioned_flight.dart';
 part '_morph_raster_snapshot_admission.dart';
 part '_morph_raster_snapshot_retry.dart';

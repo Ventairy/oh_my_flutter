@@ -1,6 +1,7 @@
 package dev.ventairy.oh_my_flutter.motion;
 
 import android.content.ComponentCallbacks2;
+import android.os.Build;
 import android.os.Handler;
 import android.view.Surface;
 import java.util.function.LongConsumer;
@@ -20,36 +21,46 @@ final class DisintegrateOutput {
     private volatile long expectedTimestampNs = Long.MAX_VALUE;
     private volatile boolean released;
 
-    DisintegrateOutput(TextureRegistry registry, int width, int height, Handler mainHandler,
-            LongConsumer onFrameAcquired, Runnable onInvalidated) {
+    DisintegrateOutput(TextureRegistry registry, int width, int height, boolean nativeGaussian, boolean legacyGaussian,
+            Handler mainHandler, LongConsumer onFrameAcquired, Runnable onInvalidated) {
+        final boolean managedOutput = supportsManagedOutput();
+        if (nativeGaussian && legacyGaussian == managedOutput) {
+            throw new IllegalStateException("Gaussian output does not match the platform texture type.");
+        }
         this.mainHandler = mainHandler;
         this.onFrameAcquired = onFrameAcquired;
-        TextureRegistry.SurfaceProducer candidate = registry.createSurfaceProducer(TextureRegistry.SurfaceLifecycle.resetInBackground);
-        try {
-            candidate.setSize(width, height + 1);
-            candidate.getSurface();
-            if (!candidate.handlesCropAndRotation()) {
-                this.width = Math.max(width, ParticleRenderer.READINESS_PROBE_WIDTH);
-                this.height = height + 1;
-                candidate.setSize(this.width, this.height);
-                surfaceProducer = candidate;
-                textureEntry = null;
-                needsReadinessProbe = true;
-                textureId = candidate.id();
-                surface = candidate.getSurface();
-                candidate.setCallback(new TextureRegistry.SurfaceProducer.Callback() {
-                    @Override
-                    public void onSurfaceCleanup() {
-                        if (!released) onInvalidated.run();
-                    }
-                });
-                return;
+        // Before Android 10, Flutter's producer wraps a SurfaceTexture.
+        if (managedOutput) {
+            TextureRegistry.SurfaceProducer candidate = registry.createSurfaceProducer(TextureRegistry.SurfaceLifecycle.resetInBackground);
+            try {
+                candidate.setSize(width, height + 1);
+                candidate.getSurface();
+                if (!candidate.handlesCropAndRotation()) {
+                    this.width = Math.max(width, ParticleRenderer.READINESS_PROBE_WIDTH);
+                    this.height = height + 1;
+                    candidate.setSize(this.width, this.height);
+                    surfaceProducer = candidate;
+                    textureEntry = null;
+                    needsReadinessProbe = true;
+                    textureId = candidate.id();
+                    surface = candidate.getSurface();
+                    candidate.setCallback(new TextureRegistry.SurfaceProducer.Callback() {
+                        @Override
+                        public void onSurfaceCleanup() {
+                            if (!released) onInvalidated.run();
+                        }
+                    });
+                    return;
+                }
+            } catch (RuntimeException error) {
+                candidate.release();
+                throw error;
             }
-        } catch (RuntimeException error) {
             candidate.release();
-            throw error;
+            if (nativeGaussian) {
+                throw new IllegalStateException("Gaussian output requires a managed particle surface.");
+            }
         }
-        candidate.release();
         surfaceProducer = null;
         needsReadinessProbe = false;
         this.width = width;
@@ -74,6 +85,10 @@ final class DisintegrateOutput {
                 if (!released) onInvalidated.run();
             });
         });
+    }
+
+    static boolean supportsManagedOutput() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
     }
 
     void expectFirstFrame(long timestampNs) {

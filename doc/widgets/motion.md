@@ -228,7 +228,55 @@ render equivalent states at progress 0 and 1 so their cycles remain seamless.
 
 `apply` is called during both effect setup and visible playback. Keep it
 deterministic, synchronous, and free of side effects. `MotionEffectTransform`
-supports opacity, translation, uniform scale, and rotation in degrees.
+supports opacity, translation, uniform scale, rotation in degrees, and blur.
+
+### Bring content into focus
+
+Use `transform.blur(sigma)` to soften the content as it enters or leaves.
+Sigma is measured in logical pixels. Start with a small value such as `3`
+and end at `0` to bring the content into focus. A fade can make the same
+reveal feel gentler. In `TextMotion`, set `stagger` to bring neighboring
+characters into focus in sequence.
+
+For design references, see [Emil Kowalski’s Linear intro](https://x.com/emilkowalski/status/1987892934587412676)
+and [Rauno Freiberg’s motion choreography](https://x.com/raunofreiberg/status/1965344575507365926).
+
+```dart
+import 'package:oh_my_flutter/oh_my_flutter.dart';
+
+class FocusReveal extends MotionEffect {
+  const FocusReveal() : super(duration: const Duration(milliseconds: 240));
+
+  @override
+  void apply(double progress, MotionEffectTransform transform) {
+    final t = progress.clamp(0.0, 1.0);
+    transform
+      ..fade(t)
+      ..blur(3 * (1 - t));
+  }
+}
+```
+
+Each call acts on the visual state produced by the calls before it. For
+example, a scale after blur also scales the softened edges. With a delayed
+effect, start at sigma `0` to keep the content sharp until that effect plays.
+
+```dart
+import 'package:flutter/widgets.dart';
+import 'package:oh_my_flutter/oh_my_flutter.dart';
+
+class SoftDisintegration extends MotionEffect {
+  const SoftDisintegration() : super(duration: const Duration(milliseconds: 360));
+
+  @override
+  void apply(double progress, MotionEffectTransform transform) {
+    final t = progress.clamp(0.0, 1.0);
+    transform
+      ..disintegrate(progress: t, direction: const Offset(1, -0.5))
+      ..blur(12 * t * (1 - t));
+  }
+}
+```
 
 ### Declare bounds for brief or abrupt transformations
 
@@ -238,9 +286,10 @@ Account for the configured curve as part of that path: a monotonic formula may
 stop being monotonic when its curve overshoots or oscillates.
 
 An oscillating, abrupt, or short-lived custom effect must declare conservative
-bounds when its translation, growth, or rotation extrema may be missed. If its
-exact range is difficult to calculate, declare a safely larger range; bounds
-reserve paint area but do not restrict the effect's movement.
+bounds when its translation, growth, rotation, or blur can briefly extend
+beyond the reserved paint area. Use `maximumBlurSigma` to reserve room
+for a brief blur peak. If the exact range is difficult to calculate, give it
+extra room. The bounds reserve paint area for the effect.
 
 During setup, when Motion mounts or receives different effects, it evaluates
 65 evenly spaced timeline positions from `0` through `1`. Each position passes
@@ -358,7 +407,9 @@ class ShrinkingDisintegrateMotionEffect extends MotionEffect {
 
 Operations apply in declaration order. Scaling after disintegration scales the
 pieces and their displacement together. Scaling before it changes the input
-before the pieces move. Multiple disintegration calls compose in order too.
+before the pieces move. If blur comes before disintegration, the pieces keep the
+blur they had when breakup began. Blur applied after disintegration can keep
+changing as the pieces move. Multiple disintegration calls compose in order too.
 
 Keep the number/order of `disintegrate` calls and each call's `particleSize`
 constant throughout playback. To delay breakup, pass an interval-transformed

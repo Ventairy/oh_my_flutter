@@ -175,22 +175,7 @@ class _TextMotionState extends State<TextMotion> {
   }
 
   Widget _buildTransition(List<_MotionApplication> applications) {
-    return _transition.withApplications(
-      List<_TextMotionApplication>.generate(
-        applications.length,
-        (index) {
-          final application = applications[index];
-          final effect = application.effect as _TextMotionEffect;
-          return (
-            animation: application.animation,
-            effect: effect.effect,
-            stagger: effect.stagger,
-            timelineDuration: effect.duration,
-          );
-        },
-        growable: false,
-      ),
-    );
+    return _transition.withApplications(_TextMotionEffect.applicationsFor(applications));
   }
 
   List<_TextMotionEffect> _createAdaptedEffects() {

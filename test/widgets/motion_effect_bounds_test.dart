@@ -41,8 +41,9 @@ void main() {
           bounds.maximumOffset,
           bounds.maximumScale,
           bounds.maximumRotationDegrees,
+          bounds.maximumBlurSigma,
         ),
-        (Offset.zero, Offset.zero, 1, 0),
+        (Offset.zero, Offset.zero, 1, 0, 0),
       );
     });
 
@@ -51,6 +52,15 @@ void main() {
         () => MotionEffectBounds(maximumRotationDegrees: -1),
         throwsAssertionError,
       );
+    });
+
+    test('when maximum blur sigma is negative, it should reject the configuration', () {
+      expect(() => MotionEffectBounds(maximumBlurSigma: -1), throwsAssertionError);
+    });
+
+    testWidgets('when a custom effect declares a brief blur, it should reserve the halo', (tester) async {
+      await tester.pumpWidget(_testApp(const _AliasedBlurEffect()));
+      expect(_transitionRenderBox(tester).paintBounds, const Rect.fromLTRB(-12, -12, 52, 32));
     });
 
     test('when an effect omits bounds, it should expose null', () {
@@ -216,4 +226,16 @@ class _BoundedMotionEffect extends MotionEffect {
 
   @override
   void apply(double progress, MotionEffectTransform transform) {}
+}
+
+class _AliasedBlurEffect extends MotionEffect {
+  const new();
+
+  @override
+  MotionEffectBounds get bounds => const MotionEffectBounds(maximumBlurSigma: 4);
+
+  @override
+  void apply(double progress, MotionEffectTransform transform) {
+    if (progress > 0.1 && progress < 0.101) transform.blur(4);
+  }
 }

@@ -6,6 +6,7 @@ import java.util.Map;
 final class ParticleRenderer {
     static final int READINESS_PROBE_WIDTH = 22;
     static long lastProbedHandle;
+    static float lastDrawProgress;
     private boolean released;
 
     ParticleRenderer(DisintegrateConfiguration configuration) {}
@@ -16,6 +17,7 @@ final class ParticleRenderer {
 
     void draw(float progress) {
         if (released) throw new AssertionError("Drawing a released renderer.");
+        lastDrawProgress = progress;
     }
 
     Map<String, Object> capabilities() { return new HashMap<>(); }

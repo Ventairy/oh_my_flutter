@@ -4,6 +4,16 @@ abstract final class _MotionDisintegrationTable {
   static const sampleCount = 4096;
   static const stride = 4;
   static final Float32List samples = _createSamples();
+  static final Float32List positions = _createPositions();
+
+  static Float32List _createPositions() {
+    final positions = Float32List(sampleCount + 1);
+    var position = 0.0;
+    for (var index = 0; index <= sampleCount; index++, position++) {
+      positions[index] = position;
+    }
+    return positions.asUnmodifiableView();
+  }
 
   static Float32List _createSamples() {
     final values = Float32List((sampleCount + 1) * stride);

@@ -10,7 +10,10 @@ class _MotionVisualOperation {
   double x = 0;
   double y = 0;
   double opacity = 1;
+  double blurSigma = 0;
+  bool callsBlur = false;
   double progress = 0;
+  double? loopPhase;
   double directionX = 0;
   double directionY = 0;
   double particleSize = MotionEffectTransform.defaultParticleSize;

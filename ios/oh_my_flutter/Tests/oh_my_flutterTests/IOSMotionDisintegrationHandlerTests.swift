@@ -44,6 +44,29 @@ import XCTest
     XCTAssertNotNil(replacement)
   }
 
+  func testWhenTheGaussianViewportExceedsItsBudgetItShouldAllowAStandardFallback() throws {
+    guard MTLCreateSystemDefaultDevice() != nil else { throw XCTSkip("Metal is unavailable on this test host.") }
+    let registry = IOSDisintegrateTextureRegistrySpy()
+    let handler = IOSMotionDisintegrationHandler(binaryMessenger: IOSNativeSelectableTextMenuBinaryMessengerSpy(), registry: registry)
+    defer { handler.dispose() }
+    let arguments = IOSDisintegrateTestFixture.arguments(overrides: [
+      "instanceId": 1,
+      "image": FlutterStandardTypedData(bytes: IOSDisintegrateTestFixture.pixels()),
+      "viewportWidth": 800, "viewportHeight": 900,
+      "nativeGaussian": true, "frame": IOSDisintegrateTestFixture.frame(gaussian: (2, 4)),
+    ])
+    let rejected = expectation(description: "The Gaussian viewport is refused")
+    var refusal: FlutterError?
+    handler.handle(FlutterMethodCall(methodName: "prepare", arguments: arguments)) { value in
+      refusal = value as? FlutterError
+      rejected.fulfill()
+    }
+    wait(for: [rejected], timeout: 5)
+    let fallback = prepare(handler)
+
+    XCTAssertTrue(refusal != nil && fallback?["textureId"] != nil && fallback?["nativeGaussian"] == nil)
+  }
+
   private func isRendererReady(_ handler: IOSMotionDisintegrationHandler) -> Bool? {
     var response: Bool?
     handler.handle(FlutterMethodCall(methodName: "prepareRenderer", arguments: [:])) { value in

@@ -4,6 +4,7 @@ class _RenderMorphEndpoint extends RenderProxyBox {
   new(
     this._visibility,
     this.onPaint,
+    this.onDetach,
     this.onPresented,
     this.onSnapshotSuppressed,
     this.shouldSuppressSnapshot,
@@ -11,11 +12,13 @@ class _RenderMorphEndpoint extends RenderProxyBox {
 
   _MorphVisibilityHandle _visibility;
   VoidCallback onPaint;
+  VoidCallback? onDetach;
   VoidCallback onPresented;
   VoidCallback onSnapshotSuppressed;
   bool Function()? shouldSuppressSnapshot;
   int _snapshotSuppressionDepth = 0;
   LayerHandle<OpacityLayer>? _hiddenOpacityLayer;
+  final _presentationLayer = LayerHandle<OffsetLayer>();
 
   void beginSnapshotSuppression() {
     _snapshotSuppressionDepth += 1;
@@ -50,6 +53,14 @@ class _RenderMorphEndpoint extends RenderProxyBox {
   }
 
   @override
+  bool get alwaysNeedsCompositing => true;
+
+  LayerHandle<OffsetLayer>? retainPresentation() {
+    final paintedLayer = _presentationLayer.layer;
+    return paintedLayer is OffsetLayer ? LayerHandle<OffsetLayer>(paintedLayer) : null;
+  }
+
+  @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
     _visibility.addListener(_handleVisibilityChanged);
@@ -57,6 +68,7 @@ class _RenderMorphEndpoint extends RenderProxyBox {
 
   @override
   void detach() {
+    onDetach?.call();
     _visibility.removeListener(_handleVisibilityChanged);
     super.detach();
   }
@@ -95,7 +107,8 @@ class _RenderMorphEndpoint extends RenderProxyBox {
     // it out. Sampling only on an actual visible paint preserves the last
     // geometry shown to the user while retained, unpainted subtrees do no work.
     onPaint();
-    super.paint(context, offset);
+    final presentation = (_presentationLayer.layer ??= OffsetLayer())..offset = offset;
+    context.pushLayer(presentation, super.paint, Offset.zero, childPaintBounds: paintBounds);
   }
 
   void _clearHiddenOpacityLayer() {
@@ -111,6 +124,7 @@ class _RenderMorphEndpoint extends RenderProxyBox {
 
   @override
   void dispose() {
+    _presentationLayer.layer = null;
     _clearHiddenOpacityLayer();
     super.dispose();
   }

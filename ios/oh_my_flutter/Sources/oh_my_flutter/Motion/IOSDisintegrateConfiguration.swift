@@ -2,6 +2,11 @@ import Flutter
 import Foundation
 
 internal struct IOSDisintegrateConfiguration {
+  internal static let particleFrameCount = 14
+  private static let maximumGaussianDimension = 2048
+  private static let maximumGaussianPixels = 640 * 1024
+  private static let maximumTextureSigma = 8.0
+
   internal let width: Int
   internal let height: Int
   internal let viewportWidth: Int
@@ -16,12 +21,19 @@ internal struct IOSDisintegrateConfiguration {
   internal let geometryParameters: [Double]
   internal let motionParameters: [Float]
   internal let initialFrame: [Float]
+  internal let nativeGaussian: Bool
 
   internal init(arguments: [String: Any]) throws {
     width = try Self.positiveInteger(arguments["width"])
     height = try Self.positiveInteger(arguments["height"])
     viewportWidth = try Self.positiveInteger(arguments["viewportWidth"])
     viewportHeight = try Self.positiveInteger(arguments["viewportHeight"])
+    nativeGaussian = arguments["nativeGaussian"] as? Bool == true
+    if nativeGaussian &&
+      (viewportWidth > Self.maximumGaussianDimension || viewportHeight > Self.maximumGaussianDimension ||
+        viewportWidth * viewportHeight > Self.maximumGaussianPixels) {
+      throw IOSDisintegrateError.unavailable("The Gaussian viewport exceeds the native texture budget.")
+    }
     originX = try Self.finiteFloat(arguments["originX"])
     originY = try Self.finiteFloat(arguments["originY"])
     scaleX = try Self.finiteFloat(arguments["scaleX"])
@@ -39,7 +51,7 @@ internal struct IOSDisintegrateConfiguration {
     self.seed = seed
     geometryParameters = try Self.values(from: arguments["geometryParameters"], count: 10)
     motionParameters = try Self.values(from: arguments["motionParameters"], count: 6).map(Float.init)
-    initialFrame = try Self.frame(from: arguments["frame"])
+    initialFrame = try Self.frame(from: arguments["frame"], nativeGaussian: nativeGaussian)
     guard motionParameters.allSatisfy({ $0.isFinite }), motionParameters[0] > 0,
       motionParameters[4] >= 0, motionParameters[4] < 1, motionParameters[5] >= 0
     else {
@@ -47,10 +59,21 @@ internal struct IOSDisintegrateConfiguration {
     }
   }
 
-  internal static func frame(from value: Any?) throws -> [Float] {
-    let frame = try values(from: value, count: 14).map(Float.init)
+  internal static func frame(from value: Any?, nativeGaussian: Bool = false) throws -> [Float] {
+    let count = particleFrameCount + (nativeGaussian ? 2 : 0)
+    let parameters = try values(from: value, count: count)
+    let frame = parameters.map(Float.init)
     guard frame.allSatisfy({ $0.isFinite }) else {
-      throw IOSDisintegrateError.invalidArguments("Expected fourteen finite frame parameters.")
+      throw IOSDisintegrateError.invalidArguments("Expected \(count) finite frame parameters.")
+    }
+    if nativeGaussian {
+      let textureSigma = parameters[particleFrameCount]
+      let displaySigma = parameters[particleFrameCount + 1]
+      if textureSigma < 0 || textureSigma > maximumTextureSigma || displaySigma < 0 ||
+        (textureSigma == 0) != (displaySigma == 0) ||
+        (frame[particleFrameCount] == 0) != (frame[particleFrameCount + 1] == 0) {
+        throw IOSDisintegrateError.invalidArguments("Expected consistent Gaussian sigmas within the native texture limit.")
+      }
     }
     return frame
   }
@@ -59,7 +82,7 @@ internal struct IOSDisintegrateConfiguration {
     [
       Float(width), Float(height), Float(viewportWidth), Float(viewportHeight),
       originX, originY, scaleX, scaleY,
-    ] + frame + motionParameters
+    ] + frame.prefix(Self.particleFrameCount) + motionParameters
   }
 
   internal func matches(_ other: IOSDisintegrateConfiguration) -> Bool {
@@ -71,6 +94,7 @@ internal struct IOSDisintegrateConfiguration {
       && minimumCellSize == other.minimumCellSize && seed == other.seed
       && geometryParameters == other.geometryParameters
       && motionParameters == other.motionParameters
+      && nativeGaussian == other.nativeGaussian
   }
 
   private static func positiveInteger(_ value: Any?) throws -> Int {

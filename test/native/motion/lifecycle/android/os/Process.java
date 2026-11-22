@@ -2,6 +2,7 @@ package android.os;
 
 public final class Process {
     public static final int THREAD_PRIORITY_DISPLAY = -4;
+    public static final int THREAD_PRIORITY_DEFAULT = 0;
 
     public static int myTid() { return 1; }
 

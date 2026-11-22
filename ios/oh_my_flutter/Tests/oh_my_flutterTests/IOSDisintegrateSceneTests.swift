@@ -44,6 +44,28 @@ import XCTest
     XCTAssertEqual(corners, [[0, 0, 255, 255], [0, 255, 0, 255], [255, 0, 0, 255], [0, 255, 255, 255]])
   }
 
+  func testWhenPreparingGaussianItShouldDescribeTheActualTextureWithoutAProbeRow() throws {
+    let configuration = try IOSDisintegrateTestFixture.configuration(overrides: [
+      "viewportWidth": 28, "viewportHeight": 24, "originX": 8, "originY": 8,
+      "nativeGaussian": true, "frame": IOSDisintegrateTestFixture.frame(gaussian: (2, 4)),
+    ])
+    let registry = IOSDisintegrateTextureRegistrySpy()
+    let scene = try scene(configuration: configuration, registry: registry)
+    defer { scene.close() }
+    let prepared = expectation(description: "The Gaussian image is rendered")
+    var response: [String: Any]?
+    scene.prepareImage(IOSDisintegrateTestFixture.pixels(), handle: 17, frame: configuration.initialFrame) { value in
+      response = value as? [String: Any]
+      prepared.fulfill()
+    }
+    wait(for: [prepared], timeout: 10)
+    let expected: [String: Any] = [
+      "textureId": scene.textureId, "handle": 17, "nativeGaussian": true, "textureWidth": 28, "textureHeight": 24,
+    ]
+
+    XCTAssertEqual(response as NSDictionary?, expected as NSDictionary)
+  }
+
   func testWhenReleasingAnImageBeforePreparationCompletesItShouldNotPublishTheLateImage() throws {
     let configuration = try IOSDisintegrateTestFixture.configuration()
     let registry = IOSDisintegrateTextureRegistrySpy()

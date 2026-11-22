@@ -103,6 +103,12 @@ and constraints.
 change can happen immediately or with an animation, and hidden content can
 either stay loaded or be removed.
 
+### CountdownBuilder
+
+`CountdownBuilder` updates your interface with the time remaining before a
+deadline. It can do things such as show when a user can request another login
+code and let the app enable the resend button when the wait ends.
+
 ### Contour
 
 `Contour` follows a widget's visible edges with a colored border. It can do

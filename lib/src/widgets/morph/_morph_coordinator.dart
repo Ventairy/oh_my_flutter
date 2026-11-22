@@ -23,7 +23,11 @@ class _MorphCoordinator extends ChangeNotifier {
   final Set<_MorphEndpointHandle> _scheduledIncomingEndpoints = {};
   final Map<(Duration, Duration, Object?), _MorphControllerLease> _sameFrameControllers = {};
   final _MorphTextRasterPool textRasterPool = _MorphTextRasterPool();
+  // Keep the last painted source available before post-frame flight setup.
+  final _departureRepaint = ChangeNotifier();
+  final Map<_MorphEndpointHandle, ({LayerHandle<OffsetLayer> layer, Matrix4 transform})> _departures = {};
   OverlayEntry? _overlayEntry;
+  OverlayEntry? _departureEntry;
   Object? _sameFrameCohort;
   int _registrationOrder = 0;
   bool _notificationScheduled = false;
@@ -120,6 +124,7 @@ class _MorphCoordinator extends ChangeNotifier {
       _structuralOrderRefreshScheduled = false;
       if (!overlay.mounted) return;
       _refreshStructuralOrder();
+      if (_groups.values.any((group) => group.endpoints.any((endpoint) => endpoint.active))) _ensureDepartureOverlay();
     });
   }
 
@@ -225,12 +230,20 @@ class _MorphCoordinator extends ChangeNotifier {
         if (flight != null) flight.destinationHandle.observer?._acceptTagFlight(flight);
       }
     }
+    if (_departures.isNotEmpty) {
+      for (final departure in _departures.values) {
+        departure.layer.layer = null;
+      }
+      _departures.clear();
+      _departureRepaint.notifyListeners();
+    }
     _localMatchDecisions.clear();
     _scheduledIncomingEndpoints.removeWhere((endpoint) {
       if (_pendingGroups.contains(_groups[endpoint.tag])) return false;
       endpoint.preparedTarget = null;
       return true;
     });
+    if (_groups.isEmpty) _removeDepartureOverlay();
   }
 
   bool _hasRetainedGestureLayout(_MorphEndpointHandle endpoint) {
@@ -488,6 +501,23 @@ class _MorphCoordinator extends ChangeNotifier {
     _transferOwnershipImmediately(flight.destinationHandle);
   }
 
+  void captureReplacementPresentation(_MorphEndpointHandle endpoint) {
+    if (!endpoint.active ||
+        endpoint.animationsDisabled ||
+        !endpoint.flightsEnabled ||
+        _flightUses(endpoint) ||
+        !identical(_groups[endpoint.tag]?.owner, endpoint)) {
+      return;
+    }
+    final geometry = endpoint.owner._lastPaintedGeometry;
+    if (geometry == null) return;
+    final presentation = endpoint.owner._renderObject?.retainPresentation();
+    if (presentation == null) return;
+    _departures.remove(endpoint)?.layer.layer = null;
+    _departures[endpoint] = (layer: presentation, transform: Matrix4.copy(geometry.transform));
+    _departureRepaint.notifyListeners();
+  }
+
   void deactivate(_MorphEndpointHandle endpoint) {
     if (!endpoint.animationsDisabled && endpoint.flightsEnabled && !_flightUses(endpoint)) {
       _captureDeparture(endpoint);
@@ -528,6 +558,10 @@ class _MorphCoordinator extends ChangeNotifier {
 
   void overlayUnmounted(OverlayEntry unmountedEntry) {
     if (!identical(_overlayEntry, unmountedEntry)) return;
+    for (final departure in _departures.values) {
+      departure.layer.layer = null;
+    }
+    _departures.clear();
     final flights = _flights.values.toList(growable: false);
     _flights.clear();
     _orderedFlights.clear();
@@ -1608,6 +1642,29 @@ class _MorphCoordinator extends ChangeNotifier {
       }
       if (endpoint.active && !_flightUses(endpoint)) endpoint.releaseDeparture();
     }
+  }
+
+  void _ensureDepartureOverlay() {
+    // This paint-only entry must already be mounted when a source detaches.
+    // Flight entries keep their independent creation and retirement lifecycle.
+    if (_departureEntry != null) return;
+    _departureEntry = OverlayEntry(
+      builder: (_) => Positioned.fill(
+        child: IgnorePointer(
+          child: _MorphDepartureBridge(coordinator: this, child: const SizedBox.expand()),
+        ),
+      ),
+    );
+    overlay.insert(_departureEntry!);
+  }
+
+  void _removeDepartureOverlay() {
+    final entry = _departureEntry;
+    _departureEntry = null;
+    if (entry == null) return;
+    entry
+      ..remove()
+      ..dispose();
   }
 
   void _ensureOverlay() {

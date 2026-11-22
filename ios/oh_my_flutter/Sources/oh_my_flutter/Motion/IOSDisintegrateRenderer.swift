@@ -13,6 +13,9 @@ internal final class IOSDisintegrateRenderer {
   private let pixelBufferPool: CVPixelBufferPool
   private var uniforms: [Float]
   private var image: MTLTexture?
+  private var gaussian: IOSDisintegrateGaussian?
+  private var textureSigma: Float = 0
+  private var displaySigma: Float = 0
 
   internal init(configuration: IOSDisintegrateConfiguration, context: IOSDisintegrateMetalContext) throws {
     self.configuration = configuration
@@ -56,11 +59,20 @@ internal final class IOSDisintegrateRenderer {
       image.replace(region: MTLRegionMake2D(0, 0, configuration.width, configuration.height),
         mipmapLevel: 0, withBytes: bytes.baseAddress!, bytesPerRow: configuration.width * 4)
     }
+    if configuration.nativeGaussian && gaussian == nil {
+      gaussian = try IOSDisintegrateGaussian(context: context, width: configuration.viewportWidth,
+        height: configuration.viewportHeight)
+    }
     setFrame(frame)
   }
 
   internal func setFrame(_ frame: [Float]) {
-    for index in frame.indices { uniforms[8 + index] = frame[index] }
+    let count = IOSDisintegrateConfiguration.particleFrameCount
+    for index in 0..<count { uniforms[8 + index] = frame[index] }
+    if configuration.nativeGaussian {
+      textureSigma = frame[count]
+      displaySigma = frame[count + 1]
+    }
   }
 
   internal func render(progress: Float, completion: @escaping (Result<CVPixelBuffer, Error>) -> Void) {
@@ -118,6 +130,14 @@ internal final class IOSDisintegrateRenderer {
     encoder.setFragmentTexture(image, index: 0)
     if progress < 1 { encoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: particleCount) }
     encoder.endEncoding()
+    if let gaussian, textureSigma > 0 && progress < 1 && uniforms[17] > 0 && uniforms[18] > 0 {
+      do {
+        try gaussian.encode(target: target, sigma: textureSigma, displaySigma: displaySigma, commands: commands)
+      } catch {
+        completion(.failure(error))
+        return
+      }
+    }
     commands.addCompletedHandler { command in
       withExtendedLifetime(wrappedTexture) {
         if let error = command.error { completion(.failure(error)) }
@@ -127,5 +147,8 @@ internal final class IOSDisintegrateRenderer {
     commands.commit()
   }
 
-  internal func releaseImage() { image = nil }
+  internal func releaseImage() {
+    image = nil
+    gaussian = nil
+  }
 }

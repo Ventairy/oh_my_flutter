@@ -36,6 +36,36 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
   bool _rebuildScheduled = false;
   bool _tickersEnabled = true;
   int _preparation = 0;
+  late double _maximumBlurOutset;
+  late bool _capturesBlurredSource;
+
+  void _updateBlurOutset() {
+    var sigma = 0.0;
+    var earlierEffectCanBlur = false;
+    _capturesBlurredSource = false;
+    final sample = MotionEffectTransform._();
+    for (final effect in widget.effects) {
+      final source = effect is _TextMotionEffect ? effect.effect : effect;
+      final bounds = _MotionRenderEffect._sampleBounds(source, isLinear: identical(source.curve, Curves.linear));
+      if (sigma > 0 || bounds.maximumBlurSigma > 0) {
+        for (var index = 0; index <= _MotionRenderEffect._boundsSampleCount; index++) {
+          sample._reset();
+          source.apply(source.curve.transform(index / _MotionRenderEffect._boundsSampleCount), sample);
+          if (!sample._hasDisintegration) break;
+          // An off-sample declared peak can also be conditional on progress.
+          if (earlierEffectCanBlur ||
+              (source.bounds?.maximumBlurSigma ?? 0) > 0 ||
+              sample._operations!.take(sample._operationCount).any((operation) => operation.callsBlur)) {
+            _capturesBlurredSource = true;
+            break;
+          }
+        }
+      }
+      earlierEffectCanBlur = earlierEffectCanBlur || bounds.maximumBlurSigma > 0;
+      sigma = _MotionBlur.combine(sigma * math.max(1, bounds.maximumScale), bounds.maximumBlurSigma);
+    }
+    _maximumBlurOutset = _MotionBlur.outset(sigma);
+  }
 
   void _listen(List<_MotionApplication> applications) {
     if (listEquals(_applications, applications)) return;
@@ -82,8 +112,8 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
     return false;
   }
 
-  void _releaseFrame() {
-    _frame?.dispose();
+  void _releaseFrame({bool outputRemoved = false}) {
+    _frame?.dispose(outputRemoved: outputRemoved);
     _frame = null;
   }
 
@@ -100,7 +130,7 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
     if (!running && _applications.every((application) => application.animation.status == .completed)) {
       _updateSourceTransform();
       if (_fullyDisintegrated) {
-        _releaseFrame();
+        _releaseFrame(outputRemoved: true);
         _rebuild();
         return;
       }
@@ -123,17 +153,23 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
     _MotionDisintegrationSource? source;
     _MotionDisintegrationFrame? prepared;
     try {
+      final devicePixelRatio = View.of(context).devicePixelRatio;
       source = await _MotionDisintegrationSource.capture(
         boundary,
         isText: widget.characterCount != 0,
-        devicePixelRatio: View.of(context).devicePixelRatio,
+        devicePixelRatio: devicePixelRatio,
         effects: widget.effects,
+        blurOutset: _maximumBlurOutset,
+        capturesBlurredSource: _capturesBlurredSource,
       );
       prepared = _MotionDisintegrationFrame(
         source: source,
         instance: _instance,
         applications: _applications,
         stagger: widget.stagger,
+        capturesBlurredSource: _capturesBlurredSource,
+        devicePixelRatio: devicePixelRatio,
+        maximumBlurOutset: _maximumBlurOutset,
       );
       if (!mounted || preparation != _preparation) {
         prepared.dispose();
@@ -167,6 +203,13 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _updateBlurOutset();
+  }
+
+  @override
+  void didUpdateWidget(_MotionDisintegrationHost oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!listEquals(oldWidget.effects, widget.effects)) _updateBlurOutset();
   }
 
   @override
@@ -225,9 +268,7 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
                   child: ExcludeSemantics(
                     child: RepaintBoundary(
                       key: const ValueKey('motion_render_surface'),
-                      child: frame.usesNative
-                          ? frame.buildNativeOutput(devicePixelRatio: View.of(context).devicePixelRatio)
-                          : CustomPaint(key: ObjectKey(frame), painter: frame.painter),
+                      child: _buildParticleOutput(frame),
                     ),
                   ),
                 ),
@@ -236,6 +277,19 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
         );
       },
     );
+  }
+
+  Widget _buildParticleOutput(_MotionDisintegrationFrame frame) {
+    final output = frame.usesNative
+        ? frame.buildNativeOutput(devicePixelRatio: View.of(context).devicePixelRatio)
+        : CustomPaint(key: ObjectKey(frame), painter: frame.painter);
+    if (frame.usesNativeGaussian ||
+        widget.characterCount != 0 ||
+        frame.painter.capturesBlurredSource ||
+        _maximumBlurOutset == 0) {
+      return output;
+    }
+    return _MotionParticleBlur(applications: _applications, child: output);
   }
 
   Widget _buildSource() {
@@ -261,14 +315,25 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
         opacity *= operation.opacity.clamp(0.0, 1.0);
       }
     }
-    return Transform(
+    final previewHasBlur = !_sourceReplaced && !hidden && _maximumBlurOutset > 0;
+    final child = widget.child;
+    final preview = previewHasBlur && child is _TextMotionTransition
+        ? child.withApplications(
+            _TextMotionEffect.applicationsFor(_applications),
+            previewScale: math.sqrt(matrix.storage[0] * matrix.storage[0] + matrix.storage[1] * matrix.storage[1]),
+          )
+        : child;
+    final source = Transform(
       alignment: Alignment.center,
       transform: matrix,
       child: Opacity(
         alwaysIncludeSemantics: true,
         opacity: hidden ? 0 : opacity,
-        child: RepaintBoundary(key: _captureKey, child: widget.child),
+        child: RepaintBoundary(key: _captureKey, child: preview),
       ),
     );
+    // An overlay's live source stays sharp once the captured particles take over.
+    if (widget.characterCount != 0 || !previewHasBlur) return source;
+    return _MotionParticleBlur(applications: _applications, preview: true, child: source);
   }
 }

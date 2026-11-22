@@ -4,6 +4,7 @@ import android.view.Surface;
 
 final class EglWindow {
     static long lastPresentedTimestamp;
+    static int presentCount;
     private Surface surface;
 
     void initialize(Surface output) { surface = output; }
@@ -11,6 +12,7 @@ final class EglWindow {
     void present(long frameTimeNs) {
         if (surface == null || !surface.isValid()) throw new AssertionError("Presenting a released surface.");
         lastPresentedTimestamp = frameTimeNs;
+        presentCount++;
     }
 
     void release() { surface = null; }

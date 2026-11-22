@@ -216,8 +216,17 @@ class _MotionAnimationHostState extends State<_MotionAnimationHost> {
   }
 
   Future<void> _preparePlayback(int preparation) async {
-    await WidgetsBinding.instance.endOfFrame;
+    final binding = WidgetsBinding.instance;
+    if (binding.schedulerPhase == .idle && !binding.hasScheduledFrame) {
+      // Coalesce synchronous requests before scheduling the capture paint.
+      await Future<void>.value();
+    }
     if (!mounted || preparation != _preparation) return;
+    if (binding.schedulerPhase != .idle || binding.hasScheduledFrame) {
+      // A pending build may replace the effect or source before capture.
+      await binding.endOfFrame;
+      if (!mounted || preparation != _preparation) return;
+    }
     await widget.preparePlayback!();
     if (!mounted || preparation != _preparation) return;
     if (_animationsDisabled) {

@@ -663,6 +663,10 @@ class _MorphState extends State<Morph> {
         _renderObject = renderObject;
       },
       onPaint: _rememberPaintedGeometry,
+      onDetach: () {
+        final endpoint = _endpoint;
+        if (endpoint != null) _MorphCoordinator.of(endpoint.overlay).captureReplacementPresentation(endpoint);
+      },
       onPresented: _rememberPresentation,
       onSnapshotSuppressed: _invalidatePresentation,
       shouldSuppressSnapshot: () {

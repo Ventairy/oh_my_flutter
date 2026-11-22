@@ -7,12 +7,13 @@ part of 'motion.dart';
 /// Declaring bounds does not restrict the effect from moving beyond them.
 @immutable
 final class MotionEffectBounds {
-  /// Creates bounds for an effect's translation, scale, and rotation range.
+  /// Creates bounds for an effect's translation, scale, rotation, and blur range.
   const new({
     this.minimumOffset = Offset.zero,
     this.maximumOffset = Offset.zero,
     this.maximumScale = 1,
     this.maximumRotationDegrees = 0,
+    this.maximumBlurSigma = 0,
   }) : assert(
          maximumScale >= 0 && maximumScale < double.infinity,
          'maximumScale must be finite and non-negative.',
@@ -20,6 +21,10 @@ final class MotionEffectBounds {
        assert(
          maximumRotationDegrees >= 0 && maximumRotationDegrees < double.infinity,
          'maximumRotationDegrees must be finite and non-negative.',
+       ),
+       assert(
+         maximumBlurSigma >= 0 && maximumBlurSigma < double.infinity,
+         'maximumBlurSigma must be finite and non-negative.',
        );
 
   /// Smallest horizontal and vertical offsets the effect can paint at.
@@ -45,6 +50,12 @@ final class MotionEffectBounds {
   /// Set this when a brief or abrupt rotation could be missed during bounds
   /// sampling. It reserves room for rotated content without changing playback.
   final double maximumRotationDegrees;
+
+  /// Largest blur sigma, in logical pixels, reached by this effect.
+  ///
+  /// Set this to reserve room for a brief blur peak that could be missed
+  /// during bounds sampling. It defaults to zero and does not cap the blur.
+  final double maximumBlurSigma;
 
   double get _maximumAbsoluteTranslationX => math.max(
     minimumOffset.dx.abs(),

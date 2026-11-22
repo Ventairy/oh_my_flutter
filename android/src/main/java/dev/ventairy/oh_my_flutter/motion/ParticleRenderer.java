@@ -8,6 +8,8 @@ import java.util.Map;
 final class ParticleRenderer {
     static final int READINESS_PROBE_WIDTH = 22;
     private final DisintegrateConfiguration configuration;
+    private final int[] uniformBits = new int[14];
+    private boolean hasUniforms;
     private ParticleGeometry geometry;
     private int program;
     private int sourceTexture;
@@ -18,6 +20,9 @@ final class ParticleRenderer {
     private int suffixUniform;
     private int opacityUniform;
     private int directionUniform;
+    private ParticleGaussian gaussian;
+    private float blurSigma;
+    private float displaySigma;
 
     ParticleRenderer(DisintegrateConfiguration configuration) {
         this.configuration = configuration;
@@ -41,6 +46,7 @@ final class ParticleRenderer {
         if (pixels.length != (long) configuration.width * configuration.height * 4) {
             throw new IllegalArgumentException("Expected premultiplied RGBA pixels matching the image dimensions.");
         }
+        if (configuration.nativeGaussian) prepareGaussian();
         if (sourceTexture != 0) {
             GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, sourceTexture);
             GLES30.glTexSubImage2D(GLES30.GL_TEXTURE_2D, 0, 0, 0, configuration.width, configuration.height,
@@ -60,6 +66,30 @@ final class ParticleRenderer {
     }
 
     void draw(float progress) {
+        if (gaussian == null || blurSigma == 0 || progress >= 1) {
+            drawParticles(progress);
+            return;
+        }
+        if (Float.intBitsToFloat(uniformBits[9]) == 0 || Float.intBitsToFloat(uniformBits[10]) == 0) {
+            GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT);
+            return;
+        }
+        try {
+            gaussian.bindSource();
+            drawParticles(progress);
+            gaussian.drawResult(blurSigma, displaySigma);
+        } catch (RuntimeException | LinkageError error) {
+            GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
+            GLES30.glViewport(0, 0, configuration.viewportWidth, configuration.viewportHeight);
+            throw error;
+        } finally {
+            GLES30.glUseProgram(program);
+            GLES30.glBindTexture(GLES30.GL_TEXTURE_2D, sourceTexture);
+            GLES30.glEnable(GLES30.GL_BLEND);
+        }
+    }
+
+    private void drawParticles(float progress) {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT);
         if (progress >= 1) return;
         GLES30.glUniform1f(progressUniform, progress);
@@ -67,26 +97,64 @@ final class ParticleRenderer {
     }
 
     void setFrame(double[] frame) {
-        if (frame == null || frame.length != 14) throw new IllegalArgumentException("Expected fourteen frame parameters.");
+        int expectedLength = configuration.nativeGaussian ? 16 : 14;
+        if (frame == null || frame.length != expectedLength) {
+            throw new IllegalArgumentException("Expected " + expectedLength + " frame parameters.");
+        }
         for (double value : frame) if (!Double.isFinite(value)) throw new IllegalArgumentException("Expected finite frame parameters.");
-        GLES30.glUseProgram(program);
-        GLES30.glUniform4f(prefixUniform, (float) frame[1], (float) frame[2], (float) frame[3], (float) frame[4]);
-        GLES30.glUniform4f(suffixUniform, (float) frame[5], (float) frame[6], (float) frame[7], (float) frame[8]);
-        GLES30.glUniform2f(opacityUniform, (float) frame[9], (float) frame[10]);
-        GLES30.glUniform3f(directionUniform, (float) frame[11], (float) frame[12], (float) frame[13]);
+        if (configuration.nativeGaussian) {
+            float nextBlurSigma = (float) frame[14];
+            float nextDisplaySigma = (float) frame[15];
+            if (frame[14] < 0 || frame[15] < 0 || !Float.isFinite(nextBlurSigma) || !Float.isFinite(nextDisplaySigma)
+                    || (nextBlurSigma == 0) != (nextDisplaySigma == 0)) {
+                throw new IllegalArgumentException("Expected matching finite and nonnegative Gaussian sigmas.");
+            }
+            blurSigma = nextBlurSigma;
+            displaySigma = nextDisplaySigma;
+        }
+        // The renderer owns its context, so the particle program stays bound.
+        if (!hasUniforms) GLES30.glUseProgram(program);
+        if (updateUniformGroup(frame, 1, 5)) {
+            GLES30.glUniform4f(prefixUniform, (float) frame[1], (float) frame[2], (float) frame[3], (float) frame[4]);
+        }
+        if (updateUniformGroup(frame, 5, 9)) {
+            GLES30.glUniform4f(suffixUniform, (float) frame[5], (float) frame[6], (float) frame[7], (float) frame[8]);
+        }
+        if (updateUniformGroup(frame, 9, 11)) {
+            GLES30.glUniform2f(opacityUniform, (float) frame[9], (float) frame[10]);
+        }
+        if (updateUniformGroup(frame, 11, 14)) {
+            GLES30.glUniform3f(directionUniform, (float) frame[11], (float) frame[12], (float) frame[13]);
+        }
+        hasUniforms = true;
+    }
+
+    private boolean updateUniformGroup(double[] frame, int start, int end) {
+        boolean changed = !hasUniforms;
+        for (int index = start; index < end; index++) {
+            int bits = Float.floatToRawIntBits((float) frame[index]);
+            changed |= uniformBits[index] != bits;
+            uniformBits[index] = bits;
+        }
+        return changed;
     }
 
     void drawReadinessProbe(long imageHandle) {
         // A private, clipped row identifies this exact image across Flutter's texture import.
         GLES30.glEnable(GLES30.GL_SCISSOR_TEST);
-        for (int pixel = 0; pixel < READINESS_PROBE_WIDTH; pixel++) {
-            int bit = pixel * 3;
-            float red = ((imageHandle >>> bit) & 1) != 0 ? 1 : 0;
-            float green = bit + 1 < 64 && ((imageHandle >>> (bit + 1)) & 1) != 0 ? 1 : 0;
-            float blue = bit + 2 < 64 && ((imageHandle >>> (bit + 2)) & 1) != 0 ? 1 : 0;
-            GLES30.glScissor(pixel, configuration.viewportHeight, 1, 1);
-            GLES30.glClearColor(red, green, blue, 1);
+        long remainingBits = imageHandle;
+        int runStart = 0;
+        int color = (int) remainingBits & 7;
+        for (int nextPixel = 1; nextPixel <= READINESS_PROBE_WIDTH; nextPixel++) {
+            remainingBits >>>= 3;
+            int nextColor = (int) remainingBits & 7;
+            if (nextPixel < READINESS_PROBE_WIDTH && nextColor == color) continue;
+
+            GLES30.glScissor(runStart, configuration.viewportHeight, nextPixel - runStart, 1);
+            GLES30.glClearColor(color & 1, (color >>> 1) & 1, (color >>> 2) & 1, 1);
             GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT);
+            runStart = nextPixel;
+            color = nextColor;
         }
         GLES30.glDisable(GLES30.GL_SCISSOR_TEST);
         GLES30.glClearColor(0, 0, 0, 0);
@@ -105,6 +173,7 @@ final class ParticleRenderer {
     }
 
     void releaseImage() {
+        if (gaussian != null) gaussian.releaseTargets();
         if (sourceTexture == 0) return;
         GLES30.glDeleteTextures(1, new int[] {sourceTexture}, 0);
         sourceTexture = 0;
@@ -112,12 +181,31 @@ final class ParticleRenderer {
 
     void release() {
         releaseImage();
+        if (gaussian != null) {
+            gaussian.release();
+            gaussian = null;
+        }
         if (vertexBuffer != 0) GLES30.glDeleteBuffers(1, new int[] {vertexBuffer}, 0);
         if (vertexArray != 0) GLES30.glDeleteVertexArrays(1, new int[] {vertexArray}, 0);
         if (program != 0) GLES30.glDeleteProgram(program);
         vertexBuffer = 0;
         vertexArray = 0;
         program = 0;
+        hasUniforms = false;
+    }
+
+    private void prepareGaussian() {
+        if (gaussian == null) {
+            gaussian = new ParticleGaussian(configuration.viewportWidth, configuration.viewportHeight,
+                configuration.skiaGaussian, configuration.legacyGaussian, configuration.fullDensityGaussian);
+        }
+        try {
+            gaussian.prepareTargets();
+        } catch (RuntimeException | LinkageError error) {
+            gaussian.release();
+            gaussian = null;
+            throw error;
+        }
     }
 
     private void uploadGeometry() {
@@ -162,25 +250,33 @@ final class ParticleRenderer {
     }
 
     private int createProgram() {
-        int vertex = compileShader(GLES30.GL_VERTEX_SHADER, configuration.vertexSource);
-        int fragment = compileShader(GLES30.GL_FRAGMENT_SHADER, configuration.fragmentSource);
-        int linked = GLES30.glCreateProgram();
-        GLES30.glAttachShader(linked, vertex);
-        GLES30.glAttachShader(linked, fragment);
-        GLES30.glLinkProgram(linked);
-        int[] status = new int[1];
-        GLES30.glGetProgramiv(linked, GLES30.GL_LINK_STATUS, status, 0);
-        GLES30.glDeleteShader(vertex);
-        GLES30.glDeleteShader(fragment);
-        if (status[0] == 0) {
-            String message = GLES30.glGetProgramInfoLog(linked);
-            GLES30.glDeleteProgram(linked);
-            throw new IllegalStateException(message);
-        }
-        return linked;
+        return linkProgram(configuration.vertexSource, configuration.fragmentSource);
     }
 
-    private int compileShader(int kind, String source) {
+    static int linkProgram(String vertexSource, String fragmentSource) {
+        int vertex = compileShader(GLES30.GL_VERTEX_SHADER, vertexSource);
+        int fragment = 0;
+        int linked = 0;
+        boolean success = false;
+        try {
+            fragment = compileShader(GLES30.GL_FRAGMENT_SHADER, fragmentSource);
+            linked = GLES30.glCreateProgram();
+            GLES30.glAttachShader(linked, vertex);
+            GLES30.glAttachShader(linked, fragment);
+            GLES30.glLinkProgram(linked);
+            int[] status = new int[1];
+            GLES30.glGetProgramiv(linked, GLES30.GL_LINK_STATUS, status, 0);
+            if (status[0] == 0) throw new IllegalStateException(GLES30.glGetProgramInfoLog(linked));
+            success = true;
+            return linked;
+        } finally {
+            if (!success && linked != 0) GLES30.glDeleteProgram(linked);
+            if (fragment != 0) GLES30.glDeleteShader(fragment);
+            GLES30.glDeleteShader(vertex);
+        }
+    }
+
+    private static int compileShader(int kind, String source) {
         int shader = GLES30.glCreateShader(kind);
         GLES30.glShaderSource(shader, source);
         GLES30.glCompileShader(shader);

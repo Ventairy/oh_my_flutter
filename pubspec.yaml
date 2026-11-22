@@ -1,6 +1,6 @@
 name: oh_my_flutter
 description: Empower Flutter with utilities that make development 10x faster.
-version: 0.30.0
+version: 0.31.0
 homepage: https://github.com/Ventairy/oh_my_flutter
 repository: https://github.com/Ventairy/oh_my_flutter
 issue_tracker: https://github.com/Ventairy/oh_my_flutter/issues
@@ -78,4 +78,7 @@ flutter:
         pluginClass: OhMyFlutterPluginCApi
   shaders:
     - shaders/contour_shadow_atlas.frag
+    - shaders/motion_glyph_blur.frag
+    - shaders/motion_glyph_blur_rows.frag
+    - shaders/motion_glyph_blur_mesh.frag
   uses-material-design: true

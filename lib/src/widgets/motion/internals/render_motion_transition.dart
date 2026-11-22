@@ -8,6 +8,15 @@ class _RenderMotionTransition extends RenderProxyBox implements RestingPaintTran
     _updateMotionState();
   }
 
+  // On Android, Flutter exposes shader image filters on Impeller only.
+  static final bool _hasSkiaFilters = !ui.ImageFilter.isShaderFilterSupported;
+
+  final _blur = _MotionBlur();
+  late ui.ImageFilter _composedFilter;
+  ui.ImageFilter? _composedGaussian;
+  int? _composedAlpha;
+  final _opacityLayer = LayerHandle<OpacityLayer>();
+  final _transformLayer = LayerHandle<TransformLayer>();
   final Matrix4 _paintTransform = Matrix4.identity();
   final MotionEffectTransform _effectTransform = MotionEffectTransform._();
   late final VoidCallback _animationListener = _updateMotionState;
@@ -40,17 +49,60 @@ class _RenderMotionTransition extends RenderProxyBox implements RestingPaintTran
   double _translationX = 0;
   double _translationY = 0;
   Rect _cachedPaintBounds = Rect.zero;
-  int _paintMode = -1;
+
+  int get _alpha => (_opacity.clamp(0.0, 1.0) * 255).round();
+
+  bool get _paintsChild => child != null && !(_opacity <= 0 || _scale == 0 || !_scale.isFinite);
 
   bool get _usesOpacityLayer => _opacity > 0 && _opacity < 1;
+
+  bool get _composesFade =>
+      !kIsWeb &&
+      defaultTargetPlatform == .android &&
+      _hasSkiaFilters &&
+      isRepaintBoundary &&
+      !_hasTransform &&
+      !child!.needsCompositing;
 
   bool get _hasTransform {
     return _scale != 1 || _cosine != 1 || _sine != 0 || _translationX != 0 || _translationY != 0;
   }
 
   @override
-  bool get alwaysNeedsCompositing {
-    return child != null && _usesOpacityLayer;
+  bool get isRepaintBoundary => _paintsChild && _effectTransform._blurSigma > 0;
+
+  @override
+  bool get alwaysNeedsCompositing => isRepaintBoundary || (_paintsChild && _usesOpacityLayer);
+
+  @override
+  OffsetLayer updateCompositedLayer({required covariant ImageFilterLayer? oldLayer}) {
+    if (oldLayer != null) {
+      if (_usesOpacityLayer) _opacityLayer.layer?.alpha = _alpha;
+      final transformLayer = _transformLayer.layer;
+      if (_hasTransform && transformLayer != null && transformLayer.transform != _paintTransform) {
+        transformLayer.transform = Matrix4.copy(_paintTransform);
+      }
+    }
+    return (oldLayer ?? ImageFilterLayer())..imageFilter = _currentFilter();
+  }
+
+  ui.ImageFilter _currentFilter() {
+    final gaussian = _blur.filter(_effectTransform._blurSigma);
+    if (!_usesOpacityLayer || !_composesFade) return gaussian;
+    final alpha = _alpha;
+    if (alpha == 255) return gaussian;
+
+    // Keep the child recording independent of animated opacity so Skia can
+    // reuse its rasterized input. The inner filter fades the group before blur.
+    if (!identical(_composedGaussian, gaussian) || _composedAlpha != alpha) {
+      _composedGaussian = gaussian;
+      _composedAlpha = alpha;
+      _composedFilter = ui.ImageFilter.compose(
+        outer: gaussian,
+        inner: ui.ColorFilter.mode(Color.fromARGB(alpha, 0, 0, 0), BlendMode.dstIn),
+      );
+    }
+    return _composedFilter;
   }
 
   @override
@@ -66,6 +118,13 @@ class _RenderMotionTransition extends RenderProxyBox implements RestingPaintTran
   void detach() {
     _detachAnimations();
     super.detach();
+  }
+
+  @override
+  void dispose() {
+    _opacityLayer.layer = null;
+    _transformLayer.layer = null;
+    super.dispose();
   }
 
   @override
@@ -99,46 +158,21 @@ class _RenderMotionTransition extends RenderProxyBox implements RestingPaintTran
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (child == null || _opacity <= 0 || _scale == 0 || !_scale.isFinite) {
-      layer = null;
-      _paintMode = 0;
+    if (!_paintsChild) {
+      _opacityLayer.layer = null;
+      _transformLayer.layer = null;
       return;
     }
-
-    final usesOpacity = _usesOpacityLayer;
-    final hasTransform = _hasTransform;
-    final nextPaintMode = (usesOpacity ? 2 : 0) | (hasTransform ? 1 : 0);
-    if (_paintMode != nextPaintMode) {
-      layer = null;
-      _paintMode = nextPaintMode;
-    }
-
-    switch (nextPaintMode) {
-      case 0:
-        super.paint(context, offset);
-        layer = null;
-      case 1:
-        layer = context.pushTransform(
-          needsCompositing,
-          offset,
-          _paintTransform,
-          super.paint,
-          oldLayer: layer is TransformLayer ? layer as TransformLayer? : null,
-        );
-      case 2:
-        layer = context.pushOpacity(
-          offset,
-          (_opacity.clamp(0.0, 1.0) * 255).round(),
-          super.paint,
-          oldLayer: layer is OpacityLayer ? layer as OpacityLayer? : null,
-        );
-      case 3:
-        layer = context.pushOpacity(
-          offset,
-          (_opacity.clamp(0.0, 1.0) * 255).round(),
-          _paintTransformed,
-          oldLayer: layer is OpacityLayer ? layer as OpacityLayer? : null,
-        );
+    if (_usesOpacityLayer && !_composesFade) {
+      _opacityLayer.layer = context.pushOpacity(
+        offset,
+        _alpha,
+        _paintTransformedChild,
+        oldLayer: _opacityLayer.layer,
+      );
+    } else {
+      _opacityLayer.layer = null;
+      _paintTransformedChild(context, offset);
     }
   }
 
@@ -176,37 +210,69 @@ class _RenderMotionTransition extends RenderProxyBox implements RestingPaintTran
       );
   }
 
-  void _paintTransformed(PaintingContext context, Offset offset) {
-    context.pushTransform(
-      child!.needsCompositing,
+  void _paintTransformedChild(PaintingContext context, Offset offset) {
+    if (!_hasTransform) {
+      _transformLayer.layer = null;
+      super.paint(context, offset);
+      return;
+    }
+    _transformLayer.layer = context.pushTransform(
+      // Under an active filter, keep the transform outside the child's
+      // recording so it can be updated together with the filter.
+      isRepaintBoundary || child!.needsCompositing,
       offset,
       _paintTransform,
       super.paint,
+      oldLayer: _transformLayer.layer,
     );
   }
 
   void _updateMotionState() {
-    final previouslyUsedOpacityLayer = _usesOpacityLayer;
+    final previouslyNeededCompositing = alwaysNeedsCompositing;
+    final wasRepaintBoundary = isRepaintBoundary;
+    final paintedChild = _paintsChild;
+    final usedOpacityLayer = _usesOpacityLayer;
+    final hadTransform = _hasTransform;
+    final previousOpacity = _opacity;
+    final previousSigma = _effectTransform._blurSigma;
     _effectTransform._reset();
     for (var index = 0; index < _renderEffects.length; index += 1) {
       final effect = _renderEffects[index]..prepareFrame();
       effect.effect.apply(effect.nextProgress(), _effectTransform);
     }
+    final transformChanged =
+        _scale != _effectTransform._scale ||
+        _cosine != _effectTransform._cosine ||
+        _sine != _effectTransform._sine ||
+        _translationX != _effectTransform._translationX ||
+        _translationY != _effectTransform._translationY;
     _opacity = _effectTransform._opacity;
     _scale = _effectTransform._scale;
     _cosine = _effectTransform._cosine;
     _sine = _effectTransform._sine;
     _translationX = _effectTransform._translationX;
     _translationY = _effectTransform._translationY;
-    if (previouslyUsedOpacityLayer != _usesOpacityLayer) {
+
+    final boundaryChanged = wasRepaintBoundary != isRepaintBoundary;
+    if (boundaryChanged || previouslyNeededCompositing != alwaysNeedsCompositing) {
       markNeedsCompositingBitsUpdate();
     }
-    if (hasSize) {
-      _updatePaintTransform();
+    if (transformChanged) {
+      if (hasSize) _updatePaintTransform();
+      if (owner?.semanticsOwner != null) markNeedsSemanticsUpdate();
     }
-    markNeedsPaint();
-    if (owner?.semanticsOwner != null) {
-      markNeedsSemanticsUpdate();
+
+    if (boundaryChanged ||
+        paintedChild != _paintsChild ||
+        (_paintsChild && (hadTransform != _hasTransform || usedOpacityLayer != _usesOpacityLayer))) {
+      markNeedsPaint();
+    } else if (_paintsChild &&
+        (transformChanged || previousOpacity != _opacity || previousSigma != _effectTransform._blurSigma)) {
+      if (isRepaintBoundary) {
+        markNeedsCompositedLayerUpdate();
+      } else {
+        markNeedsPaint();
+      }
     }
   }
 

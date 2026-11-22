@@ -99,6 +99,13 @@ test-shaders:
 test:
 	fvm flutter test
 
+.PHONY: test-countdown-builder analyze-countdown-builder
+test-countdown-builder:
+	fvm flutter test --no-pub test/widgets/countdown_builder_test.dart
+
+analyze-countdown-builder:
+	fvm dart analyze --fatal-infos lib/src/widgets/countdown_builder test/widgets/countdown_builder_test.dart
+
 STRING_VALIDATION_DART_SOURCES := \
 	lib/src/extensions/string_extension.dart \
 	lib/src/whatsapp.dart \

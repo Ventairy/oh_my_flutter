@@ -90,6 +90,7 @@ class _MotionRenderEffect {
     var maximumTranslationY = 0.0;
     var maximumScale = 1.0;
     var maximumRotationDegrees = 0.0;
+    var maximumBlurSigma = 0.0;
     for (var index = 0; index <= _boundsSampleCount; index += 1) {
       final timelineProgress = index / _boundsSampleCount;
       final progress = isLinear ? timelineProgress : effect.curve.transform(timelineProgress);
@@ -100,6 +101,10 @@ class _MotionRenderEffect {
       maximumTranslationX = math.max(maximumTranslationX, transform._translationX);
       maximumTranslationY = math.max(maximumTranslationY, transform._translationY);
       maximumScale = math.max(maximumScale, transform._scale.abs());
+      maximumBlurSigma = math.max(
+        maximumBlurSigma,
+        _MotionBlur.combine(transform._recordedBlurSigma * transform._scale.abs(), transform._blurSigma),
+      );
       maximumRotationDegrees = math.max(maximumRotationDegrees, transform._rotationDegrees.abs());
     }
     final sampledBounds = MotionEffectBounds(
@@ -107,6 +112,7 @@ class _MotionRenderEffect {
       maximumOffset: Offset(maximumTranslationX, maximumTranslationY),
       maximumScale: maximumScale,
       maximumRotationDegrees: maximumRotationDegrees,
+      maximumBlurSigma: maximumBlurSigma,
     );
     final declaredBounds = effect.bounds;
     if (declaredBounds == null) {
@@ -141,20 +147,27 @@ class _MotionRenderEffect {
         sampledBounds.maximumRotationDegrees,
         declaredBounds.maximumRotationDegrees,
       ),
+      maximumBlurSigma: math.max(maximumBlurSigma, declaredBounds.maximumBlurSigma),
     );
   }
 
-  static Rect paintBoundsFor(Size size, Iterable<MotionEffectBounds> effectBounds) {
+  static Rect paintBoundsFor(Size size, Iterable<MotionEffectBounds> effectBounds, {bool includeBlur = true}) {
     var maximumScale = 1.0;
     var horizontalMotion = 0.0;
     var verticalMotion = 0.0;
     var maximumRotationDegrees = 0.0;
+    var maximumBlurSigma = 0.0;
     for (final bounds in effectBounds) {
       horizontalMotion += bounds._maximumAbsoluteTranslationX;
       verticalMotion += bounds._maximumAbsoluteTranslationY;
       maximumScale *= math.max(1, bounds.maximumScale);
       maximumRotationDegrees += bounds.maximumRotationDegrees;
+      maximumBlurSigma = _MotionBlur.combine(
+        maximumBlurSigma * math.max(1, bounds.maximumScale),
+        bounds.maximumBlurSigma,
+      );
     }
+    final blurOutset = includeBlur ? _MotionBlur.outset(maximumBlurSigma) : 0.0;
     if (maximumRotationDegrees > 0) {
       final halfWidth = size.width / 2;
       final halfHeight = size.height / 2;
@@ -175,7 +188,7 @@ class _MotionRenderEffect {
         -verticalOutset,
         size.width + horizontalOutset,
         size.height + verticalOutset,
-      );
+      ).inflate(blurOutset);
     }
     final horizontalOutset = horizontalMotion * maximumScale + size.width * (maximumScale - 1) / 2;
     final verticalOutset = verticalMotion * maximumScale + size.height * (maximumScale - 1) / 2;
@@ -184,7 +197,7 @@ class _MotionRenderEffect {
       -verticalOutset,
       size.width + horizontalOutset,
       size.height + verticalOutset,
-    );
+    ).inflate(blurOutset);
   }
 
   void prepareFrame() {

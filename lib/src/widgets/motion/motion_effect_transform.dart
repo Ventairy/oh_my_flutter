@@ -13,6 +13,8 @@ final class MotionEffectTransform {
   List<_MotionVisualOperation>? _operations;
   int _operationCount = 0;
 
+  double _blurSigma = 0;
+  bool _callsBlur = false;
   double _opacity = 1;
   double _scale = 1;
   double _rotationDegrees = 0;
@@ -24,6 +26,25 @@ final class MotionEffectTransform {
   /// Multiplies the current opacity by [opacity].
   void fade(double opacity) {
     _opacity *= opacity;
+  }
+
+  /// Blur the visible child.
+  ///
+  /// Set [sigma] in logical pixels, from zero for sharp content to larger
+  /// values for softer edges. It must be finite and non-negative. Blur softens
+  /// the current visual state. A later scale also scales the softened edges.
+  /// Disintegration breaks up the blurred appearance at the start of breakup.
+  /// To soften the moving particles, apply blur after [disintegrate].
+  ///
+  /// Consecutive blur calls add their variances, so `blur(3)` followed by
+  /// `blur(4)` produces the same result as `blur(5)`.
+  ///
+  /// See the [Motion guide](https://github.com/Ventairy/oh_my_flutter/blob/main/doc/widgets/motion.md)
+  /// for an example of bringing content into focus as it appears.
+  void blur(double sigma) {
+    assert(sigma.isFinite && sigma >= 0, 'sigma must be finite and non-negative.');
+    _callsBlur = true;
+    _blurSigma = _MotionBlur.combine(_blurSigma, sigma);
   }
 
   /// Applies a logical-pixel translation after earlier operations.
@@ -40,6 +61,7 @@ final class MotionEffectTransform {
     _translationX *= scale;
     _translationY *= scale;
     _scale *= scale;
+    if (_blurSigma > 0) _blurSigma *= scale.abs();
   }
 
   /// Rotates around the child's center by [degrees] after earlier operations.
@@ -82,6 +104,7 @@ final class MotionEffectTransform {
     final y = largest == 0 ? 0.0 : direction.dy / largest;
     final length = math.sqrt(x * x + y * y);
     operation
+      ..loopPhase = null
       ..progress = progress.clamp(0.0, 1.0)
       ..directionX = length == 0 ? 0 : x / length
       ..directionY = length == 0 ? 0 : y / length
@@ -99,6 +122,8 @@ final class MotionEffectTransform {
 
   void _recordTransform() {
     _nextOperation(.transform)
+      ..blurSigma = _blurSigma
+      ..callsBlur = _callsBlur
       ..opacity = _opacity
       ..scale = _scale
       ..cosine = _cosine
@@ -112,6 +137,20 @@ final class MotionEffectTransform {
   }
 
   bool get _hasDisintegration => _operationCount != 0;
+
+  double get _recordedBlurSigma {
+    var sigma = 0.0;
+    for (var index = 0; index < _operationCount; index += 2) {
+      final operation = _operations![index];
+      sigma = _MotionBlur.combine(sigma * operation.scale.abs(), operation.blurSigma);
+    }
+    return sigma;
+  }
+
+  double get _previewBlurSigma {
+    if (!_hasDisintegration) return _blurSigma;
+    return _recordedBlurSigma;
+  }
 
   static final _disintegrationEffects = Expando<bool>();
 
@@ -158,6 +197,8 @@ final class MotionEffectTransform {
   }
 
   void _resetTransform() {
+    _blurSigma = 0;
+    _callsBlur = false;
     _opacity = 1;
     _scale = 1;
     _rotationDegrees = 0;

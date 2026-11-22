@@ -15,7 +15,7 @@ final class DisintegrateScene implements Choreographer.FrameCallback {
     private final DisintegrateConfiguration configuration;
     private final Handler mainHandler;
     private final DisintegrateOutput output;
-    private final HandlerThread renderThread = new HandlerThread("particle-disintegrate", Process.THREAD_PRIORITY_DISPLAY);
+    private final HandlerThread renderThread;
     private final Handler renderHandler;
     private final EglWindow window = new EglWindow();
     private volatile boolean closed;
@@ -39,8 +39,12 @@ final class DisintegrateScene implements Choreographer.FrameCallback {
             Consumer<DisintegrateScene> onInvalidated) {
         this.configuration = configuration;
         this.mainHandler = mainHandler;
+        // Reduce contention with Flutter's raster thread when publishing Skia blur.
+        int renderThreadPriority = configuration.skiaGaussian
+            ? Process.THREAD_PRIORITY_DEFAULT : Process.THREAD_PRIORITY_DISPLAY;
+        renderThread = new HandlerThread("particle-disintegrate", renderThreadPriority);
         output = new DisintegrateOutput(registry, configuration.viewportWidth, configuration.viewportHeight,
-            mainHandler, this::onFrameConsumed, () -> {
+            configuration.nativeGaussian, configuration.legacyGaussian, mainHandler, this::onFrameConsumed, () -> {
                 surfaceInvalidated = true;
                 mainHandler.post(() -> onInvalidated.accept(DisintegrateScene.this));
             });
@@ -79,8 +83,11 @@ final class DisintegrateScene implements Choreographer.FrameCallback {
                 RenderTimings.phase(timings, "imageUpload", () -> renderer.uploadImage(pixels));
                 renderer.setFrame(frame);
                 cancelPlayback("replaced", "The disintegration was replaced.");
-                RenderTimings.phase(timings, "firstDraw", () -> draw(0));
-                if (output.needsReadinessProbe) renderer.drawReadinessProbe(handle);
+                float firstProgress = configuration.nativeGaussian ? (float) frame[0] : 0;
+                RenderTimings.phase(timings, "firstDraw", () -> draw(firstProgress));
+                if (output.needsReadinessProbe) {
+                    RenderTimings.phase(timings, "readinessRowDraw", () -> renderer.drawReadinessProbe(handle));
+                }
                 firstFrameTimestampNs = System.nanoTime();
                 output.expectFirstFrame(firstFrameTimestampNs);
                 RenderTimings.phase(timings, "firstPresent", () -> window.present(firstFrameTimestampNs));
@@ -88,12 +95,17 @@ final class DisintegrateScene implements Choreographer.FrameCallback {
                 Map<String, Object> response = new HashMap<>();
                 response.put("textureId", textureId);
                 response.put("handle", handle);
-                if (output.needsReadinessProbe) {
-                    response.put("probeWidth", ParticleRenderer.READINESS_PROBE_WIDTH);
+                if (output.needsReadinessProbe || configuration.legacyGaussian) {
                     response.put("textureWidth", output.width);
                     response.put("textureHeight", output.height);
-                    response.put("contentTop", 1);
                 }
+                if (output.needsReadinessProbe) {
+                    response.put("probeWidth", ParticleRenderer.READINESS_PROBE_WIDTH);
+                    response.put("contentTop", output.height - configuration.viewportHeight);
+                }
+                if (configuration.legacyGaussian) response.put("legacyGaussian", true);
+                if (configuration.nativeGaussian) response.put("nativeGaussian", true);
+                if (configuration.fullDensityGaussian) response.put("fullDensityGaussian", true);
                 if (timings != null) {
                     Map<String, Object> diagnostics = timings.preparation(sceneReused);
                     Map<String, Object> capabilities = renderer.capabilities();
@@ -153,17 +165,19 @@ final class DisintegrateScene implements Choreographer.FrameCallback {
         final double[] frame = values.clone();
         renderHandler.post(() -> {
             if (closed || surfaceInvalidated || !imageReady) {
-                mainHandler.post(() -> result.error("disposed", "The disintegration was disposed.", null));
+                result.error("disposed", "The disintegration was disposed.", null);
                 return;
             }
             try {
                 renderer.setFrame(frame);
                 draw((float) frame[0]);
                 window.present(System.nanoTime());
-                mainHandler.post(() -> result.success(null));
-            } catch (RuntimeException error) {
-                mainHandler.post(() -> result.error("render_failed", error.getMessage(), null));
+            } catch (RuntimeException | LinkageError error) {
+                result.error("render_failed", error.getMessage(), null);
+                return;
             }
+            // Dart can submit its newest pose as soon as this one is queued.
+            result.success(null);
         });
     }
 
@@ -175,14 +189,16 @@ final class DisintegrateScene implements Choreographer.FrameCallback {
         });
     }
 
-    void releaseImage(MethodChannel.Result result) {
+    void releaseImage(boolean retainOutput, MethodChannel.Result result) {
         renderHandler.post(() -> {
             cancelPlayback("disposed", "The disintegration image was disposed.");
             cancelFirstFrame("disposed", "The disintegration image was disposed.");
             imageReady = false;
             try {
                 try {
-                    if (!closed && !surfaceInvalidated && renderer != null) {
+                    // Flutter removes completed managed output and probes the new image before replay.
+                    if (!closed && !surfaceInvalidated && renderer != null
+                            && !(retainOutput && output.needsReadinessProbe)) {
                         draw(1);
                         window.present(System.nanoTime());
                     }

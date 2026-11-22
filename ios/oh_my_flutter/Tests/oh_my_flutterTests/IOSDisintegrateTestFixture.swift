@@ -15,7 +15,7 @@ internal enum IOSDisintegrateTestFixture {
       "maximumParticleCount": 6, "minimumCellSize": 4, "seed": 42,
       "geometryParameters": typedData([0.16, 0.04, 0.55, 0.45, 0.02, 0.08, 0.015, 0.075, 0.003, 0.01]),
       "motionParameters": typedData([5, 0.4, 0.7, 3, 0.1, 2]),
-      "frame": typedData([0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0]),
+      "frame": frame(),
     ]
     arguments.merge(overrides) { _, replacement in replacement }
     return arguments
@@ -23,6 +23,12 @@ internal enum IOSDisintegrateTestFixture {
 
   internal static func typedData(_ values: [Double]) -> FlutterStandardTypedData {
     FlutterStandardTypedData(float64: values.withUnsafeBytes { Data($0) })
+  }
+
+  internal static func frame(gaussian: (texture: Double, display: Double)? = nil) -> FlutterStandardTypedData {
+    var values: [Double] = [0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0]
+    if let gaussian { values += [gaussian.texture, gaussian.display] }
+    return typedData(values)
   }
 
   internal static func pixels(width: Int = 12, height: Int = 8, rgba: [UInt8] = [255, 0, 0, 255]) -> Data {

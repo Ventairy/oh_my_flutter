@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -8,14 +9,41 @@ import 'package:material_ui/material_ui.dart';
 import 'package:oh_my_flutter/oh_my_flutter.dart';
 
 class DisintegrateTestHarness {
-  new(this.tester, {this.native = false, this.nativeReady = true, this.readinessProbe = false}) {
+  new(
+    this.tester, {
+    this.native = false,
+    this.nativeReady = true,
+    this.readinessProbe = false,
+    this.nativeGaussian = false,
+    this.managedGaussianAvailable = true,
+    this.acknowledgeFullDensityGaussian = true,
+  }) {
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(channel, (call) async {
       calls.add(call);
       switch (call.method) {
         case 'prepareRenderer':
           return nativeReady;
+        case 'supportsManagedGaussian':
+          return managedGaussianAvailable;
         case 'prepare':
           if (!native) throw PlatformException(code: 'unavailable');
+          final arguments = call.arguments as Map<Object?, Object?>;
+          if (arguments['nativeGaussian'] == true) {
+            if (!nativeGaussian) throw PlatformException(code: 'prepare_failed');
+            final legacy = arguments['legacyGaussian'] == true;
+            final hasProbe = defaultTargetPlatform == TargetPlatform.android && !legacy;
+            return {
+              'textureId': 7,
+              'handle': ++_handle,
+              'nativeGaussian': true,
+              if (legacy) 'legacyGaussian': true,
+              if (acknowledgeFullDensityGaussian && arguments['fullDensityGaussian'] == true)
+                'fullDensityGaussian': true,
+              'textureWidth': arguments['viewportWidth'],
+              'textureHeight': (arguments['viewportHeight']! as int) + (hasProbe ? 1 : 0),
+              if (hasProbe) ...{'probeWidth': 22, 'contentTop': 1},
+            };
+          }
           return {
             'textureId': 7,
             'handle': ++_handle,
@@ -44,6 +72,9 @@ class DisintegrateTestHarness {
   final bool native;
   final bool nativeReady;
   final bool readinessProbe;
+  final bool nativeGaussian;
+  final bool managedGaussianAvailable;
+  final bool acknowledgeFullDensityGaussian;
   final calls = <MethodCall>[];
   final motionController = MotionController();
   final GlobalKey captureKey = GlobalKey();

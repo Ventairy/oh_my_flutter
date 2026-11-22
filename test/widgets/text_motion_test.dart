@@ -1098,6 +1098,114 @@ void main() {
     );
 
     testWidgets(
+      'when blurred text waits fully hidden, it should prepare the glyph atlas when playback starts',
+      (tester) async {
+        final controller = MotionController();
+        await tester.pumpWidget(
+          _testApp(
+            child: TextMotion(
+              controller: controller,
+              startup: MotionStartup.hold,
+              effect: const _BlurReveal(),
+              child: const Text('Soft edges in motion'),
+            ),
+          ),
+        );
+        final atlasWhileHidden = _debugProperty<bool>(tester, 'usesAtlas');
+
+        controller.play();
+
+        expect((atlasWhileHidden, _debugProperty<bool>(tester, 'usesAtlas')), (false, true));
+      },
+    );
+
+    testWidgets(
+      'when clipped text grows beyond the atlas limit, it should atlas the glyphs again after narrowing',
+      (tester) async {
+        tester.view
+          ..devicePixelRatio = 3
+          ..physicalSize = const Size(4080, 480);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        addTearDown(tester.view.resetPhysicalSize);
+        final width = ValueNotifier<double>(300);
+        addTearDown(width.dispose);
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Center(
+              child: ValueListenableBuilder(
+                valueListenable: width,
+                builder: (context, value, child) => SizedBox(width: value, child: child),
+                child: const TextMotion(
+                  startup: MotionStartup.hold,
+                  effect: FloatingMotionEffect(),
+                  child: Text(
+                    'ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456789',
+                    style: TextStyle(fontSize: 90),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        final narrow = _debugProperty<bool>(tester, 'usesAtlas');
+        width.value = 480;
+        await tester.pump();
+        final wider = _debugProperty<bool>(tester, 'usesAtlas');
+        width.value = 1300;
+        await tester.pump();
+        final oversized = _debugProperty<bool>(tester, 'usesAtlas');
+        width.value = 300;
+        await tester.pump();
+
+        expect((narrow, wider, oversized, _debugProperty<bool>(tester, 'usesAtlas')), (true, true, false, true));
+      },
+    );
+
+    testWidgets(
+      'when staggered glyph opacity rounds to zero, it should omit the transparent atlas edges',
+      (tester) async {
+        final controller = MotionController();
+        await tester.pumpWidget(
+          _testApp(
+            child: TextMotion(
+              controller: controller,
+              startup: MotionStartup.hold,
+              effect: const _QuantizedGlyphReveal(),
+              stagger: const Duration(milliseconds: 80),
+              child: const Text('ABCD'),
+            ),
+          ),
+        );
+        List<int> submittedGlyphCounts() {
+          final render = tester.renderObject<RenderObject>(_optimizedTextMotion());
+          final canvas = TestRecordingCanvas();
+          render.paint(TestRecordingPaintingContext(canvas), Offset.zero);
+          return [
+            for (final record in canvas.invocations)
+              if (record.invocation.memberName == #drawRawAtlas)
+                (record.invocation.positionalArguments[2] as List<double>).length ~/ 4,
+          ];
+        }
+
+        final held = submittedGlyphCounts();
+        controller.play();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 110));
+
+        expect(
+          [held, submittedGlyphCounts()],
+          [
+            <int>[],
+            [2],
+          ],
+        );
+      },
+    );
+
+    testWidgets(
       'when plain text uses the atlas, it should skip the empty paragraph draw',
       (tester) async {
         await tester.pumpWidget(
@@ -1314,6 +1422,28 @@ class _ProbeMotionEffect extends MotionEffect {
   @override
   void apply(double progress, MotionEffectTransform transform) {
     transform.translate(x: progress, y: 0);
+  }
+}
+
+class _BlurReveal extends MotionEffect {
+  const new();
+
+  @override
+  void apply(double progress, MotionEffectTransform transform) {
+    transform
+      ..fade(progress)
+      ..blur(4 * (1 - progress));
+  }
+}
+
+class _QuantizedGlyphReveal extends MotionEffect {
+  const new();
+
+  @override
+  void apply(double progress, MotionEffectTransform transform) {
+    transform
+      ..fade(progress == 0 ? .001 : 1)
+      ..blur(progress == 0 ? 4 : 0);
   }
 }
 

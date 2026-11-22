@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart' show ImageFilterLayer;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart' show MaterialApp;
@@ -27,6 +29,60 @@ void main() {
     final harness = DisintegrateTestHarness(tester);
     await harness.mount(effect: const DisintegrateMotionEffect(direction: Offset.zero));
     expect(harness.calls, isEmpty);
+  });
+
+  testWidgets('when held text is played between frames, it should use one paint for capture', (tester) async {
+    final controller = MotionController();
+    var starts = 0;
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: .ltr,
+        child: Center(
+          child: TextMotion(
+            controller: controller,
+            startup: .hold,
+            effect: DisintegrateMotionEffect(direction: Offset.zero, onStart: () => starts++),
+            child: const Text('Motion'),
+          ),
+        ),
+      ),
+    );
+
+    controller
+      ..play()
+      ..play();
+    await tester.pump(Duration.zero);
+    await tester.pump();
+
+    expect(starts, 1);
+  });
+
+  testWidgets('when an effect update is queued with play, it should capture the updated source', (tester) async {
+    final harness = DisintegrateTestHarness(tester, native: true);
+    final showSource = ValueNotifier(false);
+    addTearDown(showSource.dispose);
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: .ltr,
+        child: Center(
+          child: ValueListenableBuilder<bool>(
+            valueListenable: showSource,
+            builder: (context, visible, _) => Motion(
+              controller: harness.motionController,
+              startup: .hold,
+              effect: ConfiguredDisintegrateEffect(progress: visible ? null : 1),
+              child: const ColoredBox(color: Color(0xFF112233), child: SizedBox(width: 100, height: 60)),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    harness.motionController.play();
+    showSource.value = true;
+    await harness.prepare();
+
+    expect(harness.calls.where((call) => call.method == 'prepare'), hasLength(1));
   });
 
   testWidgets('when a first image is pending, it should wait before starting the effect', (tester) async {
@@ -165,6 +221,58 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
     await harness.start();
     expect(harness.calls.where((call) => call.method == 'prepare').length, 2);
+  });
+
+  for (final initialProgress in [0.0, 0.25]) {
+    testWidgets('when native particles start at $initialProgress and hold, it should animate blur without redrawing', (
+      tester,
+    ) async {
+      final harness = DisintegrateTestHarness(tester, native: true);
+      await harness.mount(effect: _HeldNativeBlur(initialProgress: initialProgress));
+      await harness.start();
+      await tester.pump(const Duration(milliseconds: 100));
+      final firstFilter = tester.layers.whereType<ImageFilterLayer>().single.imageFilter;
+      await tester.pump(const Duration(milliseconds: 100));
+      final secondFilter = tester.layers.whereType<ImageFilterLayer>().single.imageFilter;
+      final submittedProgress = harness.calls.where((call) => call.method == 'setFrame').map((call) {
+        final arguments = call.arguments as Map<Object?, Object?>;
+        return (arguments['frame']! as Float64List).first;
+      });
+
+      expect(
+        [submittedProgress, firstFilter, secondFilter],
+        [
+          [if (initialProgress == 0) 0.0, 0.25],
+          ui.ImageFilter.blur(sigmaX: 2, sigmaY: 2, tileMode: .decal),
+          ui.ImageFilter.blur(sigmaX: 4, sigmaY: 4, tileMode: .decal),
+        ],
+      );
+    });
+  }
+
+  testWidgets('when a native draw is pending, it should submit only the latest changed pose', (tester) async {
+    final harness = DisintegrateTestHarness(tester, native: true);
+    final firstMove = Completer<void>();
+    final translations = <double>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(DisintegrateTestHarness.channel, (call) async {
+      if (call.method == 'prepare') return {'textureId': 7, 'handle': 1};
+      if (call.method == 'setFrame') {
+        final arguments = call.arguments as Map<Object?, Object?>;
+        final frame = arguments['frame']! as Float64List;
+        translations.add(frame[7]);
+        if (translations.length == 2) await firstMove.future;
+      }
+      return null;
+    });
+    await harness.mount(effect: const _HeldNativeBlur(translate: true));
+    await harness.start();
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 100));
+    firstMove.complete();
+    await tester.pump();
+
+    expect(translations, [0, tester.view.devicePixelRatio, 3 * tester.view.devicePixelRatio]);
   });
 
   testWidgets('when two widgets play together, it should prepare independent native instances', (tester) async {
@@ -409,4 +517,19 @@ void main() {
     await tester.pump();
     expect((callbacks.join(','), harness.calls.isEmpty), ('start,end', true));
   });
+}
+
+class _HeldNativeBlur extends MotionEffect {
+  const new({this.initialProgress = 0, this.translate = false}) : super(duration: const Duration(milliseconds: 400));
+
+  final double initialProgress;
+  final bool translate;
+
+  @override
+  void apply(double progress, MotionEffectTransform transform) {
+    transform
+      ..disintegrate(progress: progress == 0 ? initialProgress : 0.25, direction: Offset.zero)
+      ..translate(x: translate ? 4 * progress : 0, y: 0)
+      ..blur(8 * progress);
+  }
 }
