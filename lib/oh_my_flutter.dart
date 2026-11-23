@@ -117,5 +117,5 @@ export 'src/widgets/skeleton/skeleton.dart'
         SkeletonStyle,
         SkeletonTransition;
 export 'src/widgets/snap_list/snap_list.dart'
-    show SnapList, SnapListTransientItem, SnapListController, SnapListTransitionBuilder, SnapListTransitionDetails;
+    show SnapList, SnapListController, SnapListTransientItem, SnapListTransitionBuilder, SnapListTransitionDetails;
 export 'src/widgets/snap_list/snap_list_alignment.dart' show SnapListAlignment;
