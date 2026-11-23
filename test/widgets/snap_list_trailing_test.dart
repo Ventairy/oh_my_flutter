@@ -39,6 +39,36 @@ class _SnapListTrailingTestCapture {
 }
 
 void main() {
+  testWidgets('when a trailing animation enters and leaves the viewport, it should tick only while visible', (
+    tester,
+  ) async {
+    final pager = SnapListController();
+    await tester.pumpWidget(
+      SnapListTestHost.app(
+        SnapList(
+          controller: pager,
+          spacing: 24,
+          clipBehavior: Clip.none,
+          trailingBuilder: (_) => const SizedBox(height: 80, child: Center(child: CircularProgressIndicator())),
+          children: const [SizedBox.expand()],
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    final hidden = tester.binding.transientCallbackCount;
+    final reveal = pager.next();
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump();
+    await reveal;
+    final ticking = tester.binding.transientCallbackCount > 0;
+    pager.jumpTo(0);
+    await tester.pump();
+    await tester.pump();
+    expect((hidden, ticking, tester.binding.transientCallbackCount), (0, true, 0));
+  });
+
   for (final lazy in [false, true]) {
     for (final (axis, direction, spacing) in [
       (Axis.vertical, TextDirection.ltr, 10.0),

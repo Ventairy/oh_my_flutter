@@ -17,6 +17,7 @@ class _SnapListExampleState extends State<SnapListExample> {
   final _controller = SnapListController();
   Axis _axis = Axis.horizontal;
   var _count = 3;
+  var _showTransient = false;
   var _loading = false;
   var _failed = false;
   var _failNext = false;
@@ -60,6 +61,12 @@ class _SnapListExampleState extends State<SnapListExample> {
               ),
             ),
             TextButton(
+              onPressed: () => setState(() => _showTransient = !_showTransient),
+              child: Text(
+                _showTransient ? 'Hide extra pages' : 'Show extra pages',
+              ),
+            ),
+            TextButton(
               onPressed: () => setState(() => _failNext = true),
               child: Text(_failNext ? 'Next load will fail' : 'Fail next load'),
             ),
@@ -71,6 +78,12 @@ class _SnapListExampleState extends State<SnapListExample> {
             controller: _controller,
             axis: _axis,
             itemCount: _count,
+            transientItem: .every(
+              2,
+              builder: (_, index) => _showTransient
+                  ? Center(child: Text('Extra page after card ${index + 1}'))
+                  : null,
+            ),
             spacing: 12,
             incomingTransitionBuilder: (context, progress, details, child) =>
                 FadeTransition(
@@ -132,8 +145,11 @@ class _SnapListExampleState extends State<SnapListExample> {
             ),
             ListenableBuilder(
               listenable: _controller,
-              builder: (_, _) =>
-                  Text('${(_controller.index ?? 0) + 1} / $_count'),
+              builder: (_, _) => Text(
+                _showTransient
+                    ? 'Index ${_controller.index ?? 0} · Position ${(_controller.position ?? 0).toStringAsFixed(2)}'
+                    : '${(_controller.index ?? 0) + 1} / $_count',
+              ),
             ),
             TextButton(
               onPressed: () => unawaited(_controller.next()),

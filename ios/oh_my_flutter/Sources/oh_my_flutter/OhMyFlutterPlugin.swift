@@ -47,6 +47,7 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
       binaryMessenger: binaryMessenger,
       api: handler
     )
+    TestFlightHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: IOSTestFlightHandler())
     DeviceLocaleHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: instance.deviceLocaleHandler)
     DeviceAccelerometerHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: instance.deviceAccelerometerHandler)
     DeviceAccelerometerSamplesStreamHandler.register(with: binaryMessenger, streamHandler: instance.deviceAccelerometerHandler)
@@ -64,6 +65,7 @@ public final class OhMyFlutterPlugin: NSObject, FlutterPlugin {
   public func detachFromEngine(for _: FlutterPluginRegistrar) {
     disintegrationHandler.dispose()
     deviceAccelerometerHandler.dispose()
+    TestFlightHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
     DeviceAccelerometerHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)
     FlutterEventChannel(name: "dev.flutter.pigeon.oh_my_flutter.DeviceAccelerometerEventApi.deviceAccelerometerSamples", binaryMessenger: binaryMessenger, codec: deviceAccelerometerPigeonMethodCodec).setStreamHandler(nil)
     DeviceLocaleHostApiSetup.setUp(binaryMessenger: binaryMessenger, api: nil)

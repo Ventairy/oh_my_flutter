@@ -256,3 +256,20 @@ the last item. These transitions respect reduced motion.
 
 See the [API reference](https://pub.dev/documentation/oh_my_flutter/latest/oh_my_flutter/SnapList-class.html)
 for all constructor and member contracts.
+
+## Optional pages between items
+
+Use `transientItem` to offer a swipeable page after a group of main items. The
+builder receives the preceding main item's zero-based index. Read prepared
+content here and rebuild the list when availability changes.
+
+```dart
+transientItem: .every(5, builder: (context, index) => readyCards[index]),
+```
+
+Returning null skips the opportunity. Both the preceding item and the extra
+page share the same controller index and position, even while swiping between
+them. Next and previous visit the page; jumping to its main index selects the
+main item. A change elsewhere keeps the visible item in place. If a visible
+extra disappears, scrolling resumes at the next item, the trailer, or the last
+item when there is no trailer.

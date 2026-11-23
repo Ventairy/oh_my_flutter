@@ -74,6 +74,7 @@ jobs:
               fvm dart run tool/generate_country_names.dart --check
               ./tool/check_device_accelerometer_pigeon.sh
               ./tool/check_device_locale_pigeon.sh
+              ./tool/check_test_flight_pigeon.sh
               ./tool/check_device_sim_pigeon.sh
               ./tool/check_device_location_pigeon.sh
               ./tool/check_device_display_pigeon.sh
