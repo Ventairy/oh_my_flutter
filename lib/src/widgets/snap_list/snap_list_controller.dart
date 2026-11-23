@@ -13,12 +13,13 @@ class SnapListController extends ChangeNotifier {
   ///
   /// Changes when an item settles or is jumped to. Trailing content keeps the
   /// last item index.
-  int? get index => _client?._motion.index;
+  int? get index => _client?._index;
 
   /// Continuous item position; integer values are item anchors.
   ///
+  /// A transient shares the preceding item’s position throughout the swipe between them.
   /// A trailing reveal can exceed the last item's index.
-  double? get position => _client?._motion.itemPosition;
+  double? get position => _client?._position;
 
   /// Whether the list is being dragged or animating, excluding a stationary trailing slot.
   bool get isMoving => _client?._motion.moving ?? false;

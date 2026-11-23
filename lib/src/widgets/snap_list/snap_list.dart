@@ -30,6 +30,8 @@ part '_snap_list_viewport_offset.dart';
 part 'snap_list_transition_details.dart';
 part 'snap_list_controller.dart';
 part 'snap_list_types.dart';
+part 'snap_list_transient_item.dart';
+part '_snap_list_every_transient_item.dart';
 
 /// Presents content that snaps to one item at a time on either axis.
 ///
@@ -54,6 +56,7 @@ class SnapList extends StatefulWidget {
     Curve? reverseCurve,
     this.controller,
     this.trailingBuilder,
+    this.transientItem,
     this.onIndexChanged,
     this.incomingTransitionBuilder,
     this.outgoingTransitionBuilder,
@@ -86,6 +89,7 @@ class SnapList extends StatefulWidget {
     Curve? reverseCurve,
     this.controller,
     this.trailingBuilder,
+    this.transientItem,
     this.onIndexChanged,
     this.incomingTransitionBuilder,
     this.outgoingTransitionBuilder,
@@ -148,6 +152,9 @@ class SnapList extends StatefulWidget {
   /// Optional controller for observing position and moving to items.
   final SnapListController? controller;
 
+  /// Offers optional swipeable pages that share their preceding item’s index and position.
+  final SnapListTransientItem? transientItem;
+
   /// Builds content revealed after the last item, outside the item indexes.
   ///
   /// The child receives loose main-axis constraints bounded by the viewport.
@@ -208,7 +215,82 @@ class _SnapListState extends State<SnapList> {
   double _itemExtent = 0;
   double _leading = 0;
 
-  int get _count => widget.children?.length ?? widget.itemCount!;
+  int get _mainCount => widget.children?.length ?? widget.itemCount!;
+  int get _count => _mainCount + _transients.length;
+
+  Map<int, Widget> _transients = const {};
+  int? _resolvedAt;
+  bool _deferredSlots = false;
+
+  int _pageOf(int mainIndex) {
+    var page = mainIndex;
+    for (final preceding in _transients.keys) {
+      if (preceding >= mainIndex) break;
+      page++;
+    }
+    return page;
+  }
+
+  (int, bool) _address(int page) {
+    var mainIndex = page;
+    for (final preceding in _transients.keys) {
+      if (mainIndex <= preceding) break;
+      mainIndex--;
+      if (mainIndex == preceding) return (mainIndex, true);
+    }
+    return (mainIndex, false);
+  }
+
+  int? get _index => _motion.index == null ? null : _address(_motion.index!).$1;
+
+  double? get _position {
+    final position = _motion.itemPosition;
+    if (position == null || _transients.isEmpty) return position;
+    final page = position.floor();
+    final from = _address(page).$1;
+    final to = _address(page + 1).$1;
+    return from + (position - page) * (to - from);
+  }
+
+  void _resolveSlots() {
+    final rule = widget.transientItem;
+    if (rule == null && _transients.isEmpty) {
+      _deferredSlots = false;
+      return;
+    }
+    if (_motion.dragging || _motion.moving) {
+      _deferredSlots = true;
+      return;
+    }
+    _deferredSlots = false;
+    final (anchor, wasTransient) = _address(_motion.index ?? 0);
+    _resolvedAt = anchor;
+    final slots = <int, Widget>{};
+    if (rule != null) {
+      final radius = math.max(1, widget.cacheItemCount + 1);
+      final first = widget.children == null ? math.max(0, anchor - radius) : 0;
+      final last = widget.children == null ? math.min(_mainCount, anchor + radius + 1) : _mainCount;
+      for (var i = first; i < last; i++) {
+        if (!rule._matches(i)) continue;
+        final child = rule.builder(context, i);
+        if (child != null) slots[i] = child;
+      }
+    }
+    final appendPage = _motion._appendTarget;
+    final appendedMainIndex = appendPage == null ? null : _address(appendPage).$1;
+    final changed = slots.length != _transients.length || !slots.keys.every(_transients.containsKey);
+    _transients = slots;
+    if (!changed) return;
+    final retained = _pageOf(anchor) + (wasTransient ? 1 : 0);
+    final useTrailing =
+        wasTransient && retained >= _count && widget.trailingBuilder != null && _motion.revealExtent > 0;
+    _motion.reconcilePages(
+      pageCount: _count,
+      anchor: retained,
+      revealTrailing: useTrailing,
+      appendedPage: appendedMainIndex == null ? null : _pageOf(appendedMainIndex),
+    );
+  }
 
   @override
   void initState() {
@@ -232,7 +314,7 @@ class _SnapListState extends State<SnapList> {
       _controller = widget.controller?.._attach(this);
     }
     final oldCount = _motion.count;
-    final oldIndex = _motion.index;
+    final oldIndex = _index;
     final oldKey = oldWidget.children != null && oldIndex != null && oldIndex < oldWidget.children!.length
         ? oldWidget.children![oldIndex].key
         : null;
@@ -257,7 +339,7 @@ class _SnapListState extends State<SnapList> {
     _motion.configure(
       itemCount: _count,
       itemStride: _motion.stride,
-      retainIndex: retained,
+      retainIndex: retained == null ? null : _pageOf(retained) + (_address(_motion.index ?? 0).$2 ? 1 : 0),
     );
     if (reset) {
       _nested.clear();
@@ -276,13 +358,19 @@ class _SnapListState extends State<SnapList> {
     if (identical(_controller, controller)) _controller = null;
   }
 
-  Future<bool> _navigate(int direction) => _motion.navigate(direction);
+  Future<bool> _navigate(int direction) async {
+    if (widget.transientItem != null && _index != _resolvedAt) {
+      await WidgetsBinding.instance.endOfFrame;
+      if (!mounted) return false;
+    }
+    return await _motion.navigate(direction);
+  }
 
   void _jumpTo(int index) {
     assert(_motion.scroll?.hasContentDimensions ?? false, 'SnapList must be laid out before jumping to an item.');
-    assert(index >= 0 && index < _motion.count, 'The jump index must identify an item.');
+    assert(index >= 0 && index < _mainCount, 'The jump index must identify an item.');
     _nested.clear();
-    _motion.jumpToItem(index);
+    _motion.jumpToItem(_pageOf(index));
   }
 
   void _scheduleChanged() {
@@ -303,7 +391,10 @@ class _SnapListState extends State<SnapList> {
       return;
     }
     if (!mounted) return;
-    final index = _motion.index;
+    final index = _index;
+    if (widget.transientItem != null || _deferredSlots) {
+      if (!_motion.moving && !_motion.dragging && (_deferredSlots || (index ?? 0) != _resolvedAt)) setState(() {});
+    }
     if (index != _reportedIndex) {
       _reportedIndex = index;
       if (index != null) widget.onIndexChanged?.call(index);
@@ -312,7 +403,9 @@ class _SnapListState extends State<SnapList> {
     _updateTransitions();
     final first = ((pixels - _leading - _itemExtent) / _motion.stride).floor() + 1;
     final last = ((pixels + _extent - _leading) / _motion.stride).ceil() - 1;
-    _visible.value = (math.max(0, first), math.min(_count - 1, last));
+    final trailerVisible =
+        widget.trailingBuilder != null && _motion.revealExtent > 0 && (_count == 0 || pixels > _motion.lastAnchor);
+    _visible.value = (math.max(0, first), trailerVisible ? _count : math.min(_count - 1, last));
     _controller?._changed();
   }
 
@@ -344,9 +437,12 @@ class _SnapListState extends State<SnapList> {
         );
 
   Widget _item(BuildContext context, int index) {
-    final child = widget.children?[index] ?? widget.itemBuilder!(context, index);
+    final (mainIndex, transient) = _address(index);
+    final child = transient
+        ? _transients[mainIndex]!
+        : widget.children?[mainIndex] ?? widget.itemBuilder!(context, mainIndex);
     return KeyedSubtree(
-      key: ValueKey(child.key ?? index),
+      key: widget.children == null ? ValueKey((mainIndex, transient)) : _eagerKey(index),
       child: ValueListenableBuilder<(int, int)>(
         valueListenable: _visible,
         child: _transition(index, child),
@@ -386,6 +482,11 @@ class _SnapListState extends State<SnapList> {
     );
   }
 
+  Key _eagerKey(int page) {
+    final (index, transient) = _address(page);
+    return ValueKey((widget.children![index].key ?? index, transient));
+  }
+
   Widget _spacer(double extent, {Widget? child}) => SizedBox(
     width: widget.axis == Axis.horizontal ? extent : null,
     height: widget.axis == Axis.vertical ? extent : null,
@@ -413,8 +514,7 @@ class _SnapListState extends State<SnapList> {
               leading: _leading,
               children: List.generate(
                 _count,
-                (index) =>
-                    RepaintBoundary(key: ValueKey(widget.children![index].key ?? index), child: _item(context, index)),
+                (index) => RepaintBoundary(key: _eagerKey(index), child: _item(context, index)),
               ),
             ),
           )
@@ -424,6 +524,12 @@ class _SnapListState extends State<SnapList> {
             delegate: SliverChildBuilderDelegate(
               _item,
               childCount: _count,
+              findChildIndexCallback: (key) {
+                if (key is! ValueKey<(int, bool)>) return null;
+                final (index, transient) = key.value;
+                if (index >= _mainCount || (transient && !_transients.containsKey(index))) return null;
+                return _pageOf(index) + (transient ? 1 : 0);
+              },
             ),
           ),
         SliverToBoxAdapter(
@@ -449,7 +555,11 @@ class _SnapListState extends State<SnapList> {
                         AxisDirection.left => Offset(widget.spacing, 0),
                       },
                 child: RepaintBoundary(
-                  child: Builder(builder: (context) => _transition(_count, widget.trailingBuilder!(context))),
+                  child: ValueListenableBuilder<(int, int)>(
+                    valueListenable: _visible,
+                    child: Builder(builder: (context) => _transition(_count, widget.trailingBuilder!(context))),
+                    builder: (context, range, child) => TickerMode(enabled: range.$2 == _count, child: child!),
+                  ),
                 ),
               ),
             ),
@@ -488,6 +598,7 @@ class _SnapListState extends State<SnapList> {
     );
     _motion.reducedMotion =
         (MediaQuery.maybeDisableAnimationsOf(context) ?? false) || (MediaQuery.maybeReduceMotionOf(context) ?? false);
+    _resolveSlots();
     final direction = getAxisDirectionFromAxisReverseAndDirectionality(context, widget.axis, false);
     if (_direction != null && _direction != direction) _motion.reset();
     _direction = direction;

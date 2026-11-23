@@ -5,6 +5,32 @@ import 'package:oh_my_flutter_example/examples/snap_list_example.dart';
 
 void main() {
   testWidgets(
+    'when extra pages are enabled, it should show the example page and its shared coordinates',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(body: SizedBox(width: 400, child: SnapListExample())),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Show extra pages'));
+      await tester.pumpAndSettle();
+      for (var step = 0; step < 2; step++) {
+        await tester.tap(find.text('Next card'));
+        await tester.pumpAndSettle();
+      }
+      await tester.pump(const Duration(milliseconds: 650));
+      await tester.pumpAndSettle();
+      expect(
+        (
+          find.text('Extra page after card 2').hitTestable().evaluate().length,
+          find.text('Index 1 · Position 1.00').evaluate().length,
+        ),
+        (1, 1),
+      );
+    },
+  );
+  testWidgets(
     'when next card is pressed, it should navigate and request more content',
     (tester) async {
       await tester.pumpWidget(

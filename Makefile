@@ -11,7 +11,7 @@ gen: generate-country-names generate-pigeons generate-country-bindings generate-
 
 gen-check: check-country-names check-pigeons check-country-bindings check-device-location-bindings
 
-generate-pigeons: generate-device-accelerometer-pigeon generate-device-locale-pigeon generate-device-sim-pigeon generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon
+generate-pigeons: generate-test-flight-pigeon generate-device-accelerometer-pigeon generate-device-locale-pigeon generate-device-sim-pigeon generate-device-location-pigeon generate-device-display-pigeon generate-native-selectable-text-pigeon
 
 generate-country-names:
 	fvm dart run tool/generate_country_names.dart
@@ -74,7 +74,7 @@ generate-device-sim-pigeon:
 check-device-sim-pigeon:
 	./tool/check_device_sim_pigeon.sh
 
-check-pigeons: check-device-accelerometer-pigeon check-device-locale-pigeon check-device-sim-pigeon check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon
+check-pigeons: check-test-flight-pigeon check-device-accelerometer-pigeon check-device-locale-pigeon check-device-sim-pigeon check-device-location-pigeon check-device-display-pigeon check-native-selectable-text-pigeon
 
 check-native-selectable-text-pigeon:
 	./tool/check_native_selectable_text_pigeon.sh
@@ -322,3 +322,10 @@ format-route-listener:
 .PHONY: test-motion-native
 test-motion-native:
 	sh tool/test_motion_native.sh
+
+.PHONY: generate-test-flight-pigeon check-test-flight-pigeon
+generate-test-flight-pigeon:
+	./tool/generate_test_flight_pigeon.sh
+
+check-test-flight-pigeon:
+	./tool/check_test_flight_pigeon.sh

@@ -33,6 +33,7 @@ export 'src/extensions/object_extension.dart' show ObjectExtension;
 export 'src/extensions/oklch_extension.dart' show OklchExtension;
 export 'src/extensions/string_extension.dart' show StringExtension;
 export 'src/extensions/velocity_extension.dart' show VelocityExtension;
+export 'src/is_test_flight.dart' show isTestFlight;
 export 'src/oklch/oklch.dart' show Oklch;
 export 'src/phone_number.dart' show PhoneNumber;
 export 'src/text_input_formatters/handle_text_input_formatter.dart' show HandleTextInputFormatter;
@@ -116,5 +117,5 @@ export 'src/widgets/skeleton/skeleton.dart'
         SkeletonStyle,
         SkeletonTransition;
 export 'src/widgets/snap_list/snap_list.dart'
-    show SnapList, SnapListController, SnapListTransitionBuilder, SnapListTransitionDetails;
+    show SnapList, SnapListTransientItem, SnapListController, SnapListTransitionBuilder, SnapListTransitionDetails;
 export 'src/widgets/snap_list/snap_list_alignment.dart' show SnapListAlignment;

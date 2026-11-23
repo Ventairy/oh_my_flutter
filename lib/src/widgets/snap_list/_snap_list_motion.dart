@@ -62,6 +62,23 @@ class _SnapListMotion extends ChangeNotifier {
     index = count == 0 ? null : (retainIndex ?? index ?? 0).clamp(0, count - 1);
   }
 
+  void reconcilePages({
+    required int pageCount,
+    required int anchor,
+    required bool revealTrailing,
+    required int? appendedPage,
+  }) {
+    final oldAnchor = _appendTarget == null ? lastAnchor : (_appendTarget! - 1) * stride;
+    final trailingOffset = trailingCommitted ? pixels - oldAnchor : 0.0;
+    count = pageCount;
+    _appendTarget = appendedPage;
+    trailingCommitted = count > 0 && (trailingCommitted || revealTrailing);
+    final retained = trailingCommitted ? (appendedPage ?? count) - 1 : anchor;
+    index = count == 0 ? null : retained.clamp(0, count - 1);
+    final destination = (index ?? 0) * stride + (revealTrailing ? revealExtent : trailingOffset);
+    if (scroll?.hasPixels ?? false) scroll!.correctPixels(destination);
+  }
+
   void changed() {
     final value = itemPosition;
     if (value == _lastPosition) return;

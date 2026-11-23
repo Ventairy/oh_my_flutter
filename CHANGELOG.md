@@ -1,3 +1,11 @@
+## 0.32.0
+
+- Check whether an iPhone or iPad app was installed through TestFlight with `await isTestFlight`.
+
+- Pause animations in SnapList trailing content while it is outside the viewport.
+
+- Show optional swipeable pages with `SnapList.transientItem` while preserving main-item indices and scroll position.
+
 ## 0.31.1
 
 - Keep replaced `Morph` visuals visible through the first frame of their transition.

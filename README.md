@@ -284,6 +284,11 @@ things such as suggest an initial phone-input country from the configured region
 on Android, iOS, macOS, and Windows. It returns null when unavailable, including
 on Linux and web.
 
+### TestFlight detection
+
+`isTestFlight` checks whether an iPhone or iPad app was installed through TestFlight.
+It can help you do things such as show a feedback button to beta testers.
+
 ### Debouncer
 
 A debouncer waits for rapid repeated actions to stop before running work. For
