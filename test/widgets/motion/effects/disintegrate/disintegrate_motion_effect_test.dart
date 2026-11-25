@@ -16,13 +16,9 @@ void main() {
   test('when using defaults, it should follow standard Motion timing', () {
     const effect = DisintegrateMotionEffect(direction: Offset.zero);
     expect(
-      (effect.duration, effect.delay, effect.curve, effect.playback, effect.particleSize),
-      (const Duration(milliseconds: 300), Duration.zero, Curves.linear, MotionPlayback.once, 2.2),
+      (effect.duration, effect.delay, effect.curve, effect.playback),
+      (const Duration(milliseconds: 300), Duration.zero, Curves.linear, MotionPlayback.once),
     );
-  });
-
-  test('when particle size is invalid, it should reject the configuration', () {
-    expect(() => DisintegrateMotionEffect(direction: Offset.zero, particleSize: 0), throwsAssertionError);
   });
 
   testWidgets('when held, it should keep the child without preparing a snapshot', (tester) async {
@@ -399,7 +395,7 @@ void main() {
     await harness.mount(
       effect: const ComposedDisintegrateEffect(),
       effects: const [
-        ConfiguredDisintegrateEffect(direction: Offset(0, -1), particleSize: 4, duration: Duration(seconds: 2)),
+        ConfiguredDisintegrateEffect(direction: Offset(0, -1), duration: Duration(seconds: 2)),
         ScaleOutMotionEffect(scale: 0.5, duration: Duration(seconds: 2)),
       ],
     );
@@ -422,11 +418,6 @@ void main() {
       expect(await harness.pixels(), normalized);
     });
   }
-  for (final particleSize in [double.nan, double.infinity, double.negativeInfinity, -1.0]) {
-    test('when particle size is $particleSize, it should reject the invalid value', () {
-      expect(() => DisintegrateMotionEffect(direction: Offset.zero, particleSize: particleSize), throwsAssertionError);
-    });
-  }
 
   testWidgets('when direction is zero, it should break up without moving any pixels outside the source', (
     tester,
@@ -447,12 +438,6 @@ void main() {
       }
     }
     expect((outsideChanged, listEquals(particles, original)), (false, false));
-  });
-
-  testWidgets('when particle size changes during playback, it should diagnose the contract violation', (tester) async {
-    final harness = DisintegrateTestHarness(tester);
-    await harness.mount(effect: const ConfiguredDisintegrateEffect(changeSize: true));
-    expect(tester.takeException(), isAssertionError);
   });
 
   testWidgets('when render stages change during playback, it should diagnose the contract violation', (tester) async {

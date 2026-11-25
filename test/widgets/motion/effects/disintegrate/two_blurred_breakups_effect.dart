@@ -8,7 +8,7 @@ class TwoBlurredBreakupsEffect extends MotionEffect {
   void apply(double progress, MotionEffectTransform transform) {
     transform
       ..blur(3)
-      ..disintegrate(progress: progress, direction: const Offset(1, 0), particleSize: 12)
+      ..disintegrate(progress: progress, direction: const Offset(1, 0))
       ..blur(4)
       ..disintegrate(progress: progress, direction: const Offset(0, 1));
   }

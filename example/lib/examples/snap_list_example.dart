@@ -75,6 +75,7 @@ class _SnapListExampleState extends State<SnapListExample> {
         SizedBox(
           height: 260,
           child: SnapList.builder(
+            itemKeyBuilder: ValueKey<int>.new,
             controller: _controller,
             axis: _axis,
             itemCount: _count,

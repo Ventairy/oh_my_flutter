@@ -16,5 +16,4 @@ class _MotionVisualOperation {
   double? loopPhase;
   double directionX = 0;
   double directionY = 0;
-  double particleSize = MotionEffectTransform.defaultParticleSize;
 }

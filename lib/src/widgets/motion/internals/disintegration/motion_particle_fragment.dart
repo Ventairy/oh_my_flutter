@@ -11,20 +11,21 @@ class _MotionParticleFragment {
     Offset? pivot,
   }) : _pivot = pivot ?? bounds.center {
     expectedCount = operations._operationCount;
+    final stageIndices = <int>[];
     for (var index = firstOperation; index < expectedCount; index++) {
       final operation = operations._operations![index];
-      if (operation.kind == .disintegrate) sizes[index] = operation.particleSize;
+      if (operation.kind == .disintegrate) stageIndices.add(index);
     }
-    if (sizes.length == 1 && _prepareSingleStage(budget)) return;
+    if (stageIndices.length == 1 && _prepareSingleStage(stageIndices.single, budget)) return;
 
     var stageBudget = budget;
     while (true) {
       stages.clear();
       final horizontal = <double>{bounds.left, bounds.right};
       final vertical = <double>{bounds.top, bounds.bottom};
-      for (final entry in sizes.entries) {
-        final stage = _MotionParticleStage(bounds: bounds, particleSize: entry.value, budget: stageBudget);
-        stages[entry.key] = stage;
+      for (final index in stageIndices) {
+        final stage = _MotionParticleStage(bounds: bounds, budget: stageBudget);
+        stages[index] = stage;
         for (var column = 1; column < stage.columns; column++) {
           horizontal.add(bounds.left + column * bounds.width / stage.columns);
         }
@@ -41,14 +42,13 @@ class _MotionParticleFragment {
     }
   }
 
-  bool _prepareSingleStage(int budget) {
-    final entry = sizes.entries.single;
-    final stage = _MotionParticleStage(bounds: bounds, particleSize: entry.value, budget: budget);
+  bool _prepareSingleStage(int index, int budget) {
+    final stage = _MotionParticleStage(bounds: bounds, budget: budget);
     final horizontal = _orderedEdges(bounds.left, bounds.right, stage.columns);
     final vertical = _orderedEdges(bounds.top, bounds.bottom, stage.rows);
     if (horizontal == null || vertical == null) return false;
 
-    stages[entry.key] = stage;
+    stages[index] = stage;
     _horizontalEdges = horizontal;
     _verticalEdges = vertical;
     columns = stage.columns;
@@ -80,7 +80,6 @@ class _MotionParticleFragment {
   final int firstOperation;
   final Offset _pivot;
   final Map<int, _MotionParticleStage> stages = {};
-  final Map<int, double> sizes = {};
   late int columns;
   late int rows;
   late List<double> _horizontalEdges;
@@ -96,10 +95,6 @@ class _MotionParticleFragment {
 
   void validate() {
     assert(expectedCount == operations._operationCount, 'Rendering operation count must remain constant.');
-    assert(
-      sizes.entries.every((entry) => operations._operations![entry.key].particleSize == entry.value),
-      'particleSize must remain constant throughout playback.',
-    );
   }
 
   void prepareAnchors(int end) {

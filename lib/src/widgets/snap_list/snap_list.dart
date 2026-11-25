@@ -8,11 +8,14 @@ import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
+import '../transition_preparation/linear_transition_progress.dart';
+import '../transition_preparation/prepared_transition.dart';
 import 'snap_list_alignment.dart';
 
 part '_render_snap_list_eager_content.dart';
 part '_render_snap_list_trailing.dart';
 part '_render_snap_list_trailing_sliver.dart';
+part '_snap_list_removal.dart';
 part '_snap_list_drag.dart';
 part '_snap_list_eager_content.dart';
 part '_snap_list_item_transition.dart';
@@ -60,11 +63,14 @@ class SnapList extends StatefulWidget {
     this.onIndexChanged,
     this.incomingTransitionBuilder,
     this.outgoingTransitionBuilder,
+    this.removalTransitionBuilder,
+    this.removalDuration = const Duration(milliseconds: 300),
     super.key,
   }) : reverseDuration = reverseDuration ?? duration,
        reverseCurve = reverseCurve ?? curve,
        itemBuilder = null,
        itemCount = null,
+       itemKeyBuilder = null,
        cacheItemCount = 1,
        assert(spacing >= 0 && spacing < double.infinity, 'spacing must be finite and nonnegative.'),
        assert(commitThreshold > 0 && commitThreshold <= 1, 'commitThreshold must be in (0, 1].');
@@ -76,6 +82,7 @@ class SnapList extends StatefulWidget {
   const new builder({
     required int this.itemCount,
     required IndexedWidgetBuilder this.itemBuilder,
+    required LocalKey Function(int) this.itemKeyBuilder,
     this.cacheItemCount = 1,
     this.axis = Axis.vertical,
     this.spacing = 0,
@@ -93,6 +100,8 @@ class SnapList extends StatefulWidget {
     this.onIndexChanged,
     this.incomingTransitionBuilder,
     this.outgoingTransitionBuilder,
+    this.removalTransitionBuilder,
+    this.removalDuration = const Duration(milliseconds: 300),
     super.key,
   }) : reverseDuration = reverseDuration ?? duration,
        reverseCurve = reverseCurve ?? curve,
@@ -110,6 +119,19 @@ class SnapList extends StatefulWidget {
 
   /// Number of lazy items; eager lists use the length of [children].
   final int? itemCount;
+
+  /// Identifies a lazy item across insertions, removals, and changes of order.
+  ///
+  /// Return a unique stable key for each item, such as a value key of its ID.
+  final LocalKey Function(int index)? itemKeyBuilder;
+
+  /// Wraps a removed visible item while its successor is displayed beneath it.
+  ///
+  /// Progress advances from zero to one. Eager items need stable widget keys.
+  final Widget Function(BuildContext, Animation<double>, Widget)? removalTransitionBuilder;
+
+  /// Time a visible item takes to exit after its transition is ready.
+  final Duration removalDuration;
 
   /// Axis along which items move.
   final Axis axis;
@@ -215,6 +237,59 @@ class _SnapListState extends State<SnapList> {
   double _itemExtent = 0;
   double _leading = 0;
 
+  late List<Key?> _itemKeys;
+  late Map<Key, int> _itemIndices;
+  final _surfaceKeys = <Key, GlobalKey>{};
+  List<Positioned> _outgoing = const [];
+
+  void _readItemKeys() {
+    _itemKeys = List.generate(_mainCount, (index) => widget.itemKeyBuilder?.call(index) ?? widget.children![index].key);
+    _itemIndices = {
+      for (var i = 0; i < _itemKeys.length; i++) ?_itemKeys[i]: i,
+    };
+    assert(_itemIndices.length == _itemKeys.whereType<Key>().length, 'SnapList item keys must be unique.');
+  }
+
+  void _retainRemovedSurfaces(List<Key?> previousKeys) {
+    if (widget.removalTransitionBuilder == null ||
+        widget.removalDuration == Duration.zero ||
+        _motion.reducedMotion ||
+        !_motion._tickerEnabled ||
+        !TickerMode.valuesOf(context).enabled) {
+      return;
+    }
+    final viewport = context.findRenderObject() as RenderBox?;
+    if (viewport == null || !viewport.hasSize) return;
+    final surfaces = <Positioned>[];
+    late final snapshot = _SnapListTransitions.snapshot(_transitions);
+    final (first, last) = _visible.value;
+    for (var page = first; page <= last; page++) {
+      final (index, transient) = _address(page);
+      if (transient || index >= previousKeys.length) continue;
+      final key = previousKeys[index];
+      if (key == null || _itemIndices.containsKey(key)) continue;
+      final surface = _surfaceKeys.remove(key);
+      final box = surface?.currentContext?.findRenderObject() as RenderBox?;
+      if (box == null || !box.attached || !box.hasSize) continue;
+      final bounds = box.localToGlobal(Offset.zero, ancestor: viewport) & box.size;
+      if (bounds.overlaps(Offset.zero & viewport.size)) {
+        final captured = surface!.currentWidget! as IndexedSemantics;
+        final child = captured.child!;
+        surfaces.add(
+          Positioned.fromRect(
+            rect: bounds,
+            child: IndexedSemantics(
+              key: surface,
+              index: captured.index,
+              child: child is _SnapListItemTransition ? child.freeze(snapshot) : child,
+            ),
+          ),
+        );
+      }
+    }
+    if (surfaces.isNotEmpty) _outgoing = surfaces;
+  }
+
   int get _mainCount => widget.children?.length ?? widget.itemCount!;
   int get _count => _mainCount + _transients.length;
 
@@ -295,6 +370,7 @@ class _SnapListState extends State<SnapList> {
   @override
   void initState() {
     super.initState();
+    _readItemKeys();
     _controller = widget.controller?.._attach(this);
     _motion.configure(itemCount: _count, itemStride: 1);
     _reportedIndex = _motion.index;
@@ -315,20 +391,36 @@ class _SnapListState extends State<SnapList> {
     }
     final oldCount = _motion.count;
     final oldIndex = _index;
-    final oldKey = oldWidget.children != null && oldIndex != null && oldIndex < oldWidget.children!.length
-        ? oldWidget.children![oldIndex].key
-        : null;
-    int? retained;
-    if (oldKey != null) {
-      retained = widget.children?.indexWhere((child) => child.key == oldKey);
-      if (retained != null && retained < 0) retained = null;
+    final wasTransient = _address(_motion.index ?? 0).$2;
+    final wasTrailing = _motion.trailingCommitted;
+    final previousKeys = _itemKeys;
+    final oldKey = oldIndex == null ? null : previousKeys[oldIndex];
+    _readItemKeys();
+    _retainRemovedSurfaces(previousKeys);
+    _surfaceKeys.removeWhere((key, surface) => !_itemIndices.containsKey(key) || surface.currentContext == null);
+    if (_transients.isNotEmpty) {
+      final slots = <int, Widget>{};
+      for (final entry in _transients.entries) {
+        final index = _itemIndices[previousKeys[entry.key]];
+        if (index != null && (widget.transientItem?._matches(index) ?? false)) slots[index] = entry.value;
+      }
+      _transients = slots;
     }
+    final retained = _itemIndices[oldKey];
+    final removedCurrent = oldKey != null && retained == null;
+    final successor = removedCurrent
+        ? previousKeys.skip(oldIndex! + 1).map((key) => _itemIndices[key]).nonNulls.firstOrNull
+        : retained;
+    final settleOnTrailing = removedCurrent && successor == null && widget.trailingBuilder != null;
+    final target = removedCurrent && successor == null && !settleOnTrailing
+        ? previousKeys.take(oldIndex!).toList().reversed.map((key) => _itemIndices[key]).nonNulls.firstOrNull
+        : successor;
     final geometryChanged =
         oldWidget.axis != widget.axis ||
         oldWidget.spacing != widget.spacing ||
         oldWidget.padding != widget.padding ||
         oldWidget.alignment != widget.alignment;
-    final identityChanged = oldKey != null && widget.children != null && retained != oldIndex;
+    final identityChanged = oldKey != null && retained != oldIndex;
     final reset = geometryChanged || identityChanged || _count < oldCount;
     _motion
       ..commitThreshold = widget.commitThreshold
@@ -339,11 +431,21 @@ class _SnapListState extends State<SnapList> {
     _motion.configure(
       itemCount: _count,
       itemStride: _motion.stride,
-      retainIndex: retained == null ? null : _pageOf(retained) + (_address(_motion.index ?? 0).$2 ? 1 : 0),
+      retainIndex: target == null
+          ? null
+          : _pageOf(target) + (!removedCurrent && wasTransient && _transients.containsKey(target) ? 1 : 0),
     );
     if (reset) {
       _nested.clear();
       _motion.reset();
+    }
+    if (settleOnTrailing || (reset && wasTrailing && widget.trailingBuilder != null)) {
+      _motion.reconcilePages(
+        pageCount: _count,
+        anchor: math.max(0, _count - 1),
+        revealTrailing: true,
+        appendedPage: null,
+      );
     }
     _scheduleChanged();
     if (widget.trailingBuilder == null) _trailingMeasured(0);
@@ -391,6 +493,7 @@ class _SnapListState extends State<SnapList> {
       return;
     }
     if (!mounted) return;
+    if (!_motion.moving) _surfaceKeys.removeWhere((_, surface) => surface.currentContext == null);
     final index = _index;
     if (widget.transientItem != null || _deferredSlots) {
       if (!_motion.moving && !_motion.dragging && (_deferredSlots || (index ?? 0) != _resolvedAt)) setState(() {});
@@ -438,14 +541,22 @@ class _SnapListState extends State<SnapList> {
 
   Widget _item(BuildContext context, int index) {
     final (mainIndex, transient) = _address(index);
-    final child = transient
+    var child = transient
         ? _transients[mainIndex]!
         : widget.children?[mainIndex] ?? widget.itemBuilder!(context, mainIndex);
+    child = _transition(index, child);
+    final key = _itemKeys[mainIndex];
+    if (!transient && widget.removalTransitionBuilder != null && key != null) {
+      child = IndexedSemantics(key: _surfaceKeys.putIfAbsent(key, GlobalKey.new), index: index, child: child);
+    } else if (widget.removalTransitionBuilder != null && widget.children == null) {
+      child = IndexedSemantics(index: index, child: child);
+    }
+
     return KeyedSubtree(
-      key: widget.children == null ? ValueKey((mainIndex, transient)) : _eagerKey(index),
+      key: _pageKey(index),
       child: ValueListenableBuilder<(int, int)>(
         valueListenable: _visible,
-        child: _transition(index, child),
+        child: child,
         builder: (context, range, child) {
           final visible = index >= range.$1 && index <= range.$2;
           return TickerMode(
@@ -482,9 +593,9 @@ class _SnapListState extends State<SnapList> {
     );
   }
 
-  Key _eagerKey(int page) {
+  Key _pageKey(int page) {
     final (index, transient) = _address(page);
-    return ValueKey((widget.children![index].key ?? index, transient));
+    return ValueKey((_itemKeys[index] ?? index, transient));
   }
 
   Widget _spacer(double extent, {Widget? child}) => SizedBox(
@@ -514,7 +625,7 @@ class _SnapListState extends State<SnapList> {
               leading: _leading,
               children: List.generate(
                 _count,
-                (index) => RepaintBoundary(key: _eagerKey(index), child: _item(context, index)),
+                (index) => RepaintBoundary(key: _pageKey(index), child: _item(context, index)),
               ),
             ),
           )
@@ -523,11 +634,13 @@ class _SnapListState extends State<SnapList> {
             itemExtent: _motion.stride,
             delegate: SliverChildBuilderDelegate(
               _item,
+              addSemanticIndexes: widget.removalTransitionBuilder == null,
               childCount: _count,
               findChildIndexCallback: (key) {
-                if (key is! ValueKey<(int, bool)>) return null;
-                final (index, transient) = key.value;
-                if (index >= _mainCount || (transient && !_transients.containsKey(index))) return null;
+                if (key is! ValueKey<(Object, bool)>) return null;
+                final (itemKey, transient) = key.value;
+                final index = _itemIndices[itemKey];
+                if (index == null || (transient && !_transients.containsKey(index))) return null;
                 return _pageOf(index) + (transient ? 1 : 0);
               },
             ),
@@ -603,7 +716,7 @@ class _SnapListState extends State<SnapList> {
     if (_direction != null && _direction != direction) _motion.reset();
     _direction = direction;
     _nested.direction = direction;
-    return Padding(
+    final content = Padding(
       padding: widget.padding,
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -660,6 +773,25 @@ class _SnapListState extends State<SnapList> {
           );
         },
       ),
+    );
+    assert(!widget.removalDuration.isNegative, 'Removal duration must be nonnegative.');
+    if (_motion.reducedMotion || widget.removalTransitionBuilder == null) {
+      _outgoing = const [];
+    }
+    return Stack(
+      fit: StackFit.expand,
+      clipBehavior: widget.clipBehavior,
+      children: [
+        content,
+        if (_outgoing.isNotEmpty)
+          _SnapListRemoval(
+            key: ObjectKey(_outgoing),
+            surfaces: _outgoing,
+            duration: widget.removalDuration,
+            builder: widget.removalTransitionBuilder!,
+            onDone: () => setState(() => _outgoing = const []),
+          ),
+      ],
     );
   }
 

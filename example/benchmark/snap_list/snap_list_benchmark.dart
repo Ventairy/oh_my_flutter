@@ -72,6 +72,7 @@ class _SnapListBenchmarkState extends State<SnapListBenchmark> {
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SnapList.builder(
+      itemKeyBuilder: ValueKey<int>.new,
       controller: _controller,
       itemCount: _count,
       itemBuilder: (context, index) {

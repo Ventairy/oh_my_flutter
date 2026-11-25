@@ -65,7 +65,11 @@ void main() {
 
   test('when using default motion, it should use neutral linear curves on both constructors', () {
     const eager = SnapList(children: []);
-    final lazy = SnapList.builder(itemCount: 0, itemBuilder: (_, _) => const SizedBox());
+    final lazy = SnapList.builder(
+      itemKeyBuilder: ValueKey<int>.new,
+      itemCount: 0,
+      itemBuilder: (_, _) => const SizedBox(),
+    );
     expect(
       (eager.curve, eager.reverseCurve, lazy.curve, lazy.reverseCurve),
       (Curves.linear, Curves.linear, Curves.linear, Curves.linear),
@@ -80,6 +84,7 @@ void main() {
           const reverseDuration = Duration(milliseconds: 100);
           final list = lazy
               ? SnapList.builder(
+                  itemKeyBuilder: ValueKey<int>.new,
                   itemCount: 0,
                   itemBuilder: (_, _) => const SizedBox(),
                   duration: duration,
@@ -248,6 +253,7 @@ void main() {
     await tester.pumpWidget(
       SnapListTestHost.app(
         SnapList.builder(
+          itemKeyBuilder: ValueKey<int>.new,
           itemCount: 10000,
           itemBuilder: (_, index) {
             builds++;

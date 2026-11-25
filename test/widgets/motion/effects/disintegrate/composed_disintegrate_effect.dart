@@ -17,8 +17,8 @@ class ComposedDisintegrateEffect extends MotionEffect {
   @override
   void apply(double progress, MotionEffectTransform transform) {
     if (scaleFirst) transform.scale(1 - 0.5 * progress);
-    transform.disintegrate(progress: progress, direction: direction, particleSize: 4);
-    if (secondStage) transform.disintegrate(progress: progress, direction: const Offset(1, 0), particleSize: 2.2);
+    transform.disintegrate(progress: progress, direction: direction);
+    if (secondStage) transform.disintegrate(progress: progress, direction: const Offset(1, 0));
     if (!scaleFirst) transform.scale(1 - 0.5 * progress);
   }
 }

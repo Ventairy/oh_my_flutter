@@ -110,6 +110,7 @@ void main() {
                       height: axis == Axis.vertical ? 300 : 200,
                       child: lazy
                           ? SnapList.builder(
+                              itemKeyBuilder: ValueKey<int>.new,
                               axis: axis,
                               spacing: spacing,
                               clipBehavior: Clip.none,
@@ -169,6 +170,7 @@ void main() {
                 width: 200,
                 height: 300,
                 child: SnapList.builder(
+                  itemKeyBuilder: ValueKey<int>.new,
                   clipBehavior: Clip.none,
                   spacing: 10,
                   itemCount: 3,
@@ -215,6 +217,7 @@ void main() {
                   width: 200,
                   height: 300,
                   child: SnapList.builder(
+                    itemKeyBuilder: ValueKey<int>.new,
                     clipBehavior: Clip.none,
                     spacing: 10,
                     cacheItemCount: 3,
@@ -277,6 +280,7 @@ void main() {
               width: 200,
               height: 300,
               child: SnapList.builder(
+                itemKeyBuilder: ValueKey<int>.new,
                 clipBehavior: Clip.none,
                 spacing: 10,
                 itemCount: 1,
@@ -325,6 +329,7 @@ void main() {
           builder: (_, setState) {
             update = setState;
             return SnapList.builder(
+              itemKeyBuilder: ValueKey<int>.new,
               clipBehavior: Clip.none,
               spacing: 20,
               controller: controller,
@@ -354,6 +359,7 @@ void main() {
           builder: (_, setState) {
             update = setState;
             return SnapList.builder(
+              itemKeyBuilder: ValueKey<int>.new,
               clipBehavior: Clip.none,
               controller: controller,
               itemCount: count,

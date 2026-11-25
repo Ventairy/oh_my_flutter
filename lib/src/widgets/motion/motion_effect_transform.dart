@@ -89,14 +89,13 @@ final class MotionEffectTransform {
   /// Breaks the current content into shrinking, fading pieces.
   ///
   /// [progress] is clamped to zero through one. [direction] is normalized;
-  /// zero disables all movement. [particleSize] uses logical source pixels.
-  /// Keep particle size and the number/order of disintegration calls constant
+  /// zero disables all movement.
+  /// Keep the number/order of disintegration calls constant
   /// throughout playback. Delay breakup by changing progress rather than
   /// conditionally calling this method. Later operations affect the pieces.
-  void disintegrate({required double progress, required Offset direction, double particleSize = defaultParticleSize}) {
+  void disintegrate({required double progress, required Offset direction}) {
     assert(progress.isFinite, 'progress must be finite.');
     assert(direction.isFinite, 'direction must be finite.');
-    assert(particleSize.isFinite && particleSize > 0, 'particleSize must be positive and finite.');
     _recordTransform();
     final operation = _nextOperation(.disintegrate);
     final largest = math.max(direction.dx.abs(), direction.dy.abs());
@@ -107,8 +106,7 @@ final class MotionEffectTransform {
       ..loopPhase = null
       ..progress = progress.clamp(0.0, 1.0)
       ..directionX = length == 0 ? 0 : x / length
-      ..directionY = length == 0 ? 0 : y / length
-      ..particleSize = particleSize;
+      ..directionY = length == 0 ? 0 : y / length;
     _resetTransform();
   }
 
@@ -175,18 +173,10 @@ final class MotionEffectTransform {
 
   static bool _validateOperationTopology(MotionEffect effect, int expected) {
     final transform = MotionEffectTransform._();
-    final sizes = <double>[];
     for (var index = 0; index <= _MotionRenderEffect._boundsSampleCount; index++) {
       transform._reset();
       effect.apply(effect.curve.transform(index / _MotionRenderEffect._boundsSampleCount), transform);
       assert(transform._operationCount == expected, 'Disintegration calls must not depend on progress.');
-      var stage = 0;
-      for (var operation = 0; operation < transform._operationCount; operation++) {
-        final value = transform._operations![operation];
-        if (value.kind != .disintegrate) continue;
-        if (index == 0) sizes.add(value.particleSize);
-        assert(sizes[stage++] == value.particleSize, 'particleSize must remain constant throughout playback.');
-      }
     }
     return true;
   }

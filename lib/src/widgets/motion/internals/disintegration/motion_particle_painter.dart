@@ -59,6 +59,7 @@ class _MotionParticlePainter extends CustomPainter {
       remainingParticles -= fragment.count;
     }
     if (capturesBlurredSource) return;
+    _atlas = _MotionParticleAtlas(image, _fragments);
     transforms = Float32List(firstParticle * 4);
     colors = Int32List(firstParticle);
     sourceRects = Float32List(firstParticle * 4);
@@ -67,6 +68,7 @@ class _MotionParticlePainter extends CustomPainter {
     }
   }
 
+  _MotionParticleAtlas? _atlas;
   final ui.Image image;
   final List<_MotionApplication> applications;
   final Duration stagger;
@@ -141,6 +143,13 @@ class _MotionParticlePainter extends CustomPainter {
     var usesBlur = false;
     for (final fragment in _fragments) {
       fragment.write(transforms, colors);
+      _atlas!.selectCells(
+        fragment,
+        transforms,
+        sourceRects,
+        count: fragment.count,
+        end: fragment.operations._operationCount,
+      );
       usesBlur = usesBlur || (blurFragments && fragment.operations._blurSigma > 0);
     }
     canvas
@@ -149,7 +158,7 @@ class _MotionParticlePainter extends CustomPainter {
     if (usesBlur) {
       _paintFilteredFragments(canvas);
     } else {
-      canvas.drawRawAtlas(image, transforms, sourceRects, colors, .srcIn, null, _paint);
+      canvas.drawRawAtlas(_atlas!.image, transforms, sourceRects, colors, .srcIn, null, _paint);
     }
     canvas.restore();
   }
@@ -167,7 +176,7 @@ class _MotionParticlePainter extends CustomPainter {
       final paint = sigma > 0 ? (_filteredPaint..imageFilter = _blur.filter(sigma)) : _paint;
       _MotionBlur.drawAtlasRange(
         canvas,
-        image,
+        _atlas!.image,
         transforms,
         sourceRects,
         colors,
@@ -180,6 +189,7 @@ class _MotionParticlePainter extends CustomPainter {
   }
 
   void dispose() {
+    _atlas?.image.dispose();
     for (final source in _blurredSources) {
       source.dispose();
     }

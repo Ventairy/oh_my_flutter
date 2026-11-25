@@ -35,6 +35,7 @@ void main() {
     await tester.pumpWidget(
       SnapListTestHost.app(
         SnapList.builder(
+          itemKeyBuilder: ValueKey<int>.new,
           clipBehavior: Clip.none,
           itemCount: 1000,
           cacheItemCount: 0,

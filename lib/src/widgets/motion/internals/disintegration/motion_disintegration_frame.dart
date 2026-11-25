@@ -69,6 +69,7 @@ class _MotionDisintegrationFrame {
   bool nativeFailed = false;
   bool _disposed = false;
   bool _playingNatively = false;
+  bool _linearPlaybackStarted = false;
   bool _submitting = false;
   bool _frameChanged = false;
   bool _hasDispatchedFrame = false;
@@ -102,16 +103,22 @@ class _MotionDisintegrationFrame {
     final application = _applications.singleOrNull;
     final effect = application?.effect;
     final animation = application?.animation;
+    if (animation is LinearTransitionProgress && _linearPlaybackStarted) return;
+    final nativeDuration = switch (animation) {
+      _MotionAnimation(:final _isRunning) when _isRunning => effect?.duration,
+      LinearTransitionProgress(:final duration, status: AnimationStatus.forward) => duration,
+      _ => null,
+    };
     final playback =
         !usesNativeGaussian &&
             effect is DisintegrateMotionEffect &&
             identical(effect.curve, Curves.linear) &&
             effect.playback.isOnce &&
-            animation is _MotionAnimation &&
-            animation._isRunning &&
+            nativeDuration != null &&
             tickersEnabled
-        ? _playNative(progress: animation.value, duration: effect.duration * (1 - animation.value))
+        ? _playNative(progress: animation!.value, duration: nativeDuration * (1 - animation.value))
         : _submitFrame(operations);
+    if (animation is LinearTransitionProgress && _playingNatively) _linearPlaybackStarted = true;
     unawaited(
       playback.then((_) {
         if (nativeFailed && !_disposed) onNativeFailure();
@@ -140,6 +147,7 @@ class _MotionDisintegrationFrame {
   Future<void> pause() async {
     if (_disposed || texture == null || nativeFailed || !_playingNatively) return;
     _playingNatively = false;
+    _linearPlaybackStarted = false;
     _playbackGeneration++;
     try {
       await channel.invokeMethod<void>('pause', _arguments);
@@ -204,7 +212,7 @@ class _MotionDisintegrationFrame {
         'scaleX': 1.0,
         'scaleY': 1.0,
         'maximumParticleCount': _MotionDisintegrationParameters.maximumParticleCount,
-        'minimumCellSize': operations._operations![1].particleSize * _pixelRatio,
+        'minimumCellSize': MotionEffectTransform.defaultParticleSize * _pixelRatio,
         'seed': _MotionDisintegrationParameters.seed,
         'pointPadding': _MotionDisintegrationShaders.pointPadding,
         'geometryParameters': _MotionDisintegrationParameters.geometryParameters,

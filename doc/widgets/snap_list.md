@@ -37,9 +37,9 @@ For larger collections, build items lazily:
 
 ```dart
 SnapList.builder(
+  itemKeyBuilder: (index) => ValueKey(entries[index].id),
   itemCount: entries.length,
   itemBuilder: (context, index) => EntryCard(
-    key: ValueKey(entries[index].id),
     entry: entries[index],
   ),
 )
@@ -47,8 +47,16 @@ SnapList.builder(
 
 Lazy children outside the visible and prepared range may be disposed. Use
 Flutter's `AutomaticKeepAliveClientMixin` when particular children must retain
-state. Appending items preserves existing positions. Lazy lists do not track
-item identity across reorderings or insertions before existing items.
+state. Appending items preserves existing positions. Use a unique key that follows each item through insertions and reorderings.
+
+## Removing items
+
+Set `removalTransitionBuilder` to animate a visible card when its key disappears.
+For example, return `FadeTransition(opacity: progress.drive(Tween<double>(begin: 1, end: 0)), child: child)`.
+The successor appears behind the outgoing item. If no successor remains, the
+list settles on its trailing content, or the previous item when there is no
+trailing content. Offscreen removals and reduced motion update immediately.
+`removalDuration` defaults to 300 ms and starts when the transition is ready.
 
 ## Size and motion
 
@@ -207,6 +215,7 @@ Trailing content has no item index.
 
 ```dart
 SnapList.builder(
+  itemKeyBuilder: (index) => ValueKey(entries[index].id),
   itemCount: entries.length,
   itemBuilder: (context, index) => EntryCard(entry: entries[index]),
   onIndexChanged: (index) {

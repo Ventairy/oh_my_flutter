@@ -8,8 +8,10 @@ class _MotionDisintegrationHost extends StatefulWidget {
     required this.interactive,
     required this.presentation,
     required this.child,
+    this.progress,
     this.stagger = Duration.zero,
     this.characterCount = 0,
+    super.key,
   });
 
   final List<MotionEffect> effects;
@@ -18,6 +20,7 @@ class _MotionDisintegrationHost extends StatefulWidget {
   final bool interactive;
   final MotionRenderPresentation presentation;
   final Widget child;
+  final Animation<double>? progress;
   final Duration stagger;
   final int characterCount;
 
@@ -36,8 +39,28 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
   bool _rebuildScheduled = false;
   bool _tickersEnabled = true;
   int _preparation = 0;
+  void Function(bool)? _finishPreparation;
+  bool _drivenPreparationStarted = false;
+  bool _drivenReady = false;
   late double _maximumBlurOutset;
   late bool _capturesBlurredSource;
+
+  void _prepareDriven() {
+    _finishPreparation?.call(true);
+    final finish = _finishPreparation = TransitionPreparationScope.hold(context);
+    _drivenReady = false;
+    final preparing = _prepare();
+    final generation = _preparation;
+    unawaited(
+      preparing.then((_) {
+        if (!mounted || generation != _preparation) return;
+        _drivenReady = _frame != null;
+        finish?.call(_drivenReady);
+        _finishPreparation = null;
+        _onFrame();
+      }),
+    );
+  }
 
   void _updateBlurOutset() {
     var sigma = 0.0;
@@ -122,12 +145,26 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
   void _onFrame() {
     final frame = _frame;
     if (!mounted || frame == null) return;
+    if (widget.progress case final progress?) {
+      if (!_drivenReady) return;
+      final wasComplete = _fullyDisintegrated;
+      _updateSourceTransform();
+      final replace = progress.value > 0 || progress.status == .forward;
+      if (_sourceReplaced != replace || wasComplete != _fullyDisintegrated) {
+        _sourceReplaced = replace;
+        _rebuild();
+      }
+      frame.update(tickersEnabled: _tickersEnabled, onNativeFailure: _rebuild);
+      return;
+    }
     final running = _applications.any((application) => application.animation.status == .forward);
     if (running && !_sourceReplaced) {
       _sourceReplaced = true;
       _rebuild();
     }
-    if (!running && _applications.every((application) => application.animation.status == .completed)) {
+    if (widget.progress == null &&
+        !running &&
+        _applications.every((application) => application.animation.status == .completed)) {
       _updateSourceTransform();
       if (_fullyDisintegrated) {
         _releaseFrame(outputRemoved: true);
@@ -144,7 +181,7 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
     _sourceReplaced = false;
     _rebuild();
     _updateSourceTransform();
-    if (_fullyDisintegrated) return;
+    if (widget.progress == null && _fullyDisintegrated) return;
     await WidgetsBinding.instance.endOfFrame;
     if (!mounted || preparation != _preparation) return;
     final boundary = _captureKey.currentContext?.findRenderObject();
@@ -227,7 +264,14 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == .resumed && widget.progress != null && !_drivenPreparationStarted) {
+      _rebuild();
+    }
     if (state != .paused) return;
+    _drivenPreparationStarted = false;
+    _drivenReady = false;
+    _finishPreparation?.call(false);
+    _finishPreparation = null;
     _preparation++;
     _releaseFrame();
     _MotionDisintegrationFrame.release(_instance);
@@ -246,36 +290,47 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
 
   @override
   Widget build(BuildContext context) {
+    if (widget.progress case final animation?) {
+      final applications = [(effect: widget.effects.single, animation: animation)];
+      if (!_drivenPreparationStarted || !listEquals(applications, _applications)) {
+        _listen(applications);
+        _drivenPreparationStarted = true;
+        _prepareDriven();
+      }
+      return _buildPresentation(applications);
+    }
     return _MotionAnimationHost(
       controller: widget.controller,
       effects: widget.effects,
       startup: widget.startup,
       interactive: widget.interactive,
       preparePlayback: _prepare,
-      transitionBuilder: (applications) {
-        _listen(applications);
-        _updateSourceTransform();
-        final frame = _frame;
-        return Stack(
-          clipBehavior: .none,
-          fit: .passthrough,
-          children: [
-            _buildSource(),
-            if (frame != null && _sourceReplaced && !_fullyDisintegrated)
-              Positioned.fromRect(
-                rect: frame.outputBounds,
-                child: IgnorePointer(
-                  child: ExcludeSemantics(
-                    child: RepaintBoundary(
-                      key: const ValueKey('motion_render_surface'),
-                      child: _buildParticleOutput(frame),
-                    ),
-                  ),
+      transitionBuilder: _buildPresentation,
+    );
+  }
+
+  Widget _buildPresentation(List<_MotionApplication> applications) {
+    _listen(applications);
+    _updateSourceTransform();
+    final frame = _frame;
+    return Stack(
+      clipBehavior: .none,
+      fit: .passthrough,
+      children: [
+        _buildSource(),
+        if (frame != null && _sourceReplaced && !_fullyDisintegrated)
+          Positioned.fromRect(
+            rect: frame.outputBounds,
+            child: IgnorePointer(
+              child: ExcludeSemantics(
+                child: RepaintBoundary(
+                  key: const ValueKey('motion_render_surface'),
+                  child: _buildParticleOutput(frame),
                 ),
               ),
-          ],
-        );
-      },
+            ),
+          ),
+      ],
     );
   }
 
@@ -293,7 +348,8 @@ class _MotionDisintegrationHostState extends State<_MotionDisintegrationHost> wi
   }
 
   Widget _buildSource() {
-    final hidden = widget.presentation == .replace && (_fullyDisintegrated || _sourceReplaced);
+    final hidden =
+        widget.presentation == .replace && (_sourceReplaced || (widget.progress == null && _fullyDisintegrated));
     final matrix = Matrix4.identity();
     var opacity = 1.0;
     if (!_sourceReplaced) {

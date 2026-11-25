@@ -1,15 +1,27 @@
 part of 'snap_list.dart';
 
 class _SnapListTransitions {
+  new() : _pixels = 0, _progress = 0, status = AnimationStatus.forward;
+
+  new snapshot(_SnapListTransitions source)
+    : _from = source._from,
+      _to = source._to,
+      _pendingIncoming = source._pendingIncoming,
+      _trailingIndex = source._trailingIndex,
+      _pixels = source._pixels,
+      _progress = source._progress,
+      _trailingDeparture = source._trailingDeparture,
+      status = source.status;
+
   final Map<int, Set<VoidCallback>> _listeners = {};
   int? _from;
   int? _to;
   int? _pendingIncoming;
   int? _trailingIndex;
-  double _pixels = 0;
-  double _progress = 0;
+  double _pixels;
+  double _progress;
   ({int index, double anchor, double extent})? _trailingDeparture;
-  AnimationStatus status = AnimationStatus.forward;
+  AnimationStatus status;
 
   ({double incoming, double outgoing, bool isReverse, bool involvesTrailing}) values(int index) => (
     incoming: index == _to ? _progress : (index == _pendingIncoming ? 0 : 1),

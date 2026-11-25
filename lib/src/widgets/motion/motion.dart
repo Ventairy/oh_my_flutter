@@ -10,6 +10,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../rendering/resting_paint_transform.dart';
+import '../transition_preparation/linear_transition_progress.dart';
+import '../transition_preparation/transition_preparation_scope.dart';
 import 'internals/disintegration/motion_particle_abi_stub.dart'
     if (dart.library.ffi) 'internals/disintegration/motion_particle_abi_native.dart';
 import 'internals/motion_platform_stub.dart' if (dart.library.io) 'dart:io' show Platform;
@@ -31,6 +33,7 @@ part 'internals/disintegration/motion_visual_operation.dart';
 part 'internals/disintegration/motion_disintegration_host.dart';
 part 'internals/disintegration/motion_particle_stage.dart';
 part 'internals/disintegration/motion_particle_blurred_source.dart';
+part 'internals/disintegration/motion_particle_atlas.dart';
 part 'internals/disintegration/motion_particle_raster.dart';
 part 'internals/disintegration/motion_particle_fragment.dart';
 part 'internals/disintegration/motion_particle_painter.dart';
@@ -99,7 +102,8 @@ class Motion extends StatelessWidget {
     this.interactive = false,
     this.renderPresentation = MotionRenderPresentation.replace,
     super.key,
-  }) : effects = null;
+  }) : effects = null,
+       progress = null;
 
   /// Creates a widget that applies [effects] concurrently to [child].
   ///
@@ -115,7 +119,26 @@ class Motion extends StatelessWidget {
     this.interactive = false,
     this.renderPresentation = MotionRenderPresentation.replace,
     super.key,
-  }) : effect = null;
+  }) : effect = null,
+       progress = null;
+
+  /// Renders [effect] at the progress supplied by a gesture or transition.
+  ///
+  /// Supply values from zero to one. Drive a tween or curve on [progress]
+  /// to control the visual. The parent owns timing and playback callbacks.
+  const new driven({
+    required MotionEffect this.effect,
+    required Animation<double> this.progress,
+    required this.child,
+    super.key,
+  }) : effects = null,
+       controller = null,
+       startup = MotionStartup.hold,
+       interactive = true,
+       renderPresentation = MotionRenderPresentation.replace;
+
+  /// External effect progress, or null for automatic playback.
+  final Animation<double>? progress;
 
   /// Single effect supplied to the default constructor.
   ///
@@ -165,13 +188,18 @@ class Motion extends StatelessWidget {
     final resolvedEffects = effect == null ? List<MotionEffect>.of(effects!) : <MotionEffect>[effect!];
     if (MotionEffectTransform._usesDisintegration(resolvedEffects)) {
       return _MotionDisintegrationHost(
+        key: ValueKey(progress != null),
         effects: resolvedEffects,
+        progress: progress,
         controller: controller,
         startup: startup,
         interactive: interactive,
         presentation: renderPresentation,
         child: child,
       );
+    }
+    if (progress case final animation?) {
+      return _MotionTransition(applications: [(effect: effect!, animation: animation)], child: child);
     }
     return _MotionAnimationHost(
       controller: controller,

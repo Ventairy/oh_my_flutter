@@ -13,6 +13,7 @@ void main() {
       Directionality(
         textDirection: TextDirection.ltr,
         child: SnapList.builder(
+          itemKeyBuilder: ValueKey<int>.new,
           controller: pager,
           itemCount: 4,
           itemBuilder: (_, index) => Center(child: Text('Item $index')),
@@ -226,6 +227,7 @@ class _TransientFixture {
       child: eager
           ? SnapList(controller: controller, transientItem: rule, children: List.generate(12, item))
           : SnapList.builder(
+              itemKeyBuilder: ValueKey<int>.new,
               controller: controller,
               transientItem: rule,
               itemCount: count,
