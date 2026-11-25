@@ -3,6 +3,8 @@ part of '../../motion.dart';
 class _MotionParticleRaster {
   new(this.image, this.fragment, {this.filterQuality = FilterQuality.none});
 
+  _MotionParticleAtlas? _atlas;
+  int _operationEnd = 0;
   final ui.Image image;
   final _MotionParticleFragment fragment;
   final FilterQuality filterQuality;
@@ -25,6 +27,7 @@ class _MotionParticleRaster {
     final operations = fragment.operations;
     final values = operations._operations!;
     final operationEnd = end ?? operations._operationCount;
+    _operationEnd = operationEnd;
     _intact = true;
     _compactedCount = null;
     var opacity = 1.0;
@@ -147,9 +150,15 @@ class _MotionParticleRaster {
   void paint(Canvas canvas, Paint paint) {
     paint.filterQuality = filterQuality;
     final count = _compactedCount;
+    var source = image;
+    if (!_intact) {
+      final atlas = (_atlas ??= _MotionParticleAtlas(image, [fragment]))
+        ..selectCells(fragment, _transforms, _sourceRects, count: count ?? fragment.count, end: _operationEnd);
+      source = atlas.image;
+    }
     if (count != null && count < fragment.count) {
       canvas.drawRawAtlas(
-        image,
+        source,
         Float32List.sublistView(_transforms, 0, count * 4),
         Float32List.sublistView(_sourceRects, 0, count * 4),
         Int32List.sublistView(_colors, 0, count),
@@ -160,7 +169,7 @@ class _MotionParticleRaster {
       return;
     }
     canvas.drawRawAtlas(
-      image,
+      source,
       _intact ? _intactTransform : _transforms,
       _intact ? _intactRect : _sourceRects,
       _intact ? _intactColor : _colors,
@@ -169,6 +178,8 @@ class _MotionParticleRaster {
       paint,
     );
   }
+
+  void dispose() => _atlas?.image.dispose();
 
   Rect? visibleBounds() {
     final colors = _intact ? _intactColor : _colors;

@@ -55,6 +55,7 @@ class _TransitionHost {
           textDirection: direction,
           child: lazy
               ? SnapList.builder(
+                  itemKeyBuilder: ValueKey<int>.new,
                   controller: controller,
                   axis: axis,
                   spacing: spacing,

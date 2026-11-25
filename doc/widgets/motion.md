@@ -361,10 +361,10 @@ MotionEffectBounds get bounds =>
 
 ## Disintegrate content
 
-`DisintegrateMotionEffect` breaks a widget into small pieces that shrink and
+`DisintegrateMotionEffect` breaks a widget into rounded particles that shrink and
 fade away. Direction controls travel rather than speed. Nonzero vectors are
 normalized; `Offset.zero` keeps every piece in place, including its random
-movement. The default desired piece size is 2.2 logical source pixels. Large
+movement. The target particle size is 2.2 logical source pixels. Large
 widgets may use larger pieces to keep the effect affordable.
 
 ```dart
@@ -411,10 +411,9 @@ before the pieces move. If blur comes before disintegration, the pieces keep the
 blur they had when breakup began. Blur applied after disintegration can keep
 changing as the pieces move. Multiple disintegration calls compose in order too.
 
-Keep the number/order of `disintegrate` calls and each call's `particleSize`
-constant throughout playback. To delay breakup, pass an interval-transformed
-progress instead of conditionally calling the method. Progress outside zero
-through one is clamped. Particle patterns are repeatable without a seed setting.
+Keep the number and order of `disintegrate` calls constant throughout playback.
+To delay breakup, pass an interval-transformed progress instead of conditionally
+calling the method. Progress outside zero through one is clamped. Particle patterns are repeatable without a seed setting.
 
 ### Keep changing content underneath
 
@@ -429,3 +428,21 @@ Captured effects need paintable Flutter content. Native platform views are not
 guaranteed to appear in captures. If preparation is unavailable, motion skips the
 visual treatment while preserving lifecycle callbacks. The same primitive works
 in `TextMotion`, with its existing typography and per-character timing rules.
+
+## Driving an effect from a transition
+
+Use `Motion.driven` for a gesture or transition that already provides progress.
+Its animation supplies the timing, easing and direction. Values can move from
+zero to one and back. Automatic playback options and callbacks on the effect
+apply to self-playing motion.
+
+```dart
+removalTransitionBuilder: (context, progress, child) => Motion.driven(
+  progress: progress,
+  effect: const DisintegrateMotionEffect(direction: Offset(-1, -1)),
+  child: child,
+),
+```
+
+SnapList keeps the outgoing child visible while the effect prepares. With an
+independent animation, a prepared effect displays the current progress.

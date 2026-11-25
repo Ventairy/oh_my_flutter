@@ -27,7 +27,9 @@ class _MotionParticleBlurredSource {
       final looped = phase != null && previousPhase != null && phase < previousPhase;
       if (phase != null) _loopPhases[index] = phase;
       if (looped || operation.progress == 0) {
-        _started.remove(index)?.image.dispose();
+        final removed = _started.remove(index);
+        removed?.dispose();
+        removed?.image.dispose();
       }
     }
 
@@ -111,7 +113,9 @@ class _MotionParticleBlurredSource {
   }
 
   void dispose() {
+    _original.dispose();
     for (final raster in _started.values) {
+      raster?.dispose();
       raster?.image.dispose();
     }
     _started.clear();

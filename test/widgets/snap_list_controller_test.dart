@@ -64,6 +64,7 @@ void main() {
     await tester.pumpWidget(
       SnapListTestHost.app(
         SnapList.builder(
+          itemKeyBuilder: ValueKey<int>.new,
           controller: controller,
           itemCount: 1000,
           itemBuilder: (_, index) {

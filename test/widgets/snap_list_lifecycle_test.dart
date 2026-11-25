@@ -36,6 +36,7 @@ void main() {
     await tester.pumpWidget(
       SnapListTestHost.app(
         SnapList.builder(
+          itemKeyBuilder: ValueKey<int>.new,
           controller: controller,
           cacheItemCount: 0,
           incomingTransitionBuilder: (_, progress, details, child) => FadeTransition(opacity: progress, child: child),
@@ -95,6 +96,7 @@ void main() {
     await tester.pumpWidget(
       SnapListTestHost.app(
         SnapList.builder(
+          itemKeyBuilder: ValueKey<int>.new,
           controller: controller,
           itemCount: 1000,
           itemBuilder: (_, i) {
@@ -114,6 +116,34 @@ void main() {
     await tester.pumpAndSettle();
     await result;
   });
+  testWidgets('when a preceding lazy item disappears, it should keep the selected keyed child and its state', (
+    tester,
+  ) async {
+    final items = ValueNotifier([0, 1, 2]);
+    final snapListController = SnapListController();
+    addTearDown(items.dispose);
+    await tester.pumpWidget(
+      SnapListTestHost.app(
+        ValueListenableBuilder(
+          valueListenable: items,
+          builder: (_, values, _) => SnapList.builder(
+            controller: snapListController,
+            itemCount: values.length,
+            itemKeyBuilder: (i) => ValueKey(values[i]),
+            itemBuilder: (_, i) => _Counter(index: values[i]),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    snapListController.jumpTo(1);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1:0'));
+    items.value = [1, 2];
+    await tester.pumpAndSettle();
+    expect((snapListController.index, find.text('1:1').hitTestable().evaluate().length), (0, 1));
+  });
+
   testWidgets('when lazy items are appended, it should retain the selected item and its state', (tester) async {
     final controller = SnapListController();
     var order = [0, 1, 2];
@@ -124,6 +154,7 @@ void main() {
           builder: (_, setState) {
             update = setState;
             return SnapList.builder(
+              itemKeyBuilder: (index) => ValueKey(order[index]),
               controller: controller,
               itemCount: order.length,
               itemBuilder: (_, i) => _Counter(key: ValueKey(order[i]), index: order[i]),

@@ -17,6 +17,15 @@ class _SnapListItemTransition extends StatefulWidget {
   final SnapListTransitionBuilder? outgoingBuilder;
   final Widget child;
 
+  _SnapListItemTransition freeze(_SnapListTransitions snapshot) => _SnapListItemTransition(
+    transitions: snapshot,
+    index: index,
+    isTrailing: isTrailing,
+    incomingBuilder: incomingBuilder,
+    outgoingBuilder: outgoingBuilder,
+    child: child,
+  );
+
   @override
   State<_SnapListItemTransition> createState() => _SnapListItemTransitionState();
 }

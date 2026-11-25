@@ -8,6 +8,7 @@ struct DisintegrateVertex {
   float2 center [[flat]];
   float2 size [[flat]];
   float alpha [[flat]];
+  float roundness [[flat]];
   float2 rotation [[flat]];
   float4 restMapping [[flat]];
 };
@@ -61,6 +62,7 @@ vertex DisintegrateVertex omf_disintegrate_vertex(
   }
   float2 screen = origin + center * outputScale;
   result.source = source;
+  result.roundness = breakup;
   result.center = screen;
   result.size = (source.zw - source.xy) * scale * outputScale * magnitude;
   float fade = clamp((life - uniforms[26]) / (1.0f - uniforms[26]), 0.0f, 1.0f);
@@ -81,6 +83,7 @@ fragment float4 omf_disintegrate_fragment(
 ) {
   float2 imageSize = float2(uniforms[0], uniforms[1]);
   float2 source;
+  float coverage = 1.0f;
   if (any(particle.restMapping.zw != 0.0f)) {
     float2 origin = float2(uniforms[4], uniforms[5]);
     float2 outputScale = float2(uniforms[6], uniforms[7]);
@@ -95,10 +98,14 @@ fragment float4 omf_disintegrate_fragment(
     delta = float2(particle.rotation.x * delta.x + particle.rotation.y * delta.y,
                    -particle.rotation.y * delta.x + particle.rotation.x * delta.y);
     if (abs(delta.x) >= particle.size.x * 0.5f || abs(delta.y) >= particle.size.y * 0.5f) discard_fragment();
-    source = mix(particle.source.xy, particle.source.zw, delta / particle.size + 0.5f);
+    float2 local = delta / particle.size;
+    float radiusSquared = 4.0f * dot(local, local);
+    float feather = min(1.0f, 2.0f / max(1.0f, min(particle.size.x, particle.size.y)));
+    coverage -= particle.roundness * smoothstep(1.0f - feather, 1.0f + feather, radiusSquared);
+    source = mix(particle.source.xy, particle.source.zw, local + 0.5f);
   }
   constexpr sampler sourceSampler(coord::normalized, address::clamp_to_edge, filter::nearest);
-  return image.sample(sourceSampler, source / imageSize) * particle.alpha;
+  return image.sample(sourceSampler, source / imageSize) * (particle.alpha * coverage);
 }
 
 struct DisintegrateGaussianUniforms {

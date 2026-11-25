@@ -1,8 +1,11 @@
 part of '../../motion.dart';
 
 class _MotionParticleStage {
-  new({required this.bounds, required double particleSize, required int budget}) {
-    final cellSize = math.max(particleSize, math.sqrt(bounds.width * bounds.height / budget));
+  new({required this.bounds, required int budget}) {
+    final cellSize = math.max(
+      MotionEffectTransform.defaultParticleSize,
+      math.sqrt(bounds.width * bounds.height / budget),
+    );
     columns = math.min((bounds.width / cellSize).ceil(), budget);
     rows = math.max(1, math.min((bounds.height / cellSize).ceil(), budget ~/ columns));
   }

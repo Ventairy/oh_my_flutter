@@ -5,9 +5,7 @@ class ConfiguredDisintegrateEffect extends MotionEffect {
   const new({
     this.progress,
     this.direction = Offset.zero,
-    this.particleSize = 2.2,
     this.changeTopology = false,
-    this.changeSize = false,
     this.declaredBounds,
     super.playback,
     super.onStart,
@@ -18,9 +16,7 @@ class ConfiguredDisintegrateEffect extends MotionEffect {
 
   final double? progress;
   final Offset direction;
-  final double particleSize;
   final bool changeTopology;
-  final bool changeSize;
   final MotionEffectBounds? declaredBounds;
 
   @override
@@ -31,7 +27,6 @@ class ConfiguredDisintegrateEffect extends MotionEffect {
     transform.disintegrate(
       progress: progress ?? value,
       direction: direction,
-      particleSize: changeSize ? particleSize + value : particleSize,
     );
     if (changeTopology && value > 0) transform.disintegrate(progress: value, direction: direction);
   }

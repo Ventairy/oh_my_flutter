@@ -21,6 +21,7 @@ void main() {
             valueListenable: height,
             builder: (_, value, child) => SizedBox(width: 390, height: value, child: child),
             child: SnapList.builder(
+              itemKeyBuilder: ValueKey<int>.new,
               controller: snapController,
               clipBehavior: Clip.none,
               spacing: 10,

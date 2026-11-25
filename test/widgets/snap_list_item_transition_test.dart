@@ -47,6 +47,7 @@ void main() {
         SnapListTestHost.app(
           lazy
               ? SnapList.builder(
+                  itemKeyBuilder: ValueKey<int>.new,
                   controller: controller,
                   itemCount: 5,
                   cacheItemCount: 0,
@@ -91,6 +92,7 @@ void main() {
           builder: (_, setState) {
             update = setState;
             return SnapList.builder(
+              itemKeyBuilder: ValueKey<int>.new,
               controller: controller,
               itemCount: count,
               duration: const Duration(milliseconds: 400),

@@ -1,3 +1,9 @@
+## 0.33.0
+
+- **Breaking:** Supply stable item keys to `SnapList.builder` to keep your place when items move or disappear. Animate visible removals with a custom widget and settle on trailing content after the last item.
+- **Breaking:** Motion disintegration now dissolves into rounded particles. Remove the `particleSize` argument from built-in and custom effects.
+- Drive a Motion effect from an external animation with `Motion.driven`.
+
 ## 0.32.0
 
 - Check whether an iPhone or iPad app was installed through TestFlight with `await isTestFlight`.

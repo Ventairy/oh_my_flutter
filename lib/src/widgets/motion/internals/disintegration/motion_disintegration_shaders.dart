@@ -32,6 +32,7 @@ flat out vec4 vSource;
 flat out vec2 vCenter;
 flat out vec2 vSize;
 flat out float vAlpha;
+flat out float vRoundness;
 flat out vec2 vRotation;
 flat out vec4 vRestMapping;
 void main() {
@@ -63,6 +64,7 @@ void main() {
     }
     vec2 screen = uOrigin + center * uScale;
     vSource = aSource;
+    vRoundness = breakup;
     vCenter = vec2(screen.x, uViewport.y - screen.y);
     vSize = (aSource.zw - aSource.xy) * scale * uScale * magnitude;
     float fade = clamp((life - ${_MotionDisintegrationParameters.fadeStart}) / ${1 - _MotionDisintegrationParameters.fadeStart}, 0.0, 1.0);
@@ -89,11 +91,13 @@ flat in vec4 vSource;
 flat in vec2 vCenter;
 flat in vec2 vSize;
 flat in float vAlpha;
+flat in float vRoundness;
 flat in vec2 vRotation;
 flat in vec4 vRestMapping;
 out vec4 fragColor;
 void main() {
     vec2 source;
+    float coverage = 1.0;
     if (any(notEqual(vRestMapping.zw, vec2(0.0)))) {
         vec2 screen = vec2(gl_FragCoord.x, uViewport.y - gl_FragCoord.y);
         vec2 delta = (screen - uOrigin) / uScale - vRestMapping.xy;
@@ -107,9 +111,13 @@ void main() {
         delta = vec2(vRotation.x * delta.x + vRotation.y * delta.y,
                     -vRotation.y * delta.x + vRotation.x * delta.y);
         if (abs(delta.x) >= vSize.x * 0.5 || abs(delta.y) >= vSize.y * 0.5) discard;
-        source = mix(vSource.xy, vSource.zw, delta / vSize + 0.5);
+        vec2 local = delta / vSize;
+        float radiusSquared = 4.0 * dot(local, local);
+        float feather = min(1.0, 2.0 / max(1.0, min(vSize.x, vSize.y)));
+        coverage -= vRoundness * smoothstep(1.0 - feather, 1.0 + feather, radiusSquared);
+        source = mix(vSource.xy, vSource.zw, local + 0.5);
     }
-    fragColor = texture(uImage, source / uImageSize) * vAlpha;
+    fragColor = texture(uImage, source / uImageSize) * (vAlpha * coverage);
 }
 ''';
 }

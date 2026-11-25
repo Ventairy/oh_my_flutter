@@ -34,6 +34,7 @@ class _TransitionDetailsHost {
       SnapListTestHost.app(
         lazy
             ? SnapList.builder(
+                itemKeyBuilder: ValueKey<int>.new,
                 clipBehavior: Clip.none,
                 itemCount: count,
                 itemBuilder: (_, index) => SizedBox.expand(key: ValueKey(index)),
