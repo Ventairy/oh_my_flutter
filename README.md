@@ -303,6 +303,12 @@ Brazil, including established extensions for additional territories. It can
 do things such as finding a country from a saved code and supplying its
 primary calling code for a phone input.
 
+### Email
+
+`Email` lets an app work with an address. It can do things
+such as open a draft to a support address with the user's question filled in,
+ready for them to review and send.
+
 ### Phone number
 
 `PhoneNumber` lets applications parse, validate, display, and call complete
@@ -314,7 +320,7 @@ national format while returning its country and international value.
 ### Handle input
 
 `HandleTextInputFormatter` keeps account-handle entry free of `@` prefixes and
-whitespace. It can do things such as turn a pasted ` @Some.Name ` into
+whitespace. It can do things such as turn a pasted `@Some.Name` into
 `Some.Name` while preserving case and Unicode.
 
 ### WhatsApp
