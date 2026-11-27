@@ -1,3 +1,7 @@
+## 0.34.0
+
+- Parse an email address with `Email` and open a draft with an optional body and subject.
+
 ## 0.33.0
 
 - **Breaking:** Supply stable item keys to `SnapList.builder` to keep your place when items move or disappear. Animate visible removals with a custom widget and settle on trailing content after the last item.

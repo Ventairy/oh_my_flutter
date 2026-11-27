@@ -20,6 +20,7 @@ export 'src/device/device_location/device_location_coordinates.dart' show Device
 export 'src/device/device_location/device_location_permission_status.dart' show DeviceLocationPermissionStatus;
 export 'src/device/device_sim/device_sim.dart' show DeviceSim;
 export 'src/dio_interceptors/offline_error_dio_interceptor.dart' show OfflineErrorDioInterceptor;
+export 'src/email.dart' show Email;
 export 'src/exceptions/debouncer_canceled_exception.dart' show DebouncerCanceledException;
 export 'src/exceptions/device_accelerometer_exception.dart' show DeviceAccelerometerException;
 export 'src/exceptions/device_accelerometer_exception_reason.dart' show DeviceAccelerometerExceptionReason;
